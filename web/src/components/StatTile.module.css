@@ -1,0 +1,58 @@
+.tile {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  padding: 20px 22px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.value {
+  font-family: var(--font-display);
+  font-size: 32px;
+  font-weight: 800;
+  color: var(--ink);
+  letter-spacing: -0.03em;
+  line-height: 1;
+  display: flex;
+  align-items: baseline;
+  gap: 3px;
+}
+
+.unit {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--ink-3);
+  letter-spacing: 0;
+}
+
+.label {
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--ink-4);
+  margin-top: 4px;
+}
+
+.sub {
+  font-size: 12px;
+  color: var(--ink-3);
+}
+
+/* Tone variants */
+.aman {
+  background: var(--status-ok-bg);
+  border-color: rgba(46, 158, 107, 0.2);
+}
+
+.perhatian {
+  background: var(--status-caution-bg);
+  border-color: rgba(214, 146, 25, 0.2);
+}
+
+.waspada {
+  background: var(--status-alert-bg);
+  border-color: rgba(214, 69, 90, 0.2);
+}

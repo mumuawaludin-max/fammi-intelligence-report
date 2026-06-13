@@ -1,0 +1,5 @@
+node_modules/
+web/.env.local
+web/dist/
+gas/.clasp.json
+.DS_Store

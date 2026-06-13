@@ -1,0 +1,7 @@
+{
+  "scriptId": "SCRIPT_ID_DARI_GOOGLE",
+  "rootDir": ".",
+  "projectIdSettings": {
+    "projectId": "PROJECT_ID_OPTIONAL"
+  }
+}

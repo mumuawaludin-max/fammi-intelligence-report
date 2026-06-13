@@ -1,0 +1,39 @@
+.ribbon {
+  margin-top: 32px;
+}
+
+.headingRow {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  margin-bottom: 16px;
+}
+
+/* Geser SampleTag agar sejajar baris judul */
+.headingRow > :last-child:not(:first-child) {
+  margin-top: 3px;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 14px;
+}
+
+@media (min-width: 640px) {
+  .grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (min-width: 960px) {
+  .grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+.empty {
+  font-size: 14px;
+  color: var(--ink-4);
+  padding: 24px 0;
+}

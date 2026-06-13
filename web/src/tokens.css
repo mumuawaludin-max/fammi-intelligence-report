@@ -1,0 +1,79 @@
+/* ============================================================
+   Fammi Intelligence Report — Design Tokens
+   Sumber: CLAUDE.md, handoff Claude Design
+   Jangan menambah warna atau font di luar berkas ini.
+   ============================================================ */
+
+/* --- Google Fonts via @fontsource --- */
+@import "@fontsource/plus-jakarta-sans/400.css";
+@import "@fontsource/plus-jakarta-sans/500.css";
+@import "@fontsource/plus-jakarta-sans/600.css";
+@import "@fontsource/plus-jakarta-sans/700.css";
+@import "@fontsource/plus-jakarta-sans/800.css";
+@import "@fontsource/space-grotesk/400.css";
+@import "@fontsource/space-grotesk/500.css";
+@import "@fontsource/space-grotesk/600.css";
+@import "@fontsource/space-grotesk/700.css";
+@import "@fontsource/jetbrains-mono/400.css";
+
+:root {
+  /* ---- Font families ---- */
+  --font-body:    "Plus Jakarta Sans", system-ui, sans-serif;
+  --font-display: "Space Grotesk", system-ui, sans-serif;
+  --font-mono:    "JetBrains Mono", ui-monospace, monospace;
+
+  /* ---- Ungu utama ---- */
+  --purple-050: #F4EFFD;
+  --purple-100: #EDE6FB;
+  --purple-300: #B79CF0;
+  --purple-600: #6323DA;
+  --purple-700: #5418C2;
+
+  /* ---- Tinta ---- */
+  --ink:   #211B2E;
+  --ink-2: #4A4458;
+  --ink-3: #7C7689;
+  --ink-4: #A8A2B4;
+
+  /* ---- Latar hangat ---- */
+  --bg:           #F6F2EB;
+  --bg-2:         #F1ECE3;
+  --surface:      #FFFFFF;
+  --surface-soft: #FBF9F5;
+
+  /* ---- Garis ---- */
+  --line:      #ECE6F3;
+  --line-warm: #E7E0D5;
+
+  /* ---- Status: Aman ---- */
+  --status-safe:    #2E9E6B;
+  --status-safe-bg: #E7F4EE;
+  --status-ok:      #2E9E6B;
+  --status-ok-bg:   #E7F4EE;
+
+  /* ---- Status: Perlu perhatian ---- */
+  --status-warn:        #D69219;
+  --status-warn-bg:     #FAF1DC;
+  --status-caution:     #D69219;
+  --status-caution-bg:  #FAF1DC;
+
+  /* ---- Status: Waspada ---- */
+  --status-alert:     #D6455A;
+  --status-alert-bg:  #FBE7EA;
+
+  /* ---- Radius ---- */
+  --radius-sm: 12px;
+  --radius-md: 16px;
+  --radius-lg: 22px;
+  --radius-xl: 28px;
+
+  /* ---- Bayangan ---- */
+  --shadow-card: 0 1px 4px 0 rgba(33, 27, 46, 0.06),
+                 0 4px 16px 0 rgba(33, 27, 46, 0.05);
+  --shadow-hero: 0 4px 32px 0 rgba(99, 35, 218, 0.10),
+                 0 1px 6px  0 rgba(33, 27, 46, 0.07);
+
+  /* ---- Durasi transisi ---- */
+  --transition-fast: 150ms ease;
+  --transition-base: 250ms ease;
+}

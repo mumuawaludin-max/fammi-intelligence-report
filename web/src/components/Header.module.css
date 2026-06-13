@@ -1,0 +1,144 @@
+.header {
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  background: var(--surface);
+  border-bottom: 1px solid var(--line);
+  box-shadow: 0 1px 0 0 var(--line);
+}
+
+.inner {
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 0 24px;
+  height: 60px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+/* Logo */
+.logo {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.logoMark {
+  width: 32px;
+  height: 32px;
+  background: var(--purple-600);
+  color: #fff;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 16px;
+}
+
+.logoText {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 16px;
+  color: var(--ink);
+  letter-spacing: -0.3px;
+}
+
+.logoText em {
+  font-style: normal;
+  color: var(--purple-600);
+}
+
+/* Kanan */
+.right {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.schoolName {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ink-3);
+  display: none;
+}
+
+@media (min-width: 640px) {
+  .schoolName {
+    display: block;
+  }
+}
+
+.userChip {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 4px 12px 4px 4px;
+  border-radius: var(--radius-xl);
+  background: var(--surface-soft);
+  border: 1px solid var(--line);
+  cursor: pointer;
+  transition: background var(--transition-fast);
+}
+
+.userChip:hover {
+  background: var(--purple-050);
+  border-color: var(--purple-300);
+}
+
+.avatar {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background: var(--purple-600);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 13px;
+  flex-shrink: 0;
+}
+
+.userInfo {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.userName {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--ink);
+  line-height: 1.2;
+}
+
+.rolePill {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--purple-600);
+  background: var(--purple-050);
+  border-radius: 100px;
+  padding: 1px 6px;
+  line-height: 1.5;
+}
+
+.logoutBtn {
+  padding: 6px 12px;
+  font-size: 12px;
+  font-weight: 700;
+  font-family: var(--font-body);
+  color: var(--ink-3);
+  background: transparent;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: color var(--transition-fast), border-color var(--transition-fast);
+}
+
+.logoutBtn:hover {
+  color: var(--status-alert);
+  border-color: var(--status-alert);
+}

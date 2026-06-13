@@ -1,0 +1,82 @@
+.hero {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-xl);
+  padding: 28px 32px 24px;
+  box-shadow: var(--shadow-card);
+  position: relative;
+  overflow: hidden;
+}
+
+/* Aksen ungu tipis di sisi kiri */
+.hero::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 4px;
+  background: linear-gradient(180deg, var(--purple-600) 0%, var(--purple-300) 100%);
+  border-radius: 4px 0 0 4px;
+}
+
+.top {
+  margin-bottom: 14px;
+}
+
+.periodRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.periodPill {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--purple-600);
+  background: var(--purple-050);
+  border: 1px solid var(--purple-100);
+  border-radius: 100px;
+  padding: 2px 10px;
+}
+
+.periodText {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ink-3);
+}
+
+.teks {
+  font-size: 16px;
+  font-weight: 500;
+  color: var(--ink);
+  line-height: 1.65;
+  margin: 0 0 18px;
+  max-width: 720px;
+}
+
+.sumber {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.sumberLabel {
+  font-size: 12px;
+  color: var(--ink-4);
+  font-weight: 500;
+}
+
+.sumberTag {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--ink-3);
+  background: var(--bg-2);
+  border: 1px solid var(--line-warm);
+  border-radius: 100px;
+  padding: 2px 10px;
+}

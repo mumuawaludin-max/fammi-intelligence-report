@@ -1,0 +1,243 @@
+/* Dark-theme variables scoped to the Siswa page */
+.siswaRoot {
+  --s-bg: #0C0817;
+  --s-surface: rgba(255, 255, 255, 0.05);
+  --s-surface-hover: rgba(255, 255, 255, 0.08);
+  --s-border: rgba(255, 255, 255, 0.09);
+  --s-ungu: #9D6BFF;
+  --s-ungu-bright: #B68CFF;
+  --s-ink: #F5F2FC;
+  --s-ink-2: rgba(245, 242, 252, 0.76);
+  --s-ink-3: rgba(245, 242, 252, 0.52);
+  --s-ink-4: rgba(245, 242, 252, 0.34);
+
+  position: fixed;
+  inset: 0;
+  background: var(--s-bg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: "Plus Jakarta Sans", sans-serif;
+  color: var(--s-ink);
+  overflow: hidden;
+}
+
+/* Aurora gradient background */
+.aurora {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  background:
+    radial-gradient(ellipse 60% 50% at 20% 10%, rgba(109, 40, 217, 0.28) 0%, transparent 70%),
+    radial-gradient(ellipse 50% 40% at 80% 20%, rgba(157, 107, 255, 0.15) 0%, transparent 60%),
+    radial-gradient(ellipse 40% 60% at 50% 90%, rgba(76, 29, 149, 0.20) 0%, transparent 70%);
+}
+
+/* Phone frame wrapper */
+.phone {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  max-width: 440px;
+  height: 100%;
+  max-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+
+  /* subtle border on desktop to show phone outline */
+  @media (min-width: 480px) {
+    border-left: 1px solid rgba(255, 255, 255, 0.08);
+    border-right: 1px solid rgba(255, 255, 255, 0.08);
+  }
+}
+
+/* ── Header ─────────────────────────────────────────────────────────────────── */
+.sHeader {
+  flex-shrink: 0;
+  padding: 12px 18px 14px;
+  background: rgba(12, 8, 23, 0.70);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+}
+
+.sHeaderTop {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 14px;
+}
+
+.sLogo {
+  font-family: "Space Grotesk", sans-serif;
+  font-weight: 800;
+  font-size: 17px;
+  color: #fff;
+  letter-spacing: -.02em;
+}
+
+.sLogoutBtn {
+  width: 32px;
+  height: 32px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.07);
+  border: 1px solid rgba(255, 255, 255, 0.10);
+  color: rgba(245, 242, 252, 0.52);
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+  transition: background 0.18s, color 0.18s;
+}
+.sLogoutBtn:hover {
+  background: rgba(157, 107, 255, 0.20);
+  color: #B68CFF;
+}
+
+.sHeaderProfile {
+  display: flex;
+  align-items: center;
+  gap: 13px;
+}
+
+.sAvatar {
+  width: 46px;
+  height: 46px;
+  border-radius: 16px;
+  background: linear-gradient(135deg, #B68CFF 0%, #6D28D9 100%);
+  color: #fff;
+  font-size: 20px;
+  font-weight: 800;
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  box-shadow: 0 6px 20px rgba(124, 58, 237, 0.5);
+}
+
+.sHeaderName {
+  margin: 4px 0 0;
+  font-size: 17px;
+  font-weight: 800;
+  letter-spacing: -.02em;
+  color: #fff;
+  line-height: 1.15;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* ── Scrollable body ─────────────────────────────────────────────────────────── */
+.sMain {
+  flex: 1;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+}
+
+.sContent {
+  padding: 20px 18px 24px;
+}
+
+/* ── Glass card ──────────────────────────────────────────────────────────────── */
+.sCard {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  border-radius: 22px;
+}
+
+/* ── Quick tiles (stat row on Beranda) ───────────────────────────────────────── */
+.stile {
+  flex: 1;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  border-radius: 18px;
+  padding: 14px 13px 13px;
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+  cursor: pointer;
+  text-align: left;
+  transition: background 0.18s, border-color 0.18s;
+}
+.stile:hover {
+  background: rgba(157, 107, 255, 0.12);
+  border-color: rgba(157, 107, 255, 0.28);
+}
+.stileIcon {
+  width: 32px;
+  height: 32px;
+  border-radius: 10px;
+  background: rgba(157, 107, 255, 0.20);
+  color: #B68CFF;
+  display: grid;
+  place-items: center;
+}
+
+/* ── Jump link row ───────────────────────────────────────────────────────────── */
+.sjump {
+  display: flex;
+  align-items: center;
+  gap: 13px;
+  padding: 14px 16px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  border-radius: 18px;
+  cursor: pointer;
+  text-align: left;
+  transition: background 0.18s, border-color 0.18s;
+  width: 100%;
+}
+.sjump:hover {
+  background: rgba(157, 107, 255, 0.10);
+  border-color: rgba(157, 107, 255, 0.22);
+}
+
+/* ── Bottom nav ──────────────────────────────────────────────────────────────── */
+.sBottomNav {
+  flex-shrink: 0;
+  display: flex;
+  align-items: stretch;
+  padding: 8px 8px 12px;
+  background: rgba(12, 8, 23, 0.85);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border-top: 1px solid rgba(255, 255, 255, 0.07);
+  gap: 2px;
+}
+
+.sNavBtn {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 6px 4px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: rgba(245, 242, 252, 0.38);
+  font-size: 10.5px;
+  font-weight: 600;
+  font-family: "Plus Jakarta Sans", sans-serif;
+  transition: color 0.18s;
+}
+.sNavBtn:hover {
+  color: rgba(245, 242, 252, 0.70);
+}
+.sNavActive {
+  color: #B68CFF;
+}
+
+.sNavPill {
+  width: 44px;
+  height: 32px;
+  display: grid;
+  place-items: center;
+  border-radius: 99px;
+  transition: background 0.22s;
+}
+.sNavPillActive {
+  background: rgba(157, 107, 255, 0.28);
+  box-shadow: 0 0 16px rgba(157, 107, 255, 0.32);
+}

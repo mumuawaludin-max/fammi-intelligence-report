@@ -1,0 +1,477 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PRD Fammi Intelligence Report V1</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --paper:#faf8f4;
+    --card:#fffdfa;
+    --ink:#2d2a33;
+    --ink-soft:#5d5866;
+    --purple:#6b4fa0;
+    --purple-deep:#56407f;
+    --purple-soft:#f1ecf7;
+    --line:#e7e1d8;
+    --line-soft:#efeae2;
+  }
+  *{box-sizing:border-box;}
+  html{-webkit-text-size-adjust:100%;}
+  body{
+    margin:0;
+    background:var(--paper);
+    color:var(--ink);
+    font-family:'Nunito',sans-serif;
+    font-size:17px;
+    font-weight:500;
+    line-height:1.78;
+    letter-spacing:.1px;
+  }
+  .page{
+    max-width:800px;
+    margin:0 auto;
+    padding:64px 28px 96px;
+  }
+  p{margin:0 0 1.05rem;}
+  strong{font-weight:700;}
+
+  /* Cover */
+  .cover{
+    border-bottom:1px solid var(--line);
+    padding-bottom:34px;
+    margin-bottom:48px;
+  }
+  .eyebrow{
+    font-size:13px;
+    font-weight:700;
+    letter-spacing:1.6px;
+    text-transform:uppercase;
+    color:var(--purple);
+    margin-bottom:14px;
+  }
+  h1{
+    font-size:33px;
+    font-weight:800;
+    line-height:1.2;
+    margin:0 0 18px;
+    letter-spacing:-.2px;
+  }
+  .meta{
+    display:flex;
+    flex-wrap:wrap;
+    gap:8px 28px;
+    font-size:14.5px;
+    color:var(--ink-soft);
+    font-weight:600;
+  }
+  .meta span b{color:var(--ink);font-weight:700;}
+
+  /* Headings */
+  h2{
+    font-size:23px;
+    font-weight:800;
+    letter-spacing:-.2px;
+    margin:54px 0 16px;
+    padding-top:26px;
+    border-top:1px solid var(--line-soft);
+    display:flex;
+    align-items:baseline;
+    gap:12px;
+  }
+  h2 .num{
+    color:var(--purple);
+    font-weight:800;
+    font-size:18px;
+    flex:none;
+  }
+  h3{
+    font-size:18px;
+    font-weight:800;
+    margin:34px 0 10px;
+    color:var(--purple-deep);
+  }
+
+  ul{margin:0 0 1.1rem;padding-left:1.25rem;}
+  li{margin-bottom:7px;line-height:1.65;}
+  li::marker{color:var(--purple);}
+
+  /* Callout */
+  .callout{
+    background:var(--purple-soft);
+    border-left:3px solid var(--purple);
+    border-radius:12px;
+    padding:18px 22px;
+    margin:24px 0;
+  }
+  .callout p:last-child{margin-bottom:0;}
+
+  /* Role table */
+  .tbl{
+    width:100%;
+    border-collapse:collapse;
+    margin:18px 0 8px;
+    font-size:15.5px;
+  }
+  .tbl th,.tbl td{
+    text-align:left;
+    padding:11px 14px;
+    border-bottom:1px solid var(--line);
+    vertical-align:top;
+    line-height:1.55;
+  }
+  .tbl th{
+    font-weight:800;
+    color:var(--purple-deep);
+    background:var(--line-soft);
+    font-size:14px;
+    letter-spacing:.2px;
+  }
+  .tbl tr td:first-child{font-weight:700;white-space:nowrap;}
+
+  /* Story cards */
+  .story{
+    background:var(--card);
+    border:1px solid var(--line);
+    border-radius:16px;
+    padding:22px 24px;
+    margin:16px 0;
+  }
+  .story .tag{
+    font-size:12.5px;
+    font-weight:800;
+    letter-spacing:1px;
+    text-transform:uppercase;
+    color:var(--purple);
+    margin-bottom:9px;
+  }
+  .story .want{
+    font-size:17.5px;
+    font-weight:700;
+    line-height:1.55;
+    margin:0 0 14px;
+  }
+  .story .ac-label{
+    font-size:13px;
+    font-weight:700;
+    letter-spacing:.4px;
+    text-transform:uppercase;
+    color:var(--ink-soft);
+    margin-bottom:6px;
+  }
+  .story ul{margin:0;}
+  .story li{font-size:15.5px;}
+
+  .flow{
+    counter-reset:step;
+    list-style:none;
+    padding-left:0;
+  }
+  .flow li{
+    position:relative;
+    padding-left:42px;
+    margin-bottom:13px;
+    min-height:28px;
+  }
+  .flow li::before{
+    counter-increment:step;
+    content:counter(step);
+    position:absolute;
+    left:0;top:0;
+    width:28px;height:28px;
+    background:var(--purple-soft);
+    color:var(--purple-deep);
+    border-radius:50%;
+    font-weight:800;
+    font-size:14px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+  }
+
+  .note{
+    font-size:14.5px;
+    color:var(--ink-soft);
+    font-style:normal;
+  }
+
+  @media (max-width:560px){
+    body{font-size:16px;}
+    .page{padding:44px 18px 72px;}
+    h1{font-size:27px;}
+    h2{font-size:21px;}
+  }
+  @media print{
+    body{background:#fff;}
+    .story,.callout{break-inside:avoid;}
+    h2{break-after:avoid;}
+  }
+</style>
+</head>
+<body>
+<div class="page">
+
+  <header class="cover">
+    <div class="eyebrow">Product Requirements Document</div>
+    <h1>Fammi Intelligence Report V1</h1>
+    <div class="meta">
+      <span>Versi <b>Draft 1.0</b></span>
+      <span>Tanggal <b>30 Mei 2026</b></span>
+      <span>Pemilik produk <b>Kak Mumu</b></span>
+      <span>Status <b>Untuk ditinjau</b></span>
+    </div>
+  </header>
+
+  <h2><span class="num">1</span> Ringkasan produk</h2>
+  <p>FIR adalah satu tempat bagi tiap peran di ekosistem sekolah untuk membaca hasil asesmen Fammi sekaligus tahu langkah lanjutannya. Sampai hari ini FIR belum punya wujud nyata, walau namanya sudah muncul di homepage Fammi sebagai dashboard berbasis AI. Dokumen ini mengikat skema data yang sudah dirancang ke kebutuhan tiap peran, dengan kriteria penerimaan yang bisa diuji.</p>
+  <p>Ada satu hal yang membedakan FIR dari dashboard biasa. FIR tidak berhenti pada angka. FIR mengubah angka menjadi rekomendasi tindak lanjut yang jelas untuk sekolah, dirumuskan di hulu dan ditinjau ahli sebelum tampil. Bagian inilah yang paling sulit ditiru, sehingga saya perlakukan sebagai inti produk, bukan fitur tambahan.</p>
+
+  <h2><span class="num">2</span> Masalah yang dipecahkan</h2>
+  <p>Sekolah menerima banyak laporan asesmen, tetapi laporan itu sering berhenti sebagai dokumen. Guru membaca, mengangguk, lalu bingung harus berbuat apa. Datanya ada, arah tindakannya tidak. Orang tua kerap tidak pernah melihat hasil anaknya dalam bentuk yang bisa dipakai di rumah. Pimpinan sulit membandingkan kondisi antar kelas atau antar waktu karena tiap laporan berdiri sendiri.</p>
+  <p>FIR menutup jarak antara data dan tindakan, lalu menaruh tindakan itu di depan mata orang yang tepat pada waktu yang tepat.</p>
+
+  <h2><span class="num">3</span> Tujuan dan batas tujuan</h2>
+  <p>Tujuan yang dikejar V1:</p>
+  <ul>
+    <li>Menyatukan tiga modul asesmen dalam satu pintu, disaring per peran dan per periode.</li>
+    <li>Menampilkan rekomendasi tindak lanjut sekolah yang sudah tergrounding dan sudah ditinjau ahli.</li>
+    <li>Memberi orang tua dan siswa akses ke laporan yang relevan bagi mereka di ponsel.</li>
+    <li>Menjaga data asesmen yang sensitif tetap di tangan pihak yang berhak.</li>
+  </ul>
+  <p>Hal yang sengaja belum dikejar V1:</p>
+  <ul>
+    <li>Pelacakan status pengerjaan tindak lanjut. Itu masuk V2.</li>
+    <li>Tindak lanjut tingkat individu untuk Karakter dan Screening. Hanya MI yang individu di V1.</li>
+    <li>Perhitungan apa pun di dalam FIR. Semua angka sudah final sebelum dibaca.</li>
+  </ul>
+
+  <h2><span class="num">4</span> Ruang lingkup V1</h2>
+  <p>FIR V1 melayani tiga modul, yaitu Rapor Karakter, Screening Perilaku dan Mental Anak, serta Multiple Intelligence. Modul yang menyala di dashboard hanya yang dilanggan sekolah tersebut, jadi tampilan tiap sekolah bisa berbeda.</p>
+  <p>Untuk tindak lanjut, V1 menampilkan item tingkat sekolah dan kelas untuk semua modul, ditambah item tingkat individu khusus Multiple Intelligence. Tindak lanjut individu untuk Karakter dan Screening menyusul di V2, bersama pelacakan statusnya.</p>
+
+  <h2><span class="num">5</span> Peran dan kebutuhannya</h2>
+  <p>FIR punya satu pintu login untuk enam peran. Tampilan dan datanya disaring sesuai peran dan unit datanya.</p>
+  <table class="tbl">
+    <thead>
+      <tr><th>Peran</th><th>Fokus utama</th><th>Prioritas perangkat</th></tr>
+    </thead>
+    <tbody>
+      <tr><td>Admin Fammi</td><td>Ingestion data, gerbang persetujuan tindak lanjut, atur langganan dan pengguna</td><td>Desktop</td></tr>
+      <tr><td>Yayasan</td><td>Perbandingan antar sekolah, kebijakan lintas sekolah</td><td>Desktop</td></tr>
+      <tr><td>Kepala Sekolah</td><td>Ringkasan sekolah, tindak lanjut tepat sasaran</td><td>Desktop</td></tr>
+      <tr><td>Wali Kelas</td><td>Manajemen kelas, tindak lanjut kelas dan murid (MI)</td><td>Desktop</td></tr>
+      <tr><td>Orang Tua</td><td>Laporan anak sendiri, pendampingan di rumah</td><td>Mobile</td></tr>
+      <tr><td>Siswa</td><td>Laporan Multiple Intelligence dirinya sendiri</td><td>Mobile</td></tr>
+    </tbody>
+  </table>
+
+  <h2><span class="num">6</span> Prinsip yang mengikat desain</h2>
+  <p>Apps Script adalah satu-satunya gerbang. Browser tidak pernah membaca Sheets langsung. Setiap permintaan lewat gerbang, dicek perannya, kapabilitasnya, lalu cakupannya, baru data yang diizinkan dikirim.</p>
+  <p>FIR tidak menghitung apa pun di V1. Skor, status, agregat, dominan, dan tindak lanjut sudah final di hulu. FIR membaca, menyaring, lalu menampilkan.</p>
+  <p>Satu mesin tampilan melayani tiga modul. Perbedaan antar modul tinggal di sheet konfigurasi, bukan di kode. Menambah modul baru nanti cukup menambah baris konfigurasi.</p>
+  <p>File periode yang dikirim tim berstatus staging. Sebuah langkah ingestion memasukkannya ke tempat simpan utama dan menandai periodenya. Tempat simpan dibagi dua, yaitu lapisan kontrol terpusat dan lapisan data per sekolah, supaya tiap workbook tetap kecil dan cepat.</p>
+  <div class="callout">
+    <p>Tindak lanjut dirumuskan di hulu lewat aturan, master, dan instrumen valid seperti SDQ, lalu dirapikan AI, lalu ditinjau manusia, baru ditulis ke sheet. FIR menampilkan hanya yang sudah disetujui. Substansi rekomendasi tidak pernah dikarang AI. Peran AI hanya merumuskan dan memprioritaskan.</p>
+  </div>
+
+  <h2><span class="num">7</span> User story dan kriteria penerimaan</h2>
+
+  <h3>Admin Fammi</h3>
+
+  <div class="story">
+    <div class="tag">US-A1</div>
+    <p class="want">Sebagai Admin Fammi, saya ingin memasukkan file periode (mingguan, bulanan, atau peristiwa tes) ke workbook data sekolah, supaya data tersimpan dengan periode yang benar dan siap dibaca FIR.</p>
+    <div class="ac-label">Kriteria penerimaan</div>
+    <ul>
+      <li>Importer menormalkan kolom file sumber ke format Fakta_Aspek dan Fakta_Kualitatif.</li>
+      <li>Sistem menulis baris Periode baru dengan tipe yang sesuai, yaitu mingguan, bulanan, atau peristiwa_tes.</li>
+      <li>File dengan kolom kunci tidak lengkap ditolak, dengan pesan jelas mengenai kolom yang kurang.</li>
+      <li>Tiap baris hasil impor membawa kunci penanda lengkap, yaitu sekolah, kelas, murid, periode, modul, dan sumber.</li>
+    </ul>
+  </div>
+
+  <div class="story">
+    <div class="tag">US-A2</div>
+    <p class="want">Sebagai Admin Fammi atau psikolog, saya ingin meninjau dan menyetujui tindak lanjut sebelum tampil, supaya tidak ada rekomendasi yang sampai ke sekolah tanpa kontrol manusia.</p>
+    <div class="ac-label">Kriteria penerimaan</div>
+    <ul>
+      <li>Hanya tindak lanjut berstatus disetujui yang muncul di FIR.</li>
+      <li>Item bisa disetujui, ditolak, atau diedit sebelum disetujui.</li>
+      <li>Ada jejak siapa yang menyetujui dan kapan.</li>
+    </ul>
+  </div>
+
+  <div class="story">
+    <div class="tag">US-A3</div>
+    <p class="want">Sebagai Admin Fammi, saya ingin mengatur langganan modul per sekolah, supaya dashboard hanya menyalakan modul yang memang dilanggan.</p>
+    <div class="ac-label">Kriteria penerimaan</div>
+    <ul>
+      <li>Modul yang tidak dilanggan tidak muncul di dashboard sekolah itu.</li>
+      <li>Perubahan langganan langsung tercermin di tampilan tanpa ubah kode.</li>
+    </ul>
+  </div>
+
+  <h3>Yayasan</h3>
+
+  <div class="story">
+    <div class="tag">US-Y1</div>
+    <p class="want">Sebagai pengurus yayasan, saya ingin membandingkan capaian antar sekolah dalam yayasan, supaya tahu sekolah mana yang perlu perhatian lebih.</p>
+    <div class="ac-label">Kriteria penerimaan</div>
+    <ul>
+      <li>Tampilan membaca Agregat terpusat, tanpa membuka tiap workbook sekolah.</li>
+      <li>Perbandingan tersedia per modul dan per periode.</li>
+      <li>Data murid per sekolah tidak terbuka secara default di tampilan yayasan.</li>
+    </ul>
+  </div>
+
+  <div class="story">
+    <div class="tag">US-Y2</div>
+    <p class="want">Sebagai pengurus yayasan, saya ingin melihat tindak lanjut tingkat kebijakan lintas sekolah, supaya keputusan yayasan punya dasar yang sama dengan kondisi lapangan.</p>
+    <div class="ac-label">Kriteria penerimaan</div>
+    <ul>
+      <li>Tindak lanjut bercakupan yayasan dan sekolah tampil sesuai periode terpilih.</li>
+      <li>Tiap tindak lanjut menyertakan pemicu ringkas yang mendasarinya.</li>
+    </ul>
+  </div>
+
+  <h3>Kepala Sekolah</h3>
+
+  <div class="story">
+    <div class="tag">US-K1</div>
+    <p class="want">Sebagai kepala sekolah, saya ingin melihat tindak lanjut sekolah sebagai bagian teratas dashboard, supaya saya langsung tahu apa yang perlu dilakukan.</p>
+    <div class="ac-label">Kriteria penerimaan</div>
+    <ul>
+      <li>Pita tindak lanjut berada di atas grafik dan tabel.</li>
+      <li>Item tersaring ke cakupan sekolah dan periode yang dipilih.</li>
+      <li>Item terurut berdasarkan prioritas, dengan jumlah tampil yang dibatasi supaya tidak membludak.</li>
+    </ul>
+  </div>
+
+  <div class="story">
+    <div class="tag">US-K2</div>
+    <p class="want">Sebagai kepala sekolah, saya ingin melihat sebaran hasil per kelas dan per modul, supaya saya bisa mengarahkan perhatian ke kelas yang membutuhkannya.</p>
+    <div class="ac-label">Kriteria penerimaan</div>
+    <ul>
+      <li>Sebaran per status ditampilkan per aspek, termasuk status bernilai nol persen.</li>
+      <li>Filter periode mendukung mingguan, bulanan, dan tahunan sesuai modul.</li>
+    </ul>
+  </div>
+
+  <h3>Wali Kelas</h3>
+
+  <div class="story">
+    <div class="tag">US-W1</div>
+    <p class="want">Sebagai wali kelas, saya ingin melihat hasil kelas saya per modul, dengan nama murid untuk Multiple Intelligence, supaya tindak lanjutnya bisa personal.</p>
+    <div class="ac-label">Kriteria penerimaan</div>
+    <ul>
+      <li>Modul MI menampilkan nama murid langsung ke wali kelas.</li>
+      <li>Wali kelas hanya melihat kelasnya, sesuai lapisan cakupan.</li>
+      <li>Tindak lanjut tingkat murid untuk MI tampil di V1.</li>
+    </ul>
+  </div>
+
+  <div class="story">
+    <div class="tag">US-W2</div>
+    <p class="want">Sebagai wali kelas, saya ingin hasil Screening kelas saya tetap menjaga privasi murid, supaya sinyal sensitif tidak terbuka sembarangan.</p>
+    <div class="ac-label">Kriteria penerimaan</div>
+    <ul>
+      <li>Screening memakai proxy_code, bukan nama, sesuai modul yang sensitif.</li>
+      <li>Cerita hati siswa hanya terbuka lewat gerbang ahli, untuk pihak yang berhak seperti guru BK.</li>
+      <li>Sinyal individu tidak menjadi flag otomatis yang terbuka luas.</li>
+    </ul>
+  </div>
+
+  <h3>Orang Tua</h3>
+
+  <div class="story">
+    <div class="tag">US-O1</div>
+    <p class="want">Sebagai orang tua, saya ingin membuka laporan anak saya dari ponsel, supaya saya bisa mendampinginya di rumah.</p>
+    <div class="ac-label">Kriteria penerimaan</div>
+    <ul>
+      <li>Tampilan orang tua mobile-first.</li>
+      <li>Orang tua hanya melihat anaknya sendiri, sesuai lapisan cakupan.</li>
+      <li>Untuk Rapor Karakter, refleksi orang tua tampil sebagai konteks pendamping.</li>
+    </ul>
+  </div>
+
+  <h3>Siswa</h3>
+
+  <div class="story">
+    <div class="tag">US-S1</div>
+    <p class="want">Sebagai siswa, saya ingin melihat laporan Multiple Intelligence saya sendiri, supaya saya memahami kekuatan dan arah pengembangan diri.</p>
+    <div class="ac-label">Kriteria penerimaan</div>
+    <ul>
+      <li>Siswa hanya melihat laporan MI dirinya sendiri.</li>
+      <li>Tampilan siswa mobile-first.</li>
+      <li>Rekomendasi MI dicocokkan dari master sesuai kecerdasan dominannya.</li>
+    </ul>
+  </div>
+
+  <h2><span class="num">8</span> Alur utama</h2>
+
+  <h3>Login dan gerbang baca</h3>
+  <ul class="flow">
+    <li>Pengguna login, GAS memvalidasi kredensial dan menerbitkan token sesi.</li>
+    <li>GAS membaca peran, kapabilitas, lalu cakupan pengguna.</li>
+    <li>GAS membuka workbook data sekolah yang relevan lewat Registry.</li>
+    <li>GAS menyaring baris sesuai cakupan, periode, dan langganan, lalu mengirim potongan data yang diizinkan.</li>
+  </ul>
+
+  <h3>Ingestion data</h3>
+  <ul class="flow">
+    <li>Tim Fammi men-deliver file periode sebagai staging.</li>
+    <li>Importer menormalkan dan menambahkannya ke workbook data sekolah, dengan periode yang ditandai.</li>
+    <li>Roll-up tingkat sekolah ditulis ke Agregat terpusat untuk tampilan yayasan.</li>
+  </ul>
+
+  <h3>Pita tindak lanjut dan filter waktu</h3>
+  <ul class="flow">
+    <li>FIR membaca tindak lanjut yang sudah disetujui untuk cakupan dan periode pengguna.</li>
+    <li>Item tampil di pita teratas, terurut prioritas, dikelompokkan per tema.</li>
+    <li>Pengguna mengubah filter periode untuk melihat apa yang perlu dilakukan pada rentang itu.</li>
+  </ul>
+
+  <h2><span class="num">9</span> Persyaratan non-fungsional</h2>
+  <p>Tampilan responsif. Desktop-first untuk yayasan, kepala sekolah, dan wali kelas. Mobile-first untuk orang tua dan siswa.</p>
+  <p>Akses dijaga dua lapis, yaitu kapabilitas berupa peran dikali modul, dan cakupan berupa pemetaan pengguna ke unit datanya. Field sensitif disaring di sisi server, bukan di browser.</p>
+  <p>Privasi mengikuti sensitivitas tiap modul. Screening paling ketat dengan proxy dan gerbang ahli. MI bernama untuk wali kelas. Karakter normal untuk guru dan orang tua.</p>
+  <p>Kinerja dijaga lewat partisi per sekolah, supaya tiap workbook kecil dan pembacaan tetap cepat saat jumlah sekolah bertambah.</p>
+  <p>Seluruh antarmuka dan dokumentasi berbahasa Indonesia.</p>
+
+  <h2><span class="num">10</span> Metrik keberhasilan</h2>
+  <p>Bagian ini mendefinisikan metrik, bukan menetapkan angka target. Target belum ditentukan, dan saya tidak mengisinya dengan angka karangan.</p>
+  <ul>
+    <li>Adopsi, yaitu jumlah peran aktif yang login per periode.</li>
+    <li>Waktu dari data masuk sampai tindak lanjut tampil.</li>
+    <li>Cakupan tindak lanjut, yaitu berapa banyak sekolah yang menerima tindak lanjut tiap periode.</li>
+    <li>Mulai V2, proporsi tindak lanjut yang berpindah dari Baru ke salah satu status kerja.</li>
+  </ul>
+  <p>Untuk SROI, FIR menampilkan arah perubahan saja, tanpa angka spesifik, sesuai prinsip yang sudah ditetapkan.</p>
+
+  <h2><span class="num">11</span> Asumsi dan pertanyaan terbuka</h2>
+  <p>Beberapa nilai belum bisa dipastikan dari contoh laporan, sehingga saya tandai sebagai parameter, bukan saya tebak.</p>
+  <ul>
+    <li>Cutoff skor MI ke status Kuat, Sedang, dan Berkembang. Dari contoh, hanya teramati skor 23 berstatus Kuat dan rentang 15 sampai 20 berstatus Sedang. Rubrik aslinya masih dibutuhkan.</li>
+    <li>Skala maksimum skor MI dan jumlah butir per kecerdasan.</li>
+    <li>Pemetaan ordinal Rapor Karakter ke persen. Dugaan 25, 50, 75, 100 masih perlu dikonfirmasi.</li>
+    <li>Nilai nol pada Interpersonal di laporan sekolah, apakah benar nol persen Berkembang atau bucketing-nya berbeda.</li>
+    <li>Konfirmasi bahwa master rekomendasi MI sudah lengkap dan siap dicocokkan oleh FIR.</li>
+  </ul>
+
+  <h2><span class="num">12</span> Di luar lingkup V1</h2>
+  <p>Beberapa hal sengaja ditunda supaya V1 fokus dan cepat dirilis.</p>
+  <ul>
+    <li>Tindak lanjut tingkat individu untuk Karakter dan Screening.</li>
+    <li>Pelacakan status pengerjaan tindak lanjut, termasuk target tanggal dan alasan.</li>
+    <li>Antarmuka unggah data oleh admin langsung di FIR.</li>
+    <li>Ingestion lewat API atau webhook.</li>
+    <li>Modul Rapor Capaian Pembelajaran.</li>
+  </ul>
+  <p class="note">Catatan arah V2 dan V3, gerbang baca dijaga sebagai satu-satunya pintu data, supaya backend penyimpanan bisa berpindah dari Sheets ke basis data atau API tanpa mengubah tampilan FIR.</p>
+
+</div>
+</body>
+</html>

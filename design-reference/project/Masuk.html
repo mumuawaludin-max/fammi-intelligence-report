@@ -1,0 +1,423 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Akses · Fammi Intelligence Report</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    --ungu: #7C3AED;
+    --ungu-bright: #9D6BFF;
+    --ungu-deep: #5316C0;
+    --glow: rgba(124,58,237,0.55);
+    --ink-0: #F4F1FB;
+    --ink-1: rgba(244,241,251,0.92);
+    --ink-2: rgba(244,241,251,0.62);
+    --ink-3: rgba(244,241,251,0.40);
+    --line: rgba(255,255,255,0.10);
+    --line-2: rgba(255,255,255,0.16);
+    --glass: rgba(255,255,255,0.045);
+    --ok: #34D399;
+    --err: #FB7185;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; height: 100%; }
+  body {
+    font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+    background: #07040E;
+    color: var(--ink-0);
+    -webkit-font-smoothing: antialiased;
+    overflow: hidden;
+  }
+
+  /* ---- backdrop ---- */
+  #net { position: fixed; inset: 0; z-index: 0; display: block; }
+  .veil {
+    position: fixed; inset: 0; z-index: 1; pointer-events: none;
+    background:
+      radial-gradient(820px 540px at 18% 12%, rgba(124,58,237,0.30), transparent 60%),
+      radial-gradient(760px 520px at 85% 88%, rgba(83,22,192,0.30), transparent 60%),
+      radial-gradient(560px 560px at 50% 50%, rgba(157,107,255,0.07), transparent 70%);
+  }
+  .grain { position: fixed; inset: 0; z-index: 1; pointer-events: none; opacity: .5;
+    background-image: radial-gradient(rgba(255,255,255,0.05) 1px, transparent 1px);
+    background-size: 3px 3px; mix-blend-mode: overlay; }
+  .vignette { position: fixed; inset: 0; z-index: 1; pointer-events: none;
+    box-shadow: inset 0 0 220px 60px rgba(0,0,0,0.75); }
+
+  /* ---- layout: always scrollable, card centered, never clipped ---- */
+  .stage { position: relative; z-index: 2; min-height: 100%; display: flex; justify-content: center; padding: 20px; overflow-y: auto; }
+  .card {
+    width: 100%; max-width: 432px; border-radius: 22px; padding: 26px 28px 22px; margin: auto;
+    background: linear-gradient(180deg, rgba(255,255,255,0.07), rgba(255,255,255,0.025));
+    border: 1px solid var(--line-2);
+    backdrop-filter: blur(22px) saturate(140%);
+    box-shadow: 0 30px 90px rgba(0,0,0,0.6), inset 0 1px 0 rgba(255,255,255,0.10);
+    position: relative; overflow: hidden;
+    animation: rise .6s cubic-bezier(.2,.8,.2,1) both;
+  }
+  @keyframes rise { from { transform: translateY(18px) scale(.985); } to { transform: none; } }
+  .card::before {
+    content: ""; position: absolute; inset: 0; border-radius: 22px; padding: 1px; pointer-events: none;
+    background: linear-gradient(140deg, rgba(157,107,255,0.6), transparent 36%, transparent 64%, rgba(124,58,237,0.4));
+    -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+    -webkit-mask-composite: xor; mask-composite: exclude;
+  }
+  .sweep { position: absolute; top: 0; left: -60%; width: 60%; height: 100%; pointer-events: none;
+    background: linear-gradient(100deg, transparent, rgba(255,255,255,0.06), transparent);
+    animation: sweep 6s ease-in-out 1s infinite; }
+  @keyframes sweep { 0% { left: -60%; } 55%,100% { left: 130%; } }
+
+  /* ---- brand ---- */
+  .brand-row { display: flex; align-items: center; justify-content: space-between; gap: 14px; margin-bottom: 20px; position: relative; }
+  .logo { height: 25px; width: auto; display: block; filter: drop-shadow(0 2px 12px rgba(124,58,237,0.5)); }
+  .status {
+    display: inline-flex; align-items: center; gap: 6px; font-size: 10px; font-weight: 600; letter-spacing: .04em;
+    color: var(--ink-2); border: 1px solid var(--line-2); border-radius: 99px; padding: 5px 9px; text-transform: uppercase;
+    font-family: 'JetBrains Mono', monospace;
+  }
+  .status .pulse { width: 6px; height: 6px; border-radius: 50%; background: var(--ok); box-shadow: 0 0 0 0 rgba(52,211,153,0.6); animation: pulse 2s infinite; }
+  @keyframes pulse { 0% { box-shadow: 0 0 0 0 rgba(52,211,153,0.55); } 70% { box-shadow: 0 0 0 6px rgba(52,211,153,0); } 100% { box-shadow: 0 0 0 0 rgba(52,211,153,0); } }
+
+  .eyebrow {
+    font-family: 'JetBrains Mono', monospace; font-size: 10.5px; letter-spacing: .3em; text-transform: uppercase;
+    color: var(--ungu-bright); margin-bottom: 11px; display: flex; align-items: center; gap: 9px;
+  }
+  .eyebrow .bar { height: 1px; flex: 1; background: linear-gradient(90deg, var(--ungu), transparent); }
+  h1 { margin: 0; font-family: 'Space Grotesk', sans-serif; font-size: 25px; font-weight: 600; letter-spacing: -.01em; line-height: 1.2; }
+  h1 b { color: var(--ungu-bright); font-weight: 700; }
+  .sub { margin: 9px 0 0; font-size: 13px; line-height: 1.55; color: var(--ink-2); }
+
+  /* ---- code input ---- */
+  .code-label { margin-top: 20px; display: flex; align-items: center; justify-content: space-between; }
+  .code-label span { font-family: 'JetBrains Mono', monospace; font-size: 10px; letter-spacing: .12em; text-transform: uppercase; color: var(--ink-3); }
+  .cells { display: grid; grid-template-columns: repeat(8, minmax(0, 1fr)); gap: 7px; margin-top: 10px; }
+  .cell {
+    height: 48px; width: 100%; min-width: 0; border-radius: 11px; border: 1.5px solid var(--line-2);
+    background: rgba(255,255,255,0.04); color: var(--ink-0);
+    font-family: 'JetBrains Mono', monospace; font-size: 19px; font-weight: 700; text-align: center;
+    outline: none; transition: border-color .15s, box-shadow .18s, background .18s, transform .12s; caret-color: var(--ungu-bright);
+    padding: 0;
+  }
+  .cell::placeholder { color: rgba(255,255,255,0.13); }
+  .cell:hover { border-color: rgba(157,107,255,0.4); }
+  .cell:focus { border-color: var(--ungu-bright); background: rgba(124,58,237,0.14); box-shadow: 0 0 0 3px rgba(124,58,237,0.18), 0 0 18px rgba(124,58,237,0.35); transform: translateY(-2px); }
+  .cell.filled { border-color: rgba(157,107,255,0.55); background: rgba(124,58,237,0.10); }
+  .cells.ok .cell { border-color: rgba(52,211,153,0.6); background: rgba(52,211,153,0.10); box-shadow: 0 0 14px rgba(52,211,153,0.2); }
+  .cells.err { animation: shake .42s cubic-bezier(.36,.07,.19,.97); }
+  .cells.err .cell { border-color: rgba(251,113,133,0.65); background: rgba(251,113,133,0.10); }
+  @keyframes shake { 10%,90% { transform: translateX(-2px); } 20%,80% { transform: translateX(4px); } 30%,50%,70% { transform: translateX(-6px); } 40%,60% { transform: translateX(6px); } }
+
+  .msg { min-height: 18px; margin-top: 11px; font-size: 12px; display: flex; align-items: center; gap: 7px; transition: color .2s; }
+  .msg.err { color: var(--err); }
+  .msg.ok { color: var(--ok); }
+  .msg.idle { color: var(--ink-3); }
+
+  /* ---- identity reveal ---- */
+  .identity {
+    margin-top: 4px; display: grid; grid-template-rows: 0fr; opacity: 0; transition: grid-template-rows .45s cubic-bezier(.2,.8,.2,1), opacity .4s, margin .4s;
+  }
+  .identity.show { grid-template-rows: 1fr; opacity: 1; margin-top: 12px; }
+  .identity-inner { overflow: hidden; }
+  .id-card {
+    display: flex; align-items: center; gap: 13px; padding: 13px 15px; border-radius: 14px;
+    background: linear-gradient(120deg, rgba(124,58,237,0.22), rgba(157,107,255,0.08));
+    border: 1px solid rgba(157,107,255,0.4);
+  }
+  .id-icon { width: 42px; height: 42px; border-radius: 12px; background: var(--ungu); color: #fff; display: grid; place-items: center; flex: none; box-shadow: 0 6px 20px rgba(124,58,237,0.5); }
+  .id-role { font-size: 15px; font-weight: 700; color: #fff; font-family: 'Space Grotesk', sans-serif; }
+  .id-scope { font-size: 12px; color: var(--ink-2); margin-top: 1px; }
+  .id-check { margin-left: auto; color: var(--ok); flex: none; }
+
+  /* ---- submit ---- */
+  .submit {
+    width: 100%; height: 50px; margin-top: 16px; border: none; border-radius: 14px; cursor: pointer;
+    font-family: 'Space Grotesk', sans-serif; font-size: 14.5px; font-weight: 600; letter-spacing: .01em;
+    display: inline-flex; align-items: center; justify-content: center; gap: 9px;
+    color: #fff; background: linear-gradient(120deg, var(--ungu), var(--ungu-deep));
+    box-shadow: 0 12px 32px rgba(124,58,237,0.45), inset 0 1px 0 rgba(255,255,255,0.25);
+    transition: transform .12s, box-shadow .2s, opacity .2s, filter .2s;
+  }
+  .submit:hover:not(:disabled) { filter: brightness(1.08); box-shadow: 0 16px 44px rgba(124,58,237,0.6), inset 0 1px 0 rgba(255,255,255,0.25); }
+  .submit:active:not(:disabled) { transform: translateY(1px); }
+  .submit:disabled { opacity: .42; cursor: not-allowed; box-shadow: none; }
+
+  /* ---- demo codes (compact 2-col grid) ---- */
+  .demo { margin-top: 17px; padding-top: 16px; border-top: 1px dashed var(--line-2); }
+  .demo-head { display: flex; align-items: center; gap: 8px; font-size: 10.5px; color: var(--ink-3); font-family: 'JetBrains Mono', monospace; letter-spacing: .07em; text-transform: uppercase; margin-bottom: 11px; }
+  .demo-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 7px; }
+  .demo-chip {
+    display: flex; align-items: center; gap: 10px; width: 100%; text-align: left; cursor: pointer;
+    padding: 9px 11px; border-radius: 11px; border: 1px solid var(--line); background: rgba(255,255,255,0.03);
+    transition: border-color .15s, background .15s, transform .12s;
+  }
+  .demo-chip:hover { border-color: rgba(157,107,255,0.45); background: rgba(124,58,237,0.10); transform: translateY(-1px); }
+  .demo-chip .dc-ic { width: 28px; height: 28px; border-radius: 8px; background: rgba(124,58,237,0.16); color: var(--ungu-bright); display: grid; place-items: center; flex: none; }
+  .demo-chip .dc-role { font-size: 12px; color: var(--ink-1); font-weight: 700; line-height: 1.2; }
+  .demo-chip .dc-code { font-family: 'JetBrains Mono', monospace; font-size: 10.5px; font-weight: 700; color: var(--ungu-bright); letter-spacing: .04em; margin-top: 2px; }
+  .demo-note { margin-top: 11px; font-size: 10.5px; color: var(--ink-3); line-height: 1.5; }
+
+  @media (max-width: 480px) {
+    .card { padding: 22px 18px 20px; }
+    h1 { font-size: 22px; }
+    .cells { gap: 5px; }
+    .cell { font-size: 16px; border-radius: 9px; height: 46px; }
+    .demo-grid { grid-template-columns: 1fr; }
+  }
+  /* very short viewports — shrink the spendy bits so it still fits */
+  @media (max-height: 660px) {
+    .sub { display: none; }
+    .code-label { margin-top: 14px; }
+    .demo { margin-top: 12px; padding-top: 12px; }
+  }
+</style>
+</head>
+<body>
+  <canvas id="net"></canvas>
+  <div class="veil"></div>
+  <div class="grain"></div>
+  <div class="vignette"></div>
+
+  <div class="stage">
+    <main class="card">
+      <div class="sweep"></div>
+      <div class="brand-row">
+        <img class="logo" src="assets/fammi-logo-white.png" alt="Fammi" />
+        <span class="status"><span class="pulse"></span> Sistem Aktif</span>
+      </div>
+
+      <div class="eyebrow">Intelligence Report <span class="bar"></span></div>
+      <h1>Masukkan <b>kode akses</b> Anda</h1>
+      <p class="sub">Satu kode untuk masuk — sudah terhubung dengan peran dan sekolah Anda. Tanpa nama pengguna atau kata sandi.</p>
+
+      <div class="code-label">
+        <span>Kode akses · 8 karakter</span>
+        <span id="counter">0 / 8</span>
+      </div>
+      <div class="cells" id="cells"></div>
+
+      <div class="msg idle" id="msg">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 16v-5M12 8h.01"/></svg>
+        Ketik atau tempel kode akses Anda.
+      </div>
+
+      <div class="identity" id="identity">
+        <div class="identity-inner">
+          <div class="id-card">
+            <span class="id-icon" id="idIcon"></span>
+            <div>
+              <div class="id-role" id="idRole"></div>
+              <div class="id-scope" id="idScope"></div>
+            </div>
+            <svg class="id-check" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9.5"/><path d="m8 12 2.6 2.6L16 9"/></svg>
+          </div>
+        </div>
+      </div>
+
+      <button class="submit" id="submit" disabled>
+        <span id="submitText">Verifikasi kode</span>
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+      </button>
+
+      <div class="demo">
+        <div class="demo-head">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l1.9 4.6L18.5 9l-4.6 1.9L12 15.5 10.1 10.9 5.5 9l4.6-1.4L12 3z"/></svg>
+          Kode contoh untuk purwarupa
+        </div>
+        <div class="demo-grid" id="demoGrid"></div>
+        <p class="demo-note">Pada versi sebenarnya, kode 8 karakter dibuat acak dan otomatis terhubung dengan peran serta asal sekolah pengguna.</p>
+      </div>
+    </main>
+  </div>
+
+  <script>
+    // ---- kode akses → peran (data contoh purwarupa) ----
+    const ICONS = {
+      kepala: '<path d="M3 21h18M5 21V9l7-4.5L19 9v12M9.5 21v-5h5v5"/>',
+      yayasan: '<path d="M4 20.5h16M6 20.5V5.5A1.5 1.5 0 0 1 7.5 4H14a1.5 1.5 0 0 1 1.5 1.5v15M15.5 9H18a1.5 1.5 0 0 1 1.5 1.5v10M9 8h3M9 12h3M9 16h3"/>',
+      wali: '<circle cx="9" cy="8" r="3.1"/><path d="M3.5 19.5a5.5 5.5 0 0 1 11 0M16.5 5.2a3 3 0 0 1 0 5.6M20.5 19.5a5 5 0 0 0-3-4.6"/>',
+      ortu: '<path d="M12 21s-7-4.4-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 11c0 5.6-7 10-7 10z"/>',
+      siswa: '<path d="M12 3 2.5 8 12 13l9.5-5L12 3Z"/><path d="M6.5 10.2V15c0 1.3 2.5 2.6 5.5 2.6s5.5-1.3 5.5-2.6v-4.8M21.5 8v5"/>',
+    };
+    const CODES = {
+      "Kx7#Rp2q": { type: "kepala", role: "Kepala Sekolah", scope: "SMA Al Fath Cireundeu", file: "Dashboard Kepala Sekolah.html" },
+      "Yv9@Hf4m": { type: "yayasan", role: "Pengurus Yayasan", scope: "Yayasan Pendidikan Al Fath", file: "Dashboard Yayasan.html" },
+      "Wk3&Xa8t": { type: "wali", role: "Wali Kelas X-A", scope: "SMA Al Fath Cireundeu", file: "Dashboard Wali Kelas.html" },
+      "Or5%Ai9d": { type: "ortu", role: "Orang Tua", scope: "Wali dari Aisyah Putri · Kelas X-A", file: "Dashboard Orang Tua.html" },
+      "Sw8$Ai3p": { type: "siswa", role: "Siswa", scope: "Aisyah Putri Faisal · Kelas X-A", file: "Dashboard Siswa.html" },
+    };
+    const N = 8;
+
+    const cellsWrap = document.getElementById("cells");
+    const cells = [];
+    for (let i = 0; i < N; i++) {
+      const inp = document.createElement("input");
+      inp.className = "cell"; inp.maxLength = 1; inp.type = "text"; inp.autocomplete = "off"; inp.spellcheck = false;
+      inp.setAttribute("aria-label", "Karakter " + (i + 1));
+      cellsWrap.appendChild(inp); cells.push(inp);
+    }
+
+    const msg = document.getElementById("msg");
+    const counter = document.getElementById("counter");
+    const submit = document.getElementById("submit");
+    const submitText = document.getElementById("submitText");
+    const identity = document.getElementById("identity");
+    let resolved = null;
+
+    function getCode() { return cells.map(c => c.value).join(""); }
+    function setMsg(text, kind) {
+      msg.className = "msg " + kind;
+      const icon = kind === "err"
+        ? '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M15 9l-6 6M9 9l6 6"/></svg>'
+        : kind === "ok"
+        ? '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="m8 12 2.6 2.6L16 9"/></svg>'
+        : '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 16v-5M12 8h.01"/></svg>';
+      msg.innerHTML = icon + " " + text;
+    }
+
+    function refresh() {
+      const filled = cells.filter(c => c.value).length;
+      counter.textContent = filled + " / " + N;
+      cells.forEach(c => c.classList.toggle("filled", !!c.value));
+      cellsWrap.classList.remove("err");
+      if (resolved) { resolved = null; identity.classList.remove("show"); cellsWrap.classList.remove("ok"); submitText.textContent = "Verifikasi kode"; }
+      submit.disabled = filled !== N;
+      if (filled < N) setMsg("Ketik atau tempel kode akses Anda.", "idle");
+      else setMsg("Kode lengkap. Tekan verifikasi.", "idle");
+    }
+
+    cells.forEach((inp, i) => {
+      inp.addEventListener("input", () => {
+        if (inp.value.length > 1) inp.value = inp.value.slice(-1);
+        if (inp.value && i < N - 1) cells[i + 1].focus();
+        refresh();
+      });
+      inp.addEventListener("keydown", (e) => {
+        if (e.key === "Backspace" && !inp.value && i > 0) { cells[i - 1].focus(); cells[i - 1].value = ""; refresh(); e.preventDefault(); }
+        else if (e.key === "ArrowLeft" && i > 0) cells[i - 1].focus();
+        else if (e.key === "ArrowRight" && i < N - 1) cells[i + 1].focus();
+        else if (e.key === "Enter") verify();
+      });
+      inp.addEventListener("paste", (e) => {
+        e.preventDefault();
+        const txt = (e.clipboardData.getData("text") || "").replace(/\s/g, "").slice(0, N);
+        for (let k = 0; k < N; k++) cells[k].value = txt[k] || "";
+        (cells[Math.min(txt.length, N - 1)]).focus();
+        refresh();
+        if (txt.length === N) verify();
+      });
+    });
+
+    function fill(code) {
+      for (let k = 0; k < N; k++) cells[k].value = code[k] || "";
+      refresh(); verify();
+    }
+
+    function verify() {
+      const code = getCode();
+      if (code.length !== N) return;
+      const hit = CODES[code];
+      if (!hit) {
+        cellsWrap.classList.add("err"); cellsWrap.classList.remove("ok");
+        setMsg("Kode tidak dikenali. Periksa kembali huruf besar, kecil, dan simbolnya.", "err");
+        identity.classList.remove("show"); resolved = null; submit.disabled = true;
+        setTimeout(() => cellsWrap.classList.remove("err"), 500);
+        return;
+      }
+      resolved = hit;
+      cellsWrap.classList.add("ok");
+      setMsg("Kode terverifikasi. Identitas dikenali.", "ok");
+      document.getElementById("idIcon").innerHTML = '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">' + ICONS[hit.type] + '</svg>';
+      document.getElementById("idRole").textContent = hit.role;
+      document.getElementById("idScope").textContent = hit.scope;
+      identity.classList.add("show");
+      submit.disabled = false;
+      submitText.textContent = "Masuk sebagai " + hit.role;
+    }
+
+    submit.addEventListener("click", () => {
+      if (!resolved) { verify(); return; }
+      submitText.textContent = "Memuat";
+      submit.disabled = true; submit.style.opacity = ".7";
+      setTimeout(() => { window.location.href = resolved.file; }, 420);
+    });
+
+    // demo chips (compact)
+    const demoGrid = document.getElementById("demoGrid");
+    Object.entries(CODES).forEach(([code, r]) => {
+      const b = document.createElement("button");
+      b.className = "demo-chip"; b.type = "button";
+      b.innerHTML = '<span class="dc-ic"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">' + ICONS[r.type] + '</svg></span>'
+        + '<span><span class="dc-role">' + r.role + '</span><br><span class="dc-code">' + code + '</span></span>';
+      b.addEventListener("click", () => { fill(code); cells[0].blur(); });
+      demoGrid.appendChild(b);
+    });
+
+    cells[0].focus();
+    refresh();
+
+    // ---------- neural-net backdrop ----------
+    const cv = document.getElementById("net");
+    const ctx = cv.getContext("2d");
+    let W, H, DPR, nodes;
+    function seed() {
+      DPR = Math.min(window.devicePixelRatio || 1, 2);
+      W = cv.width = innerWidth * DPR; H = cv.height = innerHeight * DPR;
+      cv.style.width = innerWidth + "px"; cv.style.height = innerHeight + "px";
+      const count = Math.min(70, Math.floor((innerWidth * innerHeight) / 19000));
+      nodes = Array.from({ length: count }, () => ({
+        x: Math.random() * W, y: Math.random() * H,
+        vx: (Math.random() - .5) * .22 * DPR, vy: (Math.random() - .5) * .22 * DPR,
+        r: (Math.random() * 1.6 + .6) * DPR,
+      }));
+    }
+    function tick() {
+      ctx.clearRect(0, 0, W, H);
+      const maxD = 150 * DPR;
+      for (const n of nodes) {
+        n.x += n.vx; n.y += n.vy;
+        if (n.x < 0 || n.x > W) n.vx *= -1;
+        if (n.y < 0 || n.y > H) n.vy *= -1;
+      }
+      for (let i = 0; i < nodes.length; i++) {
+        for (let j = i + 1; j < nodes.length; j++) {
+          const a = nodes[i], b = nodes[j];
+          const dx = a.x - b.x, dy = a.y - b.y; const d = Math.hypot(dx, dy);
+          if (d < maxD) {
+            const o = (1 - d / maxD) * 0.32;
+            ctx.strokeStyle = "rgba(140,90,245," + o + ")";
+            ctx.lineWidth = 1 * DPR;
+            ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y); ctx.stroke();
+          }
+        }
+      }
+      for (const n of nodes) {
+        ctx.beginPath(); ctx.arc(n.x, n.y, n.r, 0, Math.PI * 2);
+        ctx.fillStyle = "rgba(176,140,255,0.75)"; ctx.fill();
+      }
+      requestAnimationFrame(tick);
+    }
+    seed(); tick();
+    addEventListener("resize", seed);
+  </script>
+
+  <template id="__bundler_thumbnail" data-bg-color="#07040E">
+    <svg viewBox="0 0 1200 800" xmlns="http://www.w3.org/2000/svg">
+      <rect width="1200" height="800" fill="#07040E"/>
+      <g transform="translate(600 400)">
+        <circle r="180" fill="none" stroke="#7C3AED" stroke-width="6" opacity="0.35"/>
+        <circle r="120" fill="none" stroke="#9D6BFF" stroke-width="6" opacity="0.55"/>
+        <g transform="translate(-70 -84)">
+          <rect x="20" y="76" width="100" height="84" rx="16" fill="#9D6BFF"/>
+          <path d="M40 76 v-24 a30 30 0 0 1 60 0 v24" fill="none" stroke="#9D6BFF" stroke-width="14" stroke-linecap="round"/>
+          <circle cx="70" cy="112" r="13" fill="#07040E"/>
+          <rect x="64" y="118" width="12" height="24" rx="6" fill="#07040E"/>
+        </g>
+      </g>
+    </svg>
+  </template>
+</body>
+</html>

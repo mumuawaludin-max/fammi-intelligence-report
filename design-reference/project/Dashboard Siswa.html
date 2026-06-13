@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8" />
+  <meta name="ext-resource-dependency" content="assets/fammi-logo-white.png" data-resource-id="fammiLogoWhite" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Fammi Intelligence Report — Siswa</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;0,700;0,800;1,400;1,500&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    /* Neon-on-dark — the student's bolder, personal packaging */
+    --ungu: #9D6BFF;
+    --ungu-bright: #B68CFF;
+    --ungu-deep: #6D28D9;
+    --ungu-700: #CBB3FF;
+    --ungu-600: #9D6BFF;
+    --ungu-300: #7C4DD6;
+    --ungu-100: rgba(157,107,255,0.20);
+    --ungu-050: rgba(157,107,255,0.13);
+
+    --bg: #0C0817;
+    --bg-2: #07040E;
+    --surface: rgba(255,255,255,0.055);
+    --surface-soft: rgba(255,255,255,0.04);
+
+    --ink: #F5F2FC;
+    --ink-2: rgba(245,242,252,0.76);
+    --ink-3: rgba(245,242,252,0.52);
+    --ink-4: rgba(245,242,252,0.34);
+
+    --line: rgba(255,255,255,0.11);
+    --line-warm: rgba(255,255,255,0.08);
+
+    --aman: #34D399;
+    --aman-bg: rgba(52,211,153,0.15);
+    --perhatian: #FBBF24;
+    --perhatian-bg: rgba(251,191,36,0.15);
+    --waspada: #FB7185;
+    --waspada-bg: rgba(251,113,133,0.15);
+
+    --radius-xl: 28px;
+    --radius-lg: 22px;
+    --radius-md: 16px;
+    --radius-sm: 12px;
+
+    --shadow-card: 0 12px 36px rgba(0,0,0,0.34);
+    --shadow-hero: 0 18px 54px rgba(124,58,237,0.40);
+    --shadow-pop: 0 14px 44px rgba(0,0,0,0.5);
+  }
+
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+    background: var(--bg-2);
+    color: var(--ink);
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+    line-height: 1.5;
+  }
+  #root { min-height: 100vh; display: flex; align-items: center; justify-content: center; }
+
+  .phone {
+    width: 100%; max-width: 440px; height: 100vh;
+    display: flex; flex-direction: column;
+    background: var(--bg); overflow: hidden; position: relative;
+  }
+  /* living aurora behind the glass */
+  .phone::before {
+    content: ""; position: absolute; inset: 0; z-index: 0; pointer-events: none;
+    background:
+      radial-gradient(560px 380px at 12% -4%, rgba(124,58,237,0.34), transparent 60%),
+      radial-gradient(520px 420px at 100% 8%, rgba(157,107,255,0.20), transparent 62%),
+      radial-gradient(620px 520px at 50% 116%, rgba(99,35,218,0.30), transparent 60%);
+  }
+  .phone > * { position: relative; z-index: 1; }
+  .app-main { flex: 1; overflow-y: auto; -webkit-overflow-scrolling: touch; }
+  @media (min-width: 540px) and (min-height: 720px) {
+    #root { padding: 28px; }
+    .phone {
+      height: min(880px, calc(100vh - 56px));
+      border-radius: 34px;
+      box-shadow: 0 50px 130px rgba(0,0,0,0.6), 0 0 0 1px rgba(255,255,255,0.06);
+      border: 1px solid rgba(255,255,255,0.08);
+    }
+  }
+
+  button { font-family: inherit; cursor: pointer; }
+  ::selection { background: rgba(157,107,255,0.35); }
+
+  ::-webkit-scrollbar { width: 10px; height: 10px; }
+  ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.14); border-radius: 99px; border: 3px solid transparent; background-clip: padding-box; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: none; } }
+</style>
+</head>
+<body>
+  <div id="root"></div>
+
+  <script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+  <script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+  <script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+
+  <script type="text/babel" src="src/icons.jsx"></script>
+  <script type="text/babel" src="src/charts.jsx"></script>
+  <script type="text/babel" src="src/tweaks-panel.jsx"></script>
+  <script type="text/babel" src="src/products.jsx"></script>
+  <script type="text/babel" src="src/ortu-data.jsx"></script>
+  <script type="text/babel" src="src/siswa-ui.jsx"></script>
+  <script type="text/babel" src="src/siswa-views.jsx"></script>
+  <script type="text/babel" src="src/ig-data.jsx"></script>
+  <script type="text/babel" src="src/ig-cohort-data.jsx"></script>
+  <script type="text/babel" src="src/ig-charts.jsx"></script>
+  <script type="text/babel" src="src/ig-kit.jsx"></script>
+  <script type="text/babel" src="src/ig-insights.jsx"></script>
+  <script type="text/babel" src="src/ig-individual.jsx"></script>
+  <script type="text/babel" src="src/ig-cohort.jsx"></script>
+  <script type="text/babel" src="src/siswa-app.jsx"></script>
+  <script type="text/babel" src="src/ig-role-view.jsx"></script>
+
+  <template id="__bundler_thumbnail" data-bg-color="#1A0A3C">
+    <svg viewBox="0 0 1200 800" xmlns="http://www.w3.org/2000/svg">
+      <!-- Siswa - brain/star icon on dark -->
+      <rect width="1200" height="800" fill="#1A0A3C"/>
+      <circle cx="600" cy="360" r="140" fill="none" stroke="#9D6BFF" stroke-width="8" opacity="0.6"/>
+      <circle cx="600" cy="360" r="90" fill="#7C3AED" opacity="0.8"/>
+      <path d="M600 280 L620 340 L685 340 L633 378 L653 440 L600 402 L547 440 L567 378 L515 340 L580 340 Z" fill="#F6F2EB" opacity="0.9"/>
+    </svg>
+  </template>
+</body>
+</html>

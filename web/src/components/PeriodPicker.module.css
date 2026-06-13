@@ -1,0 +1,141 @@
+.wrapper {
+  position: relative;
+  display: inline-block;
+}
+
+/* Trigger button */
+.trigger {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px 6px 12px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-card);
+  font-size: 14px;
+  color: var(--ink);
+  transition: border-color var(--transition-fast), background var(--transition-fast);
+}
+
+.trigger:hover {
+  border-color: var(--purple-300);
+  background: var(--purple-050);
+}
+
+.trigger[aria-expanded="true"] {
+  border-color: var(--purple-600);
+  background: var(--purple-050);
+}
+
+.triggerLabel {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.typeTag {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.3px;
+  text-transform: capitalize;
+  color: var(--purple-600);
+  background: var(--purple-100);
+  border-radius: 100px;
+  padding: 1px 7px;
+}
+
+.periodText {
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.chevron {
+  color: var(--ink-3);
+  transition: transform var(--transition-fast);
+  flex-shrink: 0;
+}
+
+.chevronOpen {
+  transform: rotate(180deg);
+}
+
+/* Backdrop */
+.backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 199;
+}
+
+/* Panel */
+.panel {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  z-index: 200;
+  min-width: 220px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-hero);
+  overflow: hidden;
+}
+
+/* Tipe periode */
+.typeRow {
+  display: flex;
+  gap: 4px;
+  padding: 10px 10px 6px;
+  border-bottom: 1px solid var(--line);
+}
+
+.typeBtn {
+  flex: 1;
+  padding: 5px 0;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--ink-3);
+  border-radius: 8px;
+  transition: color var(--transition-fast), background var(--transition-fast);
+}
+
+.typeBtn:hover {
+  color: var(--ink);
+  background: var(--bg);
+}
+
+.typeBtnActive {
+  color: var(--purple-600);
+  background: var(--purple-050);
+  font-weight: 700;
+}
+
+/* Daftar periode */
+.list {
+  list-style: none;
+  padding: 6px;
+}
+
+.item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  padding: 9px 12px;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--ink-2);
+  border-radius: var(--radius-sm);
+  transition: background var(--transition-fast), color var(--transition-fast);
+}
+
+.item:hover {
+  background: var(--bg);
+  color: var(--ink);
+}
+
+.itemActive {
+  color: var(--purple-600);
+  font-weight: 700;
+  background: var(--purple-050);
+}
