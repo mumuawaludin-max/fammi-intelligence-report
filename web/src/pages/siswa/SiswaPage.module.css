@@ -133,6 +133,15 @@
   overflow-y: auto;
   overscroll-behavior: contain;
   -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.sMain::-webkit-scrollbar { display: none; }
+
+/* ── Teks justify di seluruh konten ──────────────────────────────────────────── */
+.sContent p {
+  text-align: justify;
+  hyphens: auto;
 }
 
 .sContent {
@@ -143,7 +152,7 @@
 .sCard {
   background: rgba(255, 255, 255, 0.05);
   border: 1px solid rgba(255, 255, 255, 0.09);
-  border-radius: 22px;
+  border-radius: 28px;
 }
 
 /* ── Quick tiles (stat row on Beranda) ───────────────────────────────────────── */

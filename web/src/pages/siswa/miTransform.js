@@ -96,8 +96,8 @@ export function transformMIData(gasData, sessionNama) {
   const student = {
     name: namaFinal,
     panggilan: namaFinal.split(/\s+/)[0],
-    kelas: str(row.kelas_id) || str(row.kelas) || "—",
-    sekolah: str(row.sekolah_nama) || str(row.sekolah) || "—",
+    kelas: str(row.kelas_id) || str(row.kelas) || "",
+    sekolah: str(row.sekolah_nama) || str(row.sekolah) || "",
   };
 
   // Rekomendasi gabungan dari TOP 1/2/3

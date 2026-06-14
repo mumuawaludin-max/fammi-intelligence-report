@@ -53,8 +53,7 @@ export default function LoginPage({ onLogin }) {
 
         {/* Logo */}
         <div className={styles.logo}>
-          <span className={styles.logoMark}>F</span>
-          <span className={styles.logoText}>Fammi<em>IR</em></span>
+          <img src="/logo.png" alt="FammiR" style={{ height: 36, width: "auto", objectFit: "contain" }} />
         </div>
 
         <p className={styles.tagline}>Masuk ke dashboard sekolah Anda</p>

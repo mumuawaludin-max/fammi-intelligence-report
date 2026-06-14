@@ -52,6 +52,18 @@ const SAMPLE_ASPEK = [
   { name: "Agresi",           status: "aman",      teks: "Kamu jarang bereaksi kasar dan bisa menahan diri dengan baik." },
 ];
 
+// ── Per-intelligence color + emoji ────────────────────────────────────────────
+const INTEL_META = {
+  Ie: { color: "#818CF8", bg: "rgba(129,140,248,0.16)", bd: "rgba(129,140,248,0.28)", emoji: "🤝", tagline: "Membaca & menjalin hubungan" },
+  Ia: { color: "#60A5FA", bg: "rgba(96,165,250,0.16)",  bd: "rgba(96,165,250,0.28)",  emoji: "🪞", tagline: "Mengenal dan memahami diri" },
+  Ki: { color: "#4ADE80", bg: "rgba(74,222,128,0.16)",  bd: "rgba(74,222,128,0.28)",  emoji: "⚡", tagline: "Belajar lewat gerak dan tubuh" },
+  Ve: { color: "#C084FC", bg: "rgba(192,132,252,0.16)", bd: "rgba(192,132,252,0.28)", emoji: "📖", tagline: "Kata, cerita, dan bahasa" },
+  Lo: { color: "#22D3EE", bg: "rgba(34,211,238,0.16)",  bd: "rgba(34,211,238,0.28)",  emoji: "🔢", tagline: "Pola, logika, dan angka" },
+  Mu: { color: "#FB7185", bg: "rgba(251,113,133,0.16)", bd: "rgba(251,113,133,0.28)", emoji: "🎵", tagline: "Irama, nada, dan melodi" },
+  Na: { color: "#34D399", bg: "rgba(52,211,153,0.16)",  bd: "rgba(52,211,153,0.28)",  emoji: "🌿", tagline: "Alam, pola, dan makhluk hidup" },
+  Sp: { color: "#A78BFA", bg: "rgba(167,139,250,0.16)", bd: "rgba(167,139,250,0.28)", emoji: "🎨", tagline: "Visual, ruang, dan gambar" },
+};
+
 // ── Level color maps ──────────────────────────────────────────────────────────
 const KAR_COLOR = {
   "Konsisten":    "#B68CFF",
@@ -294,6 +306,17 @@ function SHeading({ kicker, title, sub }) {
   );
 }
 
+function ChapterLabel({ n, label, color }) {
+  const c = color || "#B68CFF";
+  return (
+    <div style={{ display: "flex", alignItems: "center", gap: 10, margin: "6px 0 2px" }}>
+      <span style={{ width: 26, height: 26, borderRadius: 99, background: `${c}22`, border: `1px solid ${c}44`, color: c, display: "grid", placeItems: "center", fontSize: 11, fontWeight: 800, fontFamily: "Space Grotesk, sans-serif", flexShrink: 0 }}>{n}</span>
+      <span style={{ fontSize: 10.5, fontWeight: 700, color: c, textTransform: "uppercase", letterSpacing: ".14em" }}>{label}</span>
+      <div style={{ flex: 1, height: 1, background: `${c}22` }} />
+    </div>
+  );
+}
+
 function SHomeTip({ children }) {
   return (
     <div style={{ display: "flex", gap: 12, alignItems: "flex-start", padding: "16px 17px", background: "rgba(157,107,255,0.12)", borderRadius: 18, border: "1px solid rgba(157,107,255,0.28)" }}>
@@ -332,12 +355,26 @@ function IcFlag({ size = 20 }) { return <svg width={size} height={size} viewBox=
 function IcLogout({ size = 16 }) { return <svg width={size} height={size} viewBox="0 0 24 24" {...S}><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>; }
 function IcChat({ size = 16 }) { return <svg width={size} height={size} viewBox="0 0 24 24" {...S}><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>; }
 
-// Intelligence code → first letter icon badge (simple)
 function IntelBadge({ code, size = 44 }) {
+  const m = INTEL_META[code] || {};
   return (
-    <span style={{ width: size, height: size, borderRadius: Math.round(size * 0.3), background: "linear-gradient(135deg, #B68CFF, #6D28D9)", color: "#fff", display: "grid", placeItems: "center", boxShadow: "0 8px 22px rgba(124,58,237,0.5)", flexShrink: 0, fontWeight: 800, fontSize: Math.round(size * 0.36), fontFamily: "Space Grotesk, sans-serif" }}>
-      {code.slice(0, 2)}
+    <span style={{ width: size, height: size, borderRadius: Math.round(size * 0.28), background: m.bg || "rgba(157,107,255,0.18)", border: `1.5px solid ${m.bd || "rgba(157,107,255,0.28)"}`, display: "grid", placeItems: "center", flexShrink: 0, fontSize: Math.round(size * 0.5), lineHeight: 1 }}>
+      {m.emoji || code.slice(0, 2)}
     </span>
+  );
+}
+
+function Expandable({ label, color, children }) {
+  const [open, setOpen] = useState(false);
+  const c = color || "#B68CFF";
+  return (
+    <div>
+      <button onClick={() => setOpen(o => !o)} style={{ display: "flex", alignItems: "center", gap: 5, background: "none", border: "none", cursor: "pointer", padding: "5px 0", color: c, fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: ".09em" }}>
+        {label}
+        <span style={{ transform: open ? "rotate(90deg)" : "none", transition: "transform .18s", display: "flex" }}><IcArrowRight size={12} /></span>
+      </button>
+      {open && <div style={{ marginTop: 6 }}>{children}</div>}
+    </div>
   );
 }
 
@@ -485,7 +522,7 @@ function KarakterView({ karakter }) {
       </div>
 
       <SHomeTip>
-        Kesantunanmu sedang tumbuh dan sudah makin baik. Coba perhatikan pilihan kata saat sedang kesal — pelan-pelan saja, kamu pasti bisa.
+        Kesantunanmu sedang tumbuh dan sudah makin baik. Coba perhatikan pilihan kata saat sedang kesal, pelan-pelan saja, kamu pasti bisa.
       </SHomeTip>
     </div>
   );
@@ -525,7 +562,7 @@ function PerasaanView({ aspek }) {
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 18 }}>
-      <SHeading kicker="Cuaca Perasaan" title="Perasaanmu" sub="Gambaran lembut tentang perasaan dan pertemananmu. Ini bukan penilaian — cuma cara mengenali diri sendiri." />
+      <SHeading kicker="Cuaca Perasaan" title="Perasaanmu" sub="Gambaran lembut tentang perasaan dan pertemananmu. Ini bukan penilaian, cuma cara mengenali diri sendiri." />
 
       <SCard style={{ padding: "20px 18px 16px" }}>
         <div style={{ display: "flex", justifyContent: "center" }}>
@@ -585,10 +622,36 @@ function AspekCard({ a }) {
 const LEVEL_COLOR = { Kuat: "#B68CFF", Sedang: "#8B5CF6", Berkembang: "rgba(245,242,252,0.34)" };
 const LEVEL_BG    = { Kuat: "rgba(182,140,255,0.18)", Sedang: "rgba(139,92,246,0.14)", Berkembang: "rgba(255,255,255,0.06)" };
 
+function DominantSummaryCard({ topDetails }) {
+  if (!topDetails || topDetails.length === 0) return null;
+  const top = topDetails[0];
+  const m = INTEL_META[top.code] || {};
+  return (
+    <div style={{ background: `linear-gradient(135deg, ${m.bg || "rgba(157,107,255,0.22)"}, rgba(255,255,255,0.01))`, border: `1px solid ${m.bd || "rgba(182,140,255,0.28)"}`, borderRadius: 22, padding: "20px 18px" }}>
+      <div style={{ fontSize: 10, fontWeight: 700, color: m.color || "#B68CFF", textTransform: "uppercase", letterSpacing: ".14em", marginBottom: 12, fontFamily: "Space Grotesk, sans-serif" }}>Kecerdasan dominan</div>
+      <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
+        <span style={{ fontSize: 56, lineHeight: 1, flexShrink: 0 }}>{m.emoji || "✨"}</span>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ fontSize: 22, fontWeight: 800, color: "#fff", letterSpacing: "-.02em", lineHeight: 1.1 }}>{top.name}</div>
+          <div style={{ fontSize: 12, color: m.color || "#B68CFF", fontWeight: 600, marginTop: 3 }}>{m.tagline}</div>
+          <div style={{ display: "flex", gap: 8, marginTop: 10, alignItems: "center" }}>
+            <div style={{ flex: 1, maxWidth: 80, height: 5, borderRadius: 99, background: "rgba(255,255,255,0.10)", overflow: "hidden" }}>
+              <div style={{ width: `${top.score}%`, height: "100%", borderRadius: 99, background: m.color || "#B68CFF" }} />
+            </div>
+            <span style={{ fontSize: 14, fontWeight: 800, color: "#fff", fontFamily: "Space Grotesk, sans-serif" }}>{top.score}</span>
+            <span style={{ fontSize: 10.5, fontWeight: 700, color: m.color, background: m.bg, padding: "2px 9px", borderRadius: 99 }}>{top.level}</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function TopIntelCard({ td, rank }) {
   const rankLabel = ["TOP 1", "TOP 2", "TOP 3"][rank] || "";
+  const m = INTEL_META[td.code] || {};
   return (
-    <SCard glow style={{ padding: "20px 18px", background: rank === 0 ? "linear-gradient(135deg,rgba(157,107,255,0.22),rgba(255,255,255,0.02))" : "rgba(255,255,255,0.03)", border: rank === 0 ? "1px solid rgba(182,140,255,0.30)" : "1px solid rgba(255,255,255,0.08)" }}>
+    <SCard glow style={{ padding: "20px 18px", background: rank === 0 ? `linear-gradient(135deg,${m.bg || "rgba(157,107,255,0.22)"},rgba(255,255,255,0.02))` : "rgba(255,255,255,0.03)", border: rank === 0 ? `1px solid ${m.bd || "rgba(182,140,255,0.30)"}` : "1px solid rgba(255,255,255,0.08)" }}>
       {/* Header */}
       <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 14 }}>
         <IntelBadge code={td.code} size={48} />
@@ -607,51 +670,57 @@ function TopIntelCard({ td, rank }) {
 
       {/* Terlihat */}
       {td.terlihat && td.terlihat.length > 0 && (
-        <div style={{ marginBottom: 14 }}>
-          <div style={{ fontSize: 10.5, fontWeight: 700, color: "#B68CFF", textTransform: "uppercase", letterSpacing: ".08em", marginBottom: 7 }}>Tandanya pada dirimu</div>
-          <div style={{ display: "flex", flexDirection: "column", gap: 5 }}>
-            {td.terlihat.map((t, i) => (
-              <div key={i} style={{ display: "flex", gap: 8, fontSize: 12.5, lineHeight: 1.5, color: "rgba(245,242,252,0.72)" }}>
-                <span style={{ color: "#B68CFF", flexShrink: 0, marginTop: 1 }}>→</span>
-                <span>{t}</span>
-              </div>
-            ))}
-          </div>
+        <div style={{ marginBottom: 10 }}>
+          <Expandable label="Tandanya pada dirimu" color={m.color || "#B68CFF"}>
+            <div style={{ display: "flex", flexDirection: "column", gap: 5 }}>
+              {td.terlihat.map((t, i) => (
+                <div key={i} style={{ display: "flex", gap: 8, fontSize: 12.5, lineHeight: 1.5, color: "rgba(245,242,252,0.72)" }}>
+                  <span style={{ color: m.color || "#B68CFF", flexShrink: 0, marginTop: 1 }}>→</span>
+                  <span>{t}</span>
+                </div>
+              ))}
+            </div>
+          </Expandable>
         </div>
       )}
 
       {/* Lakukan */}
       {td.lakukan && td.lakukan.length > 0 && (
-        <div style={{ marginBottom: 14 }}>
-          <div style={{ fontSize: 10.5, fontWeight: 700, color: "#B68CFF", textTransform: "uppercase", letterSpacing: ".08em", marginBottom: 7 }}>Yang bisa kamu lakukan</div>
-          <div style={{ display: "flex", flexDirection: "column", gap: 5 }}>
-            {td.lakukan.map((t, i) => (
-              <div key={i} style={{ display: "flex", gap: 8, fontSize: 12.5, lineHeight: 1.5, color: "rgba(245,242,252,0.72)" }}>
-                <span style={{ color: "#9D6BFF", flexShrink: 0, marginTop: 1 }}>•</span>
-                <span>{t}</span>
-              </div>
-            ))}
-          </div>
+        <div style={{ marginBottom: 10 }}>
+          <Expandable label="Yang bisa kamu lakukan" color={m.color || "#B68CFF"}>
+            <div style={{ display: "flex", flexDirection: "column", gap: 5 }}>
+              {td.lakukan.map((t, i) => (
+                <div key={i} style={{ display: "flex", gap: 8, fontSize: 12.5, lineHeight: 1.5, color: "rgba(245,242,252,0.72)" }}>
+                  <span style={{ color: m.color || "#B68CFF", flexShrink: 0, marginTop: 1 }}>•</span>
+                  <span>{t}</span>
+                </div>
+              ))}
+            </div>
+          </Expandable>
         </div>
       )}
 
       {/* Profesi */}
       {td.profesi && td.profesi.length > 0 && (
-        <div style={{ marginBottom: 14 }}>
-          <div style={{ fontSize: 10.5, fontWeight: 700, color: "#B68CFF", textTransform: "uppercase", letterSpacing: ".08em", marginBottom: 7 }}>Profesi yang relevan</div>
-          <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
-            {td.profesi.map((p, i) => (
-              <span key={i} style={{ fontSize: 11.5, fontWeight: 600, color: "rgba(245,242,252,0.76)", background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.10)", padding: "5px 10px", borderRadius: 99 }}>{p}</span>
-            ))}
-          </div>
+        <div style={{ marginBottom: 10 }}>
+          <Expandable label="Profesi yang relevan" color={m.color || "#B68CFF"}>
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginTop: 2 }}>
+              {td.profesi.map((p, i) => (
+                <span key={i} style={{ fontSize: 11.5, fontWeight: 600, color: m.color || "rgba(245,242,252,0.76)", background: m.bg || "rgba(255,255,255,0.05)", border: `1px solid ${m.bd || "rgba(255,255,255,0.10)"}`, padding: "5px 10px", borderRadius: 99 }}>{p}</span>
+              ))}
+            </div>
+          </Expandable>
         </div>
       )}
 
       {/* Jaga */}
       {td.jaga && (
-        <div style={{ background: "rgba(251,191,36,0.08)", border: "1px solid rgba(251,191,36,0.20)", borderRadius: 10, padding: "10px 13px" }}>
-          <div style={{ fontSize: 10.5, fontWeight: 700, color: "#D69219", textTransform: "uppercase", letterSpacing: ".08em", marginBottom: 4 }}>Perlu diperhatikan</div>
-          <p style={{ margin: 0, fontSize: 12.5, lineHeight: 1.55, color: "rgba(245,242,252,0.65)" }}>{td.jaga}</p>
+        <div style={{ marginTop: 4 }}>
+          <Expandable label="Perlu diperhatikan" color="#D69219">
+            <div style={{ background: "rgba(251,191,36,0.08)", border: "1px solid rgba(251,191,36,0.20)", borderRadius: 10, padding: "10px 13px", marginTop: 2 }}>
+              <p style={{ margin: 0, fontSize: 12.5, lineHeight: 1.55, color: "rgba(245,242,252,0.65)" }}>{td.jaga}</p>
+            </div>
+          </Expandable>
         </div>
       )}
     </SCard>
@@ -659,16 +728,21 @@ function TopIntelCard({ td, rank }) {
 }
 
 function IntelMiniCard({ it }) {
+  const m = INTEL_META[it.code] || {};
   return (
-    <SCard style={{ padding: "14px 15px", display: "flex", gap: 12, alignItems: "flex-start" }}>
-      <IntelBadge code={it.code} size={38} />
+    <SCard style={{ padding: "14px 15px", display: "flex", gap: 12, alignItems: "flex-start", border: `1px solid ${m.bd || "rgba(255,255,255,0.08)"}` }}>
+      <IntelBadge code={it.code} size={40} />
       <div style={{ flex: 1, minWidth: 0 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 3 }}>
           <span style={{ fontSize: 13.5, fontWeight: 700, color: "#fff" }}>{it.name}</span>
-          <span style={{ fontSize: 10, fontWeight: 600, color: LEVEL_COLOR[it.level], background: LEVEL_BG[it.level], padding: "2px 7px", borderRadius: 99, flexShrink: 0 }}>{it.level}</span>
+          <span style={{ fontSize: 10, fontWeight: 600, color: m.color || LEVEL_COLOR[it.level], background: m.bg || LEVEL_BG[it.level], padding: "2px 7px", borderRadius: 99, flexShrink: 0 }}>{it.level}</span>
         </div>
-        <div style={{ fontSize: 11.5, color: "rgba(245,242,252,0.45)", marginBottom: 5 }}>{it.score}/100</div>
-        {it.desc && <p style={{ margin: 0, fontSize: 12, lineHeight: 1.55, color: "rgba(245,242,252,0.62)" }}>{it.desc}</p>}
+        <div style={{ fontSize: 11.5, color: "rgba(245,242,252,0.45)", marginBottom: 6 }}>{it.score}/100</div>
+        {it.desc && (
+          <Expandable label="Selengkapnya" color={m.color || "#B68CFF"}>
+            <p style={{ margin: 0, fontSize: 12, lineHeight: 1.55, color: "rgba(245,242,252,0.62)" }}>{it.desc}</p>
+          </Expandable>
+        )}
       </div>
     </SCard>
   );
@@ -678,75 +752,115 @@ function BakatView({ intel, rekom, topNames, topDetails, dukungan, narasiKombina
   const axes = intel.map((it) => ({ label: it.name, short: it.code, value: it.score, max: 100 }));
   const bars = [...intel].sort((a, b) => b.score - a.score).map((it) => ({ label: it.name, value: it.score, tag: it.level }));
   const nonDominant = intel.filter(it => it.topIdx === -1);
+  const hasData = !isSample && topDetails && topDetails.length > 0;
+
+  if (!hasData && !isSample) {
+    return (
+      <div style={{ textAlign: "center", padding: "60px 20px" }}>
+        <div style={{ fontSize: 44, marginBottom: 16 }}>✨</div>
+        <div style={{ fontSize: 16, fontWeight: 700, color: "rgba(245,242,252,0.76)", marginBottom: 8 }}>Hasil asesmen sedang disiapkan</div>
+        <div style={{ fontSize: 13, color: "rgba(245,242,252,0.45)", lineHeight: 1.6 }}>Begitu siap, peta kecerdasanmu akan muncul di sini.</div>
+      </div>
+    );
+  }
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 18 }}>
+    <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
 
-      {/* Narasi hero + kombinasi */}
-      {(dukungan || narasiKombinasi) && !isSample && (
-        <SCard style={{ padding: "18px 18px", background: "linear-gradient(135deg,rgba(99,35,218,0.18),rgba(255,255,255,0.01))", border: "1px solid rgba(182,140,255,0.20)" }}>
-          <div style={{ fontSize: 10.5, fontWeight: 700, color: "#B68CFF", textTransform: "uppercase", letterSpacing: ".1em", marginBottom: 8 }}>Cara belajarmu</div>
-          {dukungan && <p style={{ margin: "0 0 10px", fontSize: 14, fontWeight: 600, lineHeight: 1.6, color: "rgba(245,242,252,0.90)" }}>{dukungan}</p>}
-          {narasiKombinasi && <p style={{ margin: 0, fontSize: 13, lineHeight: 1.65, color: "rgba(245,242,252,0.68)" }}>{narasiKombinasi}</p>}
-        </SCard>
+      {/* BAB 1 — Siapa kamu */}
+      <ChapterLabel n="1" label="Tipe Kecerdasan Paling Dominan dalam Dirimu" color="#B68CFF" />
+      {topDetails && topDetails.length > 0 && !isSample && (
+        <DominantSummaryCard topDetails={topDetails} />
       )}
 
-      {/* TOP 1/2/3 detail cards */}
+      {/* BAB 2 — Cara kamu menyerap dunia */}
+      {(dukungan || narasiKombinasi) && !isSample && (
+        <>
+          <ChapterLabel n="2" label="Cara kamu menyerap dunia" color="#60A5FA" />
+          <SCard style={{ padding: "20px 20px", background: "linear-gradient(135deg,rgba(96,165,250,0.10),rgba(255,255,255,0.01))", border: "1px solid rgba(96,165,250,0.20)" }}>
+            {dukungan && (
+              <p style={{ margin: "0 0 12px", fontSize: 14.5, fontWeight: 600, lineHeight: 1.65, color: "rgba(245,242,252,0.92)", fontStyle: "italic" }}>
+                &ldquo;{dukungan}&rdquo;
+              </p>
+            )}
+            {narasiKombinasi && (
+              <Expandable label="Penjelasan lengkap" color="#60A5FA">
+                <p style={{ margin: "6px 0 0", fontSize: 13, lineHeight: 1.7, color: "rgba(245,242,252,0.68)" }}>{narasiKombinasi}</p>
+              </Expandable>
+            )}
+          </SCard>
+        </>
+      )}
+
+      {/* BAB 3 — Tiga kekuatan utama */}
       {topDetails && topDetails.length > 0 && (
         <>
-          <SHeading kicker="Kecerdasan Unggulan" title="Kekuatan supermu" sub="Kecerdasan ini paling menonjol dan jadi fondasi cara belajarmu." />
+          <ChapterLabel n="3" label="Tiga kekuatan utamamu" color="#4ADE80" />
           {topDetails.map((td, i) => <TopIntelCard key={td.code || i} td={td} rank={i} />)}
         </>
       )}
 
-      {/* Radar peta 8 kecerdasan */}
+      {/* BAB 4 — Peta lengkap */}
+      <ChapterLabel n="4" label="Peta 8 kecerdasanmu" color="#22D3EE" />
       <SCard style={{ padding: "18px 16px 14px" }}>
-        <h3 style={{ margin: "0 0 4px", fontSize: 14.5, fontWeight: 800, color: "#fff" }}>Peta delapan kecerdasanmu</h3>
-        <p style={{ margin: "0 0 12px", fontSize: 12, color: "rgba(245,242,252,0.45)" }}>Makin jauh dari pusat, makin menonjol kecerdasan itu.</p>
+        <p style={{ margin: "0 0 4px", fontSize: 13, fontWeight: 700, color: "#fff" }}>Makin jauh dari pusat, makin menonjol kecerdasan itu.</p>
+        <p style={{ margin: "0 0 12px", fontSize: 11.5, color: "rgba(245,242,252,0.40)" }}>Ketuk setiap titik untuk melihat detailnya di bawah.</p>
         <div style={{ display: "flex", justifyContent: "center" }}>
           <DarkRadarChart axes={axes} size={290} />
         </div>
       </SCard>
-
-      {/* Ranking bar */}
-      <SCard style={{ padding: "20px 18px" }}>
-        <h3 style={{ margin: "0 0 16px", fontSize: 15, fontWeight: 800, color: "#fff" }}>Peringkat kecerdasan</h3>
+      <SCard style={{ padding: "18px 18px" }}>
+        <h3 style={{ margin: "0 0 14px", fontSize: 13.5, fontWeight: 800, color: "#fff" }}>Peringkat kecerdasan</h3>
         <BarList rows={bars} />
       </SCard>
 
-      {/* Kecerdasan non-dominan */}
+      {/* BAB 5 — Jalur yang menunggumu */}
+      {(rekom.profesi.length > 0 || rekom.ekskul.length > 0) && (
+        <>
+          <ChapterLabel n="5" label="Jalur yang menunggumu" color="#FB7185" />
+          {rekom.profesi.length > 0 && <RekomCard title="Profesi yang bisa kamu jajaki" Icon={IcSparkle} items={rekom.profesi} />}
+          {rekom.ekskul.length > 0 && <RekomCard title="Kegiatan & ekskul buat kamu" Icon={IcUsers} items={rekom.ekskul} />}
+        </>
+      )}
+
+      {/* BAB 6 — Kecerdasan yang sedang tumbuh */}
       {nonDominant.length > 0 && (
         <>
-          <SHeading kicker="Kecerdasan Lainnya" title="Yang terus berkembang" sub="Bukan kelemahan — hanya gaya yang belum terbiasa dipakai." />
+          <ChapterLabel n="6" label="Yang sedang tumbuh" color="#A78BFA" />
+          <p style={{ margin: "0 0 4px", fontSize: 13, color: "rgba(245,242,252,0.52)", lineHeight: 1.55 }}>Bukan kelemahan, hanya gaya yang belum terbiasa dipakai.</p>
           {nonDominant.map(it => <IntelMiniCard key={it.code} it={it} />)}
         </>
       )}
 
-      {/* Profesi & ekskul rekomendasi */}
-      {rekom.profesi.length > 0 && <RekomCard title="Profesi yang bisa kamu jajaki" Icon={IcSparkle} items={rekom.profesi} />}
-      {rekom.ekskul.length > 0 && <RekomCard title="Kegiatan & ekskul buat kamu" Icon={IcUsers} items={rekom.ekskul} />}
-
-      {/* Narasi profil final */}
+      {/* BAB 7 — Profil lengkap */}
       {narasiProfil && !isSample && (
-        <SCard style={{ padding: "18px 18px", border: "1px solid rgba(182,140,255,0.15)" }}>
-          <div style={{ fontSize: 10.5, fontWeight: 700, color: "#B68CFF", textTransform: "uppercase", letterSpacing: ".1em", marginBottom: 8 }}>Profil lengkap</div>
-          <p style={{ margin: 0, fontSize: 13, lineHeight: 1.7, color: "rgba(245,242,252,0.75)" }}>{narasiProfil}</p>
-        </SCard>
+        <>
+          <ChapterLabel n="7" label="Profilmu secara utuh" color="#34D399" />
+          <SCard style={{ padding: "20px 20px", border: "1px solid rgba(52,211,153,0.18)" }}>
+            <Expandable label="Baca profil lengkap" color="#34D399">
+              <p style={{ margin: "8px 0 0", fontSize: 13, lineHeight: 1.75, color: "rgba(245,242,252,0.75)" }}>{narasiProfil}</p>
+            </Expandable>
+          </SCard>
+        </>
       )}
 
-      {/* Mapel sulit */}
+      {/* BAB 8 — Tantangan belajar */}
       {mapelSulit && mapelSulit.length > 0 && !isSample && (
         <>
-          <SHeading kicker="Mapel & Strategi" title="Yang butuh perhatian ekstra" sub="Bukan berarti tidak bisa — butuh strategi belajar yang tepat." />
+          <ChapterLabel n="8" label="Tantangan belajarmu" color="#FBBF24" />
+          <p style={{ margin: "0 0 4px", fontSize: 13, color: "rgba(245,242,252,0.52)", lineHeight: 1.55 }}>Bukan berarti tidak bisa, hanya butuh strategi yang tepat.</p>
           {mapelSulit.map((m, i) => (
-            <SCard key={i} style={{ padding: "16px 17px", border: "1px solid rgba(214,69,90,0.18)" }}>
-              <div style={{ fontSize: 13.5, fontWeight: 700, color: "#fff", marginBottom: 6 }}>{m.nama}</div>
-              {m.desc && <p style={{ margin: 0, fontSize: 12.5, lineHeight: 1.6, color: "rgba(245,242,252,0.65)" }}>{m.desc}</p>}
+            <SCard key={i} style={{ padding: "18px 18px", border: "1px solid rgba(251,191,36,0.18)" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: m.desc ? 8 : 0 }}>
+                <span style={{ fontSize: 20 }}>📚</span>
+                <span style={{ fontSize: 14, fontWeight: 700, color: "#fff" }}>{m.nama}</span>
+              </div>
+              {m.desc && <p style={{ margin: 0, fontSize: 12.5, lineHeight: 1.65, color: "rgba(245,242,252,0.65)" }}>{m.desc}</p>}
             </SCard>
           ))}
           {mapelNarasiFinal && (
-            <SCard style={{ padding: "15px 17px", background: "rgba(214,69,90,0.06)", border: "1px solid rgba(214,69,90,0.15)" }}>
-              <p style={{ margin: 0, fontSize: 13, lineHeight: 1.65, color: "rgba(245,242,252,0.72)" }}>{mapelNarasiFinal}</p>
+            <SCard style={{ padding: "16px 18px", background: "rgba(251,191,36,0.05)", border: "1px solid rgba(251,191,36,0.14)" }}>
+              <p style={{ margin: 0, fontSize: 13, lineHeight: 1.7, color: "rgba(245,242,252,0.72)" }}>{mapelNarasiFinal}</p>
             </SCard>
           )}
         </>
@@ -783,7 +897,7 @@ function SiswaHeader({ student, onLogout }) {
   return (
     <header className={styles.sHeader}>
       <div className={styles.sHeaderTop}>
-        <span className={styles.sLogo}>FammiR</span>
+        <img src="/logo.png" alt="FammiR" style={{ height: 28, width: "auto", objectFit: "contain" }} />
         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
           <SChip><IcSparkle size={12} /> Mode Siswa</SChip>
           <button className={styles.sLogoutBtn} onClick={onLogout} title="Keluar">
@@ -796,7 +910,11 @@ function SiswaHeader({ student, onLogout }) {
         <div style={{ minWidth: 0 }}>
           <div style={{ fontSize: 11, fontWeight: 700, color: "#B68CFF", textTransform: "uppercase", letterSpacing: ".12em", fontFamily: "Space Grotesk, sans-serif" }}>Peta Diriku</div>
           <h1 className={styles.sHeaderName}>{student.name}</h1>
-          <p style={{ margin: "2px 0 0", fontSize: 12, color: "rgba(245,242,252,0.52)" }}>{student.kelas} · {student.sekolah}</p>
+          {(student.kelas || student.sekolah) && (
+            <p style={{ margin: "2px 0 0", fontSize: 12, color: "rgba(245,242,252,0.52)" }}>
+              {[student.kelas, student.sekolah].filter(Boolean).join(" · ")}
+            </p>
+          )}
         </div>
       </div>
     </header>
@@ -857,15 +975,16 @@ export default function SiswaPage({ session, onLogout }) {
     }
   }
 
-  // Fallback ke sample data jika belum ada data real
+  // Jika data real belum ada, tampilkan nama dari sesi saja (tanpa dummy kelas/sekolah)
   if (!student) {
-    student = { ...SAMPLE_STUDENT, name: session?.nama || SAMPLE_STUDENT.name, panggilan: (session?.nama || SAMPLE_STUDENT.name).split(/\s+/)[0] };
-    intel = SAMPLE_INTEL;
-    karakter = SAMPLE_KARAKTER;
-    aspek = SAMPLE_ASPEK;
-    dukungan = SAMPLE_DUKUNGAN;
-    rekom = SAMPLE_REKOM;
-    isSample = true;
+    const nama = session?.nama || "Siswa";
+    student = { name: nama, panggilan: nama.split(/\s+/)[0], kelas: "", sekolah: "" };
+    intel = [];
+    karakter = [];
+    aspek = [];
+    dukungan = "";
+    rekom = { profesi: [], ekskul: [], jurusan: [], kuliah: [], lomba: [] };
+    isSample = false;
   }
 
   return (

@@ -267,9 +267,13 @@ function generateNarasi_(inp, scores, levels, top, masterData, geminiKey) {
     "Sebut kekuatan yang sudah jelas, potensi yang masih bisa dikembangkan,",
     "dan satu saran konkret untuk cara belajar yang sesuai.",
     "",
-    "4. mapel_strategi (1-2 kalimat per mapel yang sulit, atau kosongkan jika tidak ada mapel sulit)",
-    "Hubungkan kecerdasan dominan " + nama + " dengan cara mendekati mapel yang terasa sulit.",
-    "Bukan motivasi umum, tapi strategi spesifik berdasarkan profilnya.",
+    "4. mapel_strategi",
+    mapel1 && mapel2
+      ? "Tulis DUA baris terpisah: baris 1 untuk " + mapel1 + ", baris 2 untuk " + mapel2 + "."
+      : mapel1
+        ? "Tulis satu strategi konkret untuk " + mapel1 + " berdasarkan profil kecerdasan " + nama + "."
+        : "Tulis KOSONG.",
+    "Hubungkan ke kecerdasan dominan. Bukan motivasi umum, tapi langkah nyata.",
     "",
     "ATURAN WAJIB:",
     "- Bahasa Indonesia",
@@ -344,19 +348,24 @@ function parseNarasiOutput_(raw, mapel1, mapel2) {
   var mapelBlok  = extract_("MAPEL_STRATEGI");
   var mapel1Desc = "";
   var mapel2Desc = "";
-  var mapelNarasi = mapelBlok;
+  var mapelNarasi = "";
 
-  // Coba pisah per mapel kalau ada dua
   if (mapelBlok && mapel1 && mapel2) {
+    // Dua mapel: pisah per baris, baris pertama = mapel1, kedua = mapel2
     var lines = mapelBlok.split(/\n/).filter(function(l) { return l.trim(); });
     if (lines.length >= 2) {
-      mapel1Desc  = lines[0];
-      mapel2Desc  = lines[1];
+      mapel1Desc  = lines[0].trim();
+      mapel2Desc  = lines[1].trim();
+      // Sisa baris (jika ada) jadi narasi penutup
+      if (lines.length > 2) mapelNarasi = lines.slice(2).join(" ").trim();
     } else {
-      mapel1Desc = mapelBlok;
+      mapel1Desc  = mapelBlok;
     }
   } else if (mapelBlok && mapel1) {
-    mapel1Desc = mapelBlok;
+    // Satu mapel: desc = baris pertama, narasi = baris kedua dst
+    var lines1 = mapelBlok.split(/\n/).filter(function(l) { return l.trim(); });
+    mapel1Desc  = lines1[0] || mapelBlok;
+    if (lines1.length > 1) mapelNarasi = lines1.slice(1).join(" ").trim();
   }
 
   return {
