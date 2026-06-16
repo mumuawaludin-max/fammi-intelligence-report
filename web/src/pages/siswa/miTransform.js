@@ -1,5 +1,5 @@
 /**
- * Transform Output_MI (87 kolom dari GAS) → format Siswa Bakat view
+ * Transform Output_MI (87+ kolom dari GAS) → format Siswa Bakat view
  */
 
 const NAME_TO_CODE = {
@@ -39,9 +39,16 @@ export function transformMIData(gasData, sessionNama) {
   const topNames = [top1Name, top2Name, top3Name].filter(Boolean);
 
   const topCols = [
-    { arti: row.top_1_arti, profesi: row.top_1_profesi, lakukan: row.top_1_lakukan, terlihat: row.top_1_terlihat, jaga: row.top_1_jaga },
-    { arti: row.top_2_arti, profesi: row.top_2_profesi, lakukan: row.top_2_lakukan, terlihat: row.top_2_terlihat, jaga: row.top_2_jaga },
-    { arti: row.top_3_arti, profesi: row.top_3_profesi, lakukan: row.top_3_lakukan, terlihat: row.top_3_terlihat, jaga: row.top_3_jaga },
+    { arti: row.top_1_arti, profesi: row.top_1_profesi, lakukan: row.top_1_lakukan, terlihat: row.top_1_terlihat, jaga: row.top_1_jaga, jurusan: row.top_1_jurusan, parentTip: row.top_1_parenttip, profesiSorotNama: row.top_1_profesi_sorot, profesiSorotDesc: row.top_1_profesi_sorot_desc, profesiSorotSkill1: row.top_1_profesi_sorot_skill_1, profesiSorotSkill2: row.top_1_profesi_sorot_skill_2, profesiSorotSkill3: row.top_1_profesi_sorot_skill_3, profesiSorotJalur: row.top_1_profesi_sorot_jalur, profesiSorotFigur: row.top_1_profesi_sorot_figur },
+    { arti: row.top_2_arti, profesi: row.top_2_profesi, lakukan: row.top_2_lakukan, terlihat: row.top_2_terlihat, jaga: row.top_2_jaga, jurusan: row.top_2_jurusan, parentTip: row.top_2_parenttip, profesiSorotNama: row.top_2_profesi_sorot, profesiSorotDesc: row.top_2_profesi_sorot_desc, profesiSorotSkill1: row.top_2_profesi_sorot_skill_1, profesiSorotSkill2: row.top_2_profesi_sorot_skill_2, profesiSorotSkill3: row.top_2_profesi_sorot_skill_3, profesiSorotJalur: row.top_2_profesi_sorot_jalur, profesiSorotFigur: row.top_2_profesi_sorot_figur },
+    { arti: row.top_3_arti, profesi: row.top_3_profesi, lakukan: row.top_3_lakukan, terlihat: row.top_3_terlihat, jaga: row.top_3_jaga, jurusan: row.top_3_jurusan, parentTip: row.top_3_parenttip, profesiSorotNama: row.top_3_profesi_sorot, profesiSorotDesc: row.top_3_profesi_sorot_desc, profesiSorotSkill1: row.top_3_profesi_sorot_skill_1, profesiSorotSkill2: row.top_3_profesi_sorot_skill_2, profesiSorotSkill3: row.top_3_profesi_sorot_skill_3, profesiSorotJalur: row.top_3_profesi_sorot_jalur, profesiSorotFigur: row.top_3_profesi_sorot_figur },
+  ];
+
+  // Raw profesi_detail per top intel (diparse ke Map di dalam topDetails)
+  const topProfesiDetailRaws = [
+    row.top_1_profesi_detail,
+    row.top_2_profesi_detail,
+    row.top_3_profesi_detail,
   ];
 
   // Detail lengkap per TOP (untuk card dominan)
@@ -61,6 +68,16 @@ export function transformMIData(gasData, sessionNama) {
       lakukan: parseLines(tc.lakukan),
       profesi: parseLines(tc.profesi),
       terlihat: parseLines(tc.terlihat),
+      jurusan: parseCommaList(tc.jurusan),
+      parentTip: str(tc.parentTip),
+      profesiSorot: str(tc.profesiSorotNama) ? {
+        nama:   str(tc.profesiSorotNama),
+        desc:   str(tc.profesiSorotDesc),
+        skills: [tc.profesiSorotSkill1, tc.profesiSorotSkill2, tc.profesiSorotSkill3].map(str).filter(Boolean),
+        jalur:  str(tc.profesiSorotJalur),
+        figur:  parseCommaList(tc.profesiSorotFigur),
+      } : null,
+      profesiDetail: parseProfesiDetailRaw(topProfesiDetailRaws[i]),
     };
   });
 
@@ -114,6 +131,64 @@ export function transformMIData(gasData, sessionNama) {
   if (str(row.mapel_sulit_2)) mapelSulit.push({ nama: str(row.mapel_sulit_2), desc: str(row.mapel_sulit_2_desc) });
   const mapelNarasiFinal = str(row.mapel_sulit_narasi_final);
 
+  // ── Kolom baru untuk BakatView light-theme ────────────────────────────────────
+  // Kolom-kolom ini diisi oleh pipeline GAS/Gemini.
+  // Jika belum terisi, UI akan menggunakan fallback berbasis top intel.
+
+  const narasiCover = str(row.narasi_cover);
+  const caraBelajarSummary = str(row.cara_belajar_summary);
+
+  const caraBelajarItems = [1, 2, 3, 4, 5].map(i => ({
+    no: String(i).padStart(2, "0"),
+    title: str(row[`cara_belajar_${i}_title`]),
+    body: str(row[`cara_belajar_${i}_body`]),
+  })).filter(x => x.title);
+
+  const mapelKuasai = parseCommaList(row.mapel_kuasai);
+  const ahaDesc = str(row.aha_desc);
+
+  const essayCara      = str(row.essay_cara_belajar);
+  const essayBerhasil  = str(row.essay_cara_belajar_paling_berhasil);
+  const essayKelebihan = str(row.essay_kelebihan_cara_berpikir);
+  const essayCita      = str(row.essay_citacita_profesi);
+  const essayAlasan    = str(row.essay_alasan_pilih_profesi);
+  const essayAI        = str(row.essay_penggunaan_ai);
+
+  const gayaKomPositif = [1, 2, 3, 4].map(i => str(row[`gaya_kom_positif_${i}`])).filter(Boolean);
+  const gayaKomHindari = [1, 2, 3].map(i => str(row[`gaya_kom_hindari_${i}`])).filter(Boolean);
+  const gayaKomSiswa = [1, 2, 3].map(i => ({
+    situasi: str(row[`gaya_kom_siswa_${i}_situasi`]),
+    script: str(row[`gaya_kom_siswa_${i}_script`]),
+  })).filter(x => x.situasi);
+
+  const smartGoalsSheet = {
+    s: str(row.smart_s),
+    m: str(row.smart_m),
+    a: str(row.smart_a),
+    r: str(row.smart_r),
+    t: str(row.smart_t),
+  };
+
+  const hari7 = [1, 2, 3, 4, 5, 6, 7].map(i => str(row[`hari_${i}`])).filter(Boolean);
+
+  const sinyalOrtu = [1, 2, 3, 4, 5].map(i => {
+    const rawIcon  = str(row[`sinyal_${i}_icon`]);
+    const rawTitle = str(row[`sinyal_${i}_title`]);
+    const rawBody  = str(row[`sinyal_${i}_body`]);
+    // Gemini sometimes skips the emoji and puts the title in the icon column.
+    const shifted  = rawIcon.length > 4;
+    return {
+      icon:  shifted ? "✨"     : (rawIcon || "✨"),
+      title: shifted ? rawIcon  : rawTitle,
+      body:  shifted ? rawTitle : rawBody,
+    };
+  }).filter(x => x.title);
+
+  const ciriKhas = [1, 2, 3, 4].map(i => str(row[`ciri_khas_${i}`])).filter(Boolean);
+
+  const refleksiQuestions = [1, 2, 3, 4].map(i => str(row[`refleksi_${i}`])).filter(Boolean);
+  const diskusiQuestions = [1, 2, 3, 4].map(i => str(row[`diskusi_${i}`])).filter(Boolean);
+
   return {
     student,
     intel,
@@ -127,6 +202,27 @@ export function transformMIData(gasData, sessionNama) {
     narasiProfil: str(row.narasi_profil_final),
     mapelSulit,
     mapelNarasiFinal,
+    // Kolom baru untuk BakatView
+    narasiCover,
+    caraBelajarSummary,
+    caraBelajarItems,
+    mapelKuasai,
+    ahaDesc,
+    gayaKomPositif,
+    gayaKomHindari,
+    gayaKomSiswa,
+    smartGoalsSheet,
+    hari7,
+    sinyalOrtu,
+    ciriKhas,
+    refleksiQuestions,
+    diskusiQuestions,
+    essayCara,
+    essayBerhasil,
+    essayKelebihan,
+    essayCita,
+    essayAlasan,
+    essayAI,
   };
 }
 
@@ -170,6 +266,30 @@ function parseLines(raw) {
     .split("\n")
     .map(l => l.replace(/^[→•\-\s]+/, "").trim())
     .filter(Boolean);
+}
+
+function parseCommaList(raw) {
+  return str(raw)
+    .split(/[,;|]/)
+    .map(s => s.trim())
+    .filter(Boolean);
+}
+
+// raw = string satu profesi per baris, format: nama|desc|skill1|skill2|skill3|jalur
+// return: Map{ namaLower → { desc, skills, jalur } }
+function parseProfesiDetailRaw(raw) {
+  const map = {};
+  str(raw).split("\n").forEach(line => {
+    const parts = line.split("|").map(s => s.trim());
+    if (parts.length < 2 || !parts[0]) return;
+    map[parts[0].toLowerCase()] = {
+      desc:   parts[1] || "",
+      skills: [parts[2], parts[3], parts[4]].filter(Boolean),
+      jalur:  parts[5] || "",
+      figur:  [],
+    };
+  });
+  return map;
 }
 
 function fallbackDesc(code, level) {

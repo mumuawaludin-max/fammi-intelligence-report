@@ -45,6 +45,48 @@
   --line:      #ECE6F3;
   --line-warm: #E7E0D5;
 
+  /* ---- Pastel kategori (handoff Fammi DS) ----
+     Dipakai pada Laporan Bakat Siswa: kartu kategori, ciri khas, gaya komunikasi. */
+  --sun:        #FDBD59;
+  --sun-soft:   #FFEBCB;
+  --sun-ink:    #8A4E00;
+  --sky:        #A8CAFF;
+  --sky-soft:   #E1ECFF;
+  --sky-ink:    #1F4FA8;
+  --mint:       #B4EDBF;
+  --mint-soft:  #DFF7E4;
+  --mint-ink:   #1E7A3A;
+  --blossom:      #FC9DFE;
+  --blossom-soft: #FDE2FE;
+  --blossom-ink:  #9E22A0;
+  --lilac:      #B4A1FD;
+  --lilac-soft: #EDE8FF;
+  --lilac-ink:  #4A12B0;
+  --info:       #1F4FA8;
+  --info-soft:  #E1ECFF;
+
+  /* ---- Violet handoff (selaras ungu utama) ---- */
+  --violet-50:  #F6F3FF;
+  --violet-100: #EDE8FF;
+  --violet-700: #4A12B0;
+
+  /* ---- Ink/divider tambahan handoff ---- */
+  --ink-100: #F0F0F4;
+  --ink-200: #E4E4EA;
+  --ink-800: #0E1116;
+  --divider: #F0F0F4;
+
+  /* ---- Data viz: warna spoke peta kecerdasan (handoff Fammi DS) ----
+     Urut per tingkat lalu per indeks: Kuat (1-3), Sedang (4-6), Berkembang (7-8). */
+  --dv-1: #6323DA;
+  --dv-2: #0891B2;
+  --dv-3: #7C3AED;
+  --dv-4: #D97706;
+  --dv-5: #DC2626;
+  --dv-6: #059669;
+  --dv-7: #94A3B8;
+  --dv-8: #78716C;
+
   /* ---- Status: Aman ---- */
   --status-safe:    #2E9E6B;
   --status-safe-bg: #E7F4EE;

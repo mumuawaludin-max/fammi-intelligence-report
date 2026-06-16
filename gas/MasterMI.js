@@ -629,6 +629,18 @@ var MI_CODE_TO_NAME = {
   Na: "Naturalis",
 };
 
+// Deskripsi gaya belajar per kecerdasan — dipakai di prompt Gemini agar tidak salah inferensi
+var INTEL_GAYA_BELAJAR = {
+  Na: "belajar lewat observasi langsung di alam, mencari pola, mengklasifikasi makhluk hidup dan fenomena, eksplorasi mandiri di luar ruangan, proyek penelitian kecil berbasis pengamatan",
+  Ia: "belajar mandiri, refleksi lewat jurnal, penetapan target sendiri, butuh waktu hening untuk memproses, koneksi ke nilai dan pengalaman pribadi, lebih suka belajar tanpa tekanan sosial",
+  Ve: "belajar lewat membaca, menulis, mendengar penjelasan verbal, bercerita, diskusi, debat, catatan tertulis, bermain kata dan bahasa",
+  Lo: "belajar lewat penalaran sebab-akibat, pola angka dan logika, eksperimen sistematis, pemecahan masalah terstruktur langkah demi langkah, suka data dan bukti",
+  Ki: "belajar lewat gerakan, praktik langsung, mencoba-coba secara fisik, proyek berwujud, belajar sambil bergerak atau menggunakan tangan",
+  Sp: "belajar lewat gambar, diagram, peta pikiran, visualisasi, warna, tata letak visual, sketsa dan ilustrasi, imajinasi ruang",
+  Mu: "belajar lewat ritme, melodi, pola suara, nyanyian, latar musik saat belajar, mengingat dengan irama dan nada",
+  Ie: "belajar lewat diskusi kelompok, mengajar teman, kolaborasi, mendengar cerita orang lain, debat dan tukar pendapat, peka terhadap dinamika sosial",
+};
+
 // Mapping nama kecerdasan → prefix kolom Output_MI
 var MI_CODE_TO_PREFIX = {
   Mu: "musikal",

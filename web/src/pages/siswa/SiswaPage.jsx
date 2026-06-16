@@ -4,7 +4,54 @@ import { useGasRead } from "../../lib/useGasRead";
 import { transformMIData } from "./miTransform";
 import styles from "./SiswaPage.module.css";
 
-// ── Sample data (referensi desain) ────────────────────────────────────────────
+// ════════════════════════════════════════════════════════════════════════════
+//  TOKEN WARNA (nilai dari tokens.css, handoff Fammi DS)
+//  Di-resolve ke hex agar aman dipakai sebagai atribut SVG.
+// ════════════════════════════════════════════════════════════════════════════
+const T = {
+  bg:        "#F6F2EB",
+  surface:   "#FFFFFF",
+  brand:     "#6323DA",
+  violet50:  "#F6F3FF",
+  violet100: "#EDE8FF",
+  violet700: "#4A12B0",
+  sun:       "#FDBD59", sunSoft: "#FFEBCB", sunInk: "#8A4E00",
+  sky:       "#A8CAFF", skySoft: "#E1ECFF", skyInk: "#1F4FA8",
+  mint:      "#B4EDBF", mintSoft: "#DFF7E4", mintInk: "#1E7A3A",
+  blossom:   "#FC9DFE", blossomSoft: "#FDE2FE", blossomInk: "#9E22A0",
+  lilac:     "#B4A1FD", lilacSoft: "#EDE8FF", lilacInk: "#4A12B0",
+  info:      "#1F4FA8", infoSoft: "#E1ECFF",
+  ink900:    "#14141A",
+  ink800:    "#0E1116",
+  textStrong:"#14141A",
+  textBody:  "#2C2C36",
+  textMuted: "#6B6B78",
+  textFaint: "#9A9AA6",
+  ink100:    "#F0F0F4",
+  ink200:    "#E4E4EA",
+  divider:   "#F0F0F4",
+  shadowPop: "0 10px 28px rgba(99,35,218,0.22)",
+  shadowMd:  "0 8px 20px rgba(20,20,26,0.07)",
+  shadowSm:  "0 2px 8px rgba(20,20,26,0.06)",
+};
+const FONT_BODY = "'Plus Jakarta Sans', sans-serif";
+const FONT_DISP = "'Space Grotesk', sans-serif";
+// Laporan Bakat memakai Montserrat agar persis dengan design file.
+const MONT = "'Montserrat', sans-serif";
+
+// Warna spoke peta kecerdasan, urut per tingkat lalu indeks.
+const DV_LEVEL_COLORS = {
+  Kuat:       ["#6323DA", "#0891B2", "#7C3AED"],
+  Sedang:     ["#D97706", "#DC2626", "#059669"],
+  Berkembang: ["#94A3B8", "#78716C"],
+};
+const LEVEL_STYLE = {
+  Kuat:       { bg: T.mintSoft, ink: T.mintInk },
+  Sedang:     { bg: T.sunSoft,  ink: T.sunInk  },
+  Berkembang: { bg: T.ink100,   ink: T.textMuted },
+};
+
+// ── Sample data (referensi desain dark theme: Beranda/Karakter/Perasaan) ───────
 const SAMPLE_STUDENT = {
   name: "Aisyah Putri Faisal",
   panggilan: "Aisyah",
@@ -25,14 +72,6 @@ const SAMPLE_INTEL = [
   { code: "Ki", name: "Kinestetik",       score: 12, level: "Berkembang", desc: "Koordinasi gerakmu sedang berkembang. Aktivitas fisik yang menyenangkan akan membantu." },
 ];
 
-const SAMPLE_REKOM = {
-  jurusan:  ["IPS / Bahasa & Budaya", "Seni & Desain"],
-  kuliah:   ["Desain Komunikasi Visual", "Arsitektur", "Psikologi", "Ilmu Komunikasi", "Seni Rupa"],
-  profesi:  ["Desainer grafis / ilustrator", "Arsitek interior", "Perancang UI/UX", "Psikolog", "Hubungan masyarakat"],
-  ekskul:   ["Klub Seni Rupa", "Klub Desain & Fotografi", "Pengurus OSIS", "Mading sekolah"],
-  lomba:    ["Lomba poster & ilustrasi", "Lomba desain grafis", "Lomba debat / pidato"],
-};
-
 const SAMPLE_DUKUNGAN = "Aku ingin difasilitasi untuk melukis, dan tidak terlalu banyak dikomentari soal apa yang sedang kukerjakan.";
 
 const SAMPLE_KARAKTER = [
@@ -52,7 +91,7 @@ const SAMPLE_ASPEK = [
   { name: "Agresi",           status: "aman",      teks: "Kamu jarang bereaksi kasar dan bisa menahan diri dengan baik." },
 ];
 
-// ── Per-intelligence color + emoji ────────────────────────────────────────────
+// ── Per-intelligence color + emoji (dark theme) ────────────────────────────────
 const INTEL_META = {
   Ie: { color: "#818CF8", bg: "rgba(129,140,248,0.16)", bd: "rgba(129,140,248,0.28)", emoji: "🤝", tagline: "Membaca & menjalin hubungan" },
   Ia: { color: "#60A5FA", bg: "rgba(96,165,250,0.16)",  bd: "rgba(96,165,250,0.28)",  emoji: "🪞", tagline: "Mengenal dan memahami diri" },
@@ -64,7 +103,6 @@ const INTEL_META = {
   Sp: { color: "#A78BFA", bg: "rgba(167,139,250,0.16)", bd: "rgba(167,139,250,0.28)", emoji: "🎨", tagline: "Visual, ruang, dan gambar" },
 };
 
-// ── Level color maps ──────────────────────────────────────────────────────────
 const KAR_COLOR = {
   "Konsisten":    "#B68CFF",
   "Sering Muncul":"#9D6BFF",
@@ -77,13 +115,206 @@ const INTEL_LEVEL_COLOR = {
   "Berkembang": "rgba(245,242,252,0.34)",
 };
 
-// ── Helper: wellbeing score ────────────────────────────────────────────────────
 function calcWellbeing(aspek) {
   const W = { aman: 100, perhatian: 64, waspada: 28 };
   return Math.round(aspek.reduce((s, a) => s + (W[a.status] || 70), 0) / aspek.length);
 }
 
-// ── SVG Charts ────────────────────────────────────────────────────────────────
+// ════════════════════════════════════════════════════════════════════════════
+//  KONTEN DEFAULT LAPORAN BAKAT (handoff: Laporan Bakat Siswa.dc.html)
+//  Dipakai sebagai contoh/fallback saat kolom baru OUTPUT_MI belum terisi.
+// ════════════════════════════════════════════════════════════════════════════
+
+// Emoji + label pendek + narasi per kecerdasan (untuk dialog detail)
+const INTEL_DEFAULTS = {
+  Ve: { name: "Linguistik", short: "Linguistik", emoji: "🗣️",
+    arti: "Kata adalah alat berpikir utamamu. Kamu menyusun gagasan lewat bahasa secara alami, peka pada pilihan kata, dan bisa menyesuaikan gaya bicara dengan siapapun yang kamu ajak berbicara.",
+    terlihat: ["Mudah menemukan kata yang tepat saat berbicara atau menulis", "Senang berdiskusi dan beradu argumen dengan damai", "Sering menjadi orang yang menjelaskan hal rumit ke orang lain", "Peka pada nada dan makna di balik ucapan orang lain"],
+    lakukan: ["Tulis ringkasan materi dengan kata-katamu sendiri, bukan salin ulang", "Ikut lomba debat, esai, ceramah, atau kegiatan bicara publik", "Buat jurnal harian untuk melatih gaya menulis yang khas", "Ajari teman materi sulit lewat penjelasan lisan"] },
+  Ie: { name: "Interpersonal", short: "Interper|sonal", emoji: "🤝",
+    arti: "Kamu bisa membaca orang. Kamu mengerti apa yang dirasakan orang lain, apa yang mereka butuhkan, dan bagaimana cara terbaik untuk mendekati mereka. Di kelompok manapun kamu masuk, kamu cepat menemukan cara untuk terhubung.",
+    terlihat: ["Teman-teman datang kepadanya saat ada masalah", "Bisa menyesuaikan cara bicara ke orang yang berbeda", "Mudah membuat orang nyaman di sekitarnya", "Sering jadi jembatan ketika ada konflik di kelompok"],
+    lakukan: ["Aktif di kegiatan organisasi atau kepanitiaan acara", "Coba jadi mediator saat ada konflik di sekitarmu", "Pelajari komunikasi nonverbal dan bahasa tubuh", "Biasakan bertanya \"bagaimana perasaanmu?\" bukan hanya \"apa yang terjadi?\""] },
+  Ia: { name: "Intrapersonal", short: "Intrapers|onal", emoji: "🪞",
+    arti: "Kamu punya kemampuan memahami diri sendiri yang tidak banyak orang miliki di usiamu. Kamu tahu kelebihan, kekurangan, motivasi, dan apa yang benar-benar penting bagimu. Ini yang membuat pendapatmu terasa matang.",
+    terlihat: ["Sering merenung dan menghasilkan pendapat yang matang", "Tidak mudah terpengaruh tekanan teman sebaya", "Tahu apa yang dia mau dan apa yang tidak", "Bisa mengungkapkan perasaannya dengan artikulasi yang baik"],
+    lakukan: ["Tulis jurnal refleksi singkat tiap malam, minimal 3 kalimat", "Diskusikan pilihan-pilihan hidup dengan orang yang kamu percaya", "Baca biografi tokoh yang kamu kagumi untuk perspektif baru", "Tetapkan satu tujuan kecil tiap pekan dan evaluasi sendiri"] },
+  Mu: { name: "Musikal", short: "Musikal", emoji: "🎵",
+    arti: "Kamu menikmati musik dan punya kepekaan pada ritme, tapi belum kamu jadikan alat berpikir utama. Dalam situasi tertentu musik bisa membantu fokusmu, tapi ini belum kamu manfaatkan secara sadar.",
+    terlihat: ["Mudah terbawa suasana lagu yang sedang diputar", "Kadang menghafal lebih cepat lewat materi yang dinyanyikan", "Punya selera musik yang cukup luas", "Menikmati bernyanyi meski tidak selalu percaya diri tampil"],
+    lakukan: ["Coba teknik mnemonik berbasis melodi untuk materi sulit", "Buat playlist per mata pelajaran dan amati efeknya pada fokus", "Ikut kegiatan seni suara di sekolah atau komunitas", "Rekam suaramu menjelaskan materi, lalu dengarkan ulang"] },
+  Sp: { name: "Spasial", short: "Spasial", emoji: "🎨",
+    arti: "Kamu bisa memahami visual dengan baik ketika tersedia, tapi belum selalu jadi alat pertama untuk berpikir. Ketika ada diagram kamu terbantu, namun membuat visual sendiri masih butuh usaha ekstra.",
+    terlihat: ["Terbantu jelas saat materi disajikan lewat gambar atau diagram", "Kadang menggambar untuk membantu memahami soal", "Cukup baik membaca peta dengan sedikit latihan", "Lebih suka konten visual dibanding teks panjang"],
+    lakukan: ["Biasakan merangkum satu bab menjadi satu halaman mind map", "Gunakan warna berbeda untuk setiap kategori dalam catatan", "Gambar ulang konsep abstrak menjadi visual buatanmu sendiri", "Coba aplikasi mind map digital untuk tugas sekolah"] },
+  Na: { name: "Naturalis", short: "Naturalis", emoji: "🌿",
+    arti: "Kamu punya kepekaan mengamati dan mengklasifikasi, suka melihat pola di lingkungan sekitar. Ini juga berarti kamu peka terhadap konteks dan situasi, bukan sekadar konten yang tersaji.",
+    terlihat: ["Senang mengamati dan mengkategorikan hal-hal di sekitar", "Tertarik pada isu lingkungan atau kehidupan di alam", "Merasa lebih tenang dan fokus di ruang terbuka", "Punya memori kuat untuk hal-hal yang diamati langsung"],
+    lakukan: ["Luangkan waktu di ruang terbuka sebagai tempat berpikir", "Hubungkan materi pelajaran dengan contoh nyata di alam sekitar", "Amati pola sosial di lingkunganmu dan catat temuannya", "Mulai koleksi fakta menarik dari bidang yang kamu minati"] },
+  Lo: { name: "Logika-Matematika", short: "Logika", emoji: "🔢",
+    arti: "Berpikir lewat angka dan logika bertahap belum jadi jalur utamamu. Kamu lebih cepat menyerap lewat cerita, gambar, atau interaksi langsung. Keterampilan ini bisa dilatih mulai dari pola-pola sederhana.",
+    terlihat: ["Bisa mengikuti argumen yang runtut bila ada contoh konkret", "Lebih nyaman dengan tugas non-angka", "Kadang suka permainan strategi atau teka-teki ringan", "Mengandalkan intuisi lebih dari langkah sistematis"],
+    lakukan: ["Mulai dengan permainan logika ringan seperti sudoku atau teka-teki", "Pecah satu masalah harian menjadi langkah-langkah berurutan", "Cari tahu mengapa rumus bekerja, bukan hanya hafal rumusnya", "Catat pengeluaranmu dan cari polanya tiap akhir pekan"] },
+  Ki: { name: "Kinestetik", short: "Kinestetik", emoji: "⚡",
+    arti: "Belajar lewat praktik langsung dan gerak tubuh belum jadi kekuatan utamamu. Ini berarti kamu lebih efisien lewat jalur lain yaitu kata-kata dan hubungan sosial, yang justru kamu kuasai dengan baik.",
+    terlihat: ["Lebih mudah paham kalau langsung dipraktikkan sendiri", "Ingatan kuat untuk hal-hal yang pernah dilakukan sendiri", "Bisa duduk lama kalau materinya benar-benar menarik", "Lebih nyaman belajar dengan diskusi daripada gerak fisik"],
+    lakukan: ["Ubah review pelajaran menjadi roleplay atau simulasi bersama teman", "Saat menghafal, coba sambil berjalan perlahan di ruangan", "Praktikkan langsung apa yang baru dipelajari, jangan hanya dicatat", "Coba satu kegiatan fisik baru sebagai penyeimbang energi belajar"] },
+};
+
+// Headline cover + judul keunikan + tagline pendek per kecerdasan dominan
+const COVER_HEADLINE = {
+  Ve: "Kamu bicara, orang-orang mendengarkan. Itu bukan kebetulan.",
+  Ie: "Kamu paham orang lain. Itu kekuatan yang langka.",
+  Ia: "Kamu mengenal dirimu sendiri. Itu fondasi yang kuat.",
+  Lo: "Kamu berpikir runtut dan tajam. Itu bukan kebetulan.",
+  Sp: "Kamu melihat yang orang lain lewatkan. Itu bukan kebetulan.",
+  Mu: "Kamu mendengar yang orang lain abaikan. Itu bukan kebetulan.",
+  Na: "Kamu terhubung dengan alam dan pola. Itu bukan kebetulan.",
+  Ki: "Tubuhmu tahu caranya. Itu bukan kebetulan.",
+};
+const KEUNIKAN_TITLE = {
+  Ve: "Kamu menggerakkan orang lewat kata-kata.",
+  Ie: "Kamu menghubungkan orang dengan mudah.",
+  Ia: "Kamu menavigasi hidup dari dalam.",
+  Lo: "Kamu memecahkan masalah secara sistematis.",
+  Sp: "Kamu berpikir lewat gambar dan ruang.",
+  Mu: "Kamu menata dunia lewat irama.",
+  Na: "Kamu membaca pola di alam dan sekitarmu.",
+  Ki: "Kamu belajar paling dalam lewat gerak.",
+};
+const SHORT_TAGLINE = {
+  Ve: "Bicara & kata", Ie: "Paham orang", Ia: "Paham diri", Lo: "Logika & angka",
+  Sp: "Visual & ruang", Mu: "Irama & nada", Na: "Alam & pola", Ki: "Gerak & praktik",
+};
+
+const PROFESI_DB = {
+  "Public Speaker": { desc: "Berbicara di hadapan publik untuk menginspirasi, mendidik, atau menghibur. Bisa lewat seminar, TEDx, podcast, atau corporate training.", skills: ["Kemampuan menyederhanakan ide kompleks", "Kepercayaan diri di hadapan audiens", "Kemampuan membaca dan merespons suasana ruangan"], jalur: "Mulai dari komunitas kecil atau acara sekolah. Rekam setiap penampilan. Bangun portofolio video secara bertahap.", figur: ["Najwa Shihab, jurnalis dan moderator nasional", "Gita Wirjawan, pengusaha dan podcaster", "Merry Riana, motivator dan penulis"] },
+  "MC / Presenter": { desc: "Memandu acara, siaran TV, atau podcast. Profesi ini butuh improvisasi cepat, diksi yang baik, dan kepekaan terhadap suasana.", skills: ["Diksi dan intonasi yang jelas dan menarik", "Improvisasi dan adaptasi situasi secara cepat", "Riset mendalam sebelum setiap acara"], jalur: "Mulai dengan menjadi MC acara sekolah atau komunitas. Ikut kursus broadcast atau casting untuk media lokal.", figur: ["Desy Ratnasari", "Boy William", "Andini Effendi"] },
+  "Jurnalis / Reporter": { desc: "Mencari, memverifikasi, dan menyampaikan informasi kepada publik. Bisa di media cetak, online, radio, atau televisi.", skills: ["Kemampuan menulis yang jelas dan akurat", "Rasa ingin tahu yang tinggi dan kritis", "Jaringan sumber informasi yang luas"], jalur: "Mulai dari pers kampus atau media pelajar. Magang di media lokal sejak kuliah. Bangun portofolio tulisan dari sekarang.", figur: ["Najwa Shihab", "Andy F. Noya", "Rosiana Silalahi"] },
+  "Penulis & Editor": { desc: "Menciptakan atau menyempurnakan karya tulis, bisa berupa buku, artikel, naskah film, atau konten digital.", skills: ["Kepekaan bahasa dan gaya penulisan", "Kedisiplinan menulis secara rutin", "Kemampuan merevisi tanpa membiarkan ego menghalangi"], jalur: "Mulai dengan menulis blog atau cerita pendek. Kirim naskah ke penerbit atau media. Bergabung dengan komunitas penulis.", figur: ["Dee Lestari, penulis Supernova", "Andrea Hirata, penulis Laskar Pelangi", "Puthut EA, cerpenis dan editor"] },
+  "Content Creator": { desc: "Membuat konten digital berupa video, podcast, tulisan, atau kombinasinya yang bernilai bagi audiens tertentu di internet.", skills: ["Kreativitas dalam menyajikan informasi", "Konsistensi dan disiplin produksi", "Pemahaman mendalam tentang audiens dan platform"], jalur: "Pilih satu platform dan satu topik yang kamu benar-benar minati. Konsisten minimal 6 bulan sebelum menilai hasilnya.", figur: ["Raditya Dika", "Ria Ricis", "Deddy Corbuzier, yang berevolusi sebagai podcaster"] },
+  "Pengacara / Advokat": { desc: "Memberikan bantuan hukum dan mewakili klien di pengadilan. Bisa bergabung di firma hukum, NGO, atau membuka praktik sendiri.", skills: ["Analisis hukum yang tajam dan teliti", "Argumentasi lisan dan tulisan yang kuat", "Etika dan integritas profesional yang tidak bisa ditawar"], jalur: "S1 Hukum, lulus PKPA, ikuti ujian profesi advokat. Magang di kantor hukum atau LBH sejak semester awal kuliah.", figur: ["Todung Mulya Lubis, pengacara HAM senior", "Otto Hasibuan", "Vera Novia"] },
+  "Diplomat / Duta Besar": { desc: "Mewakili negara di forum internasional, membangun hubungan antarnegara, dan melindungi kepentingan nasional di luar negeri.", skills: ["Kemampuan negosiasi lintas budaya", "Fasih minimal dua bahasa asing", "Pengetahuan mendalam tentang politik dan ekonomi internasional"], jalur: "S1 Hubungan Internasional atau Hukum. Lulus seleksi Kemenlu. Jalur panjang tapi sangat berharga dan kompetitif.", figur: ["Retno Marsudi, Menteri Luar Negeri Indonesia", "Dino Patti Djalal", "Marty Natalegawa"] },
+  "Aktivis & LSM": { desc: "Memperjuangkan isu-isu sosial, lingkungan, atau hak asasi manusia melalui advokasi, kampanye, dan pendampingan komunitas.", skills: ["Komitmen kuat pada nilai-nilai keadilan", "Kemampuan membangun jaringan dan koalisi", "Komunikasi publik yang persuasif"], jalur: "Mulai dari volunteer di LSM lokal. Perkuat dengan pendidikan di bidang hukum, sosial, atau kebijakan publik.", figur: ["Nong Darol Mahmada, aktivis perempuan", "Yuyun Ismawati, aktivis lingkungan"] },
+  "Da'i / Penceramah": { desc: "Menyebarkan nilai-nilai kebaikan dan ilmu agama kepada masyarakat lewat ceramah, kajian, tulisan, atau media digital.", skills: ["Pemahaman agama yang mendalam dan akurat", "Komunikasi yang hangat dan relevan dengan konteks pendengar", "Kepekaan terhadap kondisi dan kebutuhan jamaah"], jalur: "Mulai dari kajian kecil di lingkungan sekitar. Perkuat dengan pendidikan agama formal. Bangun kepercayaan lewat konsistensi.", figur: ["Buya Hamka, ulama dan sastrawan", "Quraish Shihab, ahli tafsir", "Habib Ali Zaenal Abidin"] },
+  "Dosen / Akademisi": { desc: "Mengajar di perguruan tinggi, melakukan penelitian, dan berkontribusi pada pengembangan ilmu pengetahuan secara sistematis.", skills: ["Penguasaan bidang ilmu yang dalam dan terus diperbarui", "Kemampuan mengajar dan membimbing mahasiswa", "Menulis karya ilmiah yang bisa dipublikasikan"], jalur: "S1, lanjut S2, dan idealnya S3 di bidang yang diminati. Aktif riset sejak kuliah. Daftar beasiswa untuk jalur akademisi.", figur: ["Rhenald Kasali, guru besar manajemen", "Yenny Wahid", "Butet Manurung, pendidik komunitas adat"] },
+  "Konselor Islami": { desc: "Memberikan pendampingan psikologis berbasis nilai-nilai Islam kepada individu, keluarga, atau komunitas yang membutuhkan.", skills: ["Empati yang dalam dan kemampuan mendengarkan aktif", "Pemahaman psikologi dan konseling yang kuat", "Landasan nilai-nilai Islam yang kokoh"], jalur: "S1 Psikologi atau Bimbingan Konseling, dilengkapi dengan pendidikan agama yang kuat. Lanjut S2 untuk spesialisasi.", figur: ["Fuad Nashori, psikolog Islam", "Elly Risman, konselor keluarga"] },
+  "Anggota DPR / Hakim": { desc: "Merumuskan kebijakan publik sebagai legislator, atau menegakkan hukum dan keadilan sebagai hakim di pengadilan.", skills: ["Pemahaman hukum dan kebijakan publik yang mendalam", "Kemampuan negosiasi dan lobi yang strategis", "Integritas dan akuntabilitas yang tidak bisa dikompromikan"], jalur: "S1 Hukum atau Ilmu Politik. Untuk DPR, aktif di partai atau organisasi sejak dini. Untuk hakim, lewat rekrutmen MA yang ketat.", figur: ["Mahfud MD, mantan Ketua MK", "Susi Pudjiastuti (jalur alternatif kepemimpinan publik)"] },
+};
+
+const STUDI_KASUS = [
+  { name: "Farah R.", initials: "FR", color: "#0891B2", lightBg: "#E0F7FA", profile: "Linguistik 91, Interpersonal 86", tagline: "Dari debater ke jurnalis nasional", short: "Reporter di Kompas TV, usia 26 tahun", story: "Di SMA, Farah sering dianggap terlalu banyak bicara. Tapi seorang guru melihat sesuatu yang berbeda: dia selalu bisa membuat siapapun nyaman bercerita. Farah masuk Jurnalistik Unpad, aktif di Pers Mahasiswa, dan mulai magang di media lokal semester 5. Tiga tahun setelah lulus, dia meliput isu lingkungan untuk siaran nasional.", kunci: ["Konsisten menulis blog sejak kelas X, bahkan ketika tidak ada yang membaca", "Bergabung dengan debate club walau awalnya merasa tidak siap", "Berani magang jauh dari kota asal untuk memperluas jaringan"], catatan: "Farah tidak pernah merasa berbakat. Yang dia lakukan hanyalah terus menulis dan terus berbicara sampai akhirnya dunia mendengar." },
+  { name: "Rizky P.", initials: "RP", color: "#059669", lightBg: "#D1FAE5", profile: "Linguistik 89, Interpersonal 84", tagline: "Content creator dengan 800K subscribers", short: "YouTube dan podcast, tanpa jalur kuliah formal", story: "Rizky berhenti kuliah di semester 2 karena merasa tidak cocok dengan sistemnya. Dia mulai membuat video yang menjelaskan sejarah rumit dengan bahasa sederhana. Setahun pertama hampir tidak ada yang menonton. Tahun ketiga, satu videonya viral karena menjelaskan isu sosial dengan sangat jernih. Sekarang Rizky menjadi referensi edukasi bagi ratusan ribu pelajar.", kunci: ["Konsisten upload konten walau views sangat rendah di awal", "Fokus pada satu topik yang dia benar-benar peduli dan kuasai", "Berkolaborasi dengan kreator lain untuk terus belajar dan tumbuh"], catatan: "Butuh dua tahun sebelum hasilnya terlihat. Tapi dia tidak berhenti karena prosesnya sendiri sudah terasa benar." },
+  { name: "Amira S.", initials: "AS", color: "#7C3AED", lightBg: "#EDE9FE", profile: "Linguistik 90, Intrapersonal 82", tagline: "Pengacara HAM dan penulis muda", short: "Advokat di LBH, buku pertamanya terbit sebelum wisuda", story: "Amira tahu sejak SMA bahwa dia ingin membela orang-orang yang tidak punya suara. Dia masuk Fakultas Hukum, aktif di himpunan mahasiswa, dan magang di LBH semester 6. Sambil kuliah, dia menulis esai-esai tentang keadilan yang dibaca ribuan orang. Bukunya tentang hak anak terbit sebelum dia wisuda, dan menjadi referensi di beberapa seminar nasional.", kunci: ["Menulis jurnal refleksi setiap malam sejak kelas XI, tanpa jeda", "Bergabung dengan organisasi yang sejalan dengan nilai-nilainya", "Membangun kebiasaan membaca lintas bidang, dari filsafat hingga ekonomi"], catatan: "Amira memilih jalur yang lebih sepi dari segi popularitas, tapi jauh lebih bermakna baginya. Dan itu keputusan yang dia buat sendiri, dengan sadar." },
+];
+
+const PATHS = [
+  { emoji: "🎤", label: "Komunikator", tagline: "Suara yang menggerakkan", description: "Jalur untuk yang ingin idenya tersampaikan ke banyak orang, lewat panggung, kamera, atau podium.", color: "#6323DA", bgColor: T.violet100, inkColor: T.violet700, kegiatan: ["Muhadharah dan Khitobah", "MC acara", "Debat antar kelas", "Ketua OSIS atau BEM"], jurusan: ["Ilmu Komunikasi", "KPI (Komunikasi Penyiaran)", "Hubungan Internasional", "Sosiologi"], profesi: ["Public Speaker", "MC / Presenter"], parentTip: "Ajak dia tampil berbicara di acara keluarga besar. Rekam dan putar ulang bersama. Banggakan prosesnya, bukan hanya hasilnya." },
+  { emoji: "📰", label: "Media dan Pena", tagline: "Kata-kata yang meninggalkan jejak", description: "Jalur untuk yang lebih suka mempengaruhi lewat tulisan, narasi, dan konten, tidak selalu harus di panggung.", color: "#0891B2", bgColor: "#E0F7FA", inkColor: "#006780", kegiatan: ["Jurnalistik dan mading", "Tulis opini atau cerita", "Podcast sekolah", "Lomba cipta puisi"], jurusan: ["Jurnalistik", "Sastra Indonesia atau Arab", "Komunikasi Digital", "Bahasa dan Sastra Inggris"], profesi: ["Jurnalis / Reporter", "Penulis & Editor", "Content Creator"], parentTip: "Belikan jurnal dan biarkan dia mengisinya bebas. Bacakan tulisannya tanpa mengoreksi. Eksplorasi bahasa perlu ruang dulu sebelum disempurnakan." },
+  { emoji: "⚖️", label: "Hukum dan Diplomasi", tagline: "Argumen yang mengubah keputusan", description: "Jalur untuk yang suka berargumen dengan runtut, negosiasi strategis, dan membela hal yang benar secara sistematis.", color: "#059669", bgColor: "#D1FAE5", inkColor: "#064E3B", kegiatan: ["Debat dan lomba karya tulis", "MUN (Model United Nations)", "Pengurus OSIS atau BEM", "Advokasi isu sosial"], jurusan: ["Ilmu Hukum", "Hubungan Internasional", "Ilmu Politik", "Hukum Tata Negara"], profesi: ["Pengacara / Advokat", "Diplomat / Duta Besar", "Aktivis & LSM", "Anggota DPR / Hakim"], parentTip: "Latih dia membela pendapat dengan sopan di rumah. Kalau dia berdebat denganmu, ajarkan cara berargumen yang baik, bukan langsung menutup pembicaraan." },
+  { emoji: "🎓", label: "Pendidik dan Da'i", tagline: "Dampak yang terasa dalam jiwa", description: "Jalur untuk yang ingin pesan dan ilmunya tidak hanya dipahami, tapi dirasakan, diingat, dan diamalkan oleh orang lain.", color: "#7C3AED", bgColor: "#EDE9FE", inkColor: "#4C1D95", kegiatan: ["Kajian kitab dan halaqah", "Mengajar adik kelas", "Syarhil Quran", "Komunitas belajar"], jurusan: ["Pendidikan Islam (PAI)", "KPI atau Dakwah", "Bimbingan Konseling", "Psikologi"], profesi: ["Da'i / Penceramah", "Dosen / Akademisi", "Konselor Islami"], parentTip: "Ajak diskusi isu yang relevan. Dengarkan pendapatnya sampai selesai sebelum menambahkan perspektif. Hadiahkan buku biografi tokoh yang menginspirasi." },
+];
+
+const DEFAULT_CARA_BELAJAR = [
+  { no: "01", title: "Jelaskan ke orang lain", body: "Bukan baca ulang, tapi ceritakan ulang ke teman atau adik kelas. Cara ini paling efektif karena melibatkan kata dan interaksi sekaligus." },
+  { no: "02", title: "Minta contoh nyata", body: "Matematika pun lebih masuk kalau ada ceritanya. Tanya ke guru: \"Ini dipakai untuk apa di kehidupan nyata?\"" },
+  { no: "03", title: "Tulis dengan kata-katamu sendiri", body: "Bukan menyalin rangkuman, tapi ceritakan ulang dengan bahasamu. Kalau bisa menjelaskan, berarti benar-benar paham." },
+  { no: "04", title: "Kelompok belajar kecil 2 sampai 3 orang", body: "Diskusi membantu berpikir lebih dalam. Kelompok besar bisa jadi gangguan. Pilih teman yang bisa diajak serius." },
+  { no: "05", title: "Baca keras-keras", body: "Suaramu adalah alatmu. Membaca nyaring mengaktifkan kecerdasan linguistik dan membantu memori bekerja jauh lebih kuat." },
+];
+const DEFAULT_CARA_BELAJAR_SUMMARY = "Kamu belajar paling efektif lewat kata-kata dan interaksi, bukan hafalan dan pengulangan. Tidak semua guru tahu ini.";
+
+const DEFAULT_GAYA_POSITIF = [
+  "Ajukan pertanyaan terbuka. \"Menurutmu bagaimana?\" lebih efektif dari \"Kamu harus...\"",
+  "Beri ruang untuk bercerita. Dengarkan sampai selesai sebelum merespons.",
+  "Gunakan pujian yang spesifik. \"Penjelasanmu tadi jelas sekali\" jauh lebih bermakna dari \"Pinter kamu.\"",
+  "Jelaskan alasan di balik setiap aturan atau keputusan, bukan hanya instruksinya.",
+];
+const DEFAULT_GAYA_HINDARI = [
+  "Memotong di tengah cerita. Ini mematikan dorongan berbicaranya secara perlahan.",
+  "Instruksi tanpa penjelasan alasan. Anak merespons lebih baik ketika memahami mengapa.",
+  "Membandingkan dengan orang lain, bahkan dengan niat memotivasi sekalipun.",
+];
+const DEFAULT_GAYA_SISWA = [
+  { situasi: "Saat butuh didengar tanpa solusi", script: "\"Aku perlu cerita dulu. Belum butuh solusi sekarang. Bisa dengerin?\"" },
+  { situasi: "Saat merasa dipotong atau tidak didengar", script: "\"Boleh aku selesaikan pikiranku dulu?\"" },
+  { situasi: "Saat ingin pendapat tapi takut dihakimi", script: "\"Aku sudah memikirkan ini. Pengen dengar perspektifmu juga, tanpa langsung disalahkan.\"" },
+];
+
+const DEFAULT_SMART_GOALS = [
+  { letter: "S", label: "Spesifik", content: "Tampil berbicara di depan audiens minimal 2 kali sebulan, baik di kelas, komunitas, atau kegiatan sekolah yang ada." },
+  { letter: "M", label: "Terukur", content: "Target 8 penampilan dalam 4 bulan ke depan. Rekam setiap sesi dan simpan sebagai bukti perkembangan diri." },
+  { letter: "A", label: "Achievable", content: "Mulai dari audiens 5 sampai 10 orang, kemudian naikkan secara bertahap. Tidak perlu langsung tampil di panggung besar." },
+  { letter: "R", label: "Relevan", content: "Sesuai dengan kecerdasan utamamu. Jalur ini memperkuat apa yang sudah ada secara alami." },
+  { letter: "T", label: "Time-bound", content: "Evaluasi setiap bulan bersama orang yang dipercaya. Review menyeluruh di akhir semester untuk melihat perkembangan nyata." },
+];
+
+const DEFAULT_DAYS = [
+  { label: "Hari ini", task: "Tulis 3 hal yang kamu kagumi dari cara seseorang berbicara. Apa yang membuat mereka menarik dan mudah dipercaya?" },
+  { label: "Besok", task: "Jelaskan satu pelajaran hari ini ke seseorang yang kamu percaya. Perhatikan cara mereka merespons." },
+  { label: "Hari ke-3", task: "Catat satu kata baru yang kamu temui. Cari artinya, lalu gunakan dalam satu kalimat hari ini." },
+  { label: "Hari ke-4", task: "Di kelas, sampaikan minimal satu pertanyaan atau pendapat. Bukan untuk terlihat pintar, tapi untuk melatih keberanian." },
+  { label: "Hari ke-5", task: "Tulis cerita singkat 5 kalimat tentang harimu, tapi dari sudut pandang teman yang mengamatimu." },
+  { label: "Hari ke-6", task: "Rekam suaramu membaca satu paragraf selama 2 menit. Dengarkan ulang dan perhatikan kecepatan serta kejelasanmu." },
+  { label: "Hari ke-7", task: "Buat satu rencana konkret: apa satu kegiatan yang akan kamu coba bulan depan berdasarkan keunikanmu?" },
+];
+
+const DEFAULT_SINYAL = [
+  { icon: "💬", title: "Ketika dia menjelaskan sesuatu dengan semangat", body: "Itu bukan cerewet. Itu kecerdasannya bekerja. Dukung dengan mendengarkan, bukan memotong." },
+  { icon: "🤝", title: "Kalau dia jadi mediator di tengah konflik teman", body: "Perhatikan itu. Kemampuan ini jarang dan berharga, dan mungkin sudah terjadi berulang kali tanpa dia sadari." },
+  { icon: "📚", title: "Lebih hidup di mapel bahasa dan sosial daripada hitungan", body: "Itu preferensi kecerdasan, bukan kemalasan. Bantu temukan cara belajar matematika lewat cerita dan konteks nyata." },
+  { icon: "✨", title: "Pujian paling bermakna baginya", body: "Bukan \"kamu pintar\", tapi \"penjelasanmu tadi membuat aku mengerti\". Apresiasi yang spesifik jauh lebih kuat dan tahan lama." },
+  { icon: "👂", title: "Dia butuh pendengar yang baik di rumah", body: "\"Lalu apa?\" lebih powerful dari \"sudah belajar?\". Jadilah pendengar aktif. Itulah cara terbaik mendukung kecerdasannya." },
+];
+
+const DEFAULT_CIRI_KHAS = [
+  { text: "Suka bercerita dan berdiskusi", tone: "sky" },
+  { text: "Cepat akrab dengan orang baru", tone: "blossom" },
+  { text: "Pandai memilih kata yang tepat", tone: "sun" },
+  { text: "Berani tampil di depan umum", tone: "mint" },
+];
+
+const DEFAULT_REFLEKSI = [
+  "Kapan terakhir kali kamu merasa paling hidup saat berbicara atau berkomunikasi dengan seseorang?",
+  "Ada satu orang yang kamu kagumi cara berbicaranya. Apa tepatnya yang membuat mereka berkesan bagimu?",
+  "Kalau kamu punya audiens satu juta orang besok pagi, kamu ingin bercerita tentang apa?",
+  "Apa yang paling sering orang minta bantuannya kepadamu? Apakah kamu pernah sadar itu adalah kekuatanmu?",
+];
+const DEFAULT_DISKUSI = [
+  "Saat cerita soal apa kamu paling semangat sampai susah berhenti bicara?",
+  "Kamu lebih suka tampil di depan atau menyiapkan semuanya di belakang layar?",
+  "Pelajaran atau kegiatan mana yang bikin kamu lupa waktu?",
+  "Kamu ingin jadi orang yang seperti apa lima tahun lagi?",
+];
+const DEFAULT_MAPEL_KUASAI = ["Bahasa Indonesia", "Bahasa Inggris", "Bahasa Arab", "PPKn", "Sejarah", "Sosiologi"];
+const DEFAULT_MAPEL_TANTANG = ["Matematika", "Fisika", "Kimia"];
+
+const DEFAULT_KOMBINASI = "Bukan hanya pandai bicara. Kamu tahu cara membaca ruangan, memilih kata yang tepat untuk orang yang tepat, dan tahu kapan waktunya diam. Kombinasi ini tidak umum.";
+const DEFAULT_KOMBINASI_BOX = "Ini bahan dasar seorang pemimpin, negosiator, jurnalis, atau siapapun yang ingin membuat orang sungguh-sungguh bergerak, bukan sekadar mendengarkan.";
+
+// Contoh laporan bakat (dipakai saat data OUTPUT_MI belum tersedia). Persis design file.
+const SAMPLE_BAKAT = {
+  student: { name: "Aisyah Putri Faisal", panggilan: "Aisyah", kelas: "Kelas X", sekolah: "MTs Al-Hikmah" },
+  intel: [
+    { code: "Ve", name: "Linguistik",        score: 92, level: "Kuat" },
+    { code: "Ie", name: "Interpersonal",     score: 88, level: "Kuat" },
+    { code: "Ia", name: "Intrapersonal",     score: 76, level: "Kuat" },
+    { code: "Mu", name: "Musikal",           score: 68, level: "Sedang" },
+    { code: "Sp", name: "Spasial",           score: 63, level: "Sedang" },
+    { code: "Na", name: "Naturalis",         score: 57, level: "Sedang" },
+    { code: "Lo", name: "Logika-Matematika", score: 48, level: "Berkembang" },
+    { code: "Ki", name: "Kinestetik",        score: 43, level: "Berkembang" },
+  ],
+  topDetails: [
+    { code: "Ve", name: "Linguistik",    score: 92, level: "Kuat" },
+    { code: "Ie", name: "Interpersonal", score: 88, level: "Kuat" },
+    { code: "Ia", name: "Intrapersonal", score: 76, level: "Kuat" },
+  ],
+};
+
+// ════════════════════════════════════════════════════════════════════════════
+//  SVG CHARTS (dark theme: Beranda/Karakter/Perasaan)
+// ════════════════════════════════════════════════════════════════════════════
 
 function RingGauge({ value = 0, size = 104, stroke = 11, gradient, color = "#9D6BFF", track = "rgba(255,255,255,0.10)", label = "", suffix = "" }) {
   const r = (size - stroke) / 2;
@@ -109,7 +340,7 @@ function RingGauge({ value = 0, size = 104, stroke = 11, gradient, color = "#9D6
         />
       </svg>
       <div style={{ position: "absolute", inset: 0, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 1 }}>
-        <span style={{ fontSize: size < 80 ? 14 : size < 100 ? 18 : 22, fontWeight: 800, color: "#fff", lineHeight: 1, letterSpacing: "-.02em", fontFamily: "Space Grotesk, sans-serif" }}>
+        <span style={{ fontSize: size < 80 ? 14 : size < 100 ? 18 : 22, fontWeight: 800, color: "#fff", lineHeight: 1, letterSpacing: "-.02em", fontFamily: FONT_DISP }}>
           {value}{suffix}
         </span>
         {label && <span style={{ fontSize: 9, fontWeight: 700, color: "rgba(245,242,252,0.5)", textTransform: "uppercase", letterSpacing: ".06em" }}>{label}</span>}
@@ -141,7 +372,7 @@ function DonutChart({ segments = [], size = 132, stroke = 20, center, centerSub 
         ))}
       </svg>
       <div style={{ position: "absolute", inset: 0, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center" }}>
-        <span style={{ fontSize: 26, fontWeight: 800, color: "#fff", lineHeight: 1, fontFamily: "Space Grotesk, sans-serif" }}>{center}</span>
+        <span style={{ fontSize: 26, fontWeight: 800, color: "#fff", lineHeight: 1, fontFamily: FONT_DISP }}>{center}</span>
         {centerSub && <span style={{ fontSize: 10, fontWeight: 700, color: "rgba(245,242,252,0.5)", marginTop: 2 }}>{centerSub}</span>}
       </div>
     </div>
@@ -153,20 +384,14 @@ function SemiGauge({ value = 0, size = 260, label = "", sub = "" }) {
   const R = (size - 40) / 2;
   const stroke = 18;
   const cy = R + stroke / 2 + 8;
-
   const trackD = `M ${cx - R} ${cy} A ${R} ${R} 0 1 0 ${cx + R} ${cy}`;
-
   const angle = Math.PI * (1 - value / 100);
   const fillX = cx + R * Math.cos(angle);
   const fillY = cy - R * Math.sin(angle);
   const largeArc = value > 50 ? 1 : 0;
-  const fillD = value > 0
-    ? `M ${cx - R} ${cy} A ${R} ${R} 0 ${largeArc} 0 ${fillX} ${fillY}`
-    : null;
-
+  const fillD = value > 0 ? `M ${cx - R} ${cy} A ${R} ${R} 0 ${largeArc} 0 ${fillX} ${fillY}` : null;
   const svgH = cy + stroke / 2 + 12;
   const uid = `sg-${size}`;
-
   return (
     <div style={{ textAlign: "center" }}>
       <svg width={size} height={svgH} viewBox={`0 0 ${size} ${svgH}`} style={{ overflow: "visible" }}>
@@ -180,7 +405,7 @@ function SemiGauge({ value = 0, size = 260, label = "", sub = "" }) {
         {fillD && <path d={fillD} fill="none" stroke={`url(#${uid})`} strokeWidth={stroke} strokeLinecap="round" />}
         <text x={cx} y={cy - R * 0.32} textAnchor="middle" fill="#F5F2FC"
           fontSize={Math.round(size * 0.136)} fontWeight="800" letterSpacing="-1"
-          fontFamily="Space Grotesk, sans-serif">{value}</text>
+          fontFamily={FONT_DISP}>{value}</text>
         {label && <text x={cx} y={cy - R * 0.06} textAnchor="middle" fill="rgba(245,242,252,0.52)" fontSize={11} fontWeight="700">{label}</text>}
       </svg>
       {sub && <p style={{ margin: "-4px 0 0", fontSize: 12.5, color: "rgba(245,242,252,0.52)", textAlign: "center" }}>{sub}</p>}
@@ -188,89 +413,7 @@ function SemiGauge({ value = 0, size = 260, label = "", sub = "" }) {
   );
 }
 
-function DarkRadarChart({ axes = [], size = 290 }) {
-  if (axes.length < 3) return null;
-  const cx = size / 2, cy = size / 2;
-  const maxR = size * 0.36;
-  const n = axes.length;
-  const levels = [0.25, 0.5, 0.75, 1];
-  const labelOffset = 18;
-
-  function angleOf(i) { return (2 * Math.PI * i) / n - Math.PI / 2; }
-  function pt(i, f) {
-    const a = angleOf(i);
-    return { x: cx + maxR * f * Math.cos(a), y: cy + maxR * f * Math.sin(a) };
-  }
-  function poly(fracs) { return fracs.map((f, i) => { const p = pt(i, f); return `${p.x},${p.y}`; }).join(" "); }
-
-  const dataFracs = axes.map((a) => (a.value ?? 0) / (a.max ?? 25));
-
-  function anchor(i) {
-    const x = Math.cos(angleOf(i));
-    return x > 0.15 ? "start" : x < -0.15 ? "end" : "middle";
-  }
-  function baseline(i) {
-    const y = Math.sin(angleOf(i));
-    return y > 0.15 ? "hanging" : y < -0.15 ? "auto" : "middle";
-  }
-
-  return (
-    <svg viewBox={`0 0 ${size} ${size}`} width={size} height={size} style={{ overflow: "visible" }}>
-      {levels.map((lvl) => (
-        <polygon key={lvl} points={poly(axes.map(() => lvl))}
-          fill="none" stroke="rgba(255,255,255,0.11)"
-          strokeWidth={lvl === 1 ? 1 : 0.75}
-          strokeDasharray={lvl < 1 ? "3 3" : undefined}
-        />
-      ))}
-      {axes.map((_, i) => {
-        const tip = pt(i, 1);
-        return <line key={i} x1={cx} y1={cy} x2={tip.x} y2={tip.y} stroke="rgba(255,255,255,0.11)" strokeWidth={0.75} />;
-      })}
-      <polygon points={poly(dataFracs)} fill="#9D6BFF" fillOpacity={0.22} stroke="#B68CFF" strokeWidth={2} strokeLinejoin="round" />
-      {axes.map((a, i) => {
-        const f = dataFracs[i];
-        const p = pt(i, f);
-        return <circle key={i} cx={p.x} cy={p.y} r={4} fill="#B68CFF" stroke="#0C0817" strokeWidth={2} />;
-      })}
-      {axes.map((a, i) => {
-        const tip = pt(i, 1 + labelOffset / maxR);
-        return (
-          <text key={i} x={tip.x} y={tip.y} fontSize={10} fontWeight={700}
-            fontFamily="Plus Jakarta Sans, sans-serif"
-            fill="rgba(245,242,252,0.52)"
-            textAnchor={anchor(i)} dominantBaseline={baseline(i)}
-          >{a.short ?? a.label}</text>
-        );
-      })}
-    </svg>
-  );
-}
-
-function BarList({ rows = [] }) {
-  const maxVal = Math.max(...rows.map((r) => r.value), 1);
-  return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-      {rows.map((row, i) => {
-        const pct = (row.value / maxVal) * 100;
-        const col = INTEL_LEVEL_COLOR[row.tag] || "#9D6BFF";
-        return (
-          <div key={i} style={{ display: "flex", alignItems: "center", gap: 10 }}>
-            <span style={{ width: 90, fontSize: 12.5, fontWeight: 700, color: "rgba(245,242,252,0.76)", flexShrink: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{row.label}</span>
-            <div style={{ flex: 1, height: 6, borderRadius: 99, background: "rgba(255,255,255,0.08)", overflow: "hidden" }}>
-              <div style={{ width: `${pct}%`, height: "100%", borderRadius: 99, background: col, transition: "width .6s ease" }} />
-            </div>
-            <span style={{ fontSize: 13, fontWeight: 800, color: "#fff", width: 24, textAlign: "right", fontFamily: "Space Grotesk, sans-serif" }}>{row.value}</span>
-            <span style={{ fontSize: 10.5, fontWeight: 700, color: col, width: 72, fontSize: 10 }}>{row.tag}</span>
-          </div>
-        );
-      })}
-    </div>
-  );
-}
-
-// ── Shared UI ─────────────────────────────────────────────────────────────────
-
+// ── Shared UI dark ─────────────────────────────────────────────────────────────
 function SCard({ children, style, glow }) {
   return (
     <div className={styles.sCard} style={{
@@ -299,20 +442,9 @@ function SChip({ children, tone = "ungu", style: sx }) {
 function SHeading({ kicker, title, sub }) {
   return (
     <div style={{ marginBottom: 14 }}>
-      {kicker && <div style={{ fontSize: 11, fontWeight: 700, color: "#B68CFF", textTransform: "uppercase", letterSpacing: ".14em", marginBottom: 7, fontFamily: "Space Grotesk, sans-serif" }}>{kicker}</div>}
+      {kicker && <div style={{ fontSize: 11, fontWeight: 700, color: "#B68CFF", textTransform: "uppercase", letterSpacing: ".14em", marginBottom: 7, fontFamily: FONT_DISP }}>{kicker}</div>}
       <h2 style={{ margin: 0, fontSize: 22, fontWeight: 800, letterSpacing: "-.02em", color: "#F5F2FC", lineHeight: 1.15 }}>{title}</h2>
       {sub && <p style={{ margin: "6px 0 0", fontSize: 13.5, color: "rgba(245,242,252,0.52)", lineHeight: 1.5 }}>{sub}</p>}
-    </div>
-  );
-}
-
-function ChapterLabel({ n, label, color }) {
-  const c = color || "#B68CFF";
-  return (
-    <div style={{ display: "flex", alignItems: "center", gap: 10, margin: "6px 0 2px" }}>
-      <span style={{ width: 26, height: 26, borderRadius: 99, background: `${c}22`, border: `1px solid ${c}44`, color: c, display: "grid", placeItems: "center", fontSize: 11, fontWeight: 800, fontFamily: "Space Grotesk, sans-serif", flexShrink: 0 }}>{n}</span>
-      <span style={{ fontSize: 10.5, fontWeight: 700, color: c, textTransform: "uppercase", letterSpacing: ".14em" }}>{label}</span>
-      <div style={{ flex: 1, height: 1, background: `${c}22` }} />
     </div>
   );
 }
@@ -340,7 +472,6 @@ function STrend({ t, size = 13 }) {
 // ── Inline icons ──────────────────────────────────────────────────────────────
 const S = { fill: "none", stroke: "currentColor", strokeWidth: 2, strokeLinecap: "round", strokeLinejoin: "round" };
 
-function IcHome({ size = 20 }) { return <svg width={size} height={size} viewBox="0 0 24 24" {...S}><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>; }
 function IcHeart({ size = 20 }) { return <svg width={size} height={size} viewBox="0 0 24 24" {...S}><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>; }
 function IcShield({ size = 20 }) { return <svg width={size} height={size} viewBox="0 0 24 24" {...S}><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>; }
 function IcSparkle({ size = 20 }) { return <svg width={size} height={size} viewBox="0 0 24 24" fill="currentColor" stroke="none"><path d="M12 2l2.09 6.26L20 10l-5.91 1.74L12 18l-2.09-6.26L4 10l5.91-1.74z"/></svg>; }
@@ -349,11 +480,10 @@ function IcArrowUp({ size = 14 }) { return <svg width={size} height={size} viewB
 function IcArrowDown({ size = 14 }) { return <svg width={size} height={size} viewBox="0 0 24 24" {...S}><polyline points="6 9 12 15 18 9"/></svg>; }
 function IcMinus({ size = 14 }) { return <svg width={size} height={size} viewBox="0 0 24 24" {...S}><line x1="5" y1="12" x2="19" y2="12"/></svg>; }
 function IcCheckCircle({ size = 20 }) { return <svg width={size} height={size} viewBox="0 0 24 24" {...S}><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>; }
-function IcBrain({ size = 20 }) { return <svg width={size} height={size} viewBox="0 0 24 24" {...S}><path d="M9.5 2A2.5 2.5 0 0 0 7 4.5V5a3 3 0 0 0-3 3v1a3 3 0 0 0 .5 1.66A3.5 3.5 0 0 0 5 14a3.5 3.5 0 0 0 3 3.46V20h8v-2.54A3.5 3.5 0 0 0 19 14a3.5 3.5 0 0 0-.5-3.34A3 3 0 0 0 19 9V8a3 3 0 0 0-3-3v-.5A2.5 2.5 0 0 0 13.5 2z"/></svg>; }
 function IcUsers({ size = 20 }) { return <svg width={size} height={size} viewBox="0 0 24 24" {...S}><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>; }
-function IcFlag({ size = 20 }) { return <svg width={size} height={size} viewBox="0 0 24 24" {...S}><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><line x1="4" y1="22" x2="4" y2="15"/></svg>; }
 function IcLogout({ size = 16 }) { return <svg width={size} height={size} viewBox="0 0 24 24" {...S}><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>; }
 function IcChat({ size = 16 }) { return <svg width={size} height={size} viewBox="0 0 24 24" {...S}><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>; }
+function IcHome({ size = 20 }) { return <svg width={size} height={size} viewBox="0 0 24 24" {...S}><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>; }
 
 function IntelBadge({ code, size = 44 }) {
   const m = INTEL_META[code] || {};
@@ -364,29 +494,16 @@ function IntelBadge({ code, size = 44 }) {
   );
 }
 
-function Expandable({ label, color, children }) {
-  const [open, setOpen] = useState(false);
-  const c = color || "#B68CFF";
-  return (
-    <div>
-      <button onClick={() => setOpen(o => !o)} style={{ display: "flex", alignItems: "center", gap: 5, background: "none", border: "none", cursor: "pointer", padding: "5px 0", color: c, fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: ".09em" }}>
-        {label}
-        <span style={{ transform: open ? "rotate(90deg)" : "none", transition: "transform .18s", display: "flex" }}><IcArrowRight size={12} /></span>
-      </button>
-      {open && <div style={{ marginTop: 6 }}>{children}</div>}
-    </div>
-  );
-}
-
-// ── View: Beranda ─────────────────────────────────────────────────────────────
+// ════════════════════════════════════════════════════════════════════════════
+//  VIEW: BERANDA (dark)
+// ════════════════════════════════════════════════════════════════════════════
 function BerandaView({ student, intel, karakter, aspek, dukungan, setView }) {
   const dom = intel.filter((i) => i.level === "Kuat");
   const perhatian = aspek.filter((a) => a.status === "perhatian");
-  const well = calcWellbeing(aspek);
+  const well = aspek.length ? calcWellbeing(aspek) : 0;
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 22 }}>
-      {/* Hero card */}
       <SCard glow style={{ padding: "22px 20px", background: "linear-gradient(150deg, rgba(157,107,255,0.28), rgba(109,40,217,0.10) 60%, rgba(255,255,255,0.02))" }}>
         <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
           <div style={{ flex: 1, minWidth: 0 }}>
@@ -398,14 +515,13 @@ function BerandaView({ student, intel, karakter, aspek, dukungan, setView }) {
               Kamu berkembang pesat semester ini. Karaktermu makin kuat, bakatmu mulai bersinar, dan perasaanmu lagi cukup cerah.
             </p>
           </div>
-          <RingGauge value={student.karakter} size={104} stroke={11} gradient={["#C9B0FF", "#7C3AED"]} label="Karakter" />
+          {student.karakter ? <RingGauge value={student.karakter} size={104} stroke={11} gradient={["#C9B0FF", "#7C3AED"]} label="Karakter" /> : null}
         </div>
       </SCard>
 
-      {/* Kekuatan super */}
       {dom.length > 0 && (
         <div>
-          <div style={{ fontSize: 11, fontWeight: 700, color: "#B68CFF", textTransform: "uppercase", letterSpacing: ".12em", marginBottom: 11, fontFamily: "Space Grotesk, sans-serif" }}>Kekuatan supermu</div>
+          <div style={{ fontSize: 11, fontWeight: 700, color: "#B68CFF", textTransform: "uppercase", letterSpacing: ".12em", marginBottom: 11, fontFamily: FONT_DISP }}>Kekuatan supermu</div>
           <div style={{ display: "flex", gap: 11 }}>
             {dom.map((it) => (
               <SCard key={it.code} style={{ flex: 1, padding: "16px 15px", textAlign: "center" }}>
@@ -418,59 +534,8 @@ function BerandaView({ student, intel, karakter, aspek, dukungan, setView }) {
         </div>
       )}
 
-      {/* Quick tiles */}
-      <div style={{ display: "flex", gap: 11 }}>
-        <button className={styles.stile} onClick={() => setView("karakter")}>
-          <span className={styles.stileIcon}><IcHeart size={16} /></span>
-          <div>
-            <div style={{ display: "flex", alignItems: "baseline", gap: 4 }}>
-              <span style={{ fontSize: 20, fontWeight: 800, color: "rgba(245,242,252,1)", letterSpacing: "-.02em" }}>{student.karakter}%</span>
-              <STrend t={student.karakterTrend} />
-            </div>
-            <div style={{ fontSize: 11.5, fontWeight: 600, color: "rgba(245,242,252,0.52)", marginTop: 1 }}>Karakter</div>
-          </div>
-        </button>
-        <button className={styles.stile} onClick={() => setView("perasaan")}>
-          <span className={styles.stileIcon} style={{ color: perhatian.length ? "#FBBF24" : "rgba(245,242,252,0.76)" }}><IcShield size={16} /></span>
-          <div>
-            <div style={{ display: "flex", alignItems: "baseline", gap: 4 }}>
-              <span style={{ fontSize: 20, fontWeight: 800, color: "rgba(245,242,252,1)", letterSpacing: "-.02em" }}>{well}</span>
-              <span style={{ fontSize: 10.5, fontWeight: 700, color: "rgba(245,242,252,0.52)" }}>/ 100</span>
-            </div>
-            <div style={{ fontSize: 11.5, fontWeight: 600, color: "rgba(245,242,252,0.52)", marginTop: 1 }}>Perasaan</div>
-          </div>
-        </button>
-        <button className={styles.stile} onClick={() => setView("bakat")}>
-          <span className={styles.stileIcon}><IcSparkle size={16} /></span>
-          <div>
-            <div>
-              <span style={{ fontSize: 20, fontWeight: 800, color: "rgba(245,242,252,1)", letterSpacing: "-.02em" }}>{dom.length}</span>
-            </div>
-            <div style={{ fontSize: 11.5, fontWeight: 600, color: "rgba(245,242,252,0.52)", marginTop: 1 }}>Bakat menonjol</div>
-          </div>
-        </button>
-      </div>
-
-      {/* Kata kamu sendiri */}
-      {dukungan && (
-        <SCard style={{ padding: "20px 20px", display: "flex", flexDirection: "column", gap: 12 }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 9 }}>
-            <span style={{ width: 30, height: 30, borderRadius: 9, background: "rgba(157,107,255,0.20)", color: "#B68CFF", display: "grid", placeItems: "center" }}><IcChat size={16} /></span>
-            <h3 style={{ margin: 0, fontSize: 15, fontWeight: 800, color: "rgba(245,242,252,1)" }}>Kata kamu sendiri</h3>
-          </div>
-          <div style={{ display: "flex", gap: 11, alignItems: "flex-start" }}>
-            <span style={{ fontSize: 38, lineHeight: .8, color: "#9D6BFF", fontWeight: 800, fontFamily: "Georgia, serif", flexShrink: 0 }}>&ldquo;</span>
-            <p style={{ margin: 0, fontSize: 14.5, lineHeight: 1.6, color: "rgba(245,242,252,1)", fontWeight: 500, fontStyle: "italic" }}>{dukungan}</p>
-          </div>
-          <p style={{ margin: 0, fontSize: 12, color: "rgba(245,242,252,0.34)" }}>Ini yang kamu sampaikan saat asesmen. Terima kasih sudah jujur.</p>
-        </SCard>
-      )}
-
-      {/* Jump links */}
       <div style={{ display: "flex", flexDirection: "column", gap: 11 }}>
-        <SJumpLink Icon={IcHeart} title="Karaktermu" note="6 kebiasaan baik yang kamu tumbuhkan" onOpen={() => setView("karakter")} />
-        <SJumpLink Icon={IcShield} title="Perasaanmu" note={perhatian.length ? "Ada hal yang bisa kamu rawat" : "Semua terasa baik"} tone={perhatian.length ? "perhatian" : "aman"} onOpen={() => setView("perasaan")} />
-        <SJumpLink Icon={IcSparkle} title="Bakatmu" note={"Menonjol: " + dom.map((d) => d.name).join(" & ")} onOpen={() => setView("bakat")} />
+        <SJumpLink Icon={IcSparkle} title="Bakatmu" note={dom.length ? "Menonjol: " + dom.map((d) => d.name).join(" & ") : "Lihat peta kecerdasanmu"} onOpen={() => setView("bakat")} />
       </div>
     </div>
   );
@@ -492,7 +557,795 @@ function SJumpLink({ Icon, title, note, tone, onOpen }) {
   );
 }
 
-// ── View: Karakter ────────────────────────────────────────────────────────────
+// ════════════════════════════════════════════════════════════════════════════
+//  KOMPONEN LIGHT (Laporan Bakat)
+// ════════════════════════════════════════════════════════════════════════════
+
+function LCard({ children, style }) {
+  return (
+    <div style={{ background: T.surface, borderRadius: 28, padding: 18, border: `1px solid ${T.divider}`, boxShadow: T.shadowSm, ...style }}>
+      {children}
+    </div>
+  );
+}
+
+function LSectionHeader({ eyebrow, title }) {
+  return (
+    <div style={{ marginBottom: 14 }}>
+      <div style={{ fontSize: 11, fontWeight: 800, letterSpacing: ".1em", textTransform: "uppercase", color: T.brand, marginBottom: 5 }}>{eyebrow}</div>
+      <h2 style={{ margin: 0, fontSize: 20, fontWeight: 800, letterSpacing: "-.01em", color: T.textStrong, lineHeight: 1.2, fontFamily: MONT }}>{title}</h2>
+    </div>
+  );
+}
+
+function Chevron({ dir = "right", size = 14, color = "currentColor", w = 2.5 }) {
+  const pts = dir === "down" ? "6 9 12 15 18 9" : dir === "right" ? "9 18 15 12 9 6" : "15 18 9 12 15 6";
+  return <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth={w} strokeLinecap="round" strokeLinejoin="round"><polyline points={pts} /></svg>;
+}
+
+function CollapseHeader({ eyebrow, eyebrowColor, title, open, onToggle }) {
+  return (
+    <div onClick={onToggle} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", cursor: "pointer", padding: "2px 0" }}>
+      <div>
+        <div style={{ fontSize: 10, fontWeight: 800, letterSpacing: ".1em", textTransform: "uppercase", color: eyebrowColor || T.brand, marginBottom: 3 }}>{eyebrow}</div>
+        <h2 style={{ margin: 0, fontSize: 18, fontWeight: 900, letterSpacing: "-.01em", color: T.textStrong, fontFamily: MONT }}>{title}</h2>
+      </div>
+      <div style={{ width: 36, height: 36, borderRadius: "50%", background: T.ink100, display: "grid", placeItems: "center", flexShrink: 0, color: T.textBody }}>
+        <Chevron dir={open ? "down" : "right"} />
+      </div>
+    </div>
+  );
+}
+
+// ── Peta kecerdasan (sunburst/petal) ───────────────────────────────────────────
+function PetalChart({ items }) {
+  const cx = 160, cy = 148, maxR = 96, labelR = 116;
+  const R = (n) => Math.round(n * 10) / 10;
+  const petals = items.map((m, i) => {
+    const ang = (-90 + i * 45) * Math.PI / 180;
+    const cos = Math.cos(ang), sin = Math.sin(ang);
+    const r = maxR * Math.max(0.06, m.frac);
+    const anchor = cos > 0.35 ? "start" : cos < -0.35 ? "end" : "middle";
+    const ldy = sin < -0.5 ? -6 : sin > 0.5 ? 13 : 4;
+    const ly = R(cy + sin * labelR + ldy);
+    const parts = m.short.split('|');
+    return { ...m, x2: R(cx + cos * r), y2: R(cy + sin * r), tx: R(cx + cos * maxR), ty: R(cy + sin * maxR), lx: R(cx + cos * labelR), ly, sy: R(ly + (parts.length > 1 ? 23 : 12)), anchor, parts };
+  });
+  return (
+    <svg viewBox="0 0 320 300" style={{ width: "100%", height: "auto", display: "block" }}>
+      <circle cx={cx} cy={cy} r={96} fill="rgba(187,247,208,0.16)" />
+      <circle cx={cx} cy={cy} r={72} fill="rgba(254,243,199,0.30)" />
+      <circle cx={cx} cy={cy} r={48} fill="rgba(241,245,249,0.52)" />
+      <circle cx={cx} cy={cy} r={96} fill="none" stroke="rgba(34,197,94,0.22)" strokeWidth={1.5} />
+      <circle cx={cx} cy={cy} r={72} fill="none" stroke="rgba(217,119,6,0.32)" strokeWidth={1.5} strokeDasharray="4,3" />
+      <circle cx={cx} cy={cy} r={48} fill="none" stroke="rgba(148,163,184,0.32)" strokeWidth={1.5} strokeDasharray="4,3" />
+      {petals.map((p, i) => <line key={`g${i}`} x1={cx} y1={cy} x2={p.tx} y2={p.ty} stroke={T.ink100} strokeWidth={2} strokeLinecap="round" />)}
+      {petals.map((p, i) => <line key={`s${i}`} x1={cx} y1={cy} x2={p.x2} y2={p.y2} stroke={p.color} strokeWidth={13} strokeLinecap="round" />)}
+      {petals.map((p, i) => <circle key={`d${i}`} cx={p.x2} cy={p.y2} r={4.5} fill="#fff" stroke={p.color} strokeWidth={3} />)}
+      <circle cx={cx} cy={cy} r={19} fill={T.violet50} />
+      <path d="M160 139l2.1 6.3 6.4 0.2-5.1 3.8 1.9 6.1-5.2-3.6-5.2 3.6 1.9-6.1-5.1-3.8 6.4-0.2z" fill={T.brand} />
+      {petals.map((p, i) => (
+        <text key={`t${i}`} x={p.lx} y={p.ly} textAnchor={p.anchor} style={{ fontFamily: MONT, fontWeight: 800, fontSize: 9.5, fill: T.textStrong }}>
+          {p.parts.length === 1
+            ? p.parts[0]
+            : p.parts.map((part, j) => <tspan key={j} x={p.lx} dy={j === 0 ? "0" : "11"}>{part}</tspan>)}
+        </text>
+      ))}
+      {petals.map((p, i) => <text key={`v${i}`} x={p.lx} y={p.sy} textAnchor={p.anchor} fill={p.color} style={{ fontFamily: MONT, fontWeight: 800, fontSize: 10 }}>{p.score}</text>)}
+    </svg>
+  );
+}
+
+// ── Dialog bottom sheet ────────────────────────────────────────────────────────
+function DialogOverlay({ dialog, onClose }) {
+  if (!dialog) return null;
+  const stop = (e) => e.stopPropagation();
+  return (
+    <div onClick={onClose} style={{ position: "fixed", inset: 0, zIndex: 200, background: "rgba(0,0,0,0.54)", display: "flex", alignItems: "center", justifyContent: "center", padding: "24px 16px" }}>
+      <div onClick={stop} style={{ background: "#fff", borderRadius: 28, padding: "20px 22px 36px", width: "100%", maxWidth: 420, maxHeight: "84vh", overflowY: "auto", animation: "fammiUp .26s ease both" }}>
+        <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 12 }}>
+          <button onClick={onClose} style={{ border: "none", background: T.ink100, borderRadius: "50%", width: 32, height: 32, fontSize: 19, cursor: "pointer", display: "grid", placeItems: "center", color: T.textMuted }}>×</button>
+        </div>
+        {dialog.type === "kecerdasan" && <DlgKecerdasan d={dialog.data} />}
+        {dialog.type === "profesi" && <DlgProfesi name={dialog.data.name} p={dialog.data.p} />}
+        {dialog.type === "studi" && <DlgStudi s={dialog.data} />}
+      </div>
+    </div>
+  );
+}
+
+function DlgKecerdasan({ d }) {
+  const ls = LEVEL_STYLE[d.level] || LEVEL_STYLE.Sedang;
+  return (
+    <div>
+      <span style={{ fontSize: 34, lineHeight: 1, display: "block", marginBottom: 7 }}>{d.emoji}</span>
+      <div style={{ fontSize: 10, fontWeight: 800, letterSpacing: ".1em", textTransform: "uppercase", color: T.brand }}>Kecerdasan</div>
+      <h2 style={{ margin: "3px 0 12px", fontSize: 21, fontWeight: 900, letterSpacing: "-.02em", color: T.textStrong, fontFamily: MONT }}>{d.name}</h2>
+      <div style={{ display: "flex", alignItems: "center", gap: 9, marginBottom: 15 }}>
+        <span style={{ fontSize: 28, fontWeight: 900, color: d.color, fontFamily: MONT }}>{d.score}</span>
+        <span style={{ fontSize: 12, fontWeight: 700, padding: "3px 11px", borderRadius: 999, background: ls.bg, color: d.color }}>{d.level}</span>
+      </div>
+      {d.arti && (
+        <div style={{ background: "#F8F7FF", borderRadius: 14, padding: "13px 14px", marginBottom: 13 }}>
+          <div style={{ fontSize: 10, fontWeight: 800, textTransform: "uppercase", letterSpacing: ".08em", color: T.textMuted, marginBottom: 6 }}>Artinya:</div>
+          <p style={{ margin: 0, fontSize: 13.5, lineHeight: 1.65, color: T.textBody }}>{d.arti}</p>
+        </div>
+      )}
+      {d.terlihat.length > 0 && (
+        <div style={{ marginBottom: 13 }}>
+          <div style={{ fontSize: 10, fontWeight: 800, textTransform: "uppercase", letterSpacing: ".08em", color: T.textMuted, marginBottom: 9 }}>Terlihat dari:</div>
+          {d.terlihat.map((sign, i) => (
+            <div key={i} style={{ display: "flex", gap: 9, alignItems: "flex-start", marginBottom: 8 }}>
+              <span style={{ width: 19, height: 19, borderRadius: 5, background: ls.bg, color: d.color, display: "grid", placeItems: "center", flexShrink: 0, fontSize: 10, fontWeight: 800 }}>✓</span>
+              <span style={{ fontSize: 13, lineHeight: 1.5, color: T.textBody }}>{sign}</span>
+            </div>
+          ))}
+        </div>
+      )}
+      {d.lakukan.length > 0 && (
+        <div style={{ background: T.violet100, borderRadius: 14, padding: "13px 14px" }}>
+          <div style={{ fontSize: 10, fontWeight: 800, textTransform: "uppercase", letterSpacing: ".08em", color: T.violet700, marginBottom: 9 }}>Cara mengasahnya:</div>
+          {d.lakukan.map((act, i) => (
+            <div key={i} style={{ display: "flex", gap: 9, alignItems: "flex-start", marginBottom: 7 }}>
+              <span style={{ color: T.brand, fontSize: 14, lineHeight: 1.4, flexShrink: 0 }}>›</span>
+              <span style={{ fontSize: 12.5, lineHeight: 1.5, color: T.violet700 }}>{act}</span>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function DlgProfesi({ name, p }) {
+  return (
+    <div>
+      <div style={{ fontSize: 10, fontWeight: 800, letterSpacing: ".1em", textTransform: "uppercase", color: T.brand }}>Profesi</div>
+      <h2 style={{ margin: "3px 0 12px", fontSize: 21, fontWeight: 900, letterSpacing: "-.02em", color: T.textStrong, fontFamily: MONT }}>{name}</h2>
+      {!p && (
+        <div style={{ background: T.violet100, borderRadius: 14, padding: "14px 16px" }}>
+          <p style={{ margin: 0, fontSize: 13, lineHeight: 1.65, color: T.violet700 }}>Detail profesi <strong>{name}</strong> belum ada di database. Profesi ini relevan dengan kecerdasanmu, tetapi konten detailnya perlu ditambahkan terlebih dahulu.</p>
+        </div>
+      )}
+      {p && <>
+        <div style={{ background: "#F8F7FF", borderRadius: 14, padding: "13px 14px", marginBottom: 13 }}>
+          <p style={{ margin: 0, fontSize: 13.5, lineHeight: 1.65, color: T.textBody }}>{p.desc}</p>
+        </div>
+        <div style={{ marginBottom: 13 }}>
+          <div style={{ fontSize: 10, fontWeight: 800, textTransform: "uppercase", letterSpacing: ".08em", color: T.textMuted, marginBottom: 9 }}>Skill utama yang dibutuhkan:</div>
+          {p.skills.map((sk, i) => (
+            <div key={i} style={{ display: "flex", gap: 9, alignItems: "flex-start", marginBottom: 8 }}>
+              <span style={{ width: 19, height: 19, borderRadius: 5, background: T.mintSoft, color: T.mintInk, display: "grid", placeItems: "center", flexShrink: 0, fontSize: 10, fontWeight: 800 }}>✓</span>
+              <span style={{ fontSize: 13, lineHeight: 1.5, color: T.textBody }}>{sk}</span>
+            </div>
+          ))}
+        </div>
+        <div style={{ background: T.skySoft, borderRadius: 14, padding: "13px 14px", marginBottom: 13 }}>
+          <div style={{ fontSize: 10, fontWeight: 800, textTransform: "uppercase", letterSpacing: ".08em", color: T.skyInk, marginBottom: 6 }}>Cara masuk ke jalur ini:</div>
+          <p style={{ margin: 0, fontSize: 13, lineHeight: 1.6, color: T.skyInk }}>{p.jalur}</p>
+        </div>
+        {p.figur && p.figur.length > 0 && (
+          <div style={{ background: T.violet100, borderRadius: 14, padding: "13px 14px" }}>
+            <div style={{ fontSize: 10, fontWeight: 800, textTransform: "uppercase", letterSpacing: ".08em", color: T.violet700, marginBottom: 9 }}>Figur yang bisa jadi inspirasi:</div>
+            {p.figur.map((f, i) => (
+              <div key={i} style={{ display: "flex", gap: 9, alignItems: "center", marginBottom: 7 }}>
+                <span style={{ color: T.brand, fontSize: 14, flexShrink: 0 }}>›</span>
+                <span style={{ fontSize: 12.5, color: T.violet700, fontWeight: 600 }}>{f}</span>
+              </div>
+            ))}
+          </div>
+        )}
+      </>}
+    </div>
+  );
+}
+
+function DlgStudi({ s }) {
+  return (
+    <div>
+      <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 14 }}>
+        <span style={{ width: 44, height: 44, borderRadius: "50%", background: s.color, color: "#fff", display: "grid", placeItems: "center", fontWeight: 800, fontSize: 15, flexShrink: 0 }}>{s.initials}</span>
+        <div><div style={{ fontSize: 16, fontWeight: 800, color: T.textStrong }}>{s.name}</div><div style={{ fontSize: 11.5, color: T.textMuted }}>{s.profile}</div></div>
+      </div>
+      <div style={{ fontSize: 13, fontWeight: 700, color: s.color, marginBottom: 12 }}>{s.tagline}</div>
+      <div style={{ background: "#F8F7FF", borderRadius: 14, padding: 14, marginBottom: 13 }}>
+        <p style={{ margin: 0, fontSize: 13.5, lineHeight: 1.7, color: T.textBody }}>{s.story}</p>
+      </div>
+      <div style={{ marginBottom: 13 }}>
+        <div style={{ fontSize: 10, fontWeight: 800, textTransform: "uppercase", letterSpacing: ".08em", color: T.textMuted, marginBottom: 9 }}>Kunci perjalanannya:</div>
+        {s.kunci.map((k, i) => (
+          <div key={i} style={{ display: "flex", gap: 9, alignItems: "flex-start", marginBottom: 8 }}>
+            <span style={{ width: 19, height: 19, borderRadius: 5, background: s.lightBg, color: s.color, display: "grid", placeItems: "center", flexShrink: 0, fontSize: 10, fontWeight: 800 }}>✓</span>
+            <span style={{ fontSize: 13, lineHeight: 1.5, color: T.textBody }}>{k}</span>
+          </div>
+        ))}
+      </div>
+      <div style={{ background: T.violet100, borderRadius: 14, padding: "13px 14px" }}>
+        <div style={{ fontSize: 10, fontWeight: 800, textTransform: "uppercase", letterSpacing: ".08em", color: T.violet700, marginBottom: 6 }}>Catatan penting:</div>
+        <p style={{ margin: 0, fontSize: 13, lineHeight: 1.6, color: T.violet700, fontStyle: "italic" }}>{s.catatan}</p>
+      </div>
+    </div>
+  );
+}
+
+const CIRI_TONE = {
+  sky:     { soft: T.skySoft, ink: T.skyInk, solid: T.sky },
+  blossom: { soft: T.blossomSoft, ink: T.blossomInk, solid: T.blossom },
+  sun:     { soft: T.sunSoft, ink: T.sunInk, solid: T.sun },
+  mint:    { soft: T.mintSoft, ink: T.mintInk, solid: T.mint },
+};
+
+// ════════════════════════════════════════════════════════════════════════════
+//  VIEW: BAKAT (light, Laporan Bakat Siswa)
+// ════════════════════════════════════════════════════════════════════════════
+function BakatView({ student, intel, topDetails, mi, isSample, onLogout }) {
+  const [dialog, setDialog] = useState(null);
+  const [activePath, setActivePath] = useState(0);
+  const [openCara, setOpenCara] = useState(false);
+  const [openSmart, setOpenSmart] = useState(false);
+  const [openSinyal, setOpenSinyal] = useState(false);
+  const [checkedDays, setCheckedDays] = useState({});
+  const [showFab, setShowFab] = useState(false);
+  const sentinelRef = useRef(null);
+
+  useEffect(() => {
+    const el = sentinelRef.current;
+    if (!el) return;
+    const obs = new IntersectionObserver(([entry]) => setShowFab(!entry.isIntersecting), { threshold: 0 });
+    obs.observe(el);
+    return () => obs.disconnect();
+  }, []);
+
+  function scrollToTop() {
+    if (sentinelRef.current) sentinelRef.current.scrollIntoView({ behavior: "smooth" });
+  }
+
+  if (!intel || intel.length === 0) {
+    return (
+      <div style={{ background: T.bg, minHeight: "100%", padding: "60px 24px", textAlign: "center", fontFamily: MONT }}>
+        <div style={{ fontSize: 44, marginBottom: 16 }}>✨</div>
+        <div style={{ fontSize: 16, fontWeight: 700, color: T.textStrong, marginBottom: 8 }}>Hasil asesmen sedang disiapkan</div>
+        <div style={{ fontSize: 13, color: T.textMuted, lineHeight: 1.6 }}>Begitu siap, peta kecerdasanmu akan muncul di sini.</div>
+      </div>
+    );
+  }
+
+  const panggilan = student.panggilan || "kamu";
+  const P = (s) => (s || "").replace(/Aisyah/g, panggilan);
+
+  // Urutkan desc + hitung skala, warna spoke, dan tingkat-indeks
+  const sorted = [...intel].sort((a, b) => b.score - a.score);
+  const scaleMax = Math.max(...sorted.map((x) => x.score), 1) > 30 ? 100 : 25;
+  const levelIdx = { Kuat: 0, Sedang: 0, Berkembang: 0 };
+  const chart = sorted.map((it) => {
+    const def = INTEL_DEFAULTS[it.code] || {};
+    const idx = levelIdx[it.level] !== undefined ? levelIdx[it.level]++ : 0;
+    const pal = DV_LEVEL_COLORS[it.level] || DV_LEVEL_COLORS.Berkembang;
+    return { ...it, short: def.short || it.code, frac: it.score / scaleMax, color: pal[idx] || "#94A3B8" };
+  });
+  const colorByCode = Object.fromEntries(chart.map((c) => [c.code, c.color]));
+
+  const top = topDetails && topDetails.length ? topDetails : sorted.slice(0, 3).map((x) => ({ code: x.code, name: x.name, score: x.score, level: x.level }));
+  const top1 = top[0] || {};
+  const top2 = top[1] || {};
+  const top3 = top[2] || {};
+  const topCode = top1.code;
+
+  // Buka dialog kecerdasan: gabungkan data real + default
+  function openKecerdasan(code) {
+    const real = intel.find((x) => x.code === code) || {};
+    const def = INTEL_DEFAULTS[code] || {};
+    setDialog({ type: "kecerdasan", data: {
+      name: real.name || def.name || code,
+      emoji: def.emoji || "✨",
+      score: real.score ?? "",
+      level: real.level || "Sedang",
+      color: colorByCode[code] || T.brand,
+      arti: (real.desc || "").trim() || def.arti || "",
+      terlihat: (real.terlihat && real.terlihat.length) ? real.terlihat : (def.terlihat || []),
+      lakukan: (real.lakukan && real.lakukan.length) ? real.lakukan : (def.lakukan || []),
+    } });
+  }
+  const openProfesi = (name) => {
+    const curPath = paths[Math.min(activePath, paths.length - 1)] || paths[0];
+    const key = (name || "").toLowerCase().trim();
+    const fromDetail = curPath?.profesiDetail?.[key] || null;
+    const fromSorot = (curPath?.profesiSorot?.nama?.toLowerCase().trim() === key) ? curPath.profesiSorot : null;
+    const p = PROFESI_DB[name] || fromDetail || fromSorot || null;
+    setDialog({ type: "profesi", data: { name, p } });
+  };
+  const openStudi = (i) => setDialog({ type: "studi", data: STUDI_KASUS[i] });
+
+  // Sumber data: kolom sheet bila ada, jika kosong pakai default
+  const coverHead = mi?.narasiCover || COVER_HEADLINE[topCode] || COVER_HEADLINE.Ve;
+  const keunikanTitle = KEUNIKAN_TITLE[topCode] || KEUNIKAN_TITLE.Ve;
+  const caraSummary = mi?.caraBelajarSummary || DEFAULT_CARA_BELAJAR_SUMMARY;
+  const caraItems = (mi?.caraBelajarItems && mi.caraBelajarItems.length) ? mi.caraBelajarItems : DEFAULT_CARA_BELAJAR;
+  const gPositif = (mi?.gayaKomPositif && mi.gayaKomPositif.length) ? mi.gayaKomPositif : DEFAULT_GAYA_POSITIF;
+  const gHindari = (mi?.gayaKomHindari && mi.gayaKomHindari.length) ? mi.gayaKomHindari : DEFAULT_GAYA_HINDARI;
+  const gSiswa = (mi?.gayaKomSiswa && mi.gayaKomSiswa.length) ? mi.gayaKomSiswa : DEFAULT_GAYA_SISWA;
+  const smartGoals = (mi?.smartGoalsSheet && mi.smartGoalsSheet.s)
+    ? [["S", "Spesifik", mi.smartGoalsSheet.s], ["M", "Terukur", mi.smartGoalsSheet.m], ["A", "Achievable", mi.smartGoalsSheet.a], ["R", "Relevan", mi.smartGoalsSheet.r], ["T", "Time-bound", mi.smartGoalsSheet.t]].map(([letter, label, content]) => ({ letter, label, content }))
+    : DEFAULT_SMART_GOALS;
+  const days = (mi?.hari7 && mi.hari7.length) ? mi.hari7.map((task, i) => ({ label: DEFAULT_DAYS[i]?.label || `Hari ke-${i + 1}`, task })) : DEFAULT_DAYS;
+  const sinyal = (mi?.sinyalOrtu && mi.sinyalOrtu.length) ? mi.sinyalOrtu : DEFAULT_SINYAL;
+  const ciri = (mi?.ciriKhas && mi.ciriKhas.length) ? mi.ciriKhas.map((text, i) => ({ text, tone: DEFAULT_CIRI_KHAS[i % 4].tone })) : DEFAULT_CIRI_KHAS;
+  const refleksi = (mi?.refleksiQuestions && mi.refleksiQuestions.length) ? mi.refleksiQuestions : DEFAULT_REFLEKSI;
+  const diskusi = (mi?.diskusiQuestions && mi.diskusiQuestions.length) ? mi.diskusiQuestions : DEFAULT_DISKUSI;
+  const mapelKuasai = (mi?.mapelKuasai && mi.mapelKuasai.length) ? mi.mapelKuasai : DEFAULT_MAPEL_KUASAI;
+  const mapelTantang = (mi?.mapelSulit && mi.mapelSulit.length) ? mi.mapelSulit.map((m) => m.nama) : DEFAULT_MAPEL_TANTANG;
+  const essayCara     = mi?.essayCara     || "";
+  const essayBerhasil = mi?.essayBerhasil || "";
+  const essayKelebihan= mi?.essayKelebihan|| "";
+  const essayCita     = mi?.essayCita     || "";
+  const essayAlasan   = mi?.essayAlasan   || "";
+
+  const daysCompleted = Object.values(checkedDays).filter(Boolean).length;
+  const daysPercent = Math.round(daysCompleted / days.length * 100);
+  const paths = (topDetails && topDetails.length > 0)
+    ? topDetails.map((t, i) => {
+        const PATH_CLRS = [
+          { color: T.brand,   bgColor: T.violet100, inkColor: T.violet700 },
+          { color: "#0891B2", bgColor: "#E0F7FA",   inkColor: "#006780"   },
+          { color: "#7C3AED", bgColor: "#EDE9FE",   inkColor: "#4C1D95"   },
+        ];
+        const clr  = PATH_CLRS[i] || PATH_CLRS[0];
+        const def  = INTEL_DEFAULTS[t.code] || {};
+        const meta = INTEL_META[t.code]     || {};
+        return {
+          emoji:       meta.emoji || "✨",
+          label:       t.name,
+          tagline:     meta.tagline || "",
+          description: t.arti || def.arti || "",
+          color:       clr.color,
+          bgColor:     clr.bgColor,
+          inkColor:    clr.inkColor,
+          kegiatan:    (t.lakukan  && t.lakukan.length)  ? t.lakukan.slice(0, 5)  : (def.lakukan || []).slice(0, 5),
+          jurusan:      t.jurusan && t.jurusan.length ? t.jurusan : [],
+          profesi:      (t.profesi  && t.profesi.length)  ? t.profesi  : [],
+          parentTip:    t.parentTip || "",
+          profesiSorot: t.profesiSorot || null,
+          profesiDetail: t.profesiDetail || {},
+        };
+      })
+    : PATHS;
+  const activeP = paths[Math.min(activePath, paths.length - 1)] || paths[0];
+
+  const sectionMt = { marginTop: 34 };
+  const initials = (student.name || "S").split(/\s+/).map((w) => w[0]).slice(0, 2).join("").toUpperCase();
+
+  return (
+    <div style={{ background: T.bg, minHeight: "100%", fontFamily: MONT, color: T.textStrong }}>
+      <div ref={sentinelRef} style={{ height: 0, pointerEvents: "none" }} />
+      <header style={{ position: "sticky", top: 0, zIndex: 20, background: "rgba(255,255,255,0.97)", backdropFilter: "blur(10px)", WebkitBackdropFilter: "blur(10px)", borderBottom: `1px solid ${T.divider}`, padding: "10px 18px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+        <img src="/logo.png" alt="Fammi" style={{ height: 22, width: "auto", objectFit: "contain" }} />
+        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+          {(student.kelas || student.sekolah) && <span style={{ fontSize: 11, fontWeight: 600, color: T.textMuted }}>{[student.kelas, student.sekolah].filter(Boolean).join(" · ")}</span>}
+          {onLogout && (
+            <button onClick={onLogout} style={{ width: 32, height: 32, borderRadius: 10, background: T.ink100, border: `1px solid ${T.divider}`, color: T.textMuted, display: "grid", placeItems: "center", cursor: "pointer" }}>
+              <IcLogout size={14} />
+            </button>
+          )}
+        </div>
+      </header>
+
+      <div style={{ padding: "18px 18px 28px" }}>
+
+      {/* ═══ COVER ═══ */}
+      <div style={{ position: "relative", overflow: "hidden", borderRadius: 36, padding: "24px 22px 22px", background: "radial-gradient(120% 120% at 85% 0%,#7B3BF0 0%,#6323DA 45%,#4A12B0 100%)", color: "#fff", boxShadow: T.shadowPop }}>
+        <div style={{ position: "absolute", right: -36, top: -36, width: 160, height: 160, borderRadius: "50%", background: "rgba(255,255,255,0.09)" }} />
+        <div style={{ position: "absolute", left: -30, bottom: -50, width: 120, height: 120, borderRadius: "50%", background: "rgba(255,255,255,0.06)" }} />
+        <div style={{ position: "relative" }}>
+          <span style={{ display: "inline-flex", alignItems: "center", gap: 6, background: "rgba(255,255,255,0.18)", border: "1px solid rgba(255,255,255,0.22)", padding: "6px 13px", borderRadius: 999, fontSize: 11.5, fontWeight: 700 }}>
+            <IcSparkle size={12} /> Tes Multiple Intelligence
+          </span>
+          <h1 style={{ margin: "14px 0 0", fontSize: 22, fontWeight: 600, letterSpacing: "-.02em", lineHeight: 1.25, color: "#fff", fontFamily: MONT }}>{P(coverHead)}</h1>
+          <p style={{ margin: "10px 0 0", fontSize: 12.5, lineHeight: 1.55, color: "rgba(255,255,255,0.72)", maxWidth: 300 }}>Laporan ini memetakan pola belajarmu, bukan sekadar skor.</p>
+          <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 16 }}>
+            {chart.map((c, i) => <span key={i} style={{ width: 10, height: 10, borderRadius: "50%", background: c.color, boxShadow: "0 0 0 2.5px rgba(255,255,255,0.18)", display: "block" }} />)}
+          </div>
+          <div style={{ display: "inline-flex", alignItems: "center", gap: 10, marginTop: 18, background: "rgba(255,255,255,0.14)", border: "1px solid rgba(255,255,255,0.18)", padding: 8, borderRadius: 999 }}>
+            <span style={{ width: 34, height: 34, borderRadius: 999, display: "grid", placeItems: "center", background: "rgba(255,255,255,0.9)", color: T.brand, fontWeight: 800, fontSize: 13, flexShrink: 0 }}>{initials}</span>
+            <div style={{ paddingRight: 8 }}>
+              <div style={{ fontSize: 13, fontWeight: 800 }}>{student.name}</div>
+              {(student.kelas || student.sekolah) && <div style={{ fontSize: 11, color: "rgba(255,255,255,0.75)", marginTop: 1 }}>{[student.kelas, student.sekolah].filter(Boolean).join(" · ")}</div>}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* ═══ KEUNIKAN UTAMA ═══ */}
+      <div style={{ marginTop: 20 }}>
+        <LCard style={{ borderRadius: 28 }}>
+          <div style={{ fontSize: 10, fontWeight: 800, letterSpacing: ".1em", textTransform: "uppercase", color: T.brand }}>Tiga kecerdasan teratas</div>
+          <h2 style={{ margin: "6px 0 0", fontSize: 18, fontWeight: 800, letterSpacing: "-.01em", lineHeight: 1.3, color: T.textStrong }}>{keunikanTitle}</h2>
+          <div style={{ display: "flex", gap: 10, marginTop: 13 }}>
+            <div style={{ flex: 1, borderRadius: 14, padding: 12, background: T.infoSoft }}>
+              <div style={{ fontSize: 9, fontWeight: 800, letterSpacing: ".08em", textTransform: "uppercase", color: T.info }}>Top 1 · {top1.score}</div>
+              <div style={{ fontSize: 14, fontWeight: 800, color: T.textStrong, marginTop: 4 }}>{top1.name}</div>
+              <div style={{ fontSize: 11, color: T.textMuted, marginTop: 2 }}>{SHORT_TAGLINE[top1.code] || ""}</div>
+            </div>
+            {top2.name && (
+              <div style={{ flex: 1, borderRadius: 14, padding: 12, background: "#DFF1F3" }}>
+                <div style={{ fontSize: 9, fontWeight: 800, letterSpacing: ".08em", textTransform: "uppercase", color: "#1E94A6" }}>Top 2 · {top2.score}</div>
+                <div style={{ fontSize: 14, fontWeight: 800, color: T.textStrong, marginTop: 4 }}>{top2.name}</div>
+                <div style={{ fontSize: 11, color: T.textMuted, marginTop: 2 }}>{SHORT_TAGLINE[top2.code] || ""}</div>
+              </div>
+            )}
+          </div>
+        </LCard>
+      </div>
+
+      {/* ═══ PETA KECERDASAN ═══ */}
+      <div style={sectionMt}>
+        <LSectionHeader eyebrow="Hasil screening" title="Peta kecerdasan" />
+        <LCard>
+          <PetalChart items={chart} />
+          <div style={{ display: "flex", justifyContent: "center", gap: 14, padding: "6px 0 13px", flexWrap: "wrap" }}>
+            <Legend color="#16A34A" label="Kuat" range="75-100" />
+            <Legend color="#D97706" label="Sedang" range="50-74" />
+            <Legend color="#94A3B8" label="Berkembang" range="<50" />
+          </div>
+          <div style={{ height: 1, background: T.divider }} />
+          <div style={{ marginTop: 10 }}>
+            <div style={{ fontSize: 10, fontWeight: 800, letterSpacing: ".06em", textTransform: "uppercase", color: T.textFaint, marginBottom: 7 }}>Tap untuk detail tiap kecerdasan</div>
+            {chart.map((c) => {
+              const ls = LEVEL_STYLE[c.level] || LEVEL_STYLE.Sedang;
+              return (
+                <div key={c.code} onClick={() => openKecerdasan(c.code)} style={{ display: "flex", alignItems: "center", gap: 9, padding: "7px 8px", borderRadius: 11, cursor: "pointer", marginBottom: 2 }}>
+                  <span style={{ width: 9, height: 9, borderRadius: 2, background: c.color, flexShrink: 0, display: "block" }} />
+                  <span style={{ flex: 1, fontSize: 12.5, fontWeight: 600, color: T.textBody, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{c.name}</span>
+                  <span style={{ fontSize: 11, fontWeight: 700, padding: "2px 9px", borderRadius: 999, background: ls.bg, color: ls.ink, whiteSpace: "nowrap", flexShrink: 0 }}>{c.level}</span>
+                  <span style={{ fontSize: 13, fontWeight: 800, color: T.textStrong, width: 24, textAlign: "right", flexShrink: 0, fontFamily: MONT }}>{c.score}</span>
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke={T.textFaint} strokeWidth="2" style={{ flexShrink: 0 }}><circle cx="12" cy="12" r="10" /><line x1="12" y1="16" x2="12" y2="12" /><line x1="12" y1="8" x2="12.01" y2="8" /></svg>
+                </div>
+              );
+            })}
+          </div>
+        </LCard>
+      </div>
+
+      {/* ═══ CIRI KHAS ═══ */}
+      <div style={sectionMt}>
+        <LSectionHeader eyebrow="Terlihat dari keseharianmu" title="Ciri khasmu" />
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 11 }}>
+          {ciri.map((c, i) => {
+            const tone = CIRI_TONE[c.tone] || CIRI_TONE.sky;
+            return (
+              <div key={i} style={{ background: tone.soft, borderRadius: 22, padding: 15 }}>
+                <span style={{ width: 36, height: 36, borderRadius: 11, background: tone.solid, color: tone.ink, display: "grid", placeItems: "center" }}>
+                  <IcSparkle size={17} />
+                </span>
+                <div style={{ fontSize: 13, fontWeight: 700, color: tone.ink, lineHeight: 1.35, marginTop: 10 }}>{P(c.text)}</div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* ═══ CARA BELAJAR ═══ */}
+      <div style={sectionMt}>
+        <CollapseHeader eyebrow={`Cara belajar ${panggilan}`} title="Yang paling cocok buatmu" open={openCara} onToggle={() => setOpenCara((o) => !o)} />
+        <div style={{ marginTop: 11, background: T.skySoft, borderRadius: 13, padding: "12px 14px" }}>
+          <p style={{ margin: 0, fontSize: 13, lineHeight: 1.55, color: T.skyInk }}>{P(caraSummary)}</p>
+        </div>
+        {(essayCara || essayBerhasil) && (
+          <div style={{ marginTop: 9, background: "#fff", borderRadius: 14, padding: "12px 14px", border: `1px solid ${T.divider}`, display: "flex", flexDirection: "column", gap: 10 }}>
+            {essayCara && (
+              <div>
+                <div style={{ fontSize: 9.5, fontWeight: 800, letterSpacing: ".1em", textTransform: "uppercase", color: T.textMuted, marginBottom: 4 }}>Cara belajar sehari-harinya, kata {panggilan}</div>
+                <p style={{ margin: 0, fontSize: 12.5, lineHeight: 1.55, color: T.textBody, fontStyle: "italic" }}>"{essayCara}"</p>
+              </div>
+            )}
+            {essayBerhasil && essayBerhasil !== essayCara && (
+              <div>
+                <div style={{ fontSize: 9.5, fontWeight: 800, letterSpacing: ".1em", textTransform: "uppercase", color: T.textMuted, marginBottom: 4 }}>Yang paling berhasil menurutnya</div>
+                <p style={{ margin: 0, fontSize: 12.5, lineHeight: 1.55, color: T.textBody, fontStyle: "italic" }}>"{essayBerhasil}"</p>
+              </div>
+            )}
+          </div>
+        )}
+        {openCara && (
+          <div style={{ marginTop: 9, display: "flex", flexDirection: "column", gap: 8 }}>
+            {caraItems.map((item, i) => (
+              <div key={i} style={{ display: "flex", gap: 12, alignItems: "flex-start", background: "#fff", borderRadius: 15, padding: 13, border: `1px solid ${T.divider}` }}>
+                <span style={{ fontSize: 12, fontWeight: 900, color: T.brand, flexShrink: 0, minWidth: 20, fontFamily: MONT }}>{item.no || String(i + 1).padStart(2, "0")}</span>
+                <div><div style={{ fontSize: 13, fontWeight: 800, color: T.textStrong, marginBottom: 3 }}>{P(item.title)}</div><div style={{ fontSize: 12.5, lineHeight: 1.55, color: T.textBody }}>{P(item.body)}</div></div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* ═══ SMART GOALS ═══ */}
+      <div style={sectionMt}>
+        <CollapseHeader eyebrow="Target yang terukur" title={`SMART Goals ${panggilan}`} open={openSmart} onToggle={() => setOpenSmart((o) => !o)} />
+        <div style={{ marginTop: 11, background: T.violet100, borderRadius: 13, padding: "12px 14px" }}>
+          <p style={{ margin: 0, fontSize: 13, lineHeight: 1.55, color: T.violet700 }}>Tujuan konkret berbasis kekuatanmu, disusun agar bisa dievaluasi, bukan sekadar impian.</p>
+        </div>
+        {openSmart && (
+          <div style={{ marginTop: 9, display: "flex", flexDirection: "column", gap: 8 }}>
+            {smartGoals.map((g, i) => (
+              <div key={i} style={{ background: "#fff", borderRadius: 15, padding: 14, border: `1px solid ${T.divider}` }}>
+                <div style={{ display: "flex", gap: 10, alignItems: "flex-start" }}>
+                  <span style={{ width: 30, height: 30, borderRadius: 8, background: T.brand, color: "#fff", display: "grid", placeItems: "center", fontSize: 13, fontWeight: 900, flexShrink: 0, fontFamily: MONT }}>{g.letter}</span>
+                  <div><div style={{ fontSize: 10.5, fontWeight: 800, letterSpacing: ".06em", textTransform: "uppercase", color: T.brand, marginBottom: 3 }}>{g.label}</div><div style={{ fontSize: 13, lineHeight: 1.55, color: T.textBody }}>{P(g.content)}</div></div>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* ═══ PETA JALAN ═══ */}
+      <div style={sectionMt}>
+        <LSectionHeader eyebrow="Dari sekolah ke karier" title="Jalur yang sesuai kecerdasanmu" />
+        {(essayCita || essayAlasan) && (
+          <div style={{ marginTop: 11, background: "#fff", borderRadius: 14, padding: "12px 14px", border: `1px solid ${T.divider}`, marginBottom: 4, display: "flex", flexDirection: "column", gap: 10 }}>
+            {essayCita && (
+              <div>
+                <div style={{ fontSize: 9.5, fontWeight: 800, letterSpacing: ".1em", textTransform: "uppercase", color: T.textMuted, marginBottom: 4 }}>Cita-cita profesinya, kata {panggilan}</div>
+                <p style={{ margin: 0, fontSize: 12.5, lineHeight: 1.55, color: T.textBody, fontStyle: "italic" }}>"{essayCita}"</p>
+              </div>
+            )}
+            {essayAlasan && (
+              <div>
+                <div style={{ fontSize: 9.5, fontWeight: 800, letterSpacing: ".1em", textTransform: "uppercase", color: T.textMuted, marginBottom: 4 }}>Alasannya memilih profesi itu</div>
+                <p style={{ margin: 0, fontSize: 12.5, lineHeight: 1.55, color: T.textBody, fontStyle: "italic" }}>"{essayAlasan}"</p>
+              </div>
+            )}
+          </div>
+        )}
+        <p style={{ margin: "9px 2px 0", fontSize: 13, lineHeight: 1.55, color: T.textBody }}>Pilih jalur yang paling menarik. Profesi bisa diklik untuk detail lebih lanjut.</p>
+        <div style={{ display: "flex", gap: 8, overflowX: "auto", padding: "13px 0 3px", scrollbarWidth: "none" }}>
+          {paths.map((p, i) => (
+            <button key={i} onClick={() => setActivePath(i)} style={{ border: "none", cursor: "pointer", whiteSpace: "nowrap", padding: "10px 15px", borderRadius: 999, fontFamily: MONT, fontSize: 12.5, fontWeight: 700, background: activePath === i ? p.color : T.ink100, color: activePath === i ? "#fff" : T.textBody, flexShrink: 0 }}>{p.emoji} {p.label}</button>
+          ))}
+        </div>
+        <div style={{ marginTop: 10 }}>
+          <div style={{ background: activeP.bgColor, borderRadius: 28, padding: "18px 18px 20px", border: `1.5px solid ${activeP.color}30` }}>
+            <div style={{ fontSize: 24, lineHeight: 1, marginBottom: 7 }}>{activeP.emoji}</div>
+            <h3 style={{ margin: "0 0 3px", fontSize: 19, fontWeight: 900, letterSpacing: "-.02em", color: activeP.color, fontFamily: MONT }}>{activeP.label}</h3>
+            <div style={{ fontSize: 12.5, fontWeight: 600, color: activeP.inkColor, marginBottom: 9, fontStyle: "italic" }}>{activeP.tagline}</div>
+            <p style={{ margin: 0, fontSize: 13, lineHeight: 1.6, color: activeP.inkColor }}>{activeP.description}</p>
+          </div>
+          <div style={{ display: "flex", flexDirection: "column", gap: 9, marginTop: 9 }}>
+            <PathBlock n="1" eyebrow="Sekarang" title="Kegiatan yang perlu dicoba" color={activeP.color} bg={activeP.bgColor} ink={activeP.inkColor} items={activeP.kegiatan} />
+            {activeP.jurusan && activeP.jurusan.length > 0 && (
+              <PathBlock n="2" eyebrow="Nanti · MA & Kuliah" title="Jurusan yang relevan" color={activeP.color} bg={activeP.bgColor} ink={activeP.inkColor} items={activeP.jurusan} />
+            )}
+            <div style={{ background: "#fff", borderRadius: 22, padding: "14px 15px", border: `1px solid ${T.divider}` }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 10 }}>
+                <span style={{ width: 26, height: 26, borderRadius: 7, background: activeP.color, color: "#fff", display: "grid", placeItems: "center", fontSize: 12, fontWeight: 800, flexShrink: 0, fontFamily: MONT }}>3</span>
+                <div><div style={{ fontSize: 9, fontWeight: 800, letterSpacing: ".08em", textTransform: "uppercase", color: T.textMuted }}>Masa Depan · Profesi</div><div style={{ fontSize: 13, fontWeight: 800, color: T.textStrong }}>Tap profesi untuk detail</div></div>
+              </div>
+              <div style={{ display: "flex", flexWrap: "wrap", gap: 7 }}>
+                {activeP.profesi.map((prof, i) => (
+                  <span key={i} onClick={() => openProfesi(prof)} style={{ padding: "5px 11px", borderRadius: 999, background: activeP.bgColor, color: activeP.inkColor, fontSize: 12, fontWeight: 700, cursor: "pointer", display: "inline-flex", alignItems: "center", gap: 4 }}>{prof}<Chevron size={9} w={2.5} /></span>
+                ))}
+              </div>
+            </div>
+          </div>
+          {activeP.profesiSorot && (
+            <div style={{ background: "#fff", borderRadius: 22, padding: "14px 15px", border: `1.5px solid ${activeP.color}40`, cursor: "pointer" }}
+                 onClick={() => setDialog({ type: "profesi", data: { name: activeP.profesiSorot.nama, p: activeP.profesiSorot } })}>
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 6 }}>
+                <div style={{ fontSize: 9, fontWeight: 800, letterSpacing: ".08em", textTransform: "uppercase", color: activeP.inkColor }}>Profesi Unggulan</div>
+                <Chevron size={11} w={2.5} />
+              </div>
+              <div style={{ fontSize: 14, fontWeight: 800, color: activeP.color }}>{activeP.profesiSorot.nama}</div>
+              <p style={{ margin: "4px 0 0", fontSize: 12, lineHeight: 1.5, color: T.textBody }}>{activeP.profesiSorot.desc}</p>
+            </div>
+          )}
+          {activeP.parentTip && (
+            <div style={{ marginTop: 9, display: "flex", gap: 10, alignItems: "flex-start", background: T.violet100, borderRadius: 22, padding: "12px 14px" }}>
+              <span style={{ flexShrink: 0, marginTop: 2 }}><IcSparkle size={13} /></span>
+              <p style={{ margin: 0, fontSize: 12.5, lineHeight: 1.55, color: T.violet700 }}><strong>Tips ortu:</strong> {activeP.parentTip}</p>
+            </div>
+          )}
+          <p style={{ margin: "11px 4px 0", fontSize: 11.5, color: T.textMuted, textAlign: "center" }}>Jalur-jalur ini bisa dikombinasi. Kamu tidak harus memilih hanya satu.</p>
+        </div>
+      </div>
+
+      {/* ═══ GAYA KOMUNIKASI KELUARGA ═══ */}
+      <div style={sectionMt}>
+        <LSectionHeader eyebrow="Untuk keluarga" title="Cara bicara yang menjangkaunya" />
+        <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+          <div style={{ background: "#fff", borderRadius: 22, padding: 16, border: `1px solid ${T.divider}` }}>
+            <div style={{ fontSize: 12.5, fontWeight: 800, color: T.textStrong, marginBottom: 11 }}>Yang membuat {panggilan} merespons lebih baik</div>
+            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+              {gPositif.map((item, i) => (
+                <div key={i} style={{ display: "flex", gap: 10, alignItems: "flex-start" }}>
+                  <span style={{ width: 20, height: 20, borderRadius: 6, background: T.mintSoft, color: T.mintInk, display: "grid", placeItems: "center", fontSize: 11, fontWeight: 800, flexShrink: 0 }}>✓</span>
+                  <span style={{ fontSize: 12.5, lineHeight: 1.5, color: T.textBody }}>{P(item)}</span>
+                </div>
+              ))}
+            </div>
+            <div style={{ height: 1, background: T.divider, margin: "13px 0" }} />
+            <div style={{ fontSize: 12.5, fontWeight: 800, color: T.textStrong, marginBottom: 11 }}>Yang sebaiknya dikurangi</div>
+            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+              {gHindari.map((item, i) => (
+                <div key={i} style={{ display: "flex", gap: 10, alignItems: "flex-start" }}>
+                  <span style={{ width: 20, height: 20, borderRadius: 6, background: T.sunSoft, color: T.sunInk, display: "grid", placeItems: "center", fontSize: 11, fontWeight: 800, flexShrink: 0 }}>!</span>
+                  <span style={{ fontSize: 12.5, lineHeight: 1.5, color: T.textBody }}>{P(item)}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+          <div style={{ background: T.mintSoft, borderRadius: 22, padding: 16 }}>
+            <div style={{ fontSize: 10, fontWeight: 800, letterSpacing: ".09em", textTransform: "uppercase", color: T.mintInk, marginBottom: 10 }}>Untuk {panggilan} sendiri</div>
+            <div style={{ fontSize: 13, fontWeight: 800, color: T.mintInk, marginBottom: 10 }}>Cara menyampaikan kebutuhanmu ke keluarga</div>
+            <div style={{ display: "flex", flexDirection: "column", gap: 9 }}>
+              {gSiswa.map((item, i) => (
+                <div key={i} style={{ background: "rgba(255,255,255,0.6)", borderRadius: 11, padding: "11px 12px" }}>
+                  <div style={{ fontSize: 10.5, fontWeight: 800, color: T.mintInk, marginBottom: 4 }}>{P(item.situasi)}</div>
+                  <div style={{ fontSize: 12.5, fontStyle: "italic", color: T.mintInk }}>{P(item.script)}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* ═══ 7 HARI PERTAMA ═══ */}
+      <div style={sectionMt}>
+        <LSectionHeader eyebrow="Coba hari ini" title="7 Hari Pertama" />
+        <p style={{ margin: "9px 2px 0", fontSize: 13, lineHeight: 1.55, color: T.textBody }}>Tujuh langkah kecil yang bisa dilakukan sekarang. Centang setiap hari yang sudah selesai.</p>
+        <div style={{ marginTop: 14, background: "#fff", borderRadius: 28, padding: 16, border: `1px solid ${T.divider}` }}>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 10 }}>
+            <span style={{ fontSize: 13, fontWeight: 800, color: T.textStrong }}>{daysCompleted} / {days.length} selesai</span>
+            <span style={{ fontSize: 11.5, color: T.brand, fontWeight: 700 }}>{daysPercent}%</span>
+          </div>
+          <div style={{ height: 7, borderRadius: 999, background: T.ink100, overflow: "hidden", marginBottom: 14 }}>
+            <div style={{ height: "100%", borderRadius: 999, background: T.brand, width: `${daysPercent}%`, transition: "width .4s ease" }} />
+          </div>
+          {days.map((d, i) => {
+            const checked = !!checkedDays[i];
+            return (
+              <div key={i} onClick={() => setCheckedDays((p) => ({ ...p, [i]: !p[i] }))} style={{ display: "flex", gap: 13, alignItems: "flex-start", padding: "11px 4px", borderBottom: `1px solid ${T.divider}`, cursor: "pointer" }}>
+                <div style={{ width: 26, height: 26, borderRadius: 8, background: checked ? T.brand : T.ink100, display: "grid", placeItems: "center", flexShrink: 0, marginTop: 1 }}>
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke={checked ? "#fff" : T.textFaint} strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12" /></svg>
+                </div>
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontSize: 11, fontWeight: 800, letterSpacing: ".06em", textTransform: "uppercase", color: checked ? T.textMuted : T.brand, marginBottom: 2 }}>{d.label}</div>
+                  <div style={{ fontSize: 13, lineHeight: 1.5, color: checked ? T.textMuted : T.textBody, textDecoration: checked ? "line-through" : "none" }}>{P(d.task)}</div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* ═══ PETA MATA PELAJARAN ═══ */}
+      <div style={sectionMt}>
+        <LSectionHeader eyebrow="Di kelas" title="Peta mata pelajaran" />
+        <LCard>
+          <div style={{ display: "flex", alignItems: "center", gap: 9 }}><span style={{ width: 30, height: 30, borderRadius: 9, background: T.mintSoft, color: T.mintInk, display: "grid", placeItems: "center" }}><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round"><polyline points="20 6 9 17 4 12" /></svg></span><div style={{ fontSize: 14, fontWeight: 800, color: T.textStrong }}>Paling nyambung</div></div>
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginTop: 11 }}>
+            {mapelKuasai.map((m, i) => <Badge key={i} bg={T.mintSoft} fg={T.mintInk}>{m}</Badge>)}
+          </div>
+          <div style={{ height: 1, background: T.divider, margin: "16px 0" }} />
+          <div style={{ display: "flex", alignItems: "center", gap: 9 }}><span style={{ width: 30, height: 30, borderRadius: 9, background: T.sunSoft, color: T.sunInk, display: "grid", placeItems: "center" }}><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round"><path d="M13 2L3 14h9l-1 8 10-12h-9z" /></svg></span><div style={{ fontSize: 14, fontWeight: 800, color: T.textStrong }}>Lebih menantang</div></div>
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginTop: 11 }}>
+            {mapelTantang.map((m, i) => <Badge key={i} bg={T.sunSoft} fg={T.sunInk}>{m}</Badge>)}
+          </div>
+          <div style={{ marginTop: 12, background: T.sunSoft, borderRadius: 12, padding: "12px 13px", display: "flex", gap: 9 }}>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={T.sunInk} strokeWidth="2" strokeLinecap="round" style={{ flexShrink: 0, marginTop: 2 }}><path d="M9 18h6" /><path d="M10 22h4" /><path d="M12 2a7 7 0 0 0-4 12.7c.6.5 1 1.3 1 2.1h6c0-.8.4-1.6 1-2.1A7 7 0 0 0 12 2z" /></svg>
+            <p style={{ margin: 0, fontSize: 12.5, lineHeight: 1.55, color: T.sunInk }}>Ini bukan kelemahan. Coba pelajari lewat <strong>cerita, diskusi, dan contoh nyata</strong>, cara belajar yang paling cocok dengan keunikanmu.</p>
+          </div>
+        </LCard>
+      </div>
+
+      {/* ═══ SINYAL ORANG TUA ═══ */}
+      <div style={sectionMt}>
+        <CollapseHeader eyebrow="Untuk orang tua" eyebrowColor={T.blossomInk} title="Tanda yang mungkin sudah lama hadir" open={openSinyal} onToggle={() => setOpenSinyal((o) => !o)} />
+        <div style={{ marginTop: 11, background: T.blossomSoft, borderRadius: 13, padding: "12px 14px" }}>
+          <p style={{ margin: 0, fontSize: 13, lineHeight: 1.55, color: T.blossomInk }}>Lima tanda di keseharian {panggilan} yang mungkin sudah terlihat, tapi belum terbaca maknanya.</p>
+        </div>
+        {openSinyal && (
+          <div style={{ marginTop: 9, display: "flex", flexDirection: "column", gap: 8 }}>
+            {sinyal.map((item, i) => (
+              <div key={i} style={{ background: "#fff", borderRadius: 15, padding: 13, border: `1px solid ${T.divider}` }}>
+                <div style={{ display: "flex", gap: 10, alignItems: "flex-start" }}>
+                  <span style={{ fontSize: 20, flexShrink: 0, lineHeight: 1.2, width: 28, textAlign: "center" }}>{[...(item.icon||"")].length <= 3 ? item.icon : "✨"}</span>
+                  <div style={{ minWidth: 0, flex: 1 }}><div style={{ fontSize: 13, fontWeight: 800, color: T.textStrong, marginBottom: 4, lineHeight: 1.3 }}>{P(item.title)}</div><div style={{ fontSize: 12.5, lineHeight: 1.55, color: T.textBody }}>{P(item.body)}</div></div>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* ═══ RUANG REFLEKSI ═══ */}
+      <div style={sectionMt}>
+        <LSectionHeader eyebrow="Untuk kamu" title="Ruang refleksi" />
+        <div style={{ background: T.lilacSoft, borderRadius: 28, padding: 18 }}>
+          <p style={{ margin: "0 0 13px", fontSize: 12.5, lineHeight: 1.5, color: T.violet700, fontWeight: 700 }}>Tuliskan jawabanmu di buku catatan atau aplikasi jurnal. Tidak ada jawaban yang salah.</p>
+          <div style={{ display: "flex", flexDirection: "column", gap: 9 }}>
+            {refleksi.map((q, i) => (
+              <div key={i} style={{ display: "flex", gap: 10, alignItems: "flex-start", background: "rgba(255,255,255,0.58)", borderRadius: 12, padding: "11px 12px" }}>
+                <span style={{ width: 22, height: 22, borderRadius: "50%", background: T.brand, color: "#fff", fontSize: 11, fontWeight: 800, display: "grid", placeItems: "center", flexShrink: 0 }}>{i + 1}</span>
+                <span style={{ fontSize: 12.5, lineHeight: 1.45, color: T.violet700, fontWeight: 600 }}>{P(q)}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* ═══ BAHAN DISKUSI ═══ */}
+      <div style={sectionMt}>
+        <LSectionHeader eyebrow="Untuk dibaca bersama" title="Bahan diskusi keluarga" />
+        <div style={{ background: T.skySoft, borderRadius: 28, padding: 18 }}>
+          <p style={{ margin: "0 0 12px", fontSize: 12.5, lineHeight: 1.5, color: T.skyInk, fontWeight: 700 }}>Bacakan pelan-pelan, lalu dengarkan. Tidak ada jawaban yang salah.</p>
+          <div style={{ display: "flex", flexDirection: "column", gap: 9 }}>
+            {diskusi.map((q, i) => (
+              <div key={i} style={{ display: "flex", gap: 10, alignItems: "flex-start", background: "rgba(255,255,255,0.60)", borderRadius: 11, padding: "11px 12px" }}>
+                <span style={{ width: 22, height: 22, borderRadius: "50%", background: T.skyInk, color: "#fff", fontSize: 11, fontWeight: 800, display: "grid", placeItems: "center", flexShrink: 0 }}>{i + 1}</span>
+                <span style={{ fontSize: 12.5, lineHeight: 1.45, color: T.skyInk, fontWeight: 600 }}>{P(q)}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* ═══ CATATAN PENTING ═══ */}
+      <div style={{ marginTop: 20, background: T.sunSoft, borderRadius: 28, padding: 18 }}>
+        <div style={{ display: "flex", gap: 12 }}>
+          <span style={{ width: 38, height: 38, borderRadius: 12, background: "rgba(255,255,255,0.55)", color: T.sunInk, display: "grid", placeItems: "center", flexShrink: 0 }}><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round"><path d="M9 18h6" /><path d="M10 22h4" /><path d="M12 2a7 7 0 0 0-4 12.7c.6.5 1 1.3 1 2.1h6c0-.8.4-1.6 1-2.1A7 7 0 0 0 12 2z" /></svg></span>
+          <div><div style={{ fontSize: 14, fontWeight: 800, color: T.sunInk }}>Peta ini pintu, bukan pagar</div><p style={{ margin: "5px 0 0", fontSize: 12, lineHeight: 1.55, color: T.sunInk }}>Hasil ini bahan diskusi, bukan vonis. Keunikan bisa tumbuh dan berubah. Kalau kenyataannya berbeda, ikuti yang membuat anak hidup, termasuk nilai akademiknya.</p></div>
+        </div>
+      </div>
+
+      {/* ═══ FOOTER CONTOH ═══ */}
+      <div style={{ marginTop: 16, display: "flex", alignItems: "center", justifyContent: "center", gap: 9, textAlign: "center" }}>
+        <Badge bg={T.sunSoft} fg={T.sunInk} sm>Contoh</Badge>
+        <span style={{ fontSize: 11, color: T.textFaint, lineHeight: 1.4 }}>Angka dan rekomendasi pada laporan asli mengikuti hasil asesmen ananda.</span>
+      </div>
+
+      </div>
+
+      <DialogOverlay dialog={dialog} onClose={() => setDialog(null)} />
+
+      {showFab && (
+        <button onClick={scrollToTop} style={{ position: "fixed", bottom: 28, right: 20, zIndex: 100, width: 48, height: 48, borderRadius: "50%", background: T.brand, color: "#fff", boxShadow: T.shadowPop, border: "none", cursor: "pointer", display: "grid", placeItems: "center" }}>
+          <IcArrowUp size={18} />
+        </button>
+      )}
+    </div>
+  );
+}
+
+function Legend({ color, label, range }) {
+  return (
+    <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
+      <span style={{ width: 9, height: 9, borderRadius: 2, background: color, opacity: 0.75, display: "block" }} />
+      <span style={{ fontSize: 11, fontWeight: 700, color: T.textStrong }}>{label}</span>
+      <span style={{ fontSize: 10, color: T.textMuted }}>{range}</span>
+    </div>
+  );
+}
+
+function Badge({ children, bg, fg, sm }) {
+  return <span style={{ display: "inline-flex", alignItems: "center", padding: sm ? "3px 9px" : "5px 11px", borderRadius: 999, background: bg, color: fg, fontSize: sm ? 10.5 : 12, fontWeight: 700, whiteSpace: "nowrap" }}>{children}</span>;
+}
+
+function PathBlock({ n, eyebrow, title, color, bg, ink, items }) {
+  return (
+    <div style={{ background: "#fff", borderRadius: 22, padding: "14px 15px", border: `1px solid ${T.divider}` }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 10 }}>
+        <span style={{ width: 26, height: 26, borderRadius: 7, background: color, color: "#fff", display: "grid", placeItems: "center", fontSize: 12, fontWeight: 800, flexShrink: 0, fontFamily: MONT }}>{n}</span>
+        <div><div style={{ fontSize: 9, fontWeight: 800, letterSpacing: ".08em", textTransform: "uppercase", color: T.textMuted }}>{eyebrow}</div><div style={{ fontSize: 13, fontWeight: 800, color: T.textStrong }}>{title}</div></div>
+      </div>
+      <div style={{ display: "flex", flexWrap: "wrap", gap: 7 }}>
+        {items.map((it, i) => <span key={i} style={{ padding: "5px 11px", borderRadius: 999, background: bg, color: ink, fontSize: 12, fontWeight: 700 }}>{it}</span>)}
+      </div>
+    </div>
+  );
+}
+
+// ════════════════════════════════════════════════════════════════════════════
+//  VIEW: KARAKTER (dark)
+// ════════════════════════════════════════════════════════════════════════════
 function KarakterView({ karakter }) {
   const levels = ["Konsisten", "Sering Muncul", "Kadang Muncul", "Belum Muncul"];
   const counts = levels.map((lv) => ({ lv, n: karakter.filter((k) => k.level === lv).length }));
@@ -501,7 +1354,6 @@ function KarakterView({ karakter }) {
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 18 }}>
       <SHeading kicker="Lencana Karakter" title="Karaktermu" sub="Enam kebiasaan baik yang kamu tumbuhkan di sekolah dan di rumah. Kumpulkan terus lencananya!" />
-
       <SCard style={{ padding: "20px 18px 16px" }}>
         <div style={{ display: "flex", alignItems: "center", gap: 18 }}>
           <DonutChart segments={segments} size={132} stroke={20} center={karakter.length} centerSub="Karakter" />
@@ -516,14 +1368,9 @@ function KarakterView({ karakter }) {
           </div>
         </div>
       </SCard>
-
       <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
         {karakter.map((k) => <BadgeCard key={k.name} k={k} />)}
       </div>
-
-      <SHomeTip>
-        Kesantunanmu sedang tumbuh dan sudah makin baik. Coba perhatikan pilihan kata saat sedang kesal, pelan-pelan saja, kamu pasti bisa.
-      </SHomeTip>
     </div>
   );
 }
@@ -554,7 +1401,9 @@ function BadgeCard({ k }) {
   );
 }
 
-// ── View: Perasaan ────────────────────────────────────────────────────────────
+// ════════════════════════════════════════════════════════════════════════════
+//  VIEW: PERASAAN (dark)
+// ════════════════════════════════════════════════════════════════════════════
 function PerasaanView({ aspek }) {
   const perhatian = aspek.filter((a) => a.status === "perhatian");
   const aman = aspek.filter((a) => a.status === "aman");
@@ -563,36 +1412,23 @@ function PerasaanView({ aspek }) {
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 18 }}>
       <SHeading kicker="Cuaca Perasaan" title="Perasaanmu" sub="Gambaran lembut tentang perasaan dan pertemananmu. Ini bukan penilaian, cuma cara mengenali diri sendiri." />
-
       <SCard style={{ padding: "20px 18px 16px" }}>
         <div style={{ display: "flex", justifyContent: "center" }}>
           <SemiGauge value={well} size={260} label="Kesejahteraan" sub="Perasaanmu secara umum lagi cerah" />
         </div>
         <div style={{ display: "flex", gap: 10, marginTop: 8 }}>
           <div style={{ flex: 1, background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.11)", borderRadius: 14, padding: "12px 14px", display: "flex", alignItems: "center", gap: 11 }}>
-            <span style={{ fontSize: 26, fontWeight: 800, color: "#34D399", letterSpacing: "-.02em", lineHeight: 1, fontFamily: "Space Grotesk, sans-serif" }}>{aman.length}</span>
+            <span style={{ fontSize: 26, fontWeight: 800, color: "#34D399", letterSpacing: "-.02em", lineHeight: 1, fontFamily: FONT_DISP }}>{aman.length}</span>
             <span style={{ fontSize: 12, fontWeight: 700, color: "rgba(245,242,252,0.76)", lineHeight: 1.25 }}>Terasa baik</span>
           </div>
           <div style={{ flex: 1, background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.11)", borderRadius: 14, padding: "12px 14px", display: "flex", alignItems: "center", gap: 11 }}>
-            <span style={{ fontSize: 26, fontWeight: 800, color: "#FBBF24", letterSpacing: "-.02em", lineHeight: 1, fontFamily: "Space Grotesk, sans-serif" }}>{perhatian.length}</span>
+            <span style={{ fontSize: 26, fontWeight: 800, color: "#FBBF24", letterSpacing: "-.02em", lineHeight: 1, fontFamily: FONT_DISP }}>{perhatian.length}</span>
             <span style={{ fontSize: 12, fontWeight: 700, color: "rgba(245,242,252,0.76)", lineHeight: 1.25 }}>Bisa dirawat</span>
           </div>
         </div>
       </SCard>
-
       <div style={{ display: "flex", flexDirection: "column", gap: 11 }}>
         {aspek.map((a) => <AspekCard key={a.name} a={a} />)}
-      </div>
-
-      {perhatian.map((a) => (
-        <SHomeTip key={a.name}>
-          Soal {a.name.toLowerCase()}: nggak apa-apa kalau lagi banyak pikiran. Coba tulis perasaanmu atau cerita ke orang yang kamu percaya, sedikit demi sedikit.
-        </SHomeTip>
-      ))}
-
-      <div style={{ display: "flex", gap: 9, alignItems: "flex-start", padding: "13px 15px", background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.11)", borderRadius: 14, fontSize: 12, lineHeight: 1.5, color: "rgba(245,242,252,0.34)" }}>
-        <IcShield size={15} style={{ color: "rgba(245,242,252,0.34)", flexShrink: 0, marginTop: 1 }} />
-        <span>Hasil ini cuma gambaran. Kalau kamu ingin ngobrol lebih jauh, guru BK di sekolah siap mendengarkan.</span>
       </div>
     </div>
   );
@@ -618,277 +1454,9 @@ function AspekCard({ a }) {
   );
 }
 
-// ── View: Bakat ───────────────────────────────────────────────────────────────
-const LEVEL_COLOR = { Kuat: "#B68CFF", Sedang: "#8B5CF6", Berkembang: "rgba(245,242,252,0.34)" };
-const LEVEL_BG    = { Kuat: "rgba(182,140,255,0.18)", Sedang: "rgba(139,92,246,0.14)", Berkembang: "rgba(255,255,255,0.06)" };
-
-function DominantSummaryCard({ topDetails }) {
-  if (!topDetails || topDetails.length === 0) return null;
-  const top = topDetails[0];
-  const m = INTEL_META[top.code] || {};
-  return (
-    <div style={{ background: `linear-gradient(135deg, ${m.bg || "rgba(157,107,255,0.22)"}, rgba(255,255,255,0.01))`, border: `1px solid ${m.bd || "rgba(182,140,255,0.28)"}`, borderRadius: 22, padding: "20px 18px" }}>
-      <div style={{ fontSize: 10, fontWeight: 700, color: m.color || "#B68CFF", textTransform: "uppercase", letterSpacing: ".14em", marginBottom: 12, fontFamily: "Space Grotesk, sans-serif" }}>Kecerdasan dominan</div>
-      <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
-        <span style={{ fontSize: 56, lineHeight: 1, flexShrink: 0 }}>{m.emoji || "✨"}</span>
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ fontSize: 22, fontWeight: 800, color: "#fff", letterSpacing: "-.02em", lineHeight: 1.1 }}>{top.name}</div>
-          <div style={{ fontSize: 12, color: m.color || "#B68CFF", fontWeight: 600, marginTop: 3 }}>{m.tagline}</div>
-          <div style={{ display: "flex", gap: 8, marginTop: 10, alignItems: "center" }}>
-            <div style={{ flex: 1, maxWidth: 80, height: 5, borderRadius: 99, background: "rgba(255,255,255,0.10)", overflow: "hidden" }}>
-              <div style={{ width: `${top.score}%`, height: "100%", borderRadius: 99, background: m.color || "#B68CFF" }} />
-            </div>
-            <span style={{ fontSize: 14, fontWeight: 800, color: "#fff", fontFamily: "Space Grotesk, sans-serif" }}>{top.score}</span>
-            <span style={{ fontSize: 10.5, fontWeight: 700, color: m.color, background: m.bg, padding: "2px 9px", borderRadius: 99 }}>{top.level}</span>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function TopIntelCard({ td, rank }) {
-  const rankLabel = ["TOP 1", "TOP 2", "TOP 3"][rank] || "";
-  const m = INTEL_META[td.code] || {};
-  return (
-    <SCard glow style={{ padding: "20px 18px", background: rank === 0 ? `linear-gradient(135deg,${m.bg || "rgba(157,107,255,0.22)"},rgba(255,255,255,0.02))` : "rgba(255,255,255,0.03)", border: rank === 0 ? `1px solid ${m.bd || "rgba(182,140,255,0.30)"}` : "1px solid rgba(255,255,255,0.08)" }}>
-      {/* Header */}
-      <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 14 }}>
-        <IntelBadge code={td.code} size={48} />
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 3 }}>
-            <span style={{ fontSize: 10, fontWeight: 700, color: "#B68CFF", textTransform: "uppercase", letterSpacing: ".1em" }}>{rankLabel}</span>
-            <span style={{ fontSize: 10, fontWeight: 600, color: LEVEL_COLOR[td.level], background: LEVEL_BG[td.level], padding: "2px 7px", borderRadius: 99 }}>{td.level}</span>
-          </div>
-          <div style={{ fontSize: 17, fontWeight: 800, color: "#fff", letterSpacing: "-.01em" }}>{td.name}</div>
-          <div style={{ fontSize: 12, color: "rgba(245,242,252,0.52)", marginTop: 1 }}>{td.score}/100</div>
-        </div>
-      </div>
-
-      {/* Arti */}
-      {td.arti && <p style={{ margin: "0 0 14px", fontSize: 13.5, lineHeight: 1.65, color: "rgba(245,242,252,0.82)" }}>{td.arti}</p>}
-
-      {/* Terlihat */}
-      {td.terlihat && td.terlihat.length > 0 && (
-        <div style={{ marginBottom: 10 }}>
-          <Expandable label="Tandanya pada dirimu" color={m.color || "#B68CFF"}>
-            <div style={{ display: "flex", flexDirection: "column", gap: 5 }}>
-              {td.terlihat.map((t, i) => (
-                <div key={i} style={{ display: "flex", gap: 8, fontSize: 12.5, lineHeight: 1.5, color: "rgba(245,242,252,0.72)" }}>
-                  <span style={{ color: m.color || "#B68CFF", flexShrink: 0, marginTop: 1 }}>→</span>
-                  <span>{t}</span>
-                </div>
-              ))}
-            </div>
-          </Expandable>
-        </div>
-      )}
-
-      {/* Lakukan */}
-      {td.lakukan && td.lakukan.length > 0 && (
-        <div style={{ marginBottom: 10 }}>
-          <Expandable label="Yang bisa kamu lakukan" color={m.color || "#B68CFF"}>
-            <div style={{ display: "flex", flexDirection: "column", gap: 5 }}>
-              {td.lakukan.map((t, i) => (
-                <div key={i} style={{ display: "flex", gap: 8, fontSize: 12.5, lineHeight: 1.5, color: "rgba(245,242,252,0.72)" }}>
-                  <span style={{ color: m.color || "#B68CFF", flexShrink: 0, marginTop: 1 }}>•</span>
-                  <span>{t}</span>
-                </div>
-              ))}
-            </div>
-          </Expandable>
-        </div>
-      )}
-
-      {/* Profesi */}
-      {td.profesi && td.profesi.length > 0 && (
-        <div style={{ marginBottom: 10 }}>
-          <Expandable label="Profesi yang relevan" color={m.color || "#B68CFF"}>
-            <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginTop: 2 }}>
-              {td.profesi.map((p, i) => (
-                <span key={i} style={{ fontSize: 11.5, fontWeight: 600, color: m.color || "rgba(245,242,252,0.76)", background: m.bg || "rgba(255,255,255,0.05)", border: `1px solid ${m.bd || "rgba(255,255,255,0.10)"}`, padding: "5px 10px", borderRadius: 99 }}>{p}</span>
-              ))}
-            </div>
-          </Expandable>
-        </div>
-      )}
-
-      {/* Jaga */}
-      {td.jaga && (
-        <div style={{ marginTop: 4 }}>
-          <Expandable label="Perlu diperhatikan" color="#D69219">
-            <div style={{ background: "rgba(251,191,36,0.08)", border: "1px solid rgba(251,191,36,0.20)", borderRadius: 10, padding: "10px 13px", marginTop: 2 }}>
-              <p style={{ margin: 0, fontSize: 12.5, lineHeight: 1.55, color: "rgba(245,242,252,0.65)" }}>{td.jaga}</p>
-            </div>
-          </Expandable>
-        </div>
-      )}
-    </SCard>
-  );
-}
-
-function IntelMiniCard({ it }) {
-  const m = INTEL_META[it.code] || {};
-  return (
-    <SCard style={{ padding: "14px 15px", display: "flex", gap: 12, alignItems: "flex-start", border: `1px solid ${m.bd || "rgba(255,255,255,0.08)"}` }}>
-      <IntelBadge code={it.code} size={40} />
-      <div style={{ flex: 1, minWidth: 0 }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 3 }}>
-          <span style={{ fontSize: 13.5, fontWeight: 700, color: "#fff" }}>{it.name}</span>
-          <span style={{ fontSize: 10, fontWeight: 600, color: m.color || LEVEL_COLOR[it.level], background: m.bg || LEVEL_BG[it.level], padding: "2px 7px", borderRadius: 99, flexShrink: 0 }}>{it.level}</span>
-        </div>
-        <div style={{ fontSize: 11.5, color: "rgba(245,242,252,0.45)", marginBottom: 6 }}>{it.score}/100</div>
-        {it.desc && (
-          <Expandable label="Selengkapnya" color={m.color || "#B68CFF"}>
-            <p style={{ margin: 0, fontSize: 12, lineHeight: 1.55, color: "rgba(245,242,252,0.62)" }}>{it.desc}</p>
-          </Expandable>
-        )}
-      </div>
-    </SCard>
-  );
-}
-
-function BakatView({ intel, rekom, topNames, topDetails, dukungan, narasiKombinasi, narasiProfil, mapelSulit, mapelNarasiFinal, isSample }) {
-  const axes = intel.map((it) => ({ label: it.name, short: it.code, value: it.score, max: 100 }));
-  const bars = [...intel].sort((a, b) => b.score - a.score).map((it) => ({ label: it.name, value: it.score, tag: it.level }));
-  const nonDominant = intel.filter(it => it.topIdx === -1);
-  const hasData = !isSample && topDetails && topDetails.length > 0;
-
-  if (!hasData && !isSample) {
-    return (
-      <div style={{ textAlign: "center", padding: "60px 20px" }}>
-        <div style={{ fontSize: 44, marginBottom: 16 }}>✨</div>
-        <div style={{ fontSize: 16, fontWeight: 700, color: "rgba(245,242,252,0.76)", marginBottom: 8 }}>Hasil asesmen sedang disiapkan</div>
-        <div style={{ fontSize: 13, color: "rgba(245,242,252,0.45)", lineHeight: 1.6 }}>Begitu siap, peta kecerdasanmu akan muncul di sini.</div>
-      </div>
-    );
-  }
-
-  return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-
-      {/* BAB 1 — Siapa kamu */}
-      <ChapterLabel n="1" label="Tipe Kecerdasan Paling Dominan dalam Dirimu" color="#B68CFF" />
-      {topDetails && topDetails.length > 0 && !isSample && (
-        <DominantSummaryCard topDetails={topDetails} />
-      )}
-
-      {/* BAB 2 — Cara kamu menyerap dunia */}
-      {(dukungan || narasiKombinasi) && !isSample && (
-        <>
-          <ChapterLabel n="2" label="Cara kamu menyerap dunia" color="#60A5FA" />
-          <SCard style={{ padding: "20px 20px", background: "linear-gradient(135deg,rgba(96,165,250,0.10),rgba(255,255,255,0.01))", border: "1px solid rgba(96,165,250,0.20)" }}>
-            {dukungan && (
-              <p style={{ margin: "0 0 12px", fontSize: 14.5, fontWeight: 600, lineHeight: 1.65, color: "rgba(245,242,252,0.92)", fontStyle: "italic" }}>
-                &ldquo;{dukungan}&rdquo;
-              </p>
-            )}
-            {narasiKombinasi && (
-              <Expandable label="Penjelasan lengkap" color="#60A5FA">
-                <p style={{ margin: "6px 0 0", fontSize: 13, lineHeight: 1.7, color: "rgba(245,242,252,0.68)" }}>{narasiKombinasi}</p>
-              </Expandable>
-            )}
-          </SCard>
-        </>
-      )}
-
-      {/* BAB 3 — Tiga kekuatan utama */}
-      {topDetails && topDetails.length > 0 && (
-        <>
-          <ChapterLabel n="3" label="Tiga kekuatan utamamu" color="#4ADE80" />
-          {topDetails.map((td, i) => <TopIntelCard key={td.code || i} td={td} rank={i} />)}
-        </>
-      )}
-
-      {/* BAB 4 — Peta lengkap */}
-      <ChapterLabel n="4" label="Peta 8 kecerdasanmu" color="#22D3EE" />
-      <SCard style={{ padding: "18px 16px 14px" }}>
-        <p style={{ margin: "0 0 4px", fontSize: 13, fontWeight: 700, color: "#fff" }}>Makin jauh dari pusat, makin menonjol kecerdasan itu.</p>
-        <p style={{ margin: "0 0 12px", fontSize: 11.5, color: "rgba(245,242,252,0.40)" }}>Ketuk setiap titik untuk melihat detailnya di bawah.</p>
-        <div style={{ display: "flex", justifyContent: "center" }}>
-          <DarkRadarChart axes={axes} size={290} />
-        </div>
-      </SCard>
-      <SCard style={{ padding: "18px 18px" }}>
-        <h3 style={{ margin: "0 0 14px", fontSize: 13.5, fontWeight: 800, color: "#fff" }}>Peringkat kecerdasan</h3>
-        <BarList rows={bars} />
-      </SCard>
-
-      {/* BAB 5 — Jalur yang menunggumu */}
-      {(rekom.profesi.length > 0 || rekom.ekskul.length > 0) && (
-        <>
-          <ChapterLabel n="5" label="Jalur yang menunggumu" color="#FB7185" />
-          {rekom.profesi.length > 0 && <RekomCard title="Profesi yang bisa kamu jajaki" Icon={IcSparkle} items={rekom.profesi} />}
-          {rekom.ekskul.length > 0 && <RekomCard title="Kegiatan & ekskul buat kamu" Icon={IcUsers} items={rekom.ekskul} />}
-        </>
-      )}
-
-      {/* BAB 6 — Kecerdasan yang sedang tumbuh */}
-      {nonDominant.length > 0 && (
-        <>
-          <ChapterLabel n="6" label="Yang sedang tumbuh" color="#A78BFA" />
-          <p style={{ margin: "0 0 4px", fontSize: 13, color: "rgba(245,242,252,0.52)", lineHeight: 1.55 }}>Bukan kelemahan, hanya gaya yang belum terbiasa dipakai.</p>
-          {nonDominant.map(it => <IntelMiniCard key={it.code} it={it} />)}
-        </>
-      )}
-
-      {/* BAB 7 — Profil lengkap */}
-      {narasiProfil && !isSample && (
-        <>
-          <ChapterLabel n="7" label="Profilmu secara utuh" color="#34D399" />
-          <SCard style={{ padding: "20px 20px", border: "1px solid rgba(52,211,153,0.18)" }}>
-            <Expandable label="Baca profil lengkap" color="#34D399">
-              <p style={{ margin: "8px 0 0", fontSize: 13, lineHeight: 1.75, color: "rgba(245,242,252,0.75)" }}>{narasiProfil}</p>
-            </Expandable>
-          </SCard>
-        </>
-      )}
-
-      {/* BAB 8 — Tantangan belajar */}
-      {mapelSulit && mapelSulit.length > 0 && !isSample && (
-        <>
-          <ChapterLabel n="8" label="Tantangan belajarmu" color="#FBBF24" />
-          <p style={{ margin: "0 0 4px", fontSize: 13, color: "rgba(245,242,252,0.52)", lineHeight: 1.55 }}>Bukan berarti tidak bisa, hanya butuh strategi yang tepat.</p>
-          {mapelSulit.map((m, i) => (
-            <SCard key={i} style={{ padding: "18px 18px", border: "1px solid rgba(251,191,36,0.18)" }}>
-              <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: m.desc ? 8 : 0 }}>
-                <span style={{ fontSize: 20 }}>📚</span>
-                <span style={{ fontSize: 14, fontWeight: 700, color: "#fff" }}>{m.nama}</span>
-              </div>
-              {m.desc && <p style={{ margin: 0, fontSize: 12.5, lineHeight: 1.65, color: "rgba(245,242,252,0.65)" }}>{m.desc}</p>}
-            </SCard>
-          ))}
-          {mapelNarasiFinal && (
-            <SCard style={{ padding: "16px 18px", background: "rgba(251,191,36,0.05)", border: "1px solid rgba(251,191,36,0.14)" }}>
-              <p style={{ margin: 0, fontSize: 13, lineHeight: 1.7, color: "rgba(245,242,252,0.72)" }}>{mapelNarasiFinal}</p>
-            </SCard>
-          )}
-        </>
-      )}
-    </div>
-  );
-}
-
-function RekomCard({ title, Icon, items }) {
-  return (
-    <SCard style={{ padding: "18px 18px" }}>
-      <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 13 }}>
-        <span style={{ width: 38, height: 38, borderRadius: 11, background: "rgba(157,107,255,0.20)", color: "#B68CFF", display: "grid", placeItems: "center", flexShrink: 0 }}>
-          <Icon size={19} />
-        </span>
-        <h3 style={{ margin: 0, fontSize: 14.5, fontWeight: 800, color: "rgba(245,242,252,1)" }}>{title}</h3>
-      </div>
-      <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
-        {items.map((it, i) => (
-          <span key={i} style={{ fontSize: 12.5, fontWeight: 600, color: "rgba(245,242,252,0.76)", background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.11)", padding: "7px 12px", borderRadius: 99 }}>{it}</span>
-        ))}
-      </div>
-    </SCard>
-  );
-}
-
-// ── Nav + Header ──────────────────────────────────────────────────────────────
-// MVP: hanya Bakat view (karakter, perasaan nanti)
+// ════════════════════════════════════════════════════════════════════════════
+//  NAV + HEADER (dark shell)
+// ════════════════════════════════════════════════════════════════════════════
 const NAV_ITEMS = [
   { id: "bakat", label: "Bakat", Icon: IcSparkle },
 ];
@@ -906,9 +1474,9 @@ function SiswaHeader({ student, onLogout }) {
         </div>
       </div>
       <div className={styles.sHeaderProfile}>
-        <span className={styles.sAvatar}>{student.panggilan[0]}</span>
+        <span className={styles.sAvatar}>{(student.panggilan || "S")[0]}</span>
         <div style={{ minWidth: 0 }}>
-          <div style={{ fontSize: 11, fontWeight: 700, color: "#B68CFF", textTransform: "uppercase", letterSpacing: ".12em", fontFamily: "Space Grotesk, sans-serif" }}>Peta Diriku</div>
+          <div style={{ fontSize: 11, fontWeight: 700, color: "#B68CFF", textTransform: "uppercase", letterSpacing: ".12em", fontFamily: FONT_DISP }}>Peta Diriku</div>
           <h1 className={styles.sHeaderName}>{student.name}</h1>
           {(student.kelas || student.sekolah) && (
             <p style={{ margin: "2px 0 0", fontSize: 12, color: "rgba(245,242,252,0.52)" }}>
@@ -940,88 +1508,61 @@ function SiswaBottomNav({ activeView, setView }) {
   );
 }
 
-// ── Main page ─────────────────────────────────────────────────────────────────
+// ════════════════════════════════════════════════════════════════════════════
+//  MAIN PAGE
+// ════════════════════════════════════════════════════════════════════════════
 export default function SiswaPage({ session, onLogout }) {
   const [activeView, setActiveView] = useState("bakat");
   const mainRef = useRef(null);
 
-  // Fetch MI data dari GAS
-  const { loading, data, error } = useGasRead("mi", null, session);
+  const { loading, data } = useGasRead("mi", null, session);
 
   useEffect(() => {
     if (mainRef.current) mainRef.current.scrollTop = 0;
   }, [activeView]);
 
-  // Transform data dari GAS
-  let student, intel, karakter, aspek, dukungan, rekom, topNames, topDetails, narasiKombinasi, narasiProfil, mapelSulit, mapelNarasiFinal;
+  let student, intel, karakter, aspek, dukungan, topDetails, mi;
   let isSample = false;
 
   if (data && data.output_mi && data.output_mi.length > 0) {
     const transformed = transformMIData(data, session?.nama);
     if (transformed) {
+      mi = transformed;
       student = transformed.student;
       intel = transformed.intel;
       karakter = transformed.karakter;
       aspek = transformed.aspek;
       dukungan = transformed.dukungan;
-      rekom = transformed.rekom;
-      topNames = transformed.topNames;
       topDetails = transformed.topDetails;
-      narasiKombinasi = transformed.narasiKombinasi;
-      narasiProfil = transformed.narasiProfil;
-      mapelSulit = transformed.mapelSulit;
-      mapelNarasiFinal = transformed.mapelNarasiFinal;
       isSample = false;
     }
   }
 
-  // Jika data real belum ada, tampilkan nama dari sesi saja (tanpa dummy kelas/sekolah)
+  // Belum ada data real: tampilkan contoh laporan (ditandai "Contoh" di footer)
   if (!student) {
-    const nama = session?.nama || "Siswa";
-    student = { name: nama, panggilan: nama.split(/\s+/)[0], kelas: "", sekolah: "" };
-    intel = [];
-    karakter = [];
-    aspek = [];
-    dukungan = "";
-    rekom = { profesi: [], ekskul: [], jurusan: [], kuliah: [], lomba: [] };
-    isSample = false;
+    student = SAMPLE_BAKAT.student;
+    intel = SAMPLE_BAKAT.intel;
+    topDetails = SAMPLE_BAKAT.topDetails;
+    karakter = SAMPLE_KARAKTER;
+    aspek = SAMPLE_ASPEK;
+    dukungan = SAMPLE_DUKUNGAN;
+    mi = null;
+    isSample = true;
   }
 
   return (
-    <div className={styles.siswaRoot}>
-      {/* Aurora background */}
-      <div className={styles.aurora} />
-
-      <div className={styles.phone}>
-        <SiswaHeader student={student} onLogout={onLogout} />
-
+    <div style={{ position: "fixed", inset: 0, background: T.bg, display: "flex", alignItems: "center", justifyContent: "center" }}>
+      <div style={{ position: "relative", width: "100%", maxWidth: 440, height: "100%", display: "flex", flexDirection: "column", overflow: "hidden" }}>
         <main ref={mainRef} className={styles.sMain}>
-          <div className={styles.sContent}>
-            {loading && (
-              <div style={{ textAlign: "center", padding: "40px 20px", color: "rgba(245,242,252,0.52)" }}>
-                <p>Memuat data Multiple Intelligence...</p>
-              </div>
-            )}
-            {error && (
-              <div style={{ background: "rgba(251,191,36,0.15)", border: "1px solid rgba(251,191,36,0.34)", borderRadius: 12, padding: 16, color: "rgba(245,242,252,0.76)", fontSize: 13, lineHeight: 1.5 }}>
-                <strong>Tidak bisa memuat data:</strong> {error}
-              </div>
-            )}
-            {!loading && !error && (
-              <>
-                {isSample && (
-                  <div style={{ marginBottom: 4 }}>
-                    <SampleTag />
-                  </div>
-                )}
-                {activeView === "beranda"  && <BerandaView student={student} intel={intel} karakter={karakter} aspek={aspek} dukungan={dukungan} setView={setActiveView} />}
-                {activeView === "bakat"    && <BakatView intel={intel} rekom={rekom} topNames={topNames} topDetails={topDetails} dukungan={dukungan} narasiKombinasi={narasiKombinasi} narasiProfil={narasiProfil} mapelSulit={mapelSulit} mapelNarasiFinal={mapelNarasiFinal} isSample={isSample} />}
-              </>
-            )}
-          </div>
+          {loading && (
+            <div style={{ textAlign: "center", padding: "80px 24px", fontFamily: MONT, color: T.textMuted }}>
+              <p style={{ fontSize: 14, fontWeight: 600 }}>Memuat laporan bakat...</p>
+            </div>
+          )}
+          {!loading && (
+            <BakatView student={student} intel={intel} topDetails={topDetails} mi={mi} isSample={isSample} onLogout={onLogout} />
+          )}
         </main>
-
-        <SiswaBottomNav activeView={activeView} setView={setActiveView} />
       </div>
     </div>
   );
