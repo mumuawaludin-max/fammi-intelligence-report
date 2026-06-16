@@ -250,3 +250,12 @@
   background: rgba(157, 107, 255, 0.28);
   box-shadow: 0 0 16px rgba(157, 107, 255, 0.32);
 }
+
+/* ── Floating menu item (speed dial) ─────────────────────────────────────────── */
+.fabItem {
+  animation: fabPop 0.2s ease both;
+}
+@keyframes fabPop {
+  from { opacity: 0; transform: translateY(10px) scale(0.96); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}

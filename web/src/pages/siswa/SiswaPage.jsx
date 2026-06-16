@@ -778,7 +778,26 @@ const CIRI_TONE = {
 // ════════════════════════════════════════════════════════════════════════════
 //  VIEW: BAKAT (light, Laporan Bakat Siswa)
 // ════════════════════════════════════════════════════════════════════════════
-function BakatView({ student, intel, topDetails, mi, isSample, onLogout }) {
+// Modul yang tersedia untuk peran Siswa. Floating menu dibangun dari sini.
+// Saat ini baru "mi" (Laporan Bakat) yang dibangun; karakter dan screening menyusul.
+const SISWA_MODULE_DEFS = [
+  { key: "mi",        label: "Laporan Bakat",  emoji: "🧭" },
+  { key: "karakter",  label: "Rapor Karakter", emoji: "🌱" },
+  { key: "screening", label: "Screening",      emoji: "🧩" },
+];
+
+// Pilih modul yang dilanggan user. Idealnya session.modules diisi gerbang GAS
+// dari entitlement sekolah. Sebelum itu siap, fallback ke hanya "mi".
+function buildSiswaModules(session) {
+  const langganan = (session && Array.isArray(session.modules) && session.modules.length)
+    ? session.modules
+    : ["mi"];
+  return SISWA_MODULE_DEFS
+    .filter((m) => langganan.indexOf(m.key) !== -1)
+    .map((m) => ({ ...m, current: m.key === "mi" }));
+}
+
+function BakatView({ student, intel, topDetails, mi, isSample, onLogout, modules }) {
   const [dialog, setDialog] = useState(null);
   const [activePath, setActivePath] = useState(0);
   const [openCara, setOpenCara] = useState(false);
@@ -918,7 +937,7 @@ function BakatView({ student, intel, topDetails, mi, isSample, onLogout }) {
     <div style={{ background: T.bg, minHeight: "100%", fontFamily: MONT, color: T.textStrong }}>
       <div ref={sentinelRef} style={{ height: 0, pointerEvents: "none" }} />
       <header style={{ position: "sticky", top: 0, zIndex: 20, background: "rgba(255,255,255,0.97)", backdropFilter: "blur(10px)", WebkitBackdropFilter: "blur(10px)", borderBottom: `1px solid ${T.divider}`, padding: "10px 18px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-        <img src="/logo.png" alt="Fammi" style={{ height: 22, width: "auto", objectFit: "contain" }} />
+        <img src="/logo-purple.png" alt="Fammi" style={{ height: 22, width: "auto", objectFit: "contain" }} />
         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
           {(student.kelas || student.sekolah) && <span style={{ fontSize: 11, fontWeight: 600, color: T.textMuted }}>{[student.kelas, student.sekolah].filter(Boolean).join(" · ")}</span>}
           {onLogout && (
@@ -1296,23 +1315,98 @@ function BakatView({ student, intel, topDetails, mi, isSample, onLogout }) {
         </div>
       </div>
 
-      {/* ═══ FOOTER CONTOH ═══ */}
-      <div style={{ marginTop: 16, display: "flex", alignItems: "center", justifyContent: "center", gap: 9, textAlign: "center" }}>
-        <Badge bg={T.sunSoft} fg={T.sunInk} sm>Contoh</Badge>
-        <span style={{ fontSize: 11, color: T.textFaint, lineHeight: 1.4 }}>Angka dan rekomendasi pada laporan asli mengikuti hasil asesmen ananda.</span>
-      </div>
+      {/* ═══ FOOTER CONTOH (hanya untuk laporan contoh, jangan muncul di data asli) ═══ */}
+      {isSample && (
+        <div style={{ marginTop: 16, display: "flex", alignItems: "center", justifyContent: "center", gap: 9, textAlign: "center" }}>
+          <Badge bg={T.sunSoft} fg={T.sunInk} sm>Contoh</Badge>
+          <span style={{ fontSize: 11, color: T.textFaint, lineHeight: 1.4 }}>Angka dan rekomendasi pada laporan asli mengikuti hasil asesmen ananda.</span>
+        </div>
+      )}
 
       </div>
 
       <DialogOverlay dialog={dialog} onClose={() => setDialog(null)} />
 
-      {showFab && (
-        <button onClick={scrollToTop} style={{ position: "fixed", bottom: 28, right: 20, zIndex: 100, width: 48, height: 48, borderRadius: "50%", background: T.brand, color: "#fff", boxShadow: T.shadowPop, border: "none", cursor: "pointer", display: "grid", placeItems: "center" }}>
-          <IcArrowUp size={18} />
-        </button>
-      )}
+      <FloatingFab modules={modules} showTop={showFab} onTop={scrollToTop} />
     </div>
   );
+}
+
+// Floating menu modular. Isi: tombol "ke atas" (saat ter-scroll), daftar modul
+// yang dilanggan, dan tautan ke website Fammi. Tambah modul lewat SISWA_MODULE_DEFS.
+function FloatingFab({ modules, showTop, onTop }) {
+  const [open, setOpen] = useState(false);
+
+  const items = [];
+  if (showTop) {
+    items.push({ key: "top", label: "Ke atas", node: <IcArrowUp size={16} />, onClick: () => { onTop(); setOpen(false); } });
+  }
+  (modules || []).forEach((m) => {
+    items.push({
+      key: m.key,
+      label: m.label,
+      emoji: m.emoji,
+      active: m.current,
+      onClick: () => { if (m.current) onTop(); setOpen(false); },
+    });
+  });
+  items.push({ key: "fammi", label: "Kunjungi Fammi", img: "/favicon-512.png", href: "https://fammi.ly/", onClick: () => setOpen(false) });
+
+  const pill = (active) => ({
+    display: "flex", alignItems: "center", gap: 10, padding: "8px 8px 8px 14px",
+    borderRadius: 999, border: `1px solid ${active ? T.brand : T.divider}`,
+    background: active ? T.violet100 : "#fff", color: active ? T.violet700 : T.textStrong,
+    boxShadow: T.shadowPop, cursor: "pointer", textDecoration: "none",
+    fontSize: 13, fontWeight: 700, fontFamily: MONT, whiteSpace: "nowrap",
+  });
+  const iconWrap = (active) => ({
+    width: 28, height: 28, borderRadius: "50%", display: "grid", placeItems: "center",
+    background: active ? T.brand : T.bg, color: active ? "#fff" : T.brand, fontSize: 15, flexShrink: 0,
+  });
+
+  return (
+    <>
+      {open && (
+        <div onClick={() => setOpen(false)} style={{ position: "fixed", inset: 0, zIndex: 110, background: "rgba(12,8,23,0.04)" }} />
+      )}
+      <div style={{ position: "fixed", bottom: 0, left: 0, right: 0, zIndex: 120, display: "flex", justifyContent: "center", pointerEvents: "none" }}>
+        <div style={{ position: "relative", width: "100%", maxWidth: 440, height: 0 }}>
+          <div style={{ position: "absolute", bottom: 24, right: 18, display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 10, pointerEvents: "auto" }}>
+            {open && items.map((it, i) => {
+              const inner = (
+                <>
+                  <span>{it.label}</span>
+                  <span style={iconWrap(it.active)}>
+                    {it.node || (it.img ? <img src={it.img} alt="" style={{ width: 17, height: 17, objectFit: "contain" }} /> : it.emoji)}
+                  </span>
+                </>
+              );
+              const st = { ...pill(it.active), animationDelay: `${i * 0.03}s` };
+              return it.href ? (
+                <a key={it.key} className={styles.fabItem} href={it.href} target="_blank" rel="noopener noreferrer" onClick={it.onClick} style={st}>{inner}</a>
+              ) : (
+                <button key={it.key} className={styles.fabItem} onClick={it.onClick} style={st}>{inner}</button>
+              );
+            })}
+            <button
+              onClick={() => setOpen((o) => !o)}
+              aria-label={open ? "Tutup menu" : "Buka menu"}
+              style={{ width: 52, height: 52, borderRadius: "50%", background: T.brand, color: "#fff", boxShadow: T.shadowPop, border: "none", cursor: "pointer", display: "grid", placeItems: "center" }}
+            >
+              {open ? <IcClose size={20} /> : <IcGrid size={20} />}
+            </button>
+          </div>
+        </div>
+      </div>
+    </>
+  );
+}
+
+function IcClose({ size = 18 }) {
+  return <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round"><path d="M18 6 6 18M6 6l12 12" /></svg>;
+}
+function IcGrid({ size = 18 }) {
+  return <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="7" height="7" rx="1.5" /><rect x="14" y="3" width="7" height="7" rx="1.5" /><rect x="3" y="14" width="7" height="7" rx="1.5" /><rect x="14" y="14" width="7" height="7" rx="1.5" /></svg>;
 }
 
 function Legend({ color, label, range }) {
@@ -1560,7 +1654,7 @@ export default function SiswaPage({ session, onLogout }) {
             </div>
           )}
           {!loading && (
-            <BakatView student={student} intel={intel} topDetails={topDetails} mi={mi} isSample={isSample} onLogout={onLogout} />
+            <BakatView student={student} intel={intel} topDetails={topDetails} mi={mi} isSample={isSample} onLogout={onLogout} modules={buildSiswaModules(session)} />
           )}
         </main>
       </div>
