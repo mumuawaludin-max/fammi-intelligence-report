@@ -1,181 +1,154 @@
-/* Latar gelap pakai --ink agar login terasa berbeda dari dashboard */
+/* ============================================================
+   Fammi Intelligence Report — Login (split: brand kiri, form kanan)
+   Semua teks memakai Montserrat. Tanpa em-dash, tanpa garis aksen dekoratif.
+   Wording general: orang tua, sekolah, maupun korporat. Modular.
+   ============================================================ */
+
 .page {
   min-height: 100svh;
-  background: var(--ink);
   display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 24px;
+  font-family: "Montserrat", system-ui, sans-serif;
+  color: #211B2E;
+  -webkit-font-smoothing: antialiased;
 }
 
-/* Kartu login */
-.card {
-  width: 100%;
-  max-width: 400px;
-  background: var(--surface);
-  border-radius: var(--radius-xl);
-  padding: 40px 36px 32px;
-  box-shadow: var(--shadow-hero);
+/* ---------- panel brand (kiri) ---------- */
+.brand {
+  flex: 1.08;
+  position: relative;
+  overflow: hidden;
   display: flex;
   flex-direction: column;
-  align-items: center;
-  gap: 0;
+  padding: 52px 56px;
+  color: #fff;
+  background:
+    radial-gradient(620px 620px at 82% 6%, rgba(255, 255, 255, 0.12), transparent 60%),
+    radial-gradient(760px 760px at -8% 108%, rgba(58, 14, 150, 0.6), transparent 62%),
+    linear-gradient(150deg, #7B3BF0 0%, #6323DA 52%, #5418C2 100%);
 }
 
-/* Logo */
-.logo {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  margin-bottom: 8px;
-}
-
+.logoRow { display: flex; align-items: center; gap: 14px; }
 .logoMark {
-  width: 40px;
-  height: 40px;
-  background: var(--purple-600);
-  color: #fff;
-  border-radius: 10px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-family: var(--font-display);
-  font-weight: 700;
-  font-size: 20px;
+  width: 56px; height: 56px; border-radius: 16px; background: #fff;
+  display: grid; place-items: center; flex: none;
+  box-shadow: 0 12px 30px rgba(20, 8, 40, 0.3);
+}
+.logoMark img { width: 34px; height: 34px; object-fit: contain; }
+.logoName { font-size: 24px; font-weight: 800; letter-spacing: -0.4px; line-height: 1; color: #fff; }
+.kicker { margin-top: 6px; display: flex; align-items: center; gap: 8px; }
+.kbar { width: 16px; height: 2px; border-radius: 99px; background: rgba(255, 255, 255, 0.6); }
+.kicker span { font-size: 11px; font-weight: 700; letter-spacing: 0.22em; text-transform: uppercase; color: rgba(255, 255, 255, 0.82); }
+
+.brandBody { flex: 1; display: flex; flex-direction: column; justify-content: center; padding: 30px 0; max-width: 480px; }
+.headline { margin: 0; font-size: 44px; font-weight: 800; line-height: 1.08; letter-spacing: -0.8px; color: #fff; }
+.lead { margin: 20px 0 0; font-size: 16px; line-height: 1.6; font-weight: 500; color: rgba(255, 255, 255, 0.86); }
+
+.checks { margin: 26px 0 0; display: flex; flex-direction: column; gap: 13px; }
+.checkItem { display: flex; align-items: center; gap: 12px; font-size: 14.5px; font-weight: 600; color: rgba(255, 255, 255, 0.92); }
+.checkIcon {
+  width: 24px; height: 24px; border-radius: 50%; flex: none;
+  background: rgba(255, 255, 255, 0.16); color: #fff; display: grid; place-items: center;
 }
 
-.logoText {
-  font-family: var(--font-display);
-  font-weight: 700;
-  font-size: 20px;
-  color: var(--ink);
-  letter-spacing: -0.3px;
+/* preview card */
+.preview {
+  margin-top: 30px; background: #fff; border-radius: 24px; padding: 20px;
+  box-shadow: 0 26px 56px rgba(24, 10, 54, 0.34); color: #211B2E; max-width: 420px;
 }
+.previewHead { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.previewBrand { display: flex; align-items: center; gap: 7px; font-size: 10px; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase; color: #6323DA; }
+.previewBrand img { width: 16px; height: 16px; object-fit: contain; }
+.badge { display: inline-flex; align-items: center; gap: 5px; padding: 4px 9px; border-radius: 999px; font-size: 10.5px; font-weight: 700; white-space: nowrap; }
+.badgeDot { width: 5px; height: 5px; border-radius: 50%; background: currentColor; }
+.bMint { background: #DFF7E4; color: #1E7A3A; }
+.bSun { background: #FFEBCB; color: #8A4E00; }
+.bBlossom { background: #FDE2FE; color: #9E22A0; }
 
-.logoText em {
-  font-style: normal;
-  color: var(--purple-600);
-}
+.previewBig { display: flex; align-items: flex-end; gap: 11px; margin-top: 14px; }
+.previewNum { font-size: 40px; font-weight: 800; letter-spacing: -1px; line-height: 0.9; color: #211B2E; }
+.previewNumSub { font-size: 12.5px; line-height: 1.35; color: #7C7689; font-weight: 500; padding-bottom: 3px; }
+.previewBar { margin-top: 14px; height: 6px; border-radius: 99px; background: #EDE6FB; overflow: hidden; }
+.previewBarFill { height: 100%; width: 78%; border-radius: 99px; background: linear-gradient(90deg, #7B3BF0, #6323DA); }
 
-.tagline {
-  font-size: 14px;
-  color: var(--ink-3);
-  margin-bottom: 28px;
-  text-align: center;
-}
+.previewList { margin-top: 16px; display: flex; flex-direction: column; gap: 12px; }
+.previewRow { display: flex; align-items: center; gap: 11px; }
+.rowIcon { width: 30px; height: 30px; border-radius: 9px; flex: none; display: grid; place-items: center; }
+.iSky { background: #E1ECFF; color: #1F4FA8; }
+.iSun { background: #FFEBCB; color: #8A4E00; }
+.iMint { background: #DFF7E4; color: #1E7A3A; }
+.iBlossom { background: #FDE2FE; color: #9E22A0; }
+.rowLabel { flex: 1; font-size: 13.5px; font-weight: 700; color: #211B2E; }
 
-/* Form */
+.brandFoot { display: flex; align-items: center; gap: 9px; margin-top: 30px; font-size: 12px; font-weight: 500; color: rgba(255, 255, 255, 0.74); }
+
+/* ---------- panel form (kanan) ---------- */
 .form {
-  width: 100%;
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
+  flex: 1; display: flex; align-items: center; justify-content: center;
+  padding: 40px 32px; background: #fff;
 }
+.formInner { width: 100%; max-width: 384px; }
 
-.field {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
+.formEyebrow { display: flex; align-items: center; gap: 7px; font-size: 11px; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase; color: #6323DA; margin-bottom: 18px; }
+.formEyebrow img { width: 18px; height: 18px; object-fit: contain; }
+.formTitle { margin: 0; font-size: 30px; font-weight: 800; letter-spacing: -0.6px; line-height: 1.15; color: #211B2E; }
+.formSub { margin: 10px 0 26px; font-size: 14.5px; line-height: 1.55; font-weight: 500; color: #7C7689; }
 
-.label {
-  font-size: 13px;
-  font-weight: 700;
-  color: var(--ink-2);
-  letter-spacing: 0.1px;
-}
+.field { margin-bottom: 16px; }
+.fieldLabelRow { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; margin-bottom: 8px; }
+.fieldLabel { font-size: 13px; font-weight: 700; color: #4A4458; }
+.hint { font-size: 11.5px; font-weight: 500; color: #A8A2B4; }
 
+.inputWrap { position: relative; display: flex; align-items: center; }
+.inputIcon { position: absolute; left: 15px; color: #A8A2B4; display: grid; place-items: center; pointer-events: none; }
 .input {
-  width: 100%;
-  padding: 10px 14px;
-  font-size: 15px;
-  font-family: var(--font-body);
-  color: var(--ink);
-  background: var(--surface-soft);
-  border: 1.5px solid var(--line);
-  border-radius: var(--radius-md);
-  outline: none;
-  transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+  width: 100%; height: 52px; padding: 0 15px 0 44px;
+  font-family: "Montserrat", sans-serif; font-size: 15px; font-weight: 500; color: #211B2E;
+  background: #F5F3FA; border: none; border-radius: 14px; outline: none;
+  transition: box-shadow .15s ease, background .15s ease;
+}
+.inputPad { padding-right: 46px; }
+.input::placeholder { color: #A8A2B4; font-weight: 500; }
+.input:focus { background: #fff; box-shadow: 0 0 0 3px #EDE6FB, 0 6px 18px rgba(99, 35, 218, 0.12); }
+.eyeBtn {
+  position: absolute; right: 8px; width: 36px; height: 36px; border: none; background: none; cursor: pointer;
+  color: #A8A2B4; display: grid; place-items: center; border-radius: 9px; transition: color .15s, background .15s;
+}
+.eyeBtn:hover { color: #6323DA; background: #F4EFFD; }
+
+.errorMsg {
+  margin: -2px 0 14px; padding: 10px 13px; border-radius: 11px;
+  background: #FBE7EA; color: #D6455A; font-size: 12.5px; font-weight: 600; line-height: 1.4;
 }
 
-.input::placeholder {
-  color: var(--ink-4);
+.submit {
+  width: 100%; height: 54px; margin-top: 6px; border: none; border-radius: 14px; cursor: pointer;
+  font-family: "Montserrat", sans-serif; font-size: 15px; font-weight: 800; letter-spacing: 0.1px;
+  display: inline-flex; align-items: center; justify-content: center; gap: 9px;
+  color: #fff; background: linear-gradient(120deg, #7B3BF0, #6323DA 60%, #5418C2);
+  box-shadow: 0 14px 30px rgba(99, 35, 218, 0.34);
+  transition: transform .12s, box-shadow .2s, filter .2s, opacity .2s;
 }
+.submit:hover:not(:disabled) { filter: brightness(1.06); box-shadow: 0 18px 38px rgba(99, 35, 218, 0.44); }
+.submit:active:not(:disabled) { transform: translateY(1px); }
+.submit:disabled { opacity: .72; cursor: not-allowed; }
 
-.input:focus {
-  border-color: var(--purple-600);
-  box-shadow: 0 0 0 3px var(--purple-100);
-  background: var(--surface);
+.spinner { width: 17px; height: 17px; border: 2px solid rgba(255, 255, 255, 0.4); border-top-color: #fff; border-radius: 50%; animation: spin .7s linear infinite; flex: none; }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+.help { margin: 18px 0 0; text-align: center; font-size: 13px; font-weight: 500; color: #7C7689; }
+.help a { color: #6323DA; font-weight: 700; text-decoration: none; }
+.help a:hover { text-decoration: underline; }
+
+/* ---------- responsif ---------- */
+@media (max-width: 920px) {
+  .page { flex-direction: column; }
+  .brand { flex: none; padding: 32px 26px 30px; }
+  .brandBody { padding: 22px 0 0; justify-content: flex-start; }
+  .headline { font-size: 30px; }
+  .checks, .preview, .brandFoot { display: none; }
+  .form { flex: none; padding: 32px 24px 44px; }
+  .formInner { max-width: 420px; margin: 0 auto; }
 }
-
-.input:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
-}
-
-/* Error */
-.errorBox {
-  background: var(--status-alert-bg);
-  color: var(--status-alert);
-  border: 1px solid var(--status-alert);
-  border-radius: var(--radius-sm);
-  padding: 10px 14px;
-  font-size: 13px;
-  font-weight: 600;
-}
-
-/* Tombol masuk */
-.btn {
-  width: 100%;
-  padding: 12px;
-  margin-top: 4px;
-  background: var(--purple-600);
-  color: #fff;
-  border-radius: var(--radius-md);
-  font-family: var(--font-body);
-  font-size: 15px;
-  font-weight: 700;
-  cursor: pointer;
-  border: none;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  transition: background var(--transition-fast), transform var(--transition-fast);
-}
-
-.btn:hover:not(:disabled) {
-  background: var(--purple-700);
-}
-
-.btn:active:not(:disabled) {
-  transform: scale(0.99);
-}
-
-.btn:disabled {
-  opacity: 0.7;
-  cursor: not-allowed;
-}
-
-/* Spinner loading */
-.spinner {
-  width: 16px;
-  height: 16px;
-  border: 2px solid rgba(255, 255, 255, 0.35);
-  border-top-color: #fff;
-  border-radius: 50%;
-  animation: spin 0.7s linear infinite;
-  flex-shrink: 0;
-}
-
-@keyframes spin {
-  to { transform: rotate(360deg); }
-}
-
-/* Footer */
-.footer {
-  font-size: 12px;
-  color: var(--ink-4);
-  text-align: center;
-  margin-top: 24px;
+@media (prefers-reduced-motion: reduce) {
+  .spinner { animation: none; }
 }

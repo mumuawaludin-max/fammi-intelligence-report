@@ -176,11 +176,6 @@ var Read = (function () {
         Logger.log("fetchOutputMI_ Strategi0 match: " + normUserMuridId);
         return byUserMuridId;
       }
-      // Gagal — inject debug ke response
-      if (periodFiltered.length > 0) {
-        periodFiltered[0]._s0_debug = "user_murid_id=" + params.user_murid_id
-          + " vs row_murid_id=" + String(periodFiltered[0].murid_id || "");
-      }
     }
 
     // Strategi 1: cocokkan lewat kolom murid_id di Output_MI
@@ -237,25 +232,18 @@ var Read = (function () {
       }
     }
 
-    // Fallback: tidak ada yang cocok — kembalikan baris pertama PLUS info debug
-    // sehingga browser console bisa menampilkan apa yang sebenarnya ada di sheet.
-    var debugInfo = {
-      _debug_no_match: true,
-      _debug_headers: headers,
-      _debug_allowed_murid_ids: Object.keys(allowedMuridIds),
-      _debug_user_nama: params.user_nama,
-      _debug_row_count: periodFiltered.length,
-      _debug_row0_keys: periodFiltered.length > 0 ? Object.keys(periodFiltered[0]) : [],
-      _debug_row0_murid_id: periodFiltered.length > 0 ? String(periodFiltered[0].murid_id || "") : "",
-      _debug_row0_nama: periodFiltered.length > 0 ? String(periodFiltered[0].nama || "") : "",
-    };
+    // Tidak ada baris milik pengguna ini. Jangan pernah mengembalikan data siswa lain.
+    // Detail diagnosis hanya ke log server (Stackdriver), tidak pernah ke respons browser.
+    Logger.log("fetchOutputMI_ NO MATCH: " + JSON.stringify({
+      no_match: true,
+      headers: headers,
+      allowed_murid_ids: Object.keys(allowedMuridIds),
+      user_nama: params.user_nama,
+      user_murid_id: params.user_murid_id,
+      row_count: periodFiltered.length,
+    }));
 
-    Logger.log("fetchOutputMI_ NO MATCH: " + JSON.stringify(debugInfo));
-
-    if (periodFiltered.length > 0) {
-      return [Object.assign({}, periodFiltered[0], debugInfo)];
-    }
-    return [debugInfo];
+    return [];
   }
 
   /* ------------------------------------------------------------------ */
@@ -316,12 +304,30 @@ var Read = (function () {
     var sheet = ctrlWb.getSheetByName("Agregat");
     if (!sheet) return [];
 
-    // Ambil yayasan_id dari cakupan
+    // yayasan_id pengguna dari cakupan
     var yayasanId = null;
     for (var i = 0; i < params.cakupan.length; i++) {
       if (params.cakupan[i].tipe_cakupan === "yayasan") {
-        yayasanId = params.cakupan[i].unit_id;
+        yayasanId = String(params.cakupan[i].unit_id || "").trim();
         break;
+      }
+    }
+    // Tanpa yayasan_id yang jelas, jangan tampilkan agregat apa pun.
+    // Ini mencegah satu yayasan melihat roll-up sekolah milik yayasan lain.
+    if (!yayasanId) {
+      Logger.log("fetchAgregat_: yayasan_id tidak ada di cakupan, kembalikan kosong");
+      return [];
+    }
+
+    // Kumpulkan sekolah di bawah yayasan ini lewat master Sekolah (sekolah_id -> yayasan_id)
+    var allowedSekolah = {};
+    var sekolahSheet = ctrlWb.getSheetByName("Sekolah");
+    if (sekolahSheet) {
+      var sekolahRows = Gate.sheetToObjects(sekolahSheet);
+      for (var s = 0; s < sekolahRows.length; s++) {
+        if (String(sekolahRows[s].yayasan_id || "").trim() === yayasanId) {
+          allowedSekolah[String(sekolahRows[s].sekolah_id || "").trim()] = true;
+        }
       }
     }
 
@@ -330,12 +336,12 @@ var Read = (function () {
       if (!matchPeriode_(r, params.periode_id)) return false;
       if (params.modul && r.modul !== params.modul) return false;
 
-      // Yayasan hanya lihat agregat scope sekolah/yayasan, bukan individu
-      if (r.scope_tipe === "murid") return false;
-
-      // Bila scope_tipe sekolah, pastikan sekolah tersebut di bawah yayasan ini
-      // Untuk V1: tampilkan semua agregat sekolah (lookup yayasan per sekolah bisa ditambah V2)
-      return true;
+      var scopeId = String(r.scope_id || "").trim();
+      // Hanya agregat milik yayasan ini: total yayasan + roll-up sekolah di bawahnya.
+      // Individu (murid) dan kelas tidak ditampilkan di tampilan yayasan.
+      if (r.scope_tipe === "yayasan") return scopeId === yayasanId;
+      if (r.scope_tipe === "sekolah") return allowedSekolah[scopeId] === true;
+      return false;
     });
   }
 

@@ -484,6 +484,63 @@ function IcUsers({ size = 20 }) { return <svg width={size} height={size} viewBox
 function IcLogout({ size = 16 }) { return <svg width={size} height={size} viewBox="0 0 24 24" {...S}><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>; }
 function IcChat({ size = 16 }) { return <svg width={size} height={size} viewBox="0 0 24 24" {...S}><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>; }
 function IcHome({ size = 20 }) { return <svg width={size} height={size} viewBox="0 0 24 24" {...S}><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>; }
+// Ikon perjalanan mode terpandu (design system, garis 2px)
+function IcCompass({ size = 20 }) { return <svg width={size} height={size} viewBox="0 0 24 24" {...S}><circle cx="12" cy="12" r="10"/><polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76"/></svg>; }
+function IcBookOpen({ size = 20 }) { return <svg width={size} height={size} viewBox="0 0 24 24" {...S}><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>; }
+function IcStar({ size = 20 }) { return <svg width={size} height={size} viewBox="0 0 24 24" {...S}><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>; }
+function IcRoute({ size = 20 }) { return <svg width={size} height={size} viewBox="0 0 24 24" {...S}><circle cx="6" cy="19" r="3"/><path d="M9 19h8.5a3.5 3.5 0 0 0 0-7h-11a3.5 3.5 0 0 1 0-7H15"/><circle cx="18" cy="5" r="3"/></svg>; }
+function IcFlag({ size = 20 }) { return <svg width={size} height={size} viewBox="0 0 24 24" {...S}><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><line x1="4" y1="22" x2="4" y2="15"/></svg>; }
+function IcChevronLeft({ size = 18 }) { return <svg width={size} height={size} viewBox="0 0 24 24" {...S}><polyline points="15 18 9 12 15 6"/></svg>; }
+function IcChevronRight({ size = 18, style }) { return <svg width={size} height={size} viewBox="0 0 24 24" {...S} style={style}><polyline points="9 18 15 12 9 6"/></svg>; }
+function IcCheck({ size = 18 }) { return <svg width={size} height={size} viewBox="0 0 24 24" {...S}><polyline points="20 6 9 17 4 12"/></svg>; }
+function IcTarget({ size = 18 }) { return <svg width={size} height={size} viewBox="0 0 24 24" {...S}><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1.5"/></svg>; }
+
+// Bab perjalanan mode terpandu. Tiap bab memuat konten yang sama persis dengan mode "lihat semua".
+const GUIDED_SECTIONS = [
+  { label: "Kesimpulan",   title: "Kesimpulan",                     Icon: IcCompass },
+  { label: "Cara belajar", title: "Cara belajar terbaiknya",        Icon: IcBookOpen },
+  { label: "Ciri khas",    title: "Ciri khas yang sudah terlihat",  Icon: IcStar },
+  { label: "Jalur",        title: "Jalur yang terbuka untukmu",     Icon: IcRoute },
+  { label: "Target",       title: "Target dan mata pelajaran",      Icon: IcTarget },
+  { label: "Keluarga",     title: "Cara keluarga mendukungmu",      Icon: IcUsers },
+  { label: "Mulai",        title: "Mulai hari ini",                 Icon: IcFlag },
+];
+
+// Kutipan jawaban kualitatif siswa. Tanpa garis tepi, hanya tint lembut.
+function Quote({ label, text }) {
+  return (
+    <div style={{ background: "#F4EFFD", borderRadius: 16, padding: "13px 15px" }}>
+      <div style={{ fontSize: 9.5, fontWeight: 800, letterSpacing: ".1em", textTransform: "uppercase", color: T.brand, marginBottom: 5 }}>{label}</div>
+      <p style={{ margin: 0, fontSize: 13, lineHeight: 1.6, color: T.violet700, fontStyle: "italic" }}>"{text}"</p>
+    </div>
+  );
+}
+
+// Judul sub-bagian di dalam satu bab terpandu
+function GuideSubHead({ text }) {
+  return (
+    <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
+      <span style={{ width: 16, height: 3, borderRadius: 99, background: `linear-gradient(90deg,${T.brand},${T.violet700})`, flexShrink: 0 }} />
+      <div style={{ fontSize: 15, fontWeight: 800, letterSpacing: "-.01em", color: T.textStrong, fontFamily: MONT }}>{text}</div>
+    </div>
+  );
+}
+
+// Logo Fammi gamified: melayang, bersinar, dengan titik warna mengorbit. Dipakai di splash & loader.
+function FammiOrb() {
+  return (
+    <div className={styles.orbWrap}>
+      <span className={styles.orbGlow} />
+      <span className={styles.orbRing} />
+      <span className={styles.orbDotA} />
+      <span className={styles.orbDotB} />
+      <span className={styles.orbDotC} />
+      <div className={styles.orbLogo}>
+        <img src="/favicon-512.png" alt="Fammi" style={{ width: 56, height: 56, objectFit: "contain" }} />
+      </div>
+    </div>
+  );
+}
 
 function IntelBadge({ code, size = 44 }) {
   const m = INTEL_META[code] || {};
@@ -563,7 +620,7 @@ function SJumpLink({ Icon, title, note, tone, onOpen }) {
 
 function LCard({ children, style }) {
   return (
-    <div style={{ background: T.surface, borderRadius: 28, padding: 18, border: `1px solid ${T.divider}`, boxShadow: T.shadowSm, ...style }}>
+    <div style={{ background: T.surface, borderRadius: 28, padding: 20, boxShadow: "0 14px 34px rgba(20,20,26,0.07)", ...style }}>
       {children}
     </div>
   );
@@ -571,9 +628,12 @@ function LCard({ children, style }) {
 
 function LSectionHeader({ eyebrow, title }) {
   return (
-    <div style={{ marginBottom: 14 }}>
-      <div style={{ fontSize: 11, fontWeight: 800, letterSpacing: ".1em", textTransform: "uppercase", color: T.brand, marginBottom: 5 }}>{eyebrow}</div>
-      <h2 style={{ margin: 0, fontSize: 20, fontWeight: 800, letterSpacing: "-.01em", color: T.textStrong, lineHeight: 1.2, fontFamily: MONT }}>{title}</h2>
+    <div style={{ marginBottom: 16 }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 7, marginBottom: 6 }}>
+        <span style={{ width: 18, height: 2, borderRadius: 99, background: `linear-gradient(90deg,${T.brand},${T.violet700})`, flexShrink: 0 }} />
+        <div style={{ fontSize: 11, fontWeight: 800, letterSpacing: ".1em", textTransform: "uppercase", color: T.brand }}>{eyebrow}</div>
+      </div>
+      <h2 style={{ margin: 0, fontSize: 22, fontWeight: 800, letterSpacing: "-.02em", color: T.textStrong, lineHeight: 1.18, fontFamily: MONT }}>{title}</h2>
     </div>
   );
 }
@@ -585,13 +645,13 @@ function Chevron({ dir = "right", size = 14, color = "currentColor", w = 2.5 }) 
 
 function CollapseHeader({ eyebrow, eyebrowColor, title, open, onToggle }) {
   return (
-    <div onClick={onToggle} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", cursor: "pointer", padding: "2px 0" }}>
+    <div onClick={onToggle} className={styles.lgPress} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", cursor: "pointer", padding: "2px 0" }}>
       <div>
         <div style={{ fontSize: 10, fontWeight: 800, letterSpacing: ".1em", textTransform: "uppercase", color: eyebrowColor || T.brand, marginBottom: 3 }}>{eyebrow}</div>
-        <h2 style={{ margin: 0, fontSize: 18, fontWeight: 900, letterSpacing: "-.01em", color: T.textStrong, fontFamily: MONT }}>{title}</h2>
+        <h2 style={{ margin: 0, fontSize: 19, fontWeight: 900, letterSpacing: "-.01em", color: T.textStrong, fontFamily: MONT }}>{title}</h2>
       </div>
-      <div style={{ width: 36, height: 36, borderRadius: "50%", background: T.ink100, display: "grid", placeItems: "center", flexShrink: 0, color: T.textBody }}>
-        <Chevron dir={open ? "down" : "right"} />
+      <div style={{ width: 36, height: 36, borderRadius: "50%", background: T.violet50, display: "grid", placeItems: "center", flexShrink: 0, color: T.brand }}>
+        <Chevron dir={open ? "down" : "right"} color={T.brand} />
       </div>
     </div>
   );
@@ -781,7 +841,7 @@ const CIRI_TONE = {
 // Modul yang tersedia untuk peran Siswa. Floating menu dibangun dari sini.
 // Saat ini baru "mi" (Laporan Bakat) yang dibangun; karakter dan screening menyusul.
 const SISWA_MODULE_DEFS = [
-  { key: "mi",        label: "Laporan Bakat",  emoji: "🧭" },
+  { key: "mi",        label: "Multiple Intelligence", emoji: "🧭" },
   { key: "karakter",  label: "Rapor Karakter", emoji: "🌱" },
   { key: "screening", label: "Screening",      emoji: "🧩" },
 ];
@@ -797,6 +857,117 @@ function buildSiswaModules(session) {
     .map((m) => ({ ...m, current: m.key === "mi" }));
 }
 
+// Kalimat pembuka eksekutif per kecerdasan dominan
+const EXEC_HOOKS = {
+  Ie: (p) => `${p} punya kemampuan membaca perasaan dan kebutuhan orang lain yang tidak semua anak miliki di usianya. Skor Interpersonal tertingginya bukan kebetulan. Laporan ini menjelaskan dari mana itu berasal, cara belajar yang paling cocok, dan jalur yang terbuka dari kekuatan ini.`,
+  Ve: (p) => `${p} berpikir lewat kata-kata. Skor Linguistik tertingginya menjelaskan kenapa ia lebih hidup saat berdiskusi, membaca, dan bercerita. Laporan ini memetakan cara belajar yang paling efektif dan jalur karier yang selaras.`,
+  Sp: (p) => `${p} memproses dunia secara visual. Peta, gambar, dan ruang adalah cara otaknya bekerja paling cepat. Laporan ini menjelaskan artinya dan ke mana kekuatan ini bisa berkembang.`,
+  Lo: (p) => `${p} nyaman dengan pola, urutan, dan penalaran logis. Cara otaknya bekerja paling alami lewat angka dan struktur. Laporan ini menjelaskan cara memanfaatkan pola ini di kelas dan dalam kehidupan.`,
+  Ki: (p) => `${p} belajar paling dalam lewat gerak dan pengalaman langsung. Tubuh adalah alat berpikirnya. Laporan ini menjelaskan cara memanfaatkan pola ini secara efektif di sekolah dan di luar kelas.`,
+  Mu: (p) => `${p} peka terhadap nada dan irama lebih dari rata-rata. Kecerdasan Musikalnya menjelaskan mengapa musik sangat mempengaruhi fokus dan suasana belajarnya. Laporan ini membuka artinya lebih dalam.`,
+  Na: (p) => `${p} peka terhadap lingkungan dan pola di sekitarnya. Kecerdasan Naturalisnya menunjukkan cara berpikir berbasis pengamatan yang tajam. Laporan ini memetakan jalur yang terbuka dari kekuatan ini.`,
+  Ia: (p) => `${p} mengenal dirinya sendiri dengan baik untuk usianya. Kecerdasan Intrapersonal tertingginya adalah fondasi kepemimpinan diri yang kuat. Laporan ini menjelaskan cara membangun di atas fondasi ini.`,
+};
+
+function ReadModeGate({ student, panggilan, top1, top2, isSample, onLogout, modules, onGuided, onFull }) {
+  const initials = (student.name || "S").split(/\s+/).map((w) => w[0]).slice(0, 2).join("").toUpperCase();
+  const hook = EXEC_HOOKS[top1?.code]
+    ? EXEC_HOOKS[top1.code](panggilan)
+    : `${panggilan} memiliki kombinasi kecerdasan yang unik. Laporan ini memetakan cara berpikir dan belajar yang paling cocok untuknya, serta langkah konkret yang bisa dimulai hari ini.`;
+  const meta1 = top1?.code ? (INTEL_META[top1.code] || {}) : {};
+
+  return (
+    <div style={{ background: T.bg, minHeight: "100%", fontFamily: MONT, display: "flex", flexDirection: "column" }}>
+
+      {/* ── Header ── */}
+      <header style={{ position: "sticky", top: 0, zIndex: 20, background: "rgba(246,242,235,0.96)", backdropFilter: "blur(12px)", WebkitBackdropFilter: "blur(12px)", borderBottom: `1px solid ${T.line}`, padding: "10px 18px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+        <img src="/logo-purple.png" alt="Fammi" style={{ height: 22, width: "auto", objectFit: "contain" }} />
+        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+          {(student.kelas || student.sekolah) && <span style={{ fontSize: 11, fontWeight: 600, color: T.textMuted }}>{[student.kelas, student.sekolah].filter(Boolean).join(" · ")}</span>}
+          {onLogout && <button onClick={onLogout} style={{ width: 32, height: 32, borderRadius: 10, background: T.ink100, color: T.textMuted, border: "none", display: "grid", placeItems: "center", cursor: "pointer" }}><IcLogout size={14} /></button>}
+        </div>
+      </header>
+
+      <div style={{ flex: 1, padding: "0 0 80px" }}>
+
+        {/* ── Greeting ── */}
+        <div style={{ padding: "26px 20px 0", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+          <div>
+            <p style={{ margin: 0, fontSize: 13, fontWeight: 600, color: T.textMuted }}>Laporan sudah siap dibaca</p>
+            <h1 style={{ margin: "4px 0 0", fontSize: 26, fontWeight: 900, letterSpacing: "-.03em", color: T.textStrong, lineHeight: 1.1, fontFamily: MONT }}>
+              Halo, {panggilan}!
+            </h1>
+          </div>
+          <span style={{ width: 48, height: 48, borderRadius: 16, background: T.brand, color: "#fff", display: "grid", placeItems: "center", fontSize: 15, fontWeight: 900, flexShrink: 0 }}>
+            {initials}
+          </span>
+        </div>
+
+        {/* ── Hero: Kecerdasan Utama ── */}
+        {top1 && (
+          <div style={{ padding: "18px 20px 0" }}>
+            <div className={styles.lgRise} style={{
+              borderRadius: 28,
+              background: `linear-gradient(145deg, ${meta1.bg || "rgba(99,35,218,0.10)"} 0%, rgba(255,255,255,0) 75%), #fff`,
+              boxShadow: "0 18px 48px rgba(99,35,218,0.13), 0 2px 8px rgba(20,20,26,0.05)",
+              padding: "26px 22px 22px",
+            }}>
+              <span style={{ display: "block", fontSize: 58, lineHeight: 1, marginBottom: 14 }}>{meta1.emoji || "✨"}</span>
+              <div style={{ fontSize: 10.5, fontWeight: 800, letterSpacing: ".12em", textTransform: "uppercase", color: T.brand, marginBottom: 6 }}>
+                Kecerdasan utama
+              </div>
+              <h2 style={{ margin: "0 0 8px", fontSize: 30, fontWeight: 900, letterSpacing: "-.025em", color: T.textStrong, fontFamily: MONT, lineHeight: 1.1 }}>
+                {top1.name}
+              </h2>
+              <p style={{ margin: "0 0 18px", fontSize: 13.5, lineHeight: 1.72, color: T.textBody }}>
+                {hook}
+              </p>
+              <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                {[top1, top2].filter(Boolean).map((t) => (
+                  <span key={t.code} style={{ display: "inline-flex", alignItems: "center", gap: 5, padding: "6px 13px", borderRadius: 999, background: T.violet100, color: T.violet700, fontSize: 12.5, fontWeight: 700 }}>
+                    {INTEL_META[t.code]?.emoji} {t.name}
+                  </span>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ── CTA: Reading Modes ── */}
+        <div style={{ padding: "20px 20px 0" }}>
+          <p style={{ margin: "0 0 14px", fontSize: 13, color: T.textMuted, fontWeight: 600, textAlign: "center" }}>Mau dibaca bagaimana?</p>
+          <div style={{ display: "flex", flexDirection: "column", gap: 11 }}>
+            <button onClick={onGuided} className={`${styles.lgCta} ${styles.lgCtaGlow}`} style={{ display: "flex", alignItems: "center", gap: 14, padding: "18px 18px", borderRadius: 22, background: "linear-gradient(135deg,#7B3BF0,#6323DA 60%,#4A12B0)", color: "#fff", border: "none", cursor: "pointer", textAlign: "left", width: "100%" }}>
+              <span style={{ width: 46, height: 46, borderRadius: 14, background: "rgba(255,255,255,0.16)", color: "#fff", display: "grid", placeItems: "center", flexShrink: 0 }}><IcCompass size={23} /></span>
+              <div style={{ flex: 1 }}>
+                <div style={{ fontSize: 15, fontWeight: 800, marginBottom: 2 }}>Pandu saya membacanya</div>
+                <div style={{ fontSize: 12, color: "rgba(255,255,255,0.78)", lineHeight: 1.5 }}>Satu bagian sekaligus, dengan penjelasan di setiap langkah.</div>
+              </div>
+              <IcArrowRight size={18} style={{ color: "rgba(255,255,255,0.85)", flexShrink: 0 }} />
+            </button>
+            <button onClick={onFull} className={styles.lgPress} style={{ display: "flex", alignItems: "center", gap: 14, padding: "18px 18px", borderRadius: 22, background: "#fff", color: T.textStrong, cursor: "pointer", textAlign: "left", width: "100%", border: "none", boxShadow: "0 10px 24px rgba(20,20,26,0.07)" }}>
+              <span style={{ width: 46, height: 46, borderRadius: 14, background: T.violet50, color: T.brand, display: "grid", placeItems: "center", flexShrink: 0 }}><IcBookOpen size={23} /></span>
+              <div style={{ flex: 1 }}>
+                <div style={{ fontSize: 15, fontWeight: 800, marginBottom: 2 }}>Langsung lihat semua</div>
+                <div style={{ fontSize: 12, color: T.textMuted, lineHeight: 1.5 }}>Buka seluruh laporan dan scroll sesuai keinginan.</div>
+              </div>
+              <IcArrowRight size={18} style={{ color: T.textFaint, flexShrink: 0 }} />
+            </button>
+          </div>
+        </div>
+
+        {isSample && (
+          <div style={{ marginTop: 22, textAlign: "center" }}>
+            <Badge bg={T.sunSoft} fg={T.sunInk} sm>Contoh</Badge>
+          </div>
+        )}
+      </div>
+
+      <FloatingFab modules={modules} showTop={false} onTop={() => {}} />
+    </div>
+  );
+}
+
 function BakatView({ student, intel, topDetails, mi, isSample, onLogout, modules }) {
   const [dialog, setDialog] = useState(null);
   const [activePath, setActivePath] = useState(0);
@@ -805,7 +976,12 @@ function BakatView({ student, intel, topDetails, mi, isSample, onLogout, modules
   const [openSinyal, setOpenSinyal] = useState(false);
   const [checkedDays, setCheckedDays] = useState({});
   const [showFab, setShowFab] = useState(false);
+  const [readMode, setReadMode] = useState(null); // null | 'guided' | 'full'
+  const [activeStop, setActiveStop] = useState(0); // langkah aktif di mode terpandu
+  const [guidedIntro, setGuidedIntro] = useState(false); // splash pembuka mode terpandu
+  const [nodePts, setNodePts] = useState([]); // posisi simpul pada peta perjalanan
   const sentinelRef = useRef(null);
+  const roadRef = useRef(null); // path SVG peta, dipakai mengukur posisi simpul
 
   useEffect(() => {
     const el = sentinelRef.current;
@@ -814,6 +990,29 @@ function BakatView({ student, intel, topDetails, mi, isSample, onLogout, modules
     obs.observe(el);
     return () => obs.disconnect();
   }, []);
+
+  // Splash pembuka tiap kali masuk mode terpandu
+  useEffect(() => {
+    if (readMode !== "guided") return;
+    setGuidedIntro(true);
+    const t = setTimeout(() => setGuidedIntro(false), 1700);
+    return () => clearTimeout(t);
+  }, [readMode]);
+
+  // Ukur posisi simpul, dibagi merata sepanjang jalur peta
+  useEffect(() => {
+    if (readMode !== "guided") return;
+    const p = roadRef.current;
+    if (!p) return;
+    const total = p.getTotalLength();
+    const n = GUIDED_SECTIONS.length;
+    const pts = [];
+    for (let i = 0; i < n; i++) {
+      const pt = p.getPointAtLength((i / (n - 1)) * total);
+      pts.push({ x: Math.round(pt.x * 10) / 10, y: Math.round(pt.y * 10) / 10 });
+    }
+    setNodePts(pts);
+  }, [readMode]);
 
   function scrollToTop() {
     if (sentinelRef.current) sentinelRef.current.scrollIntoView({ behavior: "smooth" });
@@ -930,9 +1129,437 @@ function BakatView({ student, intel, topDetails, mi, isSample, onLogout, modules
     : PATHS;
   const activeP = paths[Math.min(activePath, paths.length - 1)] || paths[0];
 
-  const sectionMt = { marginTop: 34 };
+  const sectionMt = { marginTop: 44 };
   const initials = (student.name || "S").split(/\s+/).map((w) => w[0]).slice(0, 2).join("").toUpperCase();
 
+  // ── GATE: pilih mode baca ────────────────────────────────────────────────
+  if (!readMode) {
+    return (
+      <ReadModeGate
+        student={student}
+        panggilan={panggilan}
+        top1={top1}
+        top2={top2}
+        isSample={isSample}
+        onLogout={onLogout}
+        modules={modules}
+        onGuided={() => { setReadMode("guided"); setActiveStop(0); }}
+        onFull={() => setReadMode("full")}
+      />
+    );
+  }
+
+  // ── MODE TERPANDU ────────────────────────────────────────────────────────
+  if (readMode === "guided") {
+    const topThree = [top1, top2, top3].filter((t) => t && t.name);
+    const SECTIONS = GUIDED_SECTIONS;
+    const lastStop = SECTIONS.length - 1;
+
+    // Jalur peta perjalanan (gelombang halus dalam kotak 300x120, unit = px)
+    const MAP_D = "M 24 78 C 54 78, 62 44, 92 44 C 122 44, 122 86, 152 86 C 182 86, 184 44, 212 44 C 240 44, 250 60, 276 74";
+    const stepFrac = SECTIONS.length > 1 ? activeStop / (SECTIONS.length - 1) : 0;
+
+    // Isi tiap langkah. Tanpa kartu berbingkai: tint warna + bayangan lembut.
+    const stopContent = {
+      cara: (
+        <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+          <div style={{ background: T.skySoft, borderRadius: 14, padding: "13px 15px" }}>
+            <p style={{ margin: 0, fontSize: 13.5, lineHeight: 1.6, color: T.skyInk }}>{P(caraSummary)}</p>
+          </div>
+          {(essayCara || (essayBerhasil && essayBerhasil !== essayCara)) && (
+            <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+              {essayCara && <Quote label={`Cara belajar sehari-harinya, kata ${panggilan}`} text={essayCara} />}
+              {essayBerhasil && essayBerhasil !== essayCara && <Quote label="Yang paling berhasil menurutnya" text={essayBerhasil} />}
+            </div>
+          )}
+          <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+            {caraItems.map((item, i) => (
+              <div key={i} style={{ display: "flex", gap: 13, alignItems: "flex-start" }}>
+                <span style={{ width: 30, height: 30, borderRadius: 10, background: T.violet100, color: T.brand, display: "grid", placeItems: "center", flexShrink: 0, fontSize: 12.5, fontWeight: 800, fontFamily: MONT }}>{item.no || String(i + 1).padStart(2, "0")}</span>
+                <div style={{ flex: 1, paddingTop: 1 }}>
+                  <div style={{ fontSize: 14, fontWeight: 800, color: T.textStrong, marginBottom: 3 }}>{P(item.title)}</div>
+                  <div style={{ fontSize: 13, lineHeight: 1.58, color: T.textBody }}>{P(item.body)}</div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      ),
+      ciri: (
+        <div>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+            {ciri.map((c, i) => {
+              const tone = CIRI_TONE[c.tone] || CIRI_TONE.sky;
+              return (
+                <div key={i} style={{ background: tone.soft, borderRadius: 18, padding: 15 }}>
+                  <span style={{ width: 34, height: 34, borderRadius: 11, background: tone.solid, color: tone.ink, display: "grid", placeItems: "center" }}><IcStar size={16} /></span>
+                  <div style={{ fontSize: 13, fontWeight: 700, color: tone.ink, lineHeight: 1.4, marginTop: 10 }}>{P(c.text)}</div>
+                </div>
+              );
+            })}
+          </div>
+          {essayKelebihan && <div style={{ marginTop: 12 }}><Quote label={`Kata ${panggilan} tentang dirinya`} text={essayKelebihan} /></div>}
+        </div>
+      ),
+      jalan: (
+        <div>
+          {(essayCita || essayAlasan) && (
+            <div style={{ display: "flex", flexDirection: "column", gap: 10, marginBottom: 14 }}>
+              {essayCita && <Quote label={`Cita-cita profesinya, kata ${panggilan}`} text={essayCita} />}
+              {essayAlasan && <Quote label="Alasannya memilih profesi itu" text={essayAlasan} />}
+            </div>
+          )}
+          <p style={{ margin: "0 0 12px", fontSize: 13, lineHeight: 1.55, color: T.textBody }}>Pilih jalur yang paling menarik. Profesi bisa diklik untuk detail lebih lanjut.</p>
+          <div className={styles.noScrollbar} style={{ display: "flex", gap: 8, overflowX: "auto", paddingBottom: 12 }}>
+            {paths.map((p, i) => (
+              <button key={i} onClick={() => setActivePath(i)} style={{ border: "none", cursor: "pointer", whiteSpace: "nowrap", padding: "9px 15px", borderRadius: 999, fontFamily: MONT, fontSize: 12.5, fontWeight: 700, background: activePath === i ? p.color : "#fff", color: activePath === i ? "#fff" : T.textBody, flexShrink: 0, boxShadow: activePath === i ? `0 6px 16px ${p.color}40` : "0 2px 8px rgba(20,20,26,0.06)" }}>{p.emoji} {p.label}</button>
+            ))}
+          </div>
+          <div style={{ background: activeP.bgColor, borderRadius: 20, padding: "17px 17px 18px" }}>
+            <div style={{ fontSize: 24, lineHeight: 1, marginBottom: 7 }}>{activeP.emoji}</div>
+            <h3 style={{ margin: "0 0 3px", fontSize: 18, fontWeight: 800, letterSpacing: "-.01em", color: activeP.color, fontFamily: MONT }}>{activeP.label}</h3>
+            <div style={{ fontSize: 12.5, fontWeight: 600, color: activeP.inkColor, marginBottom: 9, fontStyle: "italic" }}>{activeP.tagline}</div>
+            <p style={{ margin: 0, fontSize: 13, lineHeight: 1.6, color: activeP.inkColor }}>{activeP.description}</p>
+          </div>
+          <div style={{ marginTop: 16 }}>
+            <GuideChips n="1" eyebrow="Sekarang" title="Kegiatan yang perlu dicoba" color={activeP.color} bg={activeP.bgColor} ink={activeP.inkColor} items={activeP.kegiatan} />
+          </div>
+          {activeP.jurusan && activeP.jurusan.length > 0 && (
+            <div style={{ marginTop: 16 }}>
+              <GuideChips n="2" eyebrow="Nanti · MA & Kuliah" title="Jurusan yang relevan" color={activeP.color} bg={activeP.bgColor} ink={activeP.inkColor} items={activeP.jurusan} />
+            </div>
+          )}
+          {activeP.profesi && activeP.profesi.length > 0 && (
+            <div style={{ marginTop: 16 }}>
+              <GuideChips n="3" eyebrow="Masa depan · Profesi" title="Ketuk untuk lihat detail" color={activeP.color} bg={activeP.bgColor} ink={activeP.inkColor} items={activeP.profesi} onItem={openProfesi} chevron />
+            </div>
+          )}
+          {activeP.profesiSorot && (
+            <div onClick={() => setDialog({ type: "profesi", data: { name: activeP.profesiSorot.nama, p: activeP.profesiSorot } })} style={{ marginTop: 16, background: "#fff", borderRadius: 18, padding: "14px 15px", boxShadow: "0 8px 22px rgba(20,20,26,0.06)", cursor: "pointer" }}>
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 6 }}>
+                <div style={{ fontSize: 9, fontWeight: 800, letterSpacing: ".08em", textTransform: "uppercase", color: activeP.inkColor }}>Profesi Unggulan</div>
+                <Chevron size={11} w={2.5} color={activeP.color} />
+              </div>
+              <div style={{ fontSize: 14, fontWeight: 800, color: activeP.color }}>{activeP.profesiSorot.nama}</div>
+              <p style={{ margin: "4px 0 0", fontSize: 12, lineHeight: 1.5, color: T.textBody }}>{activeP.profesiSorot.desc}</p>
+            </div>
+          )}
+          {activeP.parentTip && (
+            <div style={{ marginTop: 12, display: "flex", gap: 10, alignItems: "flex-start", background: T.violet100, borderRadius: 16, padding: "12px 14px" }}>
+              <span style={{ flexShrink: 0, marginTop: 2, color: T.brand }}><IcSparkle size={13} /></span>
+              <p style={{ margin: 0, fontSize: 12.5, lineHeight: 1.55, color: T.violet700 }}><strong>Tips ortu:</strong> {activeP.parentTip}</p>
+            </div>
+          )}
+          <p style={{ margin: "12px 4px 0", fontSize: 11.5, color: T.textMuted, textAlign: "center" }}>Jalur-jalur ini bisa dikombinasi. Kamu tidak harus memilih hanya satu.</p>
+        </div>
+      ),
+      target: (
+        <div style={{ display: "flex", flexDirection: "column", gap: 22 }}>
+          <div>
+            <GuideSubHead text="SMART Goals" />
+            <div style={{ background: T.violet100, borderRadius: 14, padding: "12px 14px", marginBottom: 12 }}>
+              <p style={{ margin: 0, fontSize: 13, lineHeight: 1.55, color: T.violet700 }}>Tujuan konkret berbasis kekuatanmu, disusun agar bisa dievaluasi, bukan sekadar impian.</p>
+            </div>
+            <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+              {smartGoals.map((g, i) => (
+                <div key={i} style={{ display: "flex", gap: 11, alignItems: "flex-start" }}>
+                  <span style={{ width: 30, height: 30, borderRadius: 9, background: T.brand, color: "#fff", display: "grid", placeItems: "center", fontSize: 13, fontWeight: 900, flexShrink: 0, fontFamily: MONT, boxShadow: "0 4px 10px rgba(99,35,218,0.25)" }}>{g.letter}</span>
+                  <div style={{ flex: 1, paddingTop: 1 }}>
+                    <div style={{ fontSize: 10.5, fontWeight: 800, letterSpacing: ".06em", textTransform: "uppercase", color: T.brand, marginBottom: 3 }}>{g.label}</div>
+                    <div style={{ fontSize: 13, lineHeight: 1.55, color: T.textBody }}>{P(g.content)}</div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+          <div>
+            <GuideSubHead text="Peta mata pelajaran" />
+            <div style={{ display: "flex", alignItems: "center", gap: 9, marginBottom: 10 }}>
+              <span style={{ width: 28, height: 28, borderRadius: 9, background: T.mintSoft, color: T.mintInk, display: "grid", placeItems: "center", flexShrink: 0 }}><IcCheck size={15} /></span>
+              <div style={{ fontSize: 13.5, fontWeight: 800, color: T.textStrong }}>Paling nyambung</div>
+            </div>
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+              {mapelKuasai.map((m, i) => <span key={i} style={{ padding: "6px 12px", borderRadius: 999, background: T.mintSoft, color: T.mintInk, fontSize: 12.5, fontWeight: 700 }}>{m}</span>)}
+            </div>
+            <div style={{ display: "flex", alignItems: "center", gap: 9, margin: "16px 0 10px" }}>
+              <span style={{ width: 28, height: 28, borderRadius: 9, background: T.sunSoft, color: T.sunInk, display: "grid", placeItems: "center", flexShrink: 0 }}><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M13 2L3 14h9l-1 8 10-12h-9z" /></svg></span>
+              <div style={{ fontSize: 13.5, fontWeight: 800, color: T.textStrong }}>Lebih menantang</div>
+            </div>
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+              {mapelTantang.map((m, i) => <span key={i} style={{ padding: "6px 12px", borderRadius: 999, background: T.sunSoft, color: T.sunInk, fontSize: 12.5, fontWeight: 700 }}>{m}</span>)}
+            </div>
+            <div style={{ marginTop: 14, background: T.sunSoft, borderRadius: 14, padding: "12px 14px" }}>
+              <p style={{ margin: 0, fontSize: 12.5, lineHeight: 1.55, color: T.sunInk }}>Ini bukan kelemahan. Coba pelajari lewat <strong>cerita, diskusi, dan contoh nyata</strong>, cara belajar yang paling cocok dengan keunikanmu.</p>
+            </div>
+          </div>
+        </div>
+      ),
+      keluarga: (
+        <div style={{ display: "flex", flexDirection: "column", gap: 18 }}>
+          <div>
+            <div style={{ fontSize: 13, fontWeight: 800, color: T.textStrong, marginBottom: 11 }}>Yang membuat {panggilan} merespons lebih baik</div>
+            <div style={{ display: "flex", flexDirection: "column", gap: 9 }}>
+              {gPositif.map((item, i) => (
+                <div key={i} style={{ display: "flex", gap: 10, alignItems: "flex-start" }}>
+                  <span style={{ width: 22, height: 22, borderRadius: 7, background: T.mintSoft, color: T.mintInk, display: "grid", placeItems: "center", flexShrink: 0 }}><IcCheck size={12} /></span>
+                  <span style={{ fontSize: 12.5, lineHeight: 1.5, color: T.textBody }}>{P(item)}</span>
+                </div>
+              ))}
+            </div>
+            <div style={{ fontSize: 13, fontWeight: 800, color: T.textStrong, margin: "16px 0 11px" }}>Yang sebaiknya dikurangi</div>
+            <div style={{ display: "flex", flexDirection: "column", gap: 9 }}>
+              {gHindari.map((item, i) => (
+                <div key={i} style={{ display: "flex", gap: 10, alignItems: "flex-start" }}>
+                  <span style={{ width: 22, height: 22, borderRadius: 7, background: T.sunSoft, color: T.sunInk, display: "grid", placeItems: "center", flexShrink: 0, fontSize: 12, fontWeight: 900, fontFamily: MONT }}>!</span>
+                  <span style={{ fontSize: 12.5, lineHeight: 1.5, color: T.textBody }}>{P(item)}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+          <div style={{ background: T.mintSoft, borderRadius: 18, padding: 16 }}>
+            <div style={{ fontSize: 10, fontWeight: 800, letterSpacing: ".09em", textTransform: "uppercase", color: T.mintInk, marginBottom: 8 }}>Untuk {panggilan} sendiri</div>
+            <div style={{ fontSize: 13, fontWeight: 800, color: T.mintInk, marginBottom: 11 }}>Cara menyampaikan kebutuhanmu ke keluarga</div>
+            <div style={{ display: "flex", flexDirection: "column", gap: 9 }}>
+              {gSiswa.map((item, i) => (
+                <div key={i} style={{ background: "rgba(255,255,255,0.6)", borderRadius: 12, padding: "11px 12px" }}>
+                  <div style={{ fontSize: 10.5, fontWeight: 800, color: T.mintInk, marginBottom: 4 }}>{P(item.situasi)}</div>
+                  <div style={{ fontSize: 12.5, fontStyle: "italic", color: T.mintInk }}>{P(item.script)}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+          <div>
+            <GuideSubHead text="Tanda yang mungkin sudah lama hadir" />
+            <div style={{ background: T.blossomSoft, borderRadius: 14, padding: "12px 14px", marginBottom: 11 }}>
+              <p style={{ margin: 0, fontSize: 12.5, lineHeight: 1.55, color: T.blossomInk }}>Lima tanda di keseharian {panggilan} yang mungkin sudah terlihat, tapi belum terbaca maknanya.</p>
+            </div>
+            <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+              {sinyal.map((item, i) => (
+                <div key={i} style={{ display: "flex", gap: 11, alignItems: "flex-start", background: "#fff", borderRadius: 14, padding: "12px 13px", boxShadow: "0 6px 16px rgba(20,20,26,0.05)" }}>
+                  <span style={{ fontSize: 20, flexShrink: 0, lineHeight: 1.2, width: 26, textAlign: "center" }}>{[...(item.icon || "")].length <= 3 ? item.icon : "✨"}</span>
+                  <div style={{ minWidth: 0, flex: 1 }}>
+                    <div style={{ fontSize: 13, fontWeight: 800, color: T.textStrong, marginBottom: 4, lineHeight: 1.3 }}>{P(item.title)}</div>
+                    <div style={{ fontSize: 12.5, lineHeight: 1.55, color: T.textBody }}>{P(item.body)}</div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      ),
+      mulai: (
+        <div style={{ display: "flex", flexDirection: "column", gap: 18 }}>
+          <div>
+            <GuideSubHead text="7 Hari Pertama" />
+            <p style={{ margin: "0 0 12px", fontSize: 12.5, lineHeight: 1.55, color: T.textMuted }}>Tujuh langkah kecil yang bisa dilakukan sekarang. Centang setiap hari yang sudah selesai.</p>
+            <div style={{ background: "#fff", borderRadius: 20, padding: 16, boxShadow: "0 10px 26px rgba(20,20,26,0.05)" }}>
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 9 }}>
+                <span style={{ fontSize: 13, fontWeight: 800, color: T.textStrong }}>{daysCompleted} / {days.length} selesai</span>
+                <span style={{ fontSize: 12, color: T.brand, fontWeight: 800, fontFamily: MONT }}>{daysPercent}%</span>
+              </div>
+              <div style={{ height: 6, borderRadius: 999, background: T.ink100, overflow: "hidden", marginBottom: 4 }}>
+                <div style={{ height: "100%", borderRadius: 999, background: "linear-gradient(90deg,#7B3BF0,#6323DA)", width: `${daysPercent}%`, transition: "width .4s ease" }} />
+              </div>
+              {days.map((d, i) => {
+                const checked = !!checkedDays[i];
+                return (
+                  <div key={i} onClick={() => setCheckedDays((prev) => ({ ...prev, [i]: !prev[i] }))} style={{ display: "flex", gap: 13, alignItems: "flex-start", padding: "12px 2px", borderTop: i === 0 ? "none" : "1px solid #F3EFF8", cursor: "pointer" }}>
+                    <div style={{ width: 26, height: 26, borderRadius: 8, background: checked ? T.brand : T.ink100, display: "grid", placeItems: "center", flexShrink: 0, marginTop: 1, transition: "background .2s ease" }}>
+                      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke={checked ? "#fff" : T.textFaint} strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12" /></svg>
+                    </div>
+                    <div style={{ flex: 1 }}>
+                      <div style={{ fontSize: 10.5, fontWeight: 800, letterSpacing: ".06em", textTransform: "uppercase", color: checked ? T.textMuted : T.brand, marginBottom: 2 }}>{d.label}</div>
+                      <div style={{ fontSize: 13, lineHeight: 1.5, color: checked ? T.textMuted : T.textBody, textDecoration: checked ? "line-through" : "none" }}>{P(d.task)}</div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+          <div style={{ background: T.lilacSoft, borderRadius: 20, padding: 16 }}>
+            <div style={{ fontSize: 15, fontWeight: 800, color: T.violet700, fontFamily: MONT, marginBottom: 8 }}>Ruang refleksi</div>
+            <p style={{ margin: "0 0 12px", fontSize: 12.5, lineHeight: 1.5, color: T.violet700, fontWeight: 700 }}>Tuliskan jawabanmu di buku catatan atau aplikasi jurnal. Tidak ada jawaban yang salah.</p>
+            <div style={{ display: "flex", flexDirection: "column", gap: 9 }}>
+              {refleksi.map((q, i) => (
+                <div key={i} style={{ display: "flex", gap: 10, alignItems: "flex-start", background: "rgba(255,255,255,0.58)", borderRadius: 12, padding: "11px 12px" }}>
+                  <span style={{ width: 22, height: 22, borderRadius: "50%", background: T.brand, color: "#fff", fontSize: 11, fontWeight: 800, display: "grid", placeItems: "center", flexShrink: 0 }}>{i + 1}</span>
+                  <span style={{ fontSize: 12.5, lineHeight: 1.45, color: T.violet700, fontWeight: 600 }}>{P(q)}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+          <div style={{ background: T.skySoft, borderRadius: 20, padding: 16 }}>
+            <div style={{ fontSize: 15, fontWeight: 800, color: T.skyInk, fontFamily: MONT, marginBottom: 8 }}>Bahan diskusi keluarga</div>
+            <p style={{ margin: "0 0 12px", fontSize: 12.5, lineHeight: 1.5, color: T.skyInk, fontWeight: 700 }}>Bacakan pelan-pelan, lalu dengarkan. Tidak ada jawaban yang salah.</p>
+            <div style={{ display: "flex", flexDirection: "column", gap: 9 }}>
+              {diskusi.map((q, i) => (
+                <div key={i} style={{ display: "flex", gap: 10, alignItems: "flex-start", background: "rgba(255,255,255,0.6)", borderRadius: 12, padding: "11px 12px" }}>
+                  <span style={{ width: 22, height: 22, borderRadius: "50%", background: T.skyInk, color: "#fff", fontSize: 11, fontWeight: 800, display: "grid", placeItems: "center", flexShrink: 0 }}>{i + 1}</span>
+                  <span style={{ fontSize: 12.5, lineHeight: 1.45, color: T.skyInk, fontWeight: 600 }}>{P(q)}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+          <div style={{ background: T.sunSoft, borderRadius: 20, padding: 16, display: "flex", gap: 12 }}>
+            <span style={{ width: 38, height: 38, borderRadius: 12, background: "rgba(255,255,255,0.55)", color: T.sunInk, display: "grid", placeItems: "center", flexShrink: 0 }}><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round"><path d="M9 18h6" /><path d="M10 22h4" /><path d="M12 2a7 7 0 0 0-4 12.7c.6.5 1 1.3 1 2.1h6c0-.8.4-1.6 1-2.1A7 7 0 0 0 12 2z" /></svg></span>
+            <div><div style={{ fontSize: 14, fontWeight: 800, color: T.sunInk }}>Peta ini pintu, bukan pagar</div><p style={{ margin: "5px 0 0", fontSize: 12, lineHeight: 1.55, color: T.sunInk }}>Hasil ini bahan diskusi, bukan vonis. Keunikan bisa tumbuh dan berubah. Kalau kenyataannya berbeda, ikuti yang membuat anak hidup, termasuk nilai akademiknya.</p></div>
+          </div>
+        </div>
+      ),
+    };
+
+    // Isi fokus tiap bab. Konten sama persis dengan mode "lihat semua".
+    const renderBody = (i) => {
+      if (i === 0) {
+        return (
+          <div>
+            <h1 style={{ margin: 0, fontSize: 23, fontWeight: 800, letterSpacing: "-.025em", lineHeight: 1.2, color: T.textStrong, fontFamily: MONT }}>{P(coverHead)}</h1>
+            <p style={{ margin: "10px 0 0", fontSize: 13, lineHeight: 1.6, color: T.textMuted }}>Laporan ini memetakan pola belajarmu, bukan sekadar skor.</p>
+            <div style={{ fontSize: 10, fontWeight: 800, letterSpacing: ".1em", textTransform: "uppercase", color: T.brand, marginTop: 18 }}>Tiga kecerdasan teratas</div>
+            <h2 style={{ margin: "6px 0 0", fontSize: 18, fontWeight: 800, color: T.textStrong, lineHeight: 1.3, fontFamily: MONT }}>{keunikanTitle}</h2>
+            {topThree.length > 0 && (
+              <div style={{ display: "flex", gap: 9, marginTop: 13 }}>
+                {topThree.slice(0, 3).map((t, idx) => {
+                  const c = colorByCode[t.code] || T.brand;
+                  return (
+                    <div key={idx} style={{ flex: 1, background: "#fff", borderRadius: 16, padding: "13px 10px", textAlign: "center", boxShadow: "0 6px 18px rgba(20,20,26,0.05)" }}>
+                      <div style={{ fontSize: 9, fontWeight: 800, letterSpacing: ".08em", textTransform: "uppercase", color: T.textFaint, marginBottom: 5 }}>Top {idx + 1}</div>
+                      <div style={{ fontSize: 25, lineHeight: 1, marginBottom: 6 }}>{INTEL_DEFAULTS[t.code]?.emoji || "✨"}</div>
+                      <div style={{ fontSize: 12, fontWeight: 800, color: T.textStrong, lineHeight: 1.2, marginBottom: 3 }}>{t.name}</div>
+                      <div style={{ fontSize: 14, fontWeight: 800, color: c, fontFamily: MONT, marginBottom: 3 }}>{t.score}</div>
+                      <div style={{ fontSize: 10.5, color: T.textMuted, lineHeight: 1.25 }}>{SHORT_TAGLINE[t.code] || ""}</div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+            <div style={{ marginTop: 16, background: "#fff", borderRadius: 22, padding: "16px 14px 10px", boxShadow: "0 14px 32px rgba(20,20,26,0.07)" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 9, padding: "0 4px 4px" }}>
+                <span style={{ width: 28, height: 28, borderRadius: 9, background: T.violet100, color: T.brand, display: "grid", placeItems: "center", flexShrink: 0 }}><IcCompass size={15} /></span>
+                <div style={{ fontSize: 13.5, fontWeight: 800, color: T.textStrong }}>Peta 8 kecerdasan</div>
+              </div>
+              <PetalChart items={chart} />
+              <div style={{ display: "flex", justifyContent: "center", gap: 14, padding: "2px 0 6px", flexWrap: "wrap" }}>
+                <Legend color="#16A34A" label="Kuat" range="75-100" />
+                <Legend color="#D97706" label="Sedang" range="50-74" />
+                <Legend color="#94A3B8" label="Berkembang" range="<50" />
+              </div>
+            </div>
+            <div style={{ marginTop: 14 }}>
+              <div style={{ fontSize: 10.5, fontWeight: 800, letterSpacing: ".06em", textTransform: "uppercase", color: T.textFaint, marginBottom: 4, paddingLeft: 4 }}>Ketuk untuk makna tiap kecerdasan</div>
+              {chart.map((c) => {
+                const ls = LEVEL_STYLE[c.level] || LEVEL_STYLE.Sedang;
+                return (
+                  <div key={c.code} onClick={() => openKecerdasan(c.code)} className={styles.lgRow} style={{ display: "flex", alignItems: "center", gap: 11, padding: "10px 10px", cursor: "pointer" }}>
+                    <span style={{ fontSize: 17, width: 22, textAlign: "center", flexShrink: 0 }}>{INTEL_DEFAULTS[c.code]?.emoji || "✨"}</span>
+                    <span style={{ flex: 1, fontSize: 13.5, fontWeight: 700, color: T.textBody, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{c.name}</span>
+                    <span style={{ fontSize: 11, fontWeight: 700, padding: "2px 9px", borderRadius: 999, background: ls.bg, color: ls.ink, whiteSpace: "nowrap", flexShrink: 0 }}>{c.level}</span>
+                    <span style={{ fontSize: 14, fontWeight: 800, color: T.textStrong, width: 24, textAlign: "right", flexShrink: 0, fontFamily: MONT }}>{c.score}</span>
+                    <IcChevronRight size={15} style={{ color: T.textFaint, flexShrink: 0 }} />
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        );
+      }
+      const key = ["", "cara", "ciri", "jalan", "target", "keluarga", "mulai"][i];
+      return (
+        <div>
+          <h1 style={{ margin: "0 0 14px", fontSize: 22, fontWeight: 800, letterSpacing: "-.02em", color: T.textStrong, lineHeight: 1.2, fontFamily: MONT }}>{SECTIONS[i].title}</h1>
+          {stopContent[key]}
+        </div>
+      );
+    };
+
+    const isLastStop = activeStop === lastStop;
+
+    return (
+      <div style={{ position: "relative", height: "100%", background: T.bg, fontFamily: MONT, display: "flex", flexDirection: "column", overflow: "hidden" }}>
+        {/* HEADER */}
+        <header style={{ flexShrink: 0, zIndex: 6, background: "rgba(255,255,255,0.97)", backdropFilter: "blur(10px)", WebkitBackdropFilter: "blur(10px)", boxShadow: "0 1px 0 rgba(20,20,26,0.05)", padding: "9px 14px", display: "flex", alignItems: "center", gap: 10 }}>
+          <button onClick={() => setReadMode(null)} aria-label="Kembali" style={{ width: 34, height: 34, borderRadius: 11, background: T.ink100, border: "none", color: T.textMuted, display: "grid", placeItems: "center", cursor: "pointer", flexShrink: 0 }}>
+            <IcChevronLeft size={17} />
+          </button>
+          <div style={{ flex: 1, minWidth: 0, display: "flex", alignItems: "center", justifyContent: "center", gap: 7 }}>
+            <span style={{ color: T.brand, display: "grid", placeItems: "center", flexShrink: 0 }}>{(() => { const A = SECTIONS[activeStop].Icon; return <A size={15} />; })()}</span>
+            <span style={{ fontSize: 13, fontWeight: 800, color: T.textStrong, fontFamily: MONT, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{SECTIONS[activeStop].label}</span>
+          </div>
+          <button onClick={() => setReadMode("full")} style={{ flexShrink: 0, background: "none", border: "none", cursor: "pointer", color: T.brand, fontSize: 12, fontWeight: 800, fontFamily: MONT, padding: "4px 2px" }}>Lihat semua</button>
+        </header>
+
+        {/* PETA PERJALANAN (map + path + marker Fammi) */}
+        <div style={{ flexShrink: 0, padding: "13px 12px 12px", background: "linear-gradient(180deg,#F1E9FF,#F6F2EB)" }}>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "0 6px 6px" }}>
+            <span style={{ fontSize: 11, fontWeight: 800, letterSpacing: ".12em", textTransform: "uppercase", color: T.brand }}>Langkah {activeStop + 1} dari {SECTIONS.length}</span>
+            <span style={{ fontSize: 11, fontWeight: 700, color: T.textMuted }}>Peta perjalananmu</span>
+          </div>
+          <div style={{ position: "relative", width: 300, height: 120, margin: "0 auto" }}>
+            <svg width="300" height="120" viewBox="0 0 300 120" style={{ position: "absolute", inset: 0, overflow: "visible" }}>
+              <defs>
+                <linearGradient id="mapgrad" x1="0" y1="0" x2="1" y2="0"><stop offset="0%" stopColor="#7B3BF0" /><stop offset="100%" stopColor="#6323DA" /></linearGradient>
+              </defs>
+              <path ref={roadRef} className={styles.mapDraw} d={MAP_D} pathLength="1" fill="none" stroke="#E2D6FA" strokeWidth="7" strokeLinecap="round" />
+              <path d={MAP_D} pathLength="1" fill="none" stroke="url(#mapgrad)" strokeWidth="5" strokeLinecap="round" strokeDasharray="1" strokeDashoffset={1 - stepFrac} style={{ transition: "stroke-dashoffset .6s cubic-bezier(.22,.61,.36,1)" }} />
+            </svg>
+            {nodePts.map((pt, i) => {
+              const A = SECTIONS[i].Icon;
+              const done = i < activeStop;
+              const cur = i === activeStop;
+              return (
+                <button key={i} onClick={() => setActiveStop(i)} className={styles.mapNode} aria-label={SECTIONS[i].label}
+                  style={{ position: "absolute", left: pt.x, top: pt.y, transform: "translate(-50%,-50%)", width: 30, height: 30, borderRadius: 10, border: "none", cursor: "pointer", display: "grid", placeItems: "center", background: done || cur ? "linear-gradient(140deg,#7B3BF0,#5418C2)" : "#fff", color: done || cur ? "#fff" : T.textFaint, boxShadow: done || cur ? "0 5px 14px rgba(99,35,218,0.32)" : "0 3px 10px rgba(20,20,26,0.10)", animationDelay: `${1.4 + i * 0.12}s` }}>
+                  {done ? <IcCheck size={15} /> : <A size={15} />}
+                </button>
+              );
+            })}
+            {nodePts[activeStop] && (
+              <div style={{ position: "absolute", left: nodePts[activeStop].x, top: nodePts[activeStop].y, transform: "translate(-50%,-50%)", transition: "left .6s cubic-bezier(.34,1.35,.5,1), top .6s cubic-bezier(.34,1.35,.5,1)", zIndex: 3, pointerEvents: "none" }}>
+                <span className={styles.mapPulse} />
+                <span style={{ position: "relative", display: "grid", placeItems: "center", width: 40, height: 40, borderRadius: 14, background: "#fff", boxShadow: "0 8px 20px rgba(99,35,218,0.45)" }}>
+                  <img src="/favicon-512.png" alt="Fammi" style={{ width: 25, height: 25, objectFit: "contain" }} />
+                </span>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* KONTEN LANGKAH (fokus satu tampilan, transisi saat ganti langkah) */}
+        <div className={styles.noScrollbar} style={{ flex: 1, overflowY: "auto", overscrollBehavior: "contain", WebkitOverflowScrolling: "touch" }}>
+          <div key={activeStop} className={styles.lgStep} style={{ padding: "18px 18px 28px" }}>
+            {renderBody(activeStop)}
+          </div>
+        </div>
+
+        {/* NAVIGASI */}
+        <div style={{ flexShrink: 0, background: "rgba(255,255,255,0.97)", backdropFilter: "blur(10px)", WebkitBackdropFilter: "blur(10px)", boxShadow: "0 -8px 24px rgba(20,20,26,0.05)", padding: "12px 16px 18px", display: "flex", gap: 10 }}>
+          {activeStop > 0 && (
+            <button onClick={() => setActiveStop((s) => Math.max(0, s - 1))} className={styles.lgPress} style={{ flex: 1, padding: "14px", borderRadius: 16, border: "none", background: T.ink100, color: T.textStrong, fontFamily: MONT, fontSize: 14, fontWeight: 800, cursor: "pointer" }}>
+              Sebelumnya
+            </button>
+          )}
+          <button onClick={() => { if (isLastStop) { setReadMode("full"); } else { setActiveStop((s) => s + 1); } }} className={`${styles.lgCta} ${styles.lgCtaGlow}`} style={{ flex: activeStop > 0 ? 2 : 1, padding: "14px", borderRadius: 16, border: "none", background: "linear-gradient(135deg,#7B3BF0,#6323DA 60%,#4A12B0)", color: "#fff", fontFamily: MONT, fontSize: 14, fontWeight: 800, cursor: "pointer", display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 8 }}>
+            {isLastStop ? "Selesai, lihat semua" : "Lanjut"} <IcArrowRight size={16} />
+          </button>
+        </div>
+
+        {/* SPLASH PEMBUKA */}
+        {guidedIntro && (
+          <div className={`${styles.splash} ${styles.splashFade}`}>
+            <FammiOrb />
+            <div className={styles.splashText} style={{ textAlign: "center" }}>
+              <div style={{ fontSize: 16, fontWeight: 800, fontFamily: MONT, letterSpacing: "-.01em", color: "#fff" }}>Fammi siap memandu {panggilan}</div>
+              <div style={{ marginTop: 5, fontSize: 12.5, fontWeight: 600, color: "rgba(255,255,255,0.8)" }}>Menyiapkan peta perjalananmu</div>
+            </div>
+          </div>
+        )}
+
+        <DialogOverlay dialog={dialog} onClose={() => setDialog(null)} />
+      </div>
+    );
+  }
+
+  // ── MODE PENUH (scroll panjang) ──────────────────────────────────────────
   return (
     <div style={{ background: T.bg, minHeight: "100%", fontFamily: MONT, color: T.textStrong }}>
       <div ref={sentinelRef} style={{ height: 0, pointerEvents: "none" }} />
@@ -941,7 +1568,7 @@ function BakatView({ student, intel, topDetails, mi, isSample, onLogout, modules
         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
           {(student.kelas || student.sekolah) && <span style={{ fontSize: 11, fontWeight: 600, color: T.textMuted }}>{[student.kelas, student.sekolah].filter(Boolean).join(" · ")}</span>}
           {onLogout && (
-            <button onClick={onLogout} style={{ width: 32, height: 32, borderRadius: 10, background: T.ink100, border: `1px solid ${T.divider}`, color: T.textMuted, display: "grid", placeItems: "center", cursor: "pointer" }}>
+            <button onClick={onLogout} style={{ width: 32, height: 32, borderRadius: 10, background: T.ink100, color: T.textMuted, display: "grid", placeItems: "center", cursor: "pointer" }}>
               <IcLogout size={14} />
             </button>
           )}
@@ -951,14 +1578,15 @@ function BakatView({ student, intel, topDetails, mi, isSample, onLogout, modules
       <div style={{ padding: "18px 18px 28px" }}>
 
       {/* ═══ COVER ═══ */}
-      <div style={{ position: "relative", overflow: "hidden", borderRadius: 36, padding: "24px 22px 22px", background: "radial-gradient(120% 120% at 85% 0%,#7B3BF0 0%,#6323DA 45%,#4A12B0 100%)", color: "#fff", boxShadow: T.shadowPop }}>
-        <div style={{ position: "absolute", right: -36, top: -36, width: 160, height: 160, borderRadius: "50%", background: "rgba(255,255,255,0.09)" }} />
-        <div style={{ position: "absolute", left: -30, bottom: -50, width: 120, height: 120, borderRadius: "50%", background: "rgba(255,255,255,0.06)" }} />
+      <div style={{ position: "relative", overflow: "hidden", borderRadius: 36, padding: "28px 22px 24px", background: "radial-gradient(130% 120% at 85% -10%,#8A4BF5 0%,#6323DA 46%,#3E0E96 100%)", color: "#fff", boxShadow: "0 20px 44px rgba(99,35,218,0.28), 0 2px 0 rgba(255,255,255,0.16) inset" }}>
+        <div className={styles.lgSheen} />
+        <div className={styles.lgBlobA} style={{ position: "absolute", right: -36, top: -36, width: 160, height: 160, borderRadius: "50%", background: "rgba(255,255,255,0.09)" }} />
+        <div className={styles.lgBlobB} style={{ position: "absolute", left: -30, bottom: -50, width: 120, height: 120, borderRadius: "50%", background: "rgba(255,255,255,0.06)" }} />
         <div style={{ position: "relative" }}>
           <span style={{ display: "inline-flex", alignItems: "center", gap: 6, background: "rgba(255,255,255,0.18)", border: "1px solid rgba(255,255,255,0.22)", padding: "6px 13px", borderRadius: 999, fontSize: 11.5, fontWeight: 700 }}>
             <IcSparkle size={12} /> Tes Multiple Intelligence
           </span>
-          <h1 style={{ margin: "14px 0 0", fontSize: 22, fontWeight: 600, letterSpacing: "-.02em", lineHeight: 1.25, color: "#fff", fontFamily: MONT }}>{P(coverHead)}</h1>
+          <h1 style={{ margin: "14px 0 0", fontSize: 23, fontWeight: 700, letterSpacing: "-.025em", lineHeight: 1.2, color: "#fff", fontFamily: MONT }}>{P(coverHead)}</h1>
           <p style={{ margin: "10px 0 0", fontSize: 12.5, lineHeight: 1.55, color: "rgba(255,255,255,0.72)", maxWidth: 300 }}>Laporan ini memetakan pola belajarmu, bukan sekadar skor.</p>
           <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 16 }}>
             {chart.map((c, i) => <span key={i} style={{ width: 10, height: 10, borderRadius: "50%", background: c.color, boxShadow: "0 0 0 2.5px rgba(255,255,255,0.18)", display: "block" }} />)}
@@ -979,13 +1607,13 @@ function BakatView({ student, intel, topDetails, mi, isSample, onLogout, modules
           <div style={{ fontSize: 10, fontWeight: 800, letterSpacing: ".1em", textTransform: "uppercase", color: T.brand }}>Tiga kecerdasan teratas</div>
           <h2 style={{ margin: "6px 0 0", fontSize: 18, fontWeight: 800, letterSpacing: "-.01em", lineHeight: 1.3, color: T.textStrong }}>{keunikanTitle}</h2>
           <div style={{ display: "flex", gap: 10, marginTop: 13 }}>
-            <div style={{ flex: 1, borderRadius: 14, padding: 12, background: T.infoSoft }}>
+            <div className={styles.lgCiri} style={{ flex: 1, borderRadius: 20, padding: 14, background: T.infoSoft }}>
               <div style={{ fontSize: 9, fontWeight: 800, letterSpacing: ".08em", textTransform: "uppercase", color: T.info }}>Top 1 · {top1.score}</div>
               <div style={{ fontSize: 14, fontWeight: 800, color: T.textStrong, marginTop: 4 }}>{top1.name}</div>
               <div style={{ fontSize: 11, color: T.textMuted, marginTop: 2 }}>{SHORT_TAGLINE[top1.code] || ""}</div>
             </div>
             {top2.name && (
-              <div style={{ flex: 1, borderRadius: 14, padding: 12, background: "#DFF1F3" }}>
+              <div className={styles.lgCiri} style={{ flex: 1, borderRadius: 20, padding: 14, background: "#DFF1F3" }}>
                 <div style={{ fontSize: 9, fontWeight: 800, letterSpacing: ".08em", textTransform: "uppercase", color: "#1E94A6" }}>Top 2 · {top2.score}</div>
                 <div style={{ fontSize: 14, fontWeight: 800, color: T.textStrong, marginTop: 4 }}>{top2.name}</div>
                 <div style={{ fontSize: 11, color: T.textMuted, marginTop: 2 }}>{SHORT_TAGLINE[top2.code] || ""}</div>
@@ -1011,10 +1639,10 @@ function BakatView({ student, intel, topDetails, mi, isSample, onLogout, modules
             {chart.map((c) => {
               const ls = LEVEL_STYLE[c.level] || LEVEL_STYLE.Sedang;
               return (
-                <div key={c.code} onClick={() => openKecerdasan(c.code)} style={{ display: "flex", alignItems: "center", gap: 9, padding: "7px 8px", borderRadius: 11, cursor: "pointer", marginBottom: 2 }}>
+                <div key={c.code} onClick={() => openKecerdasan(c.code)} className={styles.lgRow} style={{ display: "flex", alignItems: "center", gap: 9, padding: "9px 8px", cursor: "pointer", marginBottom: 2 }}>
                   <span style={{ width: 9, height: 9, borderRadius: 2, background: c.color, flexShrink: 0, display: "block" }} />
-                  <span style={{ flex: 1, fontSize: 12.5, fontWeight: 600, color: T.textBody, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{c.name}</span>
-                  <span style={{ fontSize: 11, fontWeight: 700, padding: "2px 9px", borderRadius: 999, background: ls.bg, color: ls.ink, whiteSpace: "nowrap", flexShrink: 0 }}>{c.level}</span>
+                  <span style={{ flex: 1, fontSize: 13, fontWeight: 600, color: T.textBody, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{c.name}</span>
+                  <span style={{ fontSize: 11.5, fontWeight: 700, padding: "2px 9px", borderRadius: 999, background: ls.bg, color: ls.ink, whiteSpace: "nowrap", flexShrink: 0 }}>{c.level}</span>
                   <span style={{ fontSize: 13, fontWeight: 800, color: T.textStrong, width: 24, textAlign: "right", flexShrink: 0, fontFamily: MONT }}>{c.score}</span>
                   <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke={T.textFaint} strokeWidth="2" style={{ flexShrink: 0 }}><circle cx="12" cy="12" r="10" /><line x1="12" y1="16" x2="12" y2="12" /><line x1="12" y1="8" x2="12.01" y2="8" /></svg>
                 </div>
@@ -1031,7 +1659,7 @@ function BakatView({ student, intel, topDetails, mi, isSample, onLogout, modules
           {ciri.map((c, i) => {
             const tone = CIRI_TONE[c.tone] || CIRI_TONE.sky;
             return (
-              <div key={i} style={{ background: tone.soft, borderRadius: 22, padding: 15 }}>
+              <div key={i} className={styles.lgCiri} style={{ background: tone.soft, borderRadius: 24, padding: 16 }}>
                 <span style={{ width: 36, height: 36, borderRadius: 11, background: tone.solid, color: tone.ink, display: "grid", placeItems: "center" }}>
                   <IcSparkle size={17} />
                 </span>
@@ -1049,7 +1677,7 @@ function BakatView({ student, intel, topDetails, mi, isSample, onLogout, modules
           <p style={{ margin: 0, fontSize: 13, lineHeight: 1.55, color: T.skyInk }}>{P(caraSummary)}</p>
         </div>
         {(essayCara || essayBerhasil) && (
-          <div style={{ marginTop: 9, background: "#fff", borderRadius: 14, padding: "12px 14px", border: `1px solid ${T.divider}`, display: "flex", flexDirection: "column", gap: 10 }}>
+          <div style={{ marginTop: 9, background: "#fff", borderRadius: 14, padding: "12px 14px", boxShadow: "0 8px 22px rgba(20,20,26,0.05)", display: "flex", flexDirection: "column", gap: 10 }}>
             {essayCara && (
               <div>
                 <div style={{ fontSize: 9.5, fontWeight: 800, letterSpacing: ".1em", textTransform: "uppercase", color: T.textMuted, marginBottom: 4 }}>Cara belajar sehari-harinya, kata {panggilan}</div>
@@ -1067,7 +1695,7 @@ function BakatView({ student, intel, topDetails, mi, isSample, onLogout, modules
         {openCara && (
           <div style={{ marginTop: 9, display: "flex", flexDirection: "column", gap: 8 }}>
             {caraItems.map((item, i) => (
-              <div key={i} style={{ display: "flex", gap: 12, alignItems: "flex-start", background: "#fff", borderRadius: 15, padding: 13, border: `1px solid ${T.divider}` }}>
+              <div key={i} style={{ display: "flex", gap: 12, alignItems: "flex-start", background: "#fff", borderRadius: 15, padding: 13, boxShadow: "0 8px 22px rgba(20,20,26,0.05)" }}>
                 <span style={{ fontSize: 12, fontWeight: 900, color: T.brand, flexShrink: 0, minWidth: 20, fontFamily: MONT }}>{item.no || String(i + 1).padStart(2, "0")}</span>
                 <div><div style={{ fontSize: 13, fontWeight: 800, color: T.textStrong, marginBottom: 3 }}>{P(item.title)}</div><div style={{ fontSize: 12.5, lineHeight: 1.55, color: T.textBody }}>{P(item.body)}</div></div>
               </div>
@@ -1085,9 +1713,9 @@ function BakatView({ student, intel, topDetails, mi, isSample, onLogout, modules
         {openSmart && (
           <div style={{ marginTop: 9, display: "flex", flexDirection: "column", gap: 8 }}>
             {smartGoals.map((g, i) => (
-              <div key={i} style={{ background: "#fff", borderRadius: 15, padding: 14, border: `1px solid ${T.divider}` }}>
+              <div key={i} style={{ background: "#fff", borderRadius: 15, padding: 14, boxShadow: "0 8px 22px rgba(20,20,26,0.05)" }}>
                 <div style={{ display: "flex", gap: 10, alignItems: "flex-start" }}>
-                  <span style={{ width: 30, height: 30, borderRadius: 8, background: T.brand, color: "#fff", display: "grid", placeItems: "center", fontSize: 13, fontWeight: 900, flexShrink: 0, fontFamily: MONT }}>{g.letter}</span>
+                  <span style={{ width: 30, height: 30, borderRadius: 9, background: T.brand, color: "#fff", display: "grid", placeItems: "center", fontSize: 13, fontWeight: 900, flexShrink: 0, fontFamily: MONT, boxShadow: "0 4px 10px rgba(99,35,218,0.25)" }}>{g.letter}</span>
                   <div><div style={{ fontSize: 10.5, fontWeight: 800, letterSpacing: ".06em", textTransform: "uppercase", color: T.brand, marginBottom: 3 }}>{g.label}</div><div style={{ fontSize: 13, lineHeight: 1.55, color: T.textBody }}>{P(g.content)}</div></div>
                 </div>
               </div>
@@ -1100,7 +1728,7 @@ function BakatView({ student, intel, topDetails, mi, isSample, onLogout, modules
       <div style={sectionMt}>
         <LSectionHeader eyebrow="Dari sekolah ke karier" title="Jalur yang sesuai kecerdasanmu" />
         {(essayCita || essayAlasan) && (
-          <div style={{ marginTop: 11, background: "#fff", borderRadius: 14, padding: "12px 14px", border: `1px solid ${T.divider}`, marginBottom: 4, display: "flex", flexDirection: "column", gap: 10 }}>
+          <div style={{ marginTop: 11, background: "#fff", borderRadius: 14, padding: "12px 14px", boxShadow: "0 8px 22px rgba(20,20,26,0.05)", marginBottom: 4, display: "flex", flexDirection: "column", gap: 10 }}>
             {essayCita && (
               <div>
                 <div style={{ fontSize: 9.5, fontWeight: 800, letterSpacing: ".1em", textTransform: "uppercase", color: T.textMuted, marginBottom: 4 }}>Cita-cita profesinya, kata {panggilan}</div>
@@ -1122,7 +1750,7 @@ function BakatView({ student, intel, topDetails, mi, isSample, onLogout, modules
           ))}
         </div>
         <div style={{ marginTop: 10 }}>
-          <div style={{ background: activeP.bgColor, borderRadius: 28, padding: "18px 18px 20px", border: `1.5px solid ${activeP.color}30` }}>
+          <div style={{ background: activeP.bgColor, borderRadius: 28, padding: "18px 18px 20px" }}>
             <div style={{ fontSize: 24, lineHeight: 1, marginBottom: 7 }}>{activeP.emoji}</div>
             <h3 style={{ margin: "0 0 3px", fontSize: 19, fontWeight: 900, letterSpacing: "-.02em", color: activeP.color, fontFamily: MONT }}>{activeP.label}</h3>
             <div style={{ fontSize: 12.5, fontWeight: 600, color: activeP.inkColor, marginBottom: 9, fontStyle: "italic" }}>{activeP.tagline}</div>
@@ -1133,7 +1761,7 @@ function BakatView({ student, intel, topDetails, mi, isSample, onLogout, modules
             {activeP.jurusan && activeP.jurusan.length > 0 && (
               <PathBlock n="2" eyebrow="Nanti · MA & Kuliah" title="Jurusan yang relevan" color={activeP.color} bg={activeP.bgColor} ink={activeP.inkColor} items={activeP.jurusan} />
             )}
-            <div style={{ background: "#fff", borderRadius: 22, padding: "14px 15px", border: `1px solid ${T.divider}` }}>
+            <div style={{ background: "#fff", borderRadius: 22, padding: "14px 15px", boxShadow: "0 8px 22px rgba(20,20,26,0.05)" }}>
               <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 10 }}>
                 <span style={{ width: 26, height: 26, borderRadius: 7, background: activeP.color, color: "#fff", display: "grid", placeItems: "center", fontSize: 12, fontWeight: 800, flexShrink: 0, fontFamily: MONT }}>3</span>
                 <div><div style={{ fontSize: 9, fontWeight: 800, letterSpacing: ".08em", textTransform: "uppercase", color: T.textMuted }}>Masa Depan · Profesi</div><div style={{ fontSize: 13, fontWeight: 800, color: T.textStrong }}>Tap profesi untuk detail</div></div>
@@ -1146,7 +1774,7 @@ function BakatView({ student, intel, topDetails, mi, isSample, onLogout, modules
             </div>
           </div>
           {activeP.profesiSorot && (
-            <div style={{ background: "#fff", borderRadius: 22, padding: "14px 15px", border: `1.5px solid ${activeP.color}40`, cursor: "pointer" }}
+            <div style={{ background: "#fff", borderRadius: 22, padding: "14px 15px", boxShadow: "0 8px 22px rgba(20,20,26,0.06)", cursor: "pointer" }}
                  onClick={() => setDialog({ type: "profesi", data: { name: activeP.profesiSorot.nama, p: activeP.profesiSorot } })}>
               <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 6 }}>
                 <div style={{ fontSize: 9, fontWeight: 800, letterSpacing: ".08em", textTransform: "uppercase", color: activeP.inkColor }}>Profesi Unggulan</div>
@@ -1170,7 +1798,7 @@ function BakatView({ student, intel, topDetails, mi, isSample, onLogout, modules
       <div style={sectionMt}>
         <LSectionHeader eyebrow="Untuk keluarga" title="Cara bicara yang menjangkaunya" />
         <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-          <div style={{ background: "#fff", borderRadius: 22, padding: 16, border: `1px solid ${T.divider}` }}>
+          <div style={{ background: "#fff", borderRadius: 22, padding: 16, boxShadow: "0 8px 22px rgba(20,20,26,0.05)" }}>
             <div style={{ fontSize: 12.5, fontWeight: 800, color: T.textStrong, marginBottom: 11 }}>Yang membuat {panggilan} merespons lebih baik</div>
             <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
               {gPositif.map((item, i) => (
@@ -1210,7 +1838,7 @@ function BakatView({ student, intel, topDetails, mi, isSample, onLogout, modules
       <div style={sectionMt}>
         <LSectionHeader eyebrow="Coba hari ini" title="7 Hari Pertama" />
         <p style={{ margin: "9px 2px 0", fontSize: 13, lineHeight: 1.55, color: T.textBody }}>Tujuh langkah kecil yang bisa dilakukan sekarang. Centang setiap hari yang sudah selesai.</p>
-        <div style={{ marginTop: 14, background: "#fff", borderRadius: 28, padding: 16, border: `1px solid ${T.divider}` }}>
+        <div style={{ marginTop: 14, background: "#fff", borderRadius: 28, padding: 16, boxShadow: "0 8px 22px rgba(20,20,26,0.05)" }}>
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 10 }}>
             <span style={{ fontSize: 13, fontWeight: 800, color: T.textStrong }}>{daysCompleted} / {days.length} selesai</span>
             <span style={{ fontSize: 11.5, color: T.brand, fontWeight: 700 }}>{daysPercent}%</span>
@@ -1264,7 +1892,7 @@ function BakatView({ student, intel, topDetails, mi, isSample, onLogout, modules
         {openSinyal && (
           <div style={{ marginTop: 9, display: "flex", flexDirection: "column", gap: 8 }}>
             {sinyal.map((item, i) => (
-              <div key={i} style={{ background: "#fff", borderRadius: 15, padding: 13, border: `1px solid ${T.divider}` }}>
+              <div key={i} style={{ background: "#fff", borderRadius: 15, padding: 13, boxShadow: "0 8px 22px rgba(20,20,26,0.05)" }}>
                 <div style={{ display: "flex", gap: 10, alignItems: "flex-start" }}>
                   <span style={{ fontSize: 20, flexShrink: 0, lineHeight: 1.2, width: 28, textAlign: "center" }}>{[...(item.icon||"")].length <= 3 ? item.icon : "✨"}</span>
                   <div style={{ minWidth: 0, flex: 1 }}><div style={{ fontSize: 13, fontWeight: 800, color: T.textStrong, marginBottom: 4, lineHeight: 1.3 }}>{P(item.title)}</div><div style={{ fontSize: 12.5, lineHeight: 1.55, color: T.textBody }}>{P(item.body)}</div></div>
@@ -1420,18 +2048,39 @@ function Legend({ color, label, range }) {
 }
 
 function Badge({ children, bg, fg, sm }) {
-  return <span style={{ display: "inline-flex", alignItems: "center", padding: sm ? "3px 9px" : "5px 11px", borderRadius: 999, background: bg, color: fg, fontSize: sm ? 10.5 : 12, fontWeight: 700, whiteSpace: "nowrap" }}>{children}</span>;
+  return <span style={{ display: "inline-flex", alignItems: "center", padding: sm ? "3px 9px" : "5px 11px", borderRadius: 999, background: bg, color: fg, fontSize: sm ? 10.5 : 12, fontWeight: 700, whiteSpace: "nowrap", boxShadow: "0 2px 6px rgba(20,20,26,0.06)" }}>{children}</span>;
 }
 
 function PathBlock({ n, eyebrow, title, color, bg, ink, items }) {
   return (
-    <div style={{ background: "#fff", borderRadius: 22, padding: "14px 15px", border: `1px solid ${T.divider}` }}>
+    <div style={{ background: "#fff", borderRadius: 24, padding: "15px 16px", boxShadow: "0 8px 22px rgba(20,20,26,0.06)" }}>
       <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 10 }}>
-        <span style={{ width: 26, height: 26, borderRadius: 7, background: color, color: "#fff", display: "grid", placeItems: "center", fontSize: 12, fontWeight: 800, flexShrink: 0, fontFamily: MONT }}>{n}</span>
+        <span style={{ width: 26, height: 26, borderRadius: 9, background: color, color: "#fff", display: "grid", placeItems: "center", fontSize: 12, fontWeight: 800, flexShrink: 0, fontFamily: MONT, boxShadow: `0 3px 8px ${color}40` }}>{n}</span>
         <div><div style={{ fontSize: 9, fontWeight: 800, letterSpacing: ".08em", textTransform: "uppercase", color: T.textMuted }}>{eyebrow}</div><div style={{ fontSize: 13, fontWeight: 800, color: T.textStrong }}>{title}</div></div>
       </div>
       <div style={{ display: "flex", flexWrap: "wrap", gap: 7 }}>
-        {items.map((it, i) => <span key={i} style={{ padding: "5px 11px", borderRadius: 999, background: bg, color: ink, fontSize: 12, fontWeight: 700 }}>{it}</span>)}
+        {items.map((it, i) => <span key={i} className={styles.lgPath} style={{ padding: "5px 11px", borderRadius: 999, background: bg, color: ink, fontSize: 12, fontWeight: 700 }}>{it}</span>)}
+      </div>
+    </div>
+  );
+}
+
+// Kelompok chip berlabel untuk mode terpandu. Tanpa kartu berbingkai: nomor +
+// judul kecil, lalu chip-chip pada tint warna jalur. Chip bisa diketuk bila onItem ada.
+function GuideChips({ n, eyebrow, title, color, bg, ink, items, onItem, chevron }) {
+  return (
+    <div>
+      <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 11 }}>
+        <span style={{ width: 26, height: 26, borderRadius: 8, background: color, color: "#fff", display: "grid", placeItems: "center", fontSize: 12, fontWeight: 800, flexShrink: 0, fontFamily: MONT, boxShadow: `0 4px 10px ${color}40` }}>{n}</span>
+        <div>
+          <div style={{ fontSize: 9.5, fontWeight: 800, letterSpacing: ".08em", textTransform: "uppercase", color: T.textMuted }}>{eyebrow}</div>
+          <div style={{ fontSize: 13.5, fontWeight: 800, color: T.textStrong }}>{title}</div>
+        </div>
+      </div>
+      <div style={{ display: "flex", flexWrap: "wrap", gap: 8, paddingLeft: 36 }}>
+        {items.map((it, i) => (
+          <span key={i} onClick={onItem ? () => onItem(it) : undefined} className={onItem ? styles.lgPath : undefined} style={{ display: "inline-flex", alignItems: "center", gap: 5, padding: "6px 12px", borderRadius: 999, background: bg, color: ink, fontSize: 12.5, fontWeight: 700, cursor: onItem ? "pointer" : "default" }}>{it}{chevron && <Chevron size={9} w={2.5} color={ink} />}</span>
+        ))}
       </div>
     </div>
   );
@@ -1649,8 +2298,12 @@ export default function SiswaPage({ session, onLogout }) {
       <div style={{ position: "relative", width: "100%", maxWidth: 440, height: "100%", display: "flex", flexDirection: "column", overflow: "hidden" }}>
         <main ref={mainRef} className={styles.sMain}>
           {loading && (
-            <div style={{ textAlign: "center", padding: "80px 24px", fontFamily: MONT, color: T.textMuted }}>
-              <p style={{ fontSize: 14, fontWeight: 600 }}>Memuat laporan bakat...</p>
+            <div className={styles.splash}>
+              <FammiOrb />
+              <div className={styles.splashText} style={{ textAlign: "center" }}>
+                <div style={{ fontSize: 16, fontWeight: 800, fontFamily: MONT, letterSpacing: "-.01em", color: "#fff" }}>Fammi sedang menyiapkan laporannya</div>
+                <div style={{ marginTop: 5, fontSize: 12.5, fontWeight: 600, color: "rgba(255,255,255,0.8)" }}>Mohon ditunggu</div>
+              </div>
             </div>
           )}
           {!loading && (

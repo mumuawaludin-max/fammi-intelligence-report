@@ -15,7 +15,9 @@ var Gate = (function () {
   /* Konstanta                                                            */
   /* ------------------------------------------------------------------ */
 
-  var TTL_HOURS = 8; // token kedaluwarsa setelah 8 jam
+  var TTL_HOURS = 8;                   // token kedaluwarsa setelah 8 jam
+  var MAX_LOGIN_ATTEMPTS = 5;          // batas percobaan gagal sebelum dikunci sementara
+  var LOGIN_LOCK_WINDOW_SEC = 15 * 60; // jendela hitung/kunci percobaan gagal: 15 menit
 
   /* ------------------------------------------------------------------ */
   /* Login                                                                */
@@ -38,6 +40,15 @@ var Gate = (function () {
       return respond_(400, { error: "username dan kredensial_hash wajib diisi" });
     }
 
+    // Rate limit: kunci sementara per username setelah beberapa percobaan gagal,
+    // untuk mempersulit tebak-paksa PIN lewat endpoint publik.
+    var cache = CacheService.getScriptCache();
+    var failKey = "login_fail_" + sha256Hex_(String(username).trim().toLowerCase());
+    var fails = Number(cache.get(failKey) || 0);
+    if (fails >= MAX_LOGIN_ATTEMPTS) {
+      return respond_(429, { error: "Terlalu banyak percobaan gagal. Coba lagi dalam beberapa menit." });
+    }
+
     var ctrlWb = openControlWorkbook_();
     var penggunaSheet = ctrlWb.getSheetByName("Pengguna");
     if (!penggunaSheet) {
@@ -46,8 +57,12 @@ var Gate = (function () {
 
     var user = findUser_(penggunaSheet, username, hashedCred);
     if (!user) {
+      cache.put(failKey, String(fails + 1), LOGIN_LOCK_WINDOW_SEC);
       return respond_(401, { error: "Username atau kredensial salah" });
     }
+
+    // Sukses: nolkan penghitung gagal untuk username ini
+    cache.remove(failKey);
 
     var token = Utilities.getUuid();
     var now = new Date();
@@ -62,6 +77,7 @@ var Gate = (function () {
     var tz = "Asia/Jakarta";
     var dibuat = Utilities.formatDate(now, tz, "yyyy-MM-dd'T'HH:mm:ss");
     var kedaluwarsa = Utilities.formatDate(expires, tz, "yyyy-MM-dd'T'HH:mm:ss");
+    pruneSesi_(sesiSheet); // pangkas sesi kedaluwarsa agar sheet tidak membengkak
     sesiSheet.appendRow([token, user.user_id, dibuat, kedaluwarsa]);
 
     // Kembalikan token + info peran tanpa data sensitif
@@ -72,6 +88,29 @@ var Gate = (function () {
       nama: user.nama,
       peran: user.peran,
     });
+  }
+
+  /* ------------------------------------------------------------------ */
+  /* Logout                                                               */
+  /* ------------------------------------------------------------------ */
+
+  /**
+   * Cabut sesi di sisi server: hapus baris token dari sheet Sesi.
+   * Setelah ini token tidak bisa dipakai lagi meski belum kedaluwarsa.
+   *
+   * body: { action, token }
+   */
+  function logout(body) {
+    var token = body.token;
+    if (!token) return respond_(400, { error: "Token tidak disertakan" });
+
+    var ctrlWb = openControlWorkbook_();
+    var sesiSheet = ctrlWb.getSheetByName("Sesi");
+    if (sesiSheet) removeSesi_(sesiSheet, token);
+
+    // Selalu balas ok: logout bersifat idempoten, token yang sudah tidak ada
+    // tetap dianggap berhasil dicabut.
+    return respond_(200, { ok: true });
   }
 
   /* ------------------------------------------------------------------ */
@@ -129,7 +168,8 @@ var Gate = (function () {
     var sekolahId = resolveSekolahId_(cakupan, user.peran);
     Logger.log("DEBUG sekolahId=" + sekolahId + " peran=" + user.peran);
     if (!sekolahId && user.peran !== "Admin Fammi") {
-      return respond_(403, { error: "sekolah_id tidak dapat ditentukan dari cakupan pengguna. DEBUG: cakupan=" + JSON.stringify(cakupan) });
+      Logger.log("resolveSekolahId gagal: userId=" + userId + " cakupan=" + JSON.stringify(cakupan));
+      return respond_(403, { error: "Cakupan data belum dikonfigurasi untuk akun ini" });
     }
 
     // 6. Cek langganan sekolah untuk modul yang diminta (kecuali Admin)
@@ -199,17 +239,78 @@ var Gate = (function () {
    */
   function findUser_(sheet, username, hashedCred) {
     var rows = sheetToObjects_(sheet);
+    var uname = String(username).trim();
+    var cred = String(hashedCred).trim();
+    var pepper = getPepper_();
     for (var i = 0; i < rows.length; i++) {
       var r = rows[i];
       if (
-        String(r.username).trim() === String(username).trim() &&
-        String(r.kredensial_hash).trim() === String(hashedCred).trim() &&
+        String(r.username).trim() === uname &&
+        verifyCred_(r.kredensial_hash, cred, pepper) &&
         isAktif_(r.aktif)
       ) {
         return r;
       }
     }
     return null;
+  }
+
+  /**
+   * Bandingkan dua string dalam waktu konstan agar selisih waktu tidak
+   * membocorkan seberapa cocok kredensial. Dipakai untuk kredensial_hash.
+   */
+  function safeEqual_(a, b) {
+    a = String(a); b = String(b);
+    if (a.length !== b.length) return false;
+    var diff = 0;
+    for (var i = 0; i < a.length; i++) {
+      diff |= (a.charCodeAt(i) ^ b.charCodeAt(i));
+    }
+    return diff === 0;
+  }
+
+  /** SHA-256 hex dari string, dipakai sebagai kunci cache rate limit. */
+  function sha256Hex_(str) {
+    var bytes = Utilities.computeDigest(
+      Utilities.DigestAlgorithm.SHA_256, String(str), Utilities.Charset.UTF_8);
+    var hex = "";
+    for (var i = 0; i < bytes.length; i++) {
+      var b = (bytes[i] + 256) % 256;
+      hex += (b < 16 ? "0" : "") + b.toString(16);
+    }
+    return hex;
+  }
+
+  /** Pepper rahasia sisi server dari Script Properties. Tidak pernah ada di sheet/klien. */
+  function getPepper_() {
+    return PropertiesService.getScriptProperties().getProperty("LOGIN_PEPPER") || "";
+  }
+
+  /** HMAC-SHA256 hex dari message memakai key. */
+  function hmacSha256Hex_(key, message) {
+    var raw = Utilities.computeHmacSha256Signature(String(message), String(key));
+    var hex = "";
+    for (var i = 0; i < raw.length; i++) {
+      var b = (raw[i] + 256) % 256;
+      hex += (b < 16 ? "0" : "") + b.toString(16);
+    }
+    return hex;
+  }
+
+  /**
+   * Verifikasi kredensial. Mendukung dua format tersimpan:
+   *   "v2:<hmac>" : HMAC-SHA256(pepper, kredensial_hash_klien). Aman dari bocoran sheet,
+   *                 karena nilai di sheet tidak bisa dipakai login tanpa pepper.
+   *   legacy      : SHA-256(PIN) polos, dibandingkan langsung. Dipertahankan agar login
+   *                 tetap jalan untuk baris yang belum dimigrasi (masa transisi).
+   */
+  function verifyCred_(storedRaw, clientHash, pepper) {
+    var stored = String(storedRaw).trim();
+    if (stored.indexOf("v2:") === 0) {
+      if (!pepper) return false; // baris v2 wajib punya pepper untuk diverifikasi
+      return safeEqual_(stored.substring(3), hmacSha256Hex_(pepper, clientHash));
+    }
+    return safeEqual_(stored, clientHash);
   }
 
   function isAktif_(val) {
@@ -240,6 +341,44 @@ var Gate = (function () {
       }
     }
     return null; // tidak ditemukan
+  }
+
+  /**
+   * Hapus baris sesi: baris dengan token tertentu (logout) sekaligus baris yang
+   * sudah kedaluwarsa. Penghapusan dari bawah ke atas agar indeks tidak bergeser.
+   * tokenToRemove null berarti hanya memangkas yang kedaluwarsa.
+   */
+  function removeSesi_(sesiSheet, tokenToRemove) {
+    var values = sesiSheet.getDataRange().getValues();
+    if (values.length < 2) return;
+
+    var headers = values[0].map(function (h) { return String(h).trim().toLowerCase(); });
+    var tokenCol = headers.indexOf("token");
+    var expCol = headers.indexOf("kedaluwarsa_pada");
+    if (tokenCol === -1) return;
+
+    var now = new Date();
+    var target = tokenToRemove ? String(tokenToRemove).trim() : null;
+    var toDelete = [];
+    for (var i = 1; i < values.length; i++) {
+      var rowToken = String(values[i][tokenCol]).trim();
+      var drop = false;
+      if (target && rowToken === target) {
+        drop = true; // baris yang di-logout
+      } else if (expCol !== -1) {
+        var expRaw = values[i][expCol];
+        var exp = (expRaw instanceof Date) ? expRaw : new Date(expRaw);
+        if (!isNaN(exp.getTime()) && exp <= now) drop = true; // kedaluwarsa
+      }
+      if (drop) toDelete.push(i + 1); // nomor baris sheet (1-based)
+    }
+    for (var j = toDelete.length - 1; j >= 0; j--) {
+      sesiSheet.deleteRow(toDelete[j]);
+    }
+  }
+
+  function pruneSesi_(sesiSheet) {
+    removeSesi_(sesiSheet, null);
   }
 
   function getUserById_(ctrlWb, userId) {
@@ -346,12 +485,112 @@ var Gate = (function () {
   }
 
   /* ------------------------------------------------------------------ */
+  /* Provision user baru (hanya AdminFammi)                              */
+  /* ------------------------------------------------------------------ */
+
+  /**
+   * Buat akun user baru dengan PIN otomatis. Hanya bisa dipanggil
+   * oleh token dengan peran AdminFammi.
+   *
+   * body: { action, token, username, peran, nama, email? }
+   */
+  function provisionUser(body) {
+    var token = body.token;
+    if (!token) return respond_(401, { error: "Token tidak disertakan" });
+
+    var ctrlWb = openControlWorkbook_();
+    var userId = validateToken_(ctrlWb, token);
+    if (!userId) return respond_(401, { error: "Token tidak valid atau sudah kedaluwarsa" });
+
+    var caller = getUserById_(ctrlWb, userId);
+    if (!caller || !isAktif_(caller.aktif)) return respond_(403, { error: "Akun tidak aktif" });
+    if (String(caller.peran || "").trim() !== "AdminFammi") {
+      return respond_(403, { error: "Hanya AdminFammi yang boleh membuat akun baru" });
+    }
+
+    var username = String(body.username || "").trim();
+    var peran    = String(body.peran    || "").trim();
+    var nama     = String(body.nama     || "").trim();
+    var email    = String(body.email    || "").trim();
+
+    if (!username || !peran || !nama) {
+      return respond_(400, { error: "username, peran, dan nama wajib diisi" });
+    }
+
+    var validPeran = ["Siswa", "OrangTua", "WaliKelas", "KepalaSekolah", "Yayasan", "AdminFammi"];
+    if (validPeran.indexOf(peran) === -1) {
+      return respond_(400, { error: "Peran tidak valid: " + peran });
+    }
+
+    var result = UserProvisioning.provisionUser(username, peran, nama, email || null);
+
+    if (!result.success) {
+      return respond_(400, { error: result.message });
+    }
+
+    return respond_(200, {
+      ok: true,
+      username: result.username,
+      peran: result.peran,
+      nama: result.nama,
+      plainPin: result.plainPin,
+      emailSent: result.emailSent,
+      message: result.message,
+    });
+  }
+
+  /* ------------------------------------------------------------------ */
+  /* Migrasi kredensial ke pepper (jalankan SEKALI dari editor)           */
+  /* ------------------------------------------------------------------ */
+
+  /**
+   * Ubah tiap kredensial_hash dari SHA-256(PIN) polos menjadi
+   * "v2:" + HMAC-SHA256(LOGIN_PEPPER, SHA-256(PIN)).
+   * Setelah ini, nilai di sheet tidak bisa dipakai login tanpa pepper di server.
+   * Aman diulang: baris yang sudah "v2:" atau kosong dilewati.
+   */
+  function migrateCredentials() {
+    var pepper = getPepper_();
+    if (!pepper) throw new Error("LOGIN_PEPPER belum di-set di Script Properties. Set dulu sebelum migrasi.");
+
+    var ctrlWb = openControlWorkbook_();
+    var sheet = ctrlWb.getSheetByName("Pengguna");
+    if (!sheet) throw new Error("Sheet Pengguna tidak ditemukan.");
+
+    var values = sheet.getDataRange().getValues();
+    if (values.length < 2) return { total: 0, migrated: 0, skipped: 0 };
+
+    var headers = values[0].map(function (h) { return String(h).trim().toLowerCase(); });
+    var col = headers.indexOf("kredensial_hash");
+    if (col === -1) throw new Error("Kolom kredensial_hash tidak ditemukan.");
+
+    var migrated = 0, skipped = 0;
+    var colValues = [];
+    for (var i = 1; i < values.length; i++) {
+      var cur = String(values[i][col]).trim();
+      if (cur === "" || cur.indexOf("v2:") === 0) {
+        colValues.push([values[i][col]]); // biarkan apa adanya
+        skipped++;
+      } else {
+        colValues.push(["v2:" + hmacSha256Hex_(pepper, cur)]);
+        migrated++;
+      }
+    }
+    sheet.getRange(2, col + 1, colValues.length, 1).setValues(colValues);
+    Logger.log("migrateCredentials: migrated=" + migrated + " skipped=" + skipped);
+    return { total: values.length - 1, migrated: migrated, skipped: skipped };
+  }
+
+  /* ------------------------------------------------------------------ */
   /* Ekspor                                                               */
   /* ------------------------------------------------------------------ */
 
   return {
     login: login,
+    logout: logout,
     read: read,
+    provisionUser: provisionUser,
+    migrateCredentials: migrateCredentials,
     sheetToObjects: sheetToObjects_,
   };
 

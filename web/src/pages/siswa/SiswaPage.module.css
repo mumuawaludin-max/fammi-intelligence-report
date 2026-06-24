@@ -259,3 +259,115 @@
   from { opacity: 0; transform: translateY(10px) scale(0.96); }
   to   { opacity: 1; transform: translateY(0) scale(1); }
 }
+
+/* ════ Laporan Bakat premium motion ════ */
+@keyframes fammiRise    { from{opacity:0;transform:translateY(14px)} to{opacity:1;transform:translateY(0)} }
+@keyframes fammiStepIn  { from{opacity:0;transform:translateY(20px) scale(.985)} to{opacity:1;transform:translateY(0) scale(1)} }
+@keyframes fammiCollapseIn { from{opacity:0;transform:translateY(-6px)} to{opacity:1;transform:translateY(0)} }
+@keyframes fammiSheen   { from{transform:translateX(-120%) skewX(-18deg)} to{transform:translateX(260%) skewX(-18deg)} }
+@keyframes fammiFloatA  { 0%,100%{transform:translate(0,0)} 50%{transform:translate(6px,-8px)} }
+@keyframes fammiFloatB  { 0%,100%{transform:translate(0,0)} 50%{transform:translate(-7px,6px)} }
+
+.lgSheen  { position:absolute;top:0;left:0;height:100%;width:42%;background:linear-gradient(100deg,transparent,rgba(255,255,255,.22),transparent);pointer-events:none;filter:blur(2px);animation:fammiSheen 1.5s ease-out .35s 1 both; }
+.lgBlobA  { animation:fammiFloatA 9s ease-in-out infinite; }
+.lgBlobB  { animation:fammiFloatB 11s ease-in-out infinite; }
+.lgRise   { animation:fammiRise .5s cubic-bezier(.22,.61,.36,1) both; }
+.lgStep   { animation:fammiStepIn .34s cubic-bezier(.22,.61,.36,1) both; }
+.lgCollapse { animation:fammiCollapseIn .28s ease both; }
+
+.lgCta    { position:relative;overflow:hidden;transition:transform .16s ease,box-shadow .22s ease;-webkit-tap-highlight-color:transparent; }
+.lgCta:active { transform:scale(.975); }
+.lgCtaGlow { box-shadow:0 12px 30px rgba(99,35,218,.30),0 2px 0 rgba(255,255,255,.18) inset; }
+.lgCtaGlow:active { box-shadow:0 6px 16px rgba(99,35,218,.34); }
+
+.lgPress  { transition:transform .16s ease,border-color .18s ease,box-shadow .2s ease;-webkit-tap-highlight-color:transparent; }
+.lgPress:active { transform:scale(.985); }
+
+.lgRow    { transition:background .16s ease,transform .12s ease;border-radius:12px; }
+.lgRow:hover { background:#FAF8FF; }
+.lgRow:active { transform:scale(.99); }
+
+.lgCiri   { transition:transform .2s cubic-bezier(.22,.61,.36,1),box-shadow .2s ease; }
+.lgCiri:hover { transform:translateY(-3px);box-shadow:0 10px 22px rgba(20,20,26,.08); }
+
+.lgPath   { transition:transform .14s ease,box-shadow .2s ease;-webkit-tap-highlight-color:transparent; }
+.lgPath:active { transform:scale(.96); }
+
+.lgDot    { transition:width .28s cubic-bezier(.22,.61,.36,1),background .2s ease; }
+
+@keyframes fammiBounce { 0%,100%{transform:translateY(0)} 50%{transform:translateY(5px)} }
+.lgBounce { animation:fammiBounce 1.6s ease-in-out infinite; }
+
+/* Sembunyikan scrollbar di area scroll mode terpandu */
+.noScrollbar { scrollbar-width:none; -ms-overflow-style:none; }
+.noScrollbar::-webkit-scrollbar { display:none; }
+
+/* ════ Peta perjalanan (gamifikasi mode terpandu) ════ */
+@keyframes fammiMapDraw { from{stroke-dashoffset:1} to{stroke-dashoffset:0} }
+.mapDraw { stroke-dasharray:1; animation:fammiMapDraw 1.1s ease .25s both; }
+
+@keyframes fammiNodePop {
+  0%   { opacity:0; transform:translate(-50%,-50%) scale(.2) }
+  60%  { opacity:1; transform:translate(-50%,-50%) scale(1.14) }
+  100% { opacity:1; transform:translate(-50%,-50%) scale(1) }
+}
+.mapNode { animation:fammiNodePop .5s cubic-bezier(.22,.61,.36,1) both; }
+
+@keyframes fammiPulse {
+  0%   { transform:translate(-50%,-50%) scale(.65); opacity:.55 }
+  70%  { opacity:0 }
+  100% { transform:translate(-50%,-50%) scale(1.9); opacity:0 }
+}
+.mapPulse {
+  position:absolute; left:50%; top:50%; width:40px; height:40px; border-radius:15px;
+  background:radial-gradient(circle, rgba(99,35,218,.40), transparent 70%);
+  animation:fammiPulse 2.1s ease-out infinite; pointer-events:none;
+}
+
+/* ════ Splash & loader bermerek (gamified) ════ */
+@keyframes fammiSplashFade { 0%{opacity:1} 68%{opacity:1} 100%{opacity:0} }
+.splash {
+  position:absolute; inset:0; z-index:30;
+  display:flex; flex-direction:column; align-items:center; justify-content:center; gap:22px;
+  background:radial-gradient(130% 120% at 50% 28%, #8A4BF5 0%, #6323DA 50%, #3E0E96 100%);
+  color:#fff;
+}
+.splashFade { animation:fammiSplashFade 1.7s ease both; }
+.splashText { animation:fammiRise .6s ease .5s both; }
+
+/* Logo orb: melayang, bersinar, dengan titik warna mengorbit */
+@keyframes fammiOrbIn    { 0%{opacity:0;transform:scale(.3) rotate(-12deg)} 55%{opacity:1;transform:scale(1.12) rotate(3deg)} 100%{opacity:1;transform:scale(1) rotate(0)} }
+@keyframes fammiOrbBob   { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-7px)} }
+@keyframes fammiOrbGlow  { 0%,100%{opacity:.45;transform:scale(.92)} 50%{opacity:.85;transform:scale(1.08)} }
+@keyframes fammiOrbSonar { 0%{opacity:.55;transform:scale(.82)} 100%{opacity:0;transform:scale(1.75)} }
+@keyframes fammiOrbitA   { from{transform:rotate(0deg) translateX(64px)} to{transform:rotate(360deg) translateX(64px)} }
+@keyframes fammiOrbitB   { from{transform:rotate(0deg) translateX(56px)} to{transform:rotate(-360deg) translateX(56px)} }
+@keyframes fammiOrbitC   { from{transform:rotate(140deg) translateX(70px)} to{transform:rotate(500deg) translateX(70px)} }
+.orbWrap { position:relative; width:150px; height:150px; display:grid; place-items:center; }
+.orbGlow {
+  position:absolute; width:120px; height:120px; border-radius:50%;
+  background:radial-gradient(circle, rgba(255,255,255,.55), transparent 64%);
+  filter:blur(6px); animation:fammiOrbGlow 2.6s ease-in-out infinite;
+}
+.orbRing {
+  position:absolute; width:92px; height:92px; border-radius:28px;
+  box-shadow:0 0 0 2px rgba(255,255,255,.45); animation:fammiOrbSonar 2s ease-out infinite;
+}
+.orbLogo {
+  position:relative; z-index:3; width:92px; height:92px; border-radius:28px; background:#fff;
+  display:grid; place-items:center; box-shadow:0 18px 48px rgba(0,0,0,.32);
+  animation:fammiOrbIn .8s cubic-bezier(.22,.9,.3,1) both, fammiOrbBob 3s ease-in-out 1s infinite;
+}
+.orbDotA, .orbDotB, .orbDotC { position:absolute; top:50%; left:50%; border-radius:50%; }
+.orbDotA { width:12px; height:12px; margin:-6px 0 0 -6px; background:#FDBD59; box-shadow:0 0 10px rgba(253,189,89,.7); animation:fammiOrbitA 3s linear infinite; }
+.orbDotB { width:9px;  height:9px;  margin:-4.5px 0 0 -4.5px; background:#A8CAFF; box-shadow:0 0 10px rgba(168,202,255,.7); animation:fammiOrbitB 4.4s linear infinite; }
+.orbDotC { width:7px;  height:7px;  margin:-3.5px 0 0 -3.5px; background:#B4EDBF; box-shadow:0 0 10px rgba(180,237,191,.7); animation:fammiOrbitC 2.6s linear infinite; }
+
+@media (prefers-reduced-motion:reduce) {
+  .mapDraw,.mapNode,.mapPulse,.splash,.splashFade,.splashText,.orbGlow,.orbRing,.orbLogo,.orbDotA,.orbDotB,.orbDotC { animation:none !important; }
+}
+
+@media (prefers-reduced-motion:reduce) {
+  .lgSheen,.lgBlobA,.lgBlobB,.lgRise,.lgStep,.lgCollapse,.lgBounce { animation:none !important; }
+  .lgCta,.lgPress,.lgCiri,.lgRow,.lgPath { transition:none !important; }
+}

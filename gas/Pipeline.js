@@ -24,7 +24,7 @@
 var PIPELINE_CONFIG = {
   inputSheet:  "Input_MI",
   outputSheet: "Output_MI",
-  geminiModel: "gemini-2.5-flash-lite",
+  geminiModel: "gemini-3.5-flash",
 };
 
 var KOLOM_INPUT = [
@@ -1098,7 +1098,14 @@ function arrayToLines_(arr) {
   return arr.map(function(s) { return "- " + s; }).join("\n");
 }
 
-function debugSatuMurid() {
+/**
+ * Batch generator: jalankan sampai max 30 murid per trigger (timeout-safe).
+ * Panggil berkali-kali untuk batch berikutnya:
+ *   debugBatch_(1, 30)   → murid baris 1-30
+ *   debugBatch_(31, 60)  → murid baris 31-60
+ *   debugBatch_(61, 90)  → dst
+ */
+function debugBatch_(startIdx, endIdx) {
   var props     = PropertiesService.getScriptProperties();
   var geminiKey = props.getProperty("GEMINI_API_KEY");
   var wbId      = props.getProperty("DATA_WORKBOOK_ID");
@@ -1108,18 +1115,70 @@ function debugSatuMurid() {
   var inputRows = Gate.sheetToObjects(inputSh);
   var outputRows = Gate.sheetToObjects(outputSh);
 
-  var inp = inputRows[0];
-  Logger.log("Proses: " + inp.murid_id);
+  var BATCH_SIZE = 30;
+  var actualEnd = Math.min(endIdx, startIdx + BATCH_SIZE - 1);
 
-  try {
-    var result = buildOutputRow_(inp, geminiKey);
-    Logger.log("buildOutputRow_ sukses, jumlah kolom: " + Object.keys(result).length);
-    Logger.log("narasi_cover: " + (result.narasi_cover || "(kosong)").substring(0, 80));
-    Logger.log("smart_s: " + (result.smart_s || "(kosong)").substring(0, 80));
-    upsertOutputMI_(outputSh, outputRows, result);
-    Logger.log("Berhasil tulis ke Output_MI untuk " + inp.murid_id);
-  } catch (e) {
-    Logger.log("ERROR: " + e.message);
-    Logger.log("Stack: " + e.stack);
+  Logger.log("=== BATCH " + startIdx + " to " + actualEnd + " ===");
+  Logger.log("Total murid di sheet: " + inputRows.length);
+
+  var ok = 0, skip = 0, err = 0;
+  for (var i = startIdx - 1; i < Math.min(actualEnd, inputRows.length); i++) {
+    var inp = inputRows[i];
+    if (!inp.murid_id) {
+      Logger.log("Baris " + (i + 1) + " kosong, skip");
+      skip++;
+      continue;
+    }
+
+    var mid = inp.murid_id;
+    Logger.log("\n[" + (i + 1) + "] Proses: " + mid);
+
+    try {
+      var result = buildOutputRow_(inp, geminiKey);
+      Logger.log("✓ buildOutputRow_ sukses (" + Object.keys(result).length + " kolom)");
+      Logger.log("  narasi_cover: " + (result.narasi_cover || "(kosong)").substring(0, 60) + "...");
+      upsertOutputMI_(outputSh, outputRows, result);
+      Logger.log("✓ Tulis Output_MI: " + mid);
+      ok++;
+    } catch (e) {
+      Logger.log("✗ ERROR [" + mid + "]: " + e.message);
+      err++;
+    }
+
+    if ((i - startIdx + 2) % 10 === 0) {
+      Logger.log("Progress: " + (i - startIdx + 2) + " / " + (actualEnd - startIdx + 1));
+    }
   }
+
+  Logger.log("\n=== RINGKASAN BATCH ===");
+  Logger.log("OK: " + ok + ", SKIP: " + skip + ", ERROR: " + err);
+  Logger.log("Batch selesai. Kalau ada error, jalankan batch ini lagi.");
+}
+
+/**
+ * Wrapper: jalankan batch pertama (murid 1-30). Tinggal klik di dropdown GAS.
+ */
+function debugSatuMurid() {
+  debugBatch_(1, 30);
+}
+
+/**
+ * Batch 2: murid 31-60. Klik di dropdown setelah batch 1 selesai.
+ */
+function debugBatch2_() {
+  debugBatch_(31, 60);
+}
+
+/**
+ * Batch 3: murid 61-90.
+ */
+function debugBatch3_() {
+  debugBatch_(61, 90);
+}
+
+/**
+ * Batch 4: murid 91-120. (adjust sesuai total murid)
+ */
+function debugBatch4_() {
+  debugBatch_(91, 120);
 }
