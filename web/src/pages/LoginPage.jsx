@@ -26,9 +26,9 @@ function IcSpark({ size = 16 }) { return <svg width={size} height={size} viewBox
 function IcArrowUp({ size = 11 }) { return <svg width={size} height={size} viewBox="0 0 24 24" {...S}><path d="M12 19V5M6 11l6-6 6 6" /></svg>; }
 
 const CHECKS = [
-  "Satu portal untuk semua jenis screening Fammi",
-  "Insight dirangkum otomatis, tanpa olah data manual",
-  "Lengkap dengan rekomendasi langkah berikutnya",
+  "Semua jenis screening Fammi dalam satu portal",
+  "Rangkuman otomatis, tanpa olah data manual",
+  "Setiap laporan dilengkapi tindak lanjut konkret",
 ];
 
 export default function LoginPage({ onLogin }) {
@@ -79,11 +79,7 @@ export default function LoginPage({ onLogin }) {
         </div>
 
         <div className={styles.brandBody}>
-          <h1 className={styles.headline}>Banyak screening.<br />Satu laporan cerdas.</h1>
-          <p className={styles.lead}>
-            Fammi Intelligence Report menyatukan seluruh hasil asesmen dan screening Anda
-            menjadi satu laporan yang ringkas, jelas, dan siap ditindaklanjuti.
-          </p>
+          <h1 className={styles.headline}>Membuat data asesmen menjadi informasi yang jelas dan bermanfaat.</h1>
 
           <div className={styles.checks}>
             {CHECKS.map((t) => (

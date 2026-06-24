@@ -140,15 +140,42 @@
 .help a:hover { text-decoration: underline; }
 
 /* ---------- responsif ---------- */
-@media (max-width: 920px) {
+
+/* Portrait kecil dan tablet: stack vertikal */
+@media (max-width: 920px) and (orientation: portrait) {
   .page { flex-direction: column; }
   .brand { flex: none; padding: 32px 26px 30px; }
   .brandBody { padding: 22px 0 0; justify-content: flex-start; }
-  .headline { font-size: 30px; }
+  .headline { font-size: 28px; }
   .checks, .preview, .brandFoot { display: none; }
   .form { flex: none; padding: 32px 24px 44px; }
   .formInner { max-width: 420px; margin: 0 auto; }
 }
+
+/* Landscape kecil (HP diputar): split horizontal kompak, no-scroll */
+@media (max-width: 920px) and (orientation: landscape) {
+  .page { flex-direction: row; height: 100svh; overflow: hidden; }
+  .brand { flex: 0 0 40%; padding: 14px 20px; overflow: hidden; }
+  .logoRow { gap: 10px; }
+  .logoMark { width: 38px; height: 38px; border-radius: 12px; }
+  .logoMark img { width: 24px; height: 24px; }
+  .logoName { font-size: 17px; }
+  .kicker { margin-top: 3px; }
+  .kicker span { font-size: 9.5px; }
+  .brandBody { padding: 12px 0 0; flex: 1; justify-content: flex-start; }
+  .headline { font-size: 18px; line-height: 1.25; letter-spacing: -0.2px; }
+  .lead, .checks, .preview, .brandFoot { display: none; }
+  .form { flex: 1; padding: 10px 18px 10px; overflow-y: auto; display: flex; align-items: center; justify-content: center; }
+  .formInner { width: 100%; max-width: 320px; }
+  .formEyebrow { display: none; }
+  .formTitle { font-size: 20px; letter-spacing: -0.4px; }
+  .formSub { margin: 5px 0 12px; font-size: 12.5px; line-height: 1.4; }
+  .field { margin-bottom: 9px; }
+  .input { height: 44px; font-size: 14px; }
+  .submit { height: 46px; margin-top: 3px; font-size: 14px; }
+  .help { margin: 9px 0 0; font-size: 12px; }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .spinner { animation: none; }
 }
