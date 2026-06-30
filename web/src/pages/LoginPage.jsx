@@ -203,7 +203,28 @@ function PreviewRow({ tile, icon, label, badge }) {
   );
 }
 
+// Animasi "data terkoneksi" — hanya mengisi strip kanan panel (x 530-715)
+// dan sudut ekstrem, tidak menyentuh area konten teks sama sekali.
 function BrandAnim() {
+  // Node dalam strip kanan x:530-710, y:40-728
+  const NODES = [
+    { id: "n1", cx: 570, cy:  80 },
+    { id: "n2", cx: 660, cy: 140 },
+    { id: "n3", cx: 695, cy: 240 },
+    { id: "n4", cx: 545, cy: 300 },
+    { id: "n5", cx: 680, cy: 380 },
+    { id: "n6", cx: 600, cy: 460 },
+    { id: "n7", cx: 700, cy: 540 },
+    { id: "n8", cx: 555, cy: 610 },
+    { id: "n9", cx: 670, cy: 690 },
+  ];
+  const EDGES = [
+    ["n1","n2"], ["n2","n3"], ["n2","n4"],
+    ["n3","n5"], ["n4","n5"], ["n5","n6"],
+    ["n6","n7"], ["n6","n8"], ["n7","n9"], ["n8","n9"],
+  ];
+  const byId = Object.fromEntries(NODES.map(n => [n.id, n]));
+
   return (
     <svg
       aria-hidden="true"
@@ -212,79 +233,61 @@ function BrandAnim() {
     >
       <defs>
         <style>{`
-          @keyframes baFloat { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-18px)} }
-          @keyframes baFloatR { 0%,100%{transform:translateY(0)} 50%{transform:translateY(14px)} }
-          @keyframes baPulse { 0%,100%{opacity:.18} 50%{opacity:.42} }
-          @keyframes baDash { to{stroke-dashoffset:0} }
-          @keyframes baCount { 0%{opacity:0;transform:translateY(8px)} 100%{opacity:1;transform:translateY(0)} }
-          @keyframes baRing { 0%{stroke-dashoffset:220} 100%{stroke-dashoffset:60} }
-          @keyframes baBar { from{transform:scaleY(0)} to{transform:scaleY(1)} }
+          @keyframes baEdge  { to { stroke-dashoffset: 0 } }
+          @keyframes baPulse { 0%,100%{opacity:.15} 50%{opacity:.45} }
+          @keyframes baNode  { 0%{opacity:0;r:0} 100%{opacity:1;r:5} }
+          @keyframes baFlow  {
+            0%   { stroke-dashoffset: 60 }
+            100% { stroke-dashoffset: 0 }
+          }
+          @keyframes baGlow  { 0%,100%{opacity:.22;r:9} 50%{opacity:.5;r:13} }
         `}</style>
       </defs>
 
-      {/* grid titik latar */}
-      {Array.from({length: 8}).map((_, row) =>
-        Array.from({length: 6}).map((_, col) => (
-          <circle
-            key={`${row}-${col}`}
-            cx={col * 90 + 40} cy={row * 90 + 30}
-            r="1.5" fill="rgba(255,255,255,0.12)"
-            style={{ animation: `baPulse ${2.4 + (row + col) * 0.3}s ease-in-out infinite`, animationDelay: `${(row * col * 0.17) % 2}s` }}
+      {/* garis koneksi antar node, gambar berurutan */}
+      {EDGES.map(([a, b], i) => {
+        const na = byId[a], nb = byId[b];
+        const dx = nb.cx - na.cx, dy = nb.cy - na.cy;
+        const len = Math.round(Math.sqrt(dx*dx + dy*dy));
+        return (
+          <line key={`e${i}`}
+            x1={na.cx} y1={na.cy} x2={nb.cx} y2={nb.cy}
+            stroke="rgba(255,255,255,0.22)" strokeWidth="1.2"
+            strokeDasharray={len} strokeDashoffset={len}
+            style={{ animation: `baEdge .6s ease ${0.3 + i * 0.18}s forwards` }}
           />
-        ))
-      )}
+        );
+      })}
 
-      {/* garis grafik bergerak */}
-      <polyline
-        points="30,380 110,340 190,360 270,300 350,280 430,240 510,260 590,210 670,190 750,160"
-        fill="none" stroke="rgba(255,255,255,0.18)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
-        strokeDasharray="700" strokeDashoffset="700"
-        style={{ animation: "baDash 3.2s cubic-bezier(.22,.61,.36,1) 0.4s forwards" }}
-      />
-      <polyline
-        points="30,440 110,420 190,450 270,400 350,380 430,360 510,390 590,340 670,320 750,290"
-        fill="none" stroke="rgba(255,255,255,0.10)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"
-        strokeDasharray="700" strokeDashoffset="700"
-        style={{ animation: "baDash 3.8s cubic-bezier(.22,.61,.36,1) 0.8s forwards" }}
-      />
+      {/* titik sinyal bergerak di atas garis */}
+      {EDGES.map(([a, b], i) => {
+        const na = byId[a], nb = byId[b];
+        const dx = nb.cx - na.cx, dy = nb.cy - na.cy;
+        const len = Math.round(Math.sqrt(dx*dx + dy*dy));
+        return (
+          <line key={`f${i}`}
+            x1={na.cx} y1={na.cy} x2={nb.cx} y2={nb.cy}
+            stroke="rgba(255,255,255,0.65)" strokeWidth="1.5" strokeLinecap="round"
+            strokeDasharray={`6 ${len}`} strokeDashoffset="60"
+            style={{ animation: `baFlow ${1.8 + (i % 3) * 0.6}s linear ${1.2 + i * 0.2}s infinite` }}
+          />
+        );
+      })}
 
-      {/* donat ring kanan atas */}
-      <g style={{ animation: "baFloat 6s ease-in-out infinite", transformOrigin: "680px 140px" }}>
-        <circle cx="680" cy="140" r="52" fill="none" stroke="rgba(255,255,255,0.10)" strokeWidth="14" />
-        <circle cx="680" cy="140" r="52" fill="none" stroke="rgba(255,255,255,0.28)" strokeWidth="14"
-          strokeDasharray="220" strokeDashoffset="220" strokeLinecap="round"
-          style={{ animation: "baRing 2s cubic-bezier(.22,.61,.36,1) 0.6s forwards", transformOrigin: "680px 140px", transform: "rotate(-90deg)" }}
+      {/* glow ring di belakang node */}
+      {NODES.map((n, i) => (
+        <circle key={`g${n.id}`}
+          cx={n.cx} cy={n.cy} r="9" fill="rgba(255,255,255,0.08)"
+          style={{ animation: `baGlow ${2.4 + i * 0.4}s ease-in-out ${i * 0.3}s infinite` }}
         />
-        <text x="680" y="144" textAnchor="middle" dominantBaseline="middle" fill="rgba(255,255,255,0.9)" fontSize="16" fontWeight="800" fontFamily="Montserrat,sans-serif"
-          style={{ animation: "baCount .6s ease 1.4s both" }}>78%</text>
-      </g>
+      ))}
 
-      {/* bar chart kiri bawah */}
-      <g style={{ animation: "baFloatR 7s ease-in-out 1s infinite", transformOrigin: "120px 500px" }}>
-        {[
-          { x: 60,  h: 55, c: "rgba(255,255,255,0.35)", d: "0.8s" },
-          { x: 88,  h: 78, c: "rgba(255,255,255,0.55)", d: "1.0s" },
-          { x: 116, h: 62, c: "rgba(255,255,255,0.35)", d: "1.2s" },
-          { x: 144, h: 90, c: "rgba(255,255,255,0.70)", d: "1.4s" },
-          { x: 172, h: 48, c: "rgba(255,255,255,0.28)", d: "1.6s" },
-        ].map((b, i) => (
-          <rect key={i} x={b.x} y={560 - b.h} width="20" height={b.h} rx="5" fill={b.c}
-            style={{ transformOrigin: `${b.x + 10}px 560px`, animation: `baBar .7s cubic-bezier(.34,1.35,.5,1) ${b.d} both` }}
-          />
-        ))}
-      </g>
-
-      {/* label angka mengambang */}
-      {[
-        { x: 310, y: 270, val: "89", label: "Naturalis",    delay: "1.6s" },
-        { x: 520, y: 380, val: "75", label: "Logika",       delay: "2.0s" },
-        { x: 180, y: 180, val: "82", label: "Intrapersonal",delay: "2.4s" },
-      ].map((n, i) => (
-        <g key={i} style={{ animation: `baCount .6s ease ${n.delay} both` }}>
-          <rect x={n.x - 4} y={n.y - 22} width="88" height="36" rx="10" fill="rgba(255,255,255,0.10)" />
-          <text x={n.x + 4} y={n.y - 5} fill="rgba(255,255,255,0.95)" fontSize="13" fontWeight="800" fontFamily="Montserrat,sans-serif">{n.val}</text>
-          <text x={n.x + 4} y={n.y + 9} fill="rgba(255,255,255,0.60)" fontSize="9.5" fontWeight="600" fontFamily="Montserrat,sans-serif">{n.label}</text>
-        </g>
+      {/* node utama */}
+      {NODES.map((n, i) => (
+        <circle key={n.id}
+          cx={n.cx} cy={n.cy} r="5" fill="rgba(255,255,255,0.85)"
+          style={{ animation: `baNode .4s cubic-bezier(.34,1.35,.5,1) ${0.5 + i * 0.14}s both` }}
+        />
       ))}
     </svg>
   );
