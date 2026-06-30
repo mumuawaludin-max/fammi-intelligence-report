@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import SampleTag from "../../components/SampleTag";
 import { useGasRead } from "../../lib/useGasRead";
 import { transformMIData } from "./miTransform";
@@ -9,7 +9,7 @@ import styles from "./SiswaPage.module.css";
 //  Di-resolve ke hex agar aman dipakai sebagai atribut SVG.
 // ════════════════════════════════════════════════════════════════════════════
 const T = {
-  bg:        "#F6F2EB",
+  bg:        "#EDEDF0",
   surface:   "#FFFFFF",
   brand:     "#6323DA",
   violet50:  "#F6F3FF",
@@ -838,6 +838,90 @@ const CIRI_TONE = {
 // ════════════════════════════════════════════════════════════════════════════
 //  VIEW: BAKAT (light, Laporan Bakat Siswa)
 // ════════════════════════════════════════════════════════════════════════════
+// Checklist harian 7 hari. Konten ini nantinya bisa ditarik dari Sheets
+// lewat GAS — untuk sekarang pakai item statis yang relevan untuk semua profil MI.
+const DAILY_ITEMS = [
+  { id: "d1", label: "Refleksi 5 menit: apa yang aku pelajari hari ini?" },
+  { id: "d2", label: "Coba satu cara belajar baru sesuai kecerdasanku" },
+  { id: "d3", label: "Baca atau tonton topik yang aku minati selama 10 menit" },
+  { id: "d4", label: "Ceritakan satu hal yang aku pelajari ke orang lain" },
+  { id: "d5", label: "Tantang diri dengan soal atau masalah satu level lebih tinggi" },
+  { id: "d6", label: "Istirahat aktif: gerak, musik, atau gambar sesuai kecerdasanku" },
+  { id: "d7", label: "Tulis rencana belajar untuk besok" },
+];
+
+function useDailyChecklist(studentKey) {
+  const storageKey = `fir_checklist_${studentKey}`;
+  const [checked, setChecked] = useState(() => {
+    try { return JSON.parse(localStorage.getItem(storageKey) || "{}"); }
+    catch { return {}; }
+  });
+  const toggle = useCallback((id) => {
+    setChecked((prev) => {
+      const next = { ...prev, [id]: !prev[id] };
+      try { localStorage.setItem(storageKey, JSON.stringify(next)); } catch {}
+      return next;
+    });
+  }, [storageKey]);
+  return { checked, toggle };
+}
+
+function DailyChecklist({ studentKey }) {
+  const { checked, toggle } = useDailyChecklist(studentKey);
+  const done = DAILY_ITEMS.filter((it) => checked[it.id]).length;
+
+  return (
+    <div style={{ padding: "20px 20px 0" }}>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
+        <div>
+          <div style={{ fontSize: 10.5, fontWeight: 800, letterSpacing: ".12em", textTransform: "uppercase", color: T.brand, marginBottom: 2 }}>7 Hari ke depan</div>
+          <div style={{ fontSize: 15, fontWeight: 800, color: T.textStrong, fontFamily: MONT }}>Kebiasaan harian</div>
+        </div>
+        <span style={{ fontSize: 12, fontWeight: 700, padding: "4px 11px", borderRadius: 999, background: done === DAILY_ITEMS.length ? T.mintSoft : T.violet100, color: done === DAILY_ITEMS.length ? T.mintInk : T.violet700 }}>
+          {done}/{DAILY_ITEMS.length}
+        </span>
+      </div>
+      <div style={{ background: T.surface, borderRadius: 20, overflow: "hidden", boxShadow: "0 4px 16px rgba(20,20,26,0.06)" }}>
+        {DAILY_ITEMS.map((it, idx) => {
+          const on = !!checked[it.id];
+          return (
+            <div
+              key={it.id}
+              onClick={() => toggle(it.id)}
+              style={{
+                display: "flex", alignItems: "center", gap: 13, padding: "13px 16px",
+                borderTop: idx > 0 ? `1px solid ${T.divider}` : "none",
+                cursor: "pointer", userSelect: "none",
+                background: on ? "rgba(46,158,107,0.04)" : "transparent",
+                transition: "background .15s",
+              }}
+            >
+              <span style={{
+                width: 22, height: 22, borderRadius: 7, flexShrink: 0,
+                border: on ? "none" : `2px solid ${T.divider}`,
+                background: on ? T.mintInk : "transparent",
+                display: "grid", placeItems: "center",
+                transition: "all .15s",
+              }}>
+                {on && <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M2 6l3 3 5-5" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>}
+              </span>
+              <span style={{
+                fontSize: 13, fontWeight: 600, lineHeight: 1.5,
+                color: on ? T.textFaint : T.textBody,
+                textDecoration: on ? "line-through" : "none",
+                transition: "color .15s",
+              }}>
+                {it.label}
+              </span>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+// ════════════════════════════════════════════════════════════════════════════
 // Modul yang tersedia untuk peran Siswa. Floating menu dibangun dari sini.
 // Saat ini baru "mi" (Laporan Bakat) yang dibangun; karakter dan screening menyusul.
 const SISWA_MODULE_DEFS = [
@@ -880,7 +964,7 @@ function ReadModeGate({ student, panggilan, top1, top2, isSample, onLogout, modu
     <div style={{ background: T.bg, minHeight: "100%", fontFamily: MONT, display: "flex", flexDirection: "column" }}>
 
       {/* ── Header ── */}
-      <header style={{ position: "sticky", top: 0, zIndex: 20, background: "rgba(246,242,235,0.96)", backdropFilter: "blur(12px)", WebkitBackdropFilter: "blur(12px)", borderBottom: `1px solid ${T.line}`, padding: "10px 18px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+      <header style={{ position: "sticky", top: 0, zIndex: 20, background: "rgba(255,255,255,0.97)", backdropFilter: "blur(12px)", WebkitBackdropFilter: "blur(12px)", borderBottom: `1px solid ${T.divider}`, padding: "10px 18px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
         <img src="/logo-purple.png" alt="Fammi" style={{ height: 22, width: "auto", objectFit: "contain" }} />
         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
           {(student.kelas || student.sekolah) && <span style={{ fontSize: 11, fontWeight: 600, color: T.textMuted }}>{[student.kelas, student.sekolah].filter(Boolean).join(" · ")}</span>}
@@ -955,6 +1039,8 @@ function ReadModeGate({ student, panggilan, top1, top2, isSample, onLogout, modu
             </button>
           </div>
         </div>
+
+        <DailyChecklist studentKey={student.username || student.name || "siswa"} />
 
         {isSample && (
           <div style={{ marginTop: 22, textAlign: "center" }}>
@@ -1446,19 +1532,21 @@ function BakatView({ student, intel, topDetails, mi, isSample, onLogout, modules
               </div>
             </div>
             <div style={{ marginTop: 14 }}>
-              <div style={{ fontSize: 10.5, fontWeight: 800, letterSpacing: ".06em", textTransform: "uppercase", color: T.textFaint, marginBottom: 4, paddingLeft: 4 }}>Ketuk untuk makna tiap kecerdasan</div>
-              {chart.map((c) => {
-                const ls = LEVEL_STYLE[c.level] || LEVEL_STYLE.Sedang;
-                return (
-                  <div key={c.code} onClick={() => openKecerdasan(c.code)} className={styles.lgRow} style={{ display: "flex", alignItems: "center", gap: 11, padding: "10px 10px", cursor: "pointer" }}>
-                    <span style={{ fontSize: 17, width: 22, textAlign: "center", flexShrink: 0 }}>{INTEL_DEFAULTS[c.code]?.emoji || "✨"}</span>
-                    <span style={{ flex: 1, fontSize: 13.5, fontWeight: 700, color: T.textBody, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{c.name}</span>
-                    <span style={{ fontSize: 11, fontWeight: 700, padding: "2px 9px", borderRadius: 999, background: ls.bg, color: ls.ink, whiteSpace: "nowrap", flexShrink: 0 }}>{c.level}</span>
-                    <span style={{ fontSize: 14, fontWeight: 800, color: T.textStrong, width: 24, textAlign: "right", flexShrink: 0, fontFamily: MONT }}>{c.score}</span>
-                    <IcChevronRight size={15} style={{ color: T.textFaint, flexShrink: 0 }} />
-                  </div>
-                );
-              })}
+              <div style={{ fontSize: 10.5, fontWeight: 800, letterSpacing: ".06em", textTransform: "uppercase", color: T.textFaint, marginBottom: 8, paddingLeft: 4 }}>Ketuk untuk makna tiap kecerdasan</div>
+              <div style={{ background: T.surface, borderRadius: 20, overflow: "hidden", boxShadow: "0 4px 16px rgba(20,20,26,0.06)" }}>
+                {chart.map((c, idx) => {
+                  const ls = LEVEL_STYLE[c.level] || LEVEL_STYLE.Sedang;
+                  return (
+                    <div key={c.code} onClick={() => openKecerdasan(c.code)} className={styles.lgRow} style={{ display: "flex", alignItems: "center", gap: 11, padding: "11px 14px", cursor: "pointer", borderTop: idx > 0 ? `1px solid ${T.divider}` : "none" }}>
+                      <span style={{ fontSize: 17, width: 22, textAlign: "center", flexShrink: 0 }}>{INTEL_DEFAULTS[c.code]?.emoji || "✨"}</span>
+                      <span style={{ flex: 1, fontSize: 13.5, fontWeight: 700, color: T.textBody, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{c.name}</span>
+                      <span style={{ fontSize: 11, fontWeight: 700, padding: "2px 9px", borderRadius: 999, background: ls.bg, color: ls.ink, whiteSpace: "nowrap", flexShrink: 0 }}>{c.level}</span>
+                      <span style={{ fontSize: 14, fontWeight: 800, color: T.textStrong, width: 24, textAlign: "right", flexShrink: 0, fontFamily: MONT }}>{c.score}</span>
+                      <IcChevronRight size={15} style={{ color: T.textFaint, flexShrink: 0 }} />
+                    </div>
+                  );
+                })}
+              </div>
             </div>
           </div>
         );
@@ -1555,6 +1643,7 @@ function BakatView({ student, intel, topDetails, mi, isSample, onLogout, modules
         )}
 
         <DialogOverlay dialog={dialog} onClose={() => setDialog(null)} />
+        <FloatingFab modules={modules} showTop={false} onTop={() => {}} onHome={() => setReadMode(null)} />
       </div>
     );
   }
@@ -1955,17 +2044,20 @@ function BakatView({ student, intel, topDetails, mi, isSample, onLogout, modules
 
       <DialogOverlay dialog={dialog} onClose={() => setDialog(null)} />
 
-      <FloatingFab modules={modules} showTop={showFab} onTop={scrollToTop} />
+      <FloatingFab modules={modules} showTop={showFab} onTop={scrollToTop} onHome={() => setReadMode(null)} />
     </div>
   );
 }
 
 // Floating menu modular. Isi: tombol "ke atas" (saat ter-scroll), daftar modul
 // yang dilanggan, dan tautan ke website Fammi. Tambah modul lewat SISWA_MODULE_DEFS.
-function FloatingFab({ modules, showTop, onTop }) {
+function FloatingFab({ modules, showTop, onTop, onHome }) {
   const [open, setOpen] = useState(false);
 
   const items = [];
+  if (onHome) {
+    items.push({ key: "home", label: "Halaman awal", node: <IcHome size={16} />, onClick: () => { onHome(); setOpen(false); } });
+  }
   if (showTop) {
     items.push({ key: "top", label: "Ke atas", node: <IcArrowUp size={16} />, onClick: () => { onTop(); setOpen(false); } });
   }
