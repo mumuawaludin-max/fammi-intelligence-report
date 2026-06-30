@@ -1,6 +1,5 @@
 import { useState } from "react";
-import { getSession, clearSession } from "./lib/auth";
-import { gasClient } from "./lib/gasClient";
+import { getSession, logoutSupabase } from "./lib/auth";
 import LoginPage from "./pages/LoginPage";
 import Header from "./components/Header";
 import NavBar from "./components/NavBar";
@@ -64,10 +63,7 @@ export default function App() {
 
   function handleLogin(newSession) { setSession(newSession); }
   function handleLogout() {
-    // Cabut token di server (best-effort), lalu bersihkan sesi lokal apa pun hasilnya.
-    const token = session?.token;
-    if (token) gasClient.post("logout", { token }).catch(() => {});
-    clearSession();
+    logoutSupabase();
     setSession(null);
   }
 

@@ -1,6 +1,5 @@
 import { useState } from "react";
-import { gasClient, GasError } from "../lib/gasClient";
-import { hashPin, saveSession } from "../lib/auth";
+import { loginSupabase, saveSession } from "../lib/auth";
 import styles from "./LoginPage.module.css";
 
 /**
@@ -47,19 +46,11 @@ export default function LoginPage({ onLogin }) {
 
     setLoading(true);
     try {
-      const kredensial_hash = await hashPin(kode);
-      const result = await gasClient.post("login", { username: username.trim(), kredensial_hash });
-
-      const session = {
-        token:   result.token,
-        user_id: result.user_id,
-        nama:    result.nama,
-        peran:   result.peran,
-      };
+      const session = await loginSupabase(username, kode);
       saveSession(session);
       onLogin(session);
     } catch (err) {
-      setError(err instanceof GasError ? err.message : "Tidak dapat menghubungi server. Coba lagi.");
+      setError(err.message || "Tidak dapat menghubungi server. Coba lagi.");
     } finally {
       setLoading(false);
     }
