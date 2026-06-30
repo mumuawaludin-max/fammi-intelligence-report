@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import SampleTag from "../../components/SampleTag";
-import { useGasRead } from "../../lib/useGasRead";
-import { transformMIData } from "./miTransform";
+import { supabase } from "../../lib/supabase";
+import { transformMIData, transformSupabaseMI } from "./miTransform";
 import styles from "./SiswaPage.module.css";
 
 // ════════════════════════════════════════════════════════════════════════════
@@ -2346,31 +2346,55 @@ function SiswaBottomNav({ activeView, setView }) {
 // ════════════════════════════════════════════════════════════════════════════
 //  MAIN PAGE
 // ════════════════════════════════════════════════════════════════════════════
+function useSiswaMI(session) {
+  const [loading, setLoading] = useState(true);
+  const [mi, setMi]           = useState(null);
+
+  useEffect(() => {
+    if (!session?.murid_id) { setLoading(false); return; }
+    supabase
+      .from("mi_hasil")
+      .select("kelas_id, skor_inter, skor_intra, skor_kines, skor_linguistik, skor_logmat, skor_musikal, skor_naturalis, skor_spasial, narasi_hero, narasi_kombinasi, pred_inter, pred_intra, pred_kines, pred_linguistik, pred_logmat, detail")
+      .eq("murid_id", session.murid_id)
+      .eq("status", "disetujui")
+      .order("periode_id", { ascending: false })
+      .limit(1)
+      .maybeSingle()
+      .then(({ data }) => {
+        if (!data) { setMi(null); setLoading(false); return; }
+        // detail = 191 kolom Output_MI lengkap (narasi, TOP 1/2/3, cara belajar, dst).
+        // Pakai transformMIData (versi penuh) bila ada; fallback ke versi ringkas.
+        const transformed = data.detail
+          ? transformMIData({ output_mi: [data.detail] }, session.nama)
+          : transformSupabaseMI(data, session.nama);
+        setMi(transformed);
+        setLoading(false);
+      });
+  }, [session?.murid_id]);
+
+  return { loading, mi };
+}
+
 export default function SiswaPage({ session, onLogout }) {
   const [activeView, setActiveView] = useState("bakat");
   const mainRef = useRef(null);
 
-  const { loading, data } = useGasRead("mi", null, session);
+  const { loading, mi } = useSiswaMI(session);
 
   useEffect(() => {
     if (mainRef.current) mainRef.current.scrollTop = 0;
   }, [activeView]);
 
-  let student, intel, karakter, aspek, dukungan, topDetails, mi;
+  let student, intel, karakter, aspek, dukungan, topDetails;
   let isSample = false;
 
-  if (data && data.output_mi && data.output_mi.length > 0) {
-    const transformed = transformMIData(data, session?.nama);
-    if (transformed) {
-      mi = transformed;
-      student = transformed.student;
-      intel = transformed.intel;
-      karakter = transformed.karakter;
-      aspek = transformed.aspek;
-      dukungan = transformed.dukungan;
-      topDetails = transformed.topDetails;
-      isSample = false;
-    }
+  if (mi) {
+    student    = mi.student;
+    intel      = mi.intel;
+    karakter   = mi.karakter;
+    aspek      = mi.aspek;
+    dukungan   = mi.dukungan;
+    topDetails = mi.topDetails;
   }
 
   // Belum ada data real: tampilkan contoh laporan (ditandai "Contoh" di footer)
@@ -2381,7 +2405,6 @@ export default function SiswaPage({ session, onLogout }) {
     karakter = SAMPLE_KARAKTER;
     aspek = SAMPLE_ASPEK;
     dukungan = SAMPLE_DUKUNGAN;
-    mi = null;
     isSample = true;
   }
 

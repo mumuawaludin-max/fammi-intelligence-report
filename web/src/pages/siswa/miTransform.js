@@ -1,5 +1,8 @@
 /**
- * Transform Output_MI (87+ kolom dari GAS) → format Siswa Bakat view
+ * Transform Output_MI → format Siswa Bakat view
+ * Ada dua versi:
+ *   transformMIData      — dari GAS (banyak kolom)
+ *   transformSupabaseMI  — dari Supabase mi_hasil (kolom skor_* dan pred_*)
  */
 
 const NAME_TO_CODE = {
@@ -304,4 +307,91 @@ function fallbackDesc(code, level) {
     Sp: { Kuat: "Kamu memiliki daya imajinasi visual yang sangat kuat.", Sedang: "Kamu punya daya imajinasi visual yang kuat dan senang berkarya.", Berkembang: "Daya imajinasi visualmu sedang berkembang." },
   };
   return (map[code] && map[code][level]) || "Terus kembangkan potensimu.";
+}
+
+// ── Kolom skor dan pred di tabel Supabase mi_hasil ────────────────────────────
+const SKOR_KEYS = {
+  Ie: "skor_inter", Ia: "skor_intra", Ki: "skor_kines", Ve: "skor_linguistik",
+  Lo: "skor_logmat", Mu: "skor_musikal", Na: "skor_naturalis", Sp: "skor_spasial",
+};
+const PRED_KEYS = {
+  Ie: "pred_inter", Ia: "pred_intra", Ki: "pred_kines",
+  Ve: "pred_linguistik", Lo: "pred_logmat",
+  // Mu, Na, Sp belum ada di import — dikompute dari skor
+};
+
+/**
+ * Transformasi satu baris mi_hasil dari Supabase → format yang sama dengan
+ * keluaran transformMIData, sehingga BakatView bisa memakai tanpa perubahan.
+ */
+export function transformSupabaseMI(row, sessionNama) {
+  if (!row) return null;
+
+  const intel = Object.entries(CODE_META).map(([code, meta]) => {
+    const score = parseFloat(row[SKOR_KEYS[code]]) || 0;
+    const predKey = PRED_KEYS[code];
+    const levelRaw = predKey ? str(row[predKey] || "") : "";
+    const level = normLevel(levelRaw) || computeLevel(score);
+    const desc = fallbackDesc(code, level);
+    return { code, name: meta.name, score: Math.round(score), level, desc, jaga: "", terlihat: [], lakukan: [], profesi: [], topIdx: -1 };
+  });
+  intel.sort((a, b) => b.score - a.score);
+
+  const topDetails = intel.slice(0, 3).map((item) => ({
+    ...item,
+    arti: item.desc,
+    jurusan: [],
+    parentTip: "",
+    profesiSorot: null,
+    profesiDetail: {},
+  }));
+
+  const topCodes = topDetails.map((t) => t.code);
+  intel.forEach((item) => {
+    const idx = topCodes.indexOf(item.code);
+    if (idx !== -1) item.topIdx = idx;
+  });
+
+  const namaFinal = sessionNama || str(row.nama_siswa) || "Siswa";
+  const student = {
+    name: namaFinal,
+    panggilan: namaFinal.split(/\s+/)[0],
+    kelas: str(row.kelas_id),
+    sekolah: "",
+  };
+
+  return {
+    student,
+    intel,
+    topNames: topDetails.map((t) => t.name.toLowerCase()),
+    topDetails,
+    rekom: { profesi: [], ekskul: [], jurusan: [], kuliah: [], lomba: [] },
+    karakter: [],
+    aspek: [],
+    dukungan: str(row.narasi_hero),
+    narasiKombinasi: str(row.narasi_kombinasi),
+    narasiProfil: "",
+    mapelSulit: [],
+    mapelNarasiFinal: "",
+    narasiCover: "",
+    caraBelajarSummary: "",
+    caraBelajarItems: [],
+    mapelKuasai: [],
+    ahaDesc: "",
+    gayaKomPositif: [],
+    gayaKomHindari: [],
+    gayaKomSiswa: [],
+    smartGoalsSheet: { s: "", m: "", a: "", r: "", t: "" },
+    hari7: [],
+    sinyalOrtu: [],
+    ciriKhas: [],
+    refleksiQuestions: [],
+    diskusiQuestions: [],
+    essayCara: "",
+    essayBerhasil: "",
+    essayKelebihan: "",
+    essayCita: "",
+    essayAlasan: "",
+    essayAI: "",
+  };
 }

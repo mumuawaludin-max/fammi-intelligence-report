@@ -1,6 +1,6 @@
-import { useState } from "react";
-import { useGasRead } from "../../lib/useGasRead";
-import { MI_META, MI_BY_CODE, processMIData, processOutputMI } from "./miMeta";
+import { useState, useEffect } from "react";
+import { supabase } from "../../lib/supabase";
+import { MI_META, MI_BY_CODE, processOutputMI } from "./miMeta";
 import StatTile from "../../components/StatTile";
 import RadarChart from "../../components/charts/RadarChart";
 import SectionHeading from "../../components/SectionHeading";
@@ -120,32 +120,97 @@ function ErrorState({ message, onRetry }) {
   );
 }
 
+// Tentukan kecerdasan dominan dari skor kolom mi_hasil
+function deriveTop1(row) {
+  const entries = [
+    ["Ie", row.skor_inter], ["Ia", row.skor_intra], ["Ki", row.skor_kines],
+    ["Ve", row.skor_linguistik], ["Lo", row.skor_logmat], ["Mu", row.skor_musikal],
+    ["Na", row.skor_naturalis], ["Sp", row.skor_spasial],
+  ];
+  let topCode = null, topScore = -1;
+  for (const [code, score] of entries) {
+    if (score != null && score > topScore) { topScore = score; topCode = code; }
+  }
+  return topCode ? MI_BY_CODE[topCode]?.name : null;
+}
+
+function toProcessable(row) {
+  return {
+    kelas_id:     row.kelas_id,
+    top_1:        deriveTop1(row),
+    r_inter:      row.skor_inter,
+    r_intra:      row.skor_intra,
+    r_kines:      row.skor_kines,
+    r_linguistik: row.skor_linguistik,
+    r_logmat:     row.skor_logmat,
+    r_musikal:    row.skor_musikal,
+    r_naturalis:  row.skor_naturalis,
+    r_spasial:    row.skor_spasial,
+  };
+}
+
+function useMIData(session) {
+  const [loading, setLoading] = useState(true);
+  const [rows, setRows]       = useState(null);
+  const [tl, setTl]           = useState(null);
+  const [error, setError]     = useState(null);
+
+  async function fetch_() {
+    setLoading(true);
+    setError(null);
+
+    const [{ data, error: err }, { data: tlData, error: tlErr }] = await Promise.all([
+      supabase
+        .from("mi_hasil")
+        .select("murid_id, kelas_id, skor_inter, skor_intra, skor_kines, skor_linguistik, skor_logmat, skor_musikal, skor_naturalis, skor_spasial")
+        .eq("sekolah_id", session.school_id)
+        .eq("status", "disetujui"),
+      supabase
+        .from("tindak_lanjut")
+        .select("id, action, trigger_desc, priority")
+        .eq("sekolah_id", session.school_id)
+        .eq("modul", "mi")
+        .eq("status", "disetujui")
+        .order("priority", { ascending: true }),
+    ]);
+
+    if (err) setError(err.message);
+    else setRows(data || []);
+
+    if (!tlErr) setTl(tlData || []);
+
+    setLoading(false);
+  }
+
+  useEffect(() => { fetch_(); }, [session.school_id]);
+
+  return { loading, rows, tl, error, refetch: fetch_ };
+}
+
 // ── Komponen utama ───────────────────────────────────────────────────────────
-export default function MIPage({ session, periodeId }) {
-  const { loading, data, error, refetch } = useGasRead("mi", periodeId, session);
+export default function MIPage({ session }) {
+  const { loading, rows, tl: tlRows, error, refetch } = useMIData(session);
   const [expanded, setExpanded] = useState(false);
 
-  // Putuskan sumber data: Output_MI (format baru) > Fakta_Aspek (format lama) > contoh
-  const hasOutputMI = Array.isArray(data?.output_mi) && data.output_mi.length > 0;
-  const hasFakta    = Array.isArray(data?.fakta_aspek) && data.fakta_aspek.length > 0;
-  const isSample    = !hasOutputMI && !hasFakta;
+  const hasData  = Array.isArray(rows) && rows.length > 0;
+  const isSample = !hasData;
 
-  const tl = isSample
-    ? SAMPLE_TINDAK_LANJUT
-    : (data?.tindak_lanjut || []).map((r) => ({
-        id: r.tl_id || r.id,
-        action: r.teks_aksi,
-        trigger: r.pemicu_ringkas,
+  const hasTl = Array.isArray(tlRows) && tlRows.length > 0;
+  const tl = hasTl
+    ? tlRows.map((r) => ({
+        id: r.id,
+        action: r.action,
+        trigger: r.trigger_desc,
         module: "mi",
-        priority: r.prioritas,
-      }));
+        priority: r.priority,
+      }))
+    : SAMPLE_TINDAK_LANJUT;
+  const tlIsSample = !hasTl;
 
   // Hitung agregat
   let processed;
-  if (hasOutputMI) {
-    processed = processOutputMI(data.output_mi);
-  } else if (hasFakta) {
-    processed = processMIData(data.fakta_aspek);
+  if (hasData) {
+    processed = processOutputMI(rows.map(toProcessable));
   } else {
     processed = {
       nSiswa: 29,
@@ -258,7 +323,7 @@ export default function MIPage({ session, periodeId }) {
       {/* ── Tindak lanjut ── */}
       <FollowupRibbon
         items={tl.filter((t) => t.module === "mi" || !t.module)}
-        isSample={isSample}
+        isSample={tlIsSample}
       />
     </div>
   );

@@ -84,7 +84,7 @@ export default function App() {
       <NavBar
         activeTab={activeTab}
         onTabChange={setActiveTab}
-        modules={["overview", "karakter", "screening", "mi"]}
+        modules={["overview", ...(session.modules || [])]}
       />
 
       <div className={styles.toolbar}>

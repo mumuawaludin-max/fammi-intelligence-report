@@ -30,20 +30,30 @@ export async function loginSupabase(username, kode) {
 
   const { data: profile, error: profileError } = await supabase
     .from("profiles")
-    .select("username, peran, school_id, cakupan")
+    .select("username, nama, peran, school_id, cakupan, murid_id")
     .eq("id", userId)
     .single();
 
   if (profileError || !profile) throw new Error("Profil pengguna tidak ditemukan.");
 
+  // Baca modul yang aktif untuk sekolah ini
+  const { data: modulRows } = await supabase
+    .from("school_modules")
+    .select("modul")
+    .eq("school_id", profile.school_id)
+    .eq("aktif", true);
+
+  const modules = (modulRows || []).map((r) => r.modul);
+
   return {
     user_id: userId,
     username: profile.username,
+    nama: profile.nama || profile.username,
     peran: profile.peran,
     school_id: profile.school_id,
     cakupan: profile.cakupan,
-    // field lama yang masih dipakai komponen
-    nama: profile.username,
+    murid_id: profile.murid_id,
+    modules,
     token: authData.session.access_token,
   };
 }
