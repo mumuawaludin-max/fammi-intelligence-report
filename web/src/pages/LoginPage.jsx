@@ -70,6 +70,7 @@ export default function LoginPage({ onLogin }) {
 
       {/* ════ Panel brand (kiri) ════ */}
       <aside className={styles.brand}>
+        <BrandAnim />
         <div className={styles.logoRow}>
           <span className={styles.logoMark}><img src="/favicon-512.png" alt="Fammi" /></span>
           <div>
@@ -199,5 +200,92 @@ function PreviewRow({ tile, icon, label, badge }) {
       <span className={styles.rowLabel}>{label}</span>
       {badge}
     </div>
+  );
+}
+
+function BrandAnim() {
+  return (
+    <svg
+      aria-hidden="true"
+      xmlns="http://www.w3.org/2000/svg"
+      style={{ position: "absolute", inset: 0, width: "100%", height: "100%", pointerEvents: "none", overflow: "hidden" }}
+    >
+      <defs>
+        <style>{`
+          @keyframes baFloat { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-18px)} }
+          @keyframes baFloatR { 0%,100%{transform:translateY(0)} 50%{transform:translateY(14px)} }
+          @keyframes baPulse { 0%,100%{opacity:.18} 50%{opacity:.42} }
+          @keyframes baDash { to{stroke-dashoffset:0} }
+          @keyframes baCount { 0%{opacity:0;transform:translateY(8px)} 100%{opacity:1;transform:translateY(0)} }
+          @keyframes baRing { 0%{stroke-dashoffset:220} 100%{stroke-dashoffset:60} }
+          @keyframes baBar { from{transform:scaleY(0)} to{transform:scaleY(1)} }
+        `}</style>
+      </defs>
+
+      {/* grid titik latar */}
+      {Array.from({length: 8}).map((_, row) =>
+        Array.from({length: 6}).map((_, col) => (
+          <circle
+            key={`${row}-${col}`}
+            cx={col * 90 + 40} cy={row * 90 + 30}
+            r="1.5" fill="rgba(255,255,255,0.12)"
+            style={{ animation: `baPulse ${2.4 + (row + col) * 0.3}s ease-in-out infinite`, animationDelay: `${(row * col * 0.17) % 2}s` }}
+          />
+        ))
+      )}
+
+      {/* garis grafik bergerak */}
+      <polyline
+        points="30,380 110,340 190,360 270,300 350,280 430,240 510,260 590,210 670,190 750,160"
+        fill="none" stroke="rgba(255,255,255,0.18)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
+        strokeDasharray="700" strokeDashoffset="700"
+        style={{ animation: "baDash 3.2s cubic-bezier(.22,.61,.36,1) 0.4s forwards" }}
+      />
+      <polyline
+        points="30,440 110,420 190,450 270,400 350,380 430,360 510,390 590,340 670,320 750,290"
+        fill="none" stroke="rgba(255,255,255,0.10)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"
+        strokeDasharray="700" strokeDashoffset="700"
+        style={{ animation: "baDash 3.8s cubic-bezier(.22,.61,.36,1) 0.8s forwards" }}
+      />
+
+      {/* donat ring kanan atas */}
+      <g style={{ animation: "baFloat 6s ease-in-out infinite", transformOrigin: "680px 140px" }}>
+        <circle cx="680" cy="140" r="52" fill="none" stroke="rgba(255,255,255,0.10)" strokeWidth="14" />
+        <circle cx="680" cy="140" r="52" fill="none" stroke="rgba(255,255,255,0.28)" strokeWidth="14"
+          strokeDasharray="220" strokeDashoffset="220" strokeLinecap="round"
+          style={{ animation: "baRing 2s cubic-bezier(.22,.61,.36,1) 0.6s forwards", transformOrigin: "680px 140px", transform: "rotate(-90deg)" }}
+        />
+        <text x="680" y="144" textAnchor="middle" dominantBaseline="middle" fill="rgba(255,255,255,0.9)" fontSize="16" fontWeight="800" fontFamily="Montserrat,sans-serif"
+          style={{ animation: "baCount .6s ease 1.4s both" }}>78%</text>
+      </g>
+
+      {/* bar chart kiri bawah */}
+      <g style={{ animation: "baFloatR 7s ease-in-out 1s infinite", transformOrigin: "120px 500px" }}>
+        {[
+          { x: 60,  h: 55, c: "rgba(255,255,255,0.35)", d: "0.8s" },
+          { x: 88,  h: 78, c: "rgba(255,255,255,0.55)", d: "1.0s" },
+          { x: 116, h: 62, c: "rgba(255,255,255,0.35)", d: "1.2s" },
+          { x: 144, h: 90, c: "rgba(255,255,255,0.70)", d: "1.4s" },
+          { x: 172, h: 48, c: "rgba(255,255,255,0.28)", d: "1.6s" },
+        ].map((b, i) => (
+          <rect key={i} x={b.x} y={560 - b.h} width="20" height={b.h} rx="5" fill={b.c}
+            style={{ transformOrigin: `${b.x + 10}px 560px`, animation: `baBar .7s cubic-bezier(.34,1.35,.5,1) ${b.d} both` }}
+          />
+        ))}
+      </g>
+
+      {/* label angka mengambang */}
+      {[
+        { x: 310, y: 270, val: "89", label: "Naturalis",    delay: "1.6s" },
+        { x: 520, y: 380, val: "75", label: "Logika",       delay: "2.0s" },
+        { x: 180, y: 180, val: "82", label: "Intrapersonal",delay: "2.4s" },
+      ].map((n, i) => (
+        <g key={i} style={{ animation: `baCount .6s ease ${n.delay} both` }}>
+          <rect x={n.x - 4} y={n.y - 22} width="88" height="36" rx="10" fill="rgba(255,255,255,0.10)" />
+          <text x={n.x + 4} y={n.y - 5} fill="rgba(255,255,255,0.95)" fontSize="13" fontWeight="800" fontFamily="Montserrat,sans-serif">{n.val}</text>
+          <text x={n.x + 4} y={n.y + 9} fill="rgba(255,255,255,0.60)" fontSize="9.5" fontWeight="600" fontFamily="Montserrat,sans-serif">{n.label}</text>
+        </g>
+      ))}
+    </svg>
   );
 }
