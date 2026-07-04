@@ -4,15 +4,15 @@ import { LoadingCards } from '../components/LoadingCards';
 import { ErrorState } from '../components/ErrorState';
 import { moduleColor, moduleShort, statusColor } from '../data/helpers';
 import { parseKarakterWorkbook } from '../importers/karakterImporter';
+import { periodeLabel } from '../../karakter/karakterMeta';
 
-const STEPS = ['Sekolah', 'Modul & periode', 'Upload file', 'Cek & konfirmasi'];
+const STEPS = ['Sekolah', 'Modul', 'Upload file', 'Cek & konfirmasi'];
 
 export function Upload() {
   const { data, loading, error, runImport, refetch } = useCms();
   const [step, setStep] = useState(1);
   const [sekolahId, setSekolahId] = useState('');
   const [modul, setModul] = useState('karakter');
-  const [periodeId, setPeriodeId] = useState('');
   const [file, setFile] = useState(null);
   const [parsed, setParsed] = useState(null);
   const [parseError, setParseError] = useState(null);
@@ -35,7 +35,7 @@ export function Upload() {
       return;
     }
     try {
-      const result = await parseKarakterWorkbook(f, { sekolahId, periodeId });
+      const result = await parseKarakterWorkbook(f, { sekolahId });
       if (!result.ok) {
         setParseError(result.error);
         return;
@@ -50,10 +50,9 @@ export function Upload() {
   async function handleConfirm() {
     setBusy(true);
     try {
-      await runImport({ sekolahId, modul, periodeId, fileName: file?.name, parsed });
+      await runImport({ sekolahId, modul, fileName: file?.name, parsed });
       setStep(1);
       setSekolahId('');
-      setPeriodeId('');
       setFile(null);
       setParsed(null);
     } finally {
@@ -101,8 +100,8 @@ export function Upload() {
 
       {step === 2 && (
         <div className="card" style={{ padding: 24 }}>
-          <div className="disp" style={{ fontSize: 16, fontWeight: 700, color: 'var(--ink)', marginBottom: 10 }}>Pilih modul & periode</div>
-          <div style={{ display: 'flex', gap: 8, marginBottom: 14 }}>
+          <div className="disp" style={{ fontSize: 16, fontWeight: 700, color: 'var(--ink)', marginBottom: 10 }}>Pilih modul</div>
+          <div style={{ display: 'flex', gap: 8, marginBottom: 6 }}>
             {['karakter', 'mi', 'screening'].map((m) => {
               const mc = moduleColor(m);
               const active = m === modul;
@@ -113,8 +112,8 @@ export function Upload() {
               );
             })}
           </div>
-          <input className="fld" placeholder="Periode (contoh: 2026-07)" value={periodeId} onChange={(e) => setPeriodeId(e.target.value)} />
-          <button className="btn-primary" style={{ marginTop: 16 }} disabled={!periodeId} onClick={() => setStep(3)}>Lanjut ke langkah 3</button>
+          <div style={{ fontSize: 11.5, color: 'var(--ink-3)', marginBottom: 14 }}>Periode tidak perlu diketik manual — sistem membaca kolom "bulan" langsung dari tiap baris file, jadi satu file boleh memuat beberapa bulan sekaligus.</div>
+          <button className="btn-primary" onClick={() => setStep(3)}>Lanjut ke langkah 3</button>
         </div>
       )}
 
@@ -129,11 +128,6 @@ export function Upload() {
             <div>
               <div style={{ fontSize: 10.5, fontWeight: 800, letterSpacing: '0.06em', textTransform: 'uppercase', color: 'var(--ink-3)' }}>Modul</div>
               <div style={{ fontSize: 13.5, fontWeight: 700, marginTop: 2 }}>{moduleShort(modul)}</div>
-            </div>
-            <div style={{ width: 1, height: 32, background: 'var(--line)' }} />
-            <div>
-              <div style={{ fontSize: 10.5, fontWeight: 800, letterSpacing: '0.06em', textTransform: 'uppercase', color: 'var(--ink-3)' }}>Periode</div>
-              <div style={{ fontSize: 13.5, fontWeight: 700, marginTop: 2 }}>{periodeId}</div>
             </div>
             <button className="btn-ghost" style={{ marginLeft: 'auto', fontSize: 12 }} onClick={() => setStep(1)}>Ubah</button>
           </div>
@@ -162,6 +156,18 @@ export function Upload() {
               </div>
               <span className="pill" style={{ background: 'var(--status-safe-bg)', color: 'var(--status-safe)' }}><span className="dot" style={{ background: 'var(--status-safe)' }} />Siap import</span>
             </div>
+            {parsed.preview.periodeDetected?.length > 0 && (
+              <div style={{ marginBottom: 12, display: 'flex', flexWrap: 'wrap', gap: 6, alignItems: 'center' }}>
+                <span style={{ fontSize: 11, fontWeight: 800, letterSpacing: '0.06em', textTransform: 'uppercase', color: 'var(--ink-3)' }}>
+                  Terdeteksi {parsed.preview.periodeDetected.length} bulan ·
+                </span>
+                {parsed.preview.periodeDetected.map((p) => (
+                  <span key={p.periode} className="pill" style={{ background: 'var(--purple-050)', color: 'var(--purple-700)' }}>
+                    {periodeLabel(p.periode)} ({p.rows} baris)
+                  </span>
+                ))}
+              </div>
+            )}
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
               {parsed.preview.sheets.map((s, i) => (
                 <div key={i} style={{ padding: '10px 12px', background: 'var(--surface-soft)', borderRadius: 9, display: 'flex', justifyContent: 'space-between', fontSize: 12.5 }}>
@@ -215,7 +221,7 @@ export function Upload() {
                       <td className="mono" style={{ fontSize: 11.5, color: 'var(--ink-3)' }}>{h.when}</td>
                       <td style={{ fontWeight: 600 }}>{h.sekolah}</td>
                       <td><span className="pill" style={{ background: mc.bg, color: mc.ink }}>{moduleShort(h.modul)}</span></td>
-                      <td style={{ fontSize: 12.5 }}>{h.periode}</td>
+                      <td style={{ fontSize: 12.5 }}>{h.periode ? h.periode.split(',').map(periodeLabel).join(', ') : '—'}</td>
                       <td className="mono" style={{ textAlign: 'right', fontWeight: 600 }}>{h.rows > 0 ? h.rows : '—'}</td>
                       <td>
                         <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>

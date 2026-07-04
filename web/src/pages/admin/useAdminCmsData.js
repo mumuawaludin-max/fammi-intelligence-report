@@ -217,7 +217,8 @@ export async function addSchoolAction({ nama, jenjang, yayasanId, modules }) {
   return id;
 }
 
-export async function runImportAction({ sekolahId, modul, periodeId, fileName, parsed }) {
+export async function runImportAction({ sekolahId, modul, fileName, parsed }) {
+  const periodeId = parsed?.preview?.periodeDetected?.map((p) => p.periode).join(',') || null;
   if (modul !== 'karakter') {
     await supabase.from('import_log').insert({
       sekolah_id: sekolahId, modul, periode_id: periodeId, rows: 0, status: 'gagal',
