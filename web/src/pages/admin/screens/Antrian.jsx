@@ -9,6 +9,7 @@ import { moduleColor, moduleShort, prioritasColor, statusColor } from '../data/h
 export function Antrian() {
   const { data, loading, error, state, setScreen, setApprovalFilter, setSelectedApproval, actApproval, refetch } = useCms();
   const [tab, setTab] = useState('menunggu');
+  const [bulkBusy, setBulkBusy] = useState(null);
 
   if (loading) return <LoadingCards rows={6} />;
   if (error) {
@@ -38,9 +39,24 @@ export function Antrian() {
       .map(s => ({ key: s.id, label: `${s.nama} (${sekolahCount[s.id]})` })),
   ];
 
+  async function handleSetujuiSemua() {
+    if (items.length === 0) return;
+    const label = f.sekolah !== 'all' ? sekolahOptions.find(o => o.key === f.sekolah)?.label.replace(/\s*\(\d+\)$/, '') : null;
+    const ok = window.confirm(
+      `Setujui ${items.length} draf sekaligus${label ? ` untuk ${label}` : ''}? Semua opsi tindak lanjut/briefing di kartu yang sedang tampil (sesuai filter) langsung tayang ke sekolah.`
+    );
+    if (!ok) return;
+    setBulkBusy({ done: 0, total: items.length });
+    for (const a of items) {
+      await actApproval(a.id, 'setuju');
+      setBulkBusy((s) => (s ? { ...s, done: s.done + 1 } : s));
+    }
+    setBulkBusy(null);
+  }
+
   return (
     <div style={{ padding: '22px 26px 40px' }}>
-      <div style={{ display: 'flex', gap: 6, marginBottom: 14 }}>
+      <div style={{ display: 'flex', gap: 6, marginBottom: 14, alignItems: 'center' }}>
         {[
           ['menunggu', `⏳ Menunggu (${data.antrian.length})`],
           ['disetujui', `✓ Disetujui (${data.riwayatDisetujui.length})`],
@@ -52,6 +68,16 @@ export function Antrian() {
             boxShadow: tab === key ? '0 4px 14px rgba(99,35,218,.24)' : '0 1px 4px rgba(33,27,46,.06)',
           }}>{label}</button>
         ))}
+        {tab === 'menunggu' && items.length > 0 && (
+          <button
+            className="btn-primary"
+            style={{ marginLeft: 'auto', padding: '9px 16px', fontSize: 12.5, background: 'var(--status-safe)' }}
+            disabled={!!bulkBusy}
+            onClick={handleSetujuiSemua}
+          >
+            {bulkBusy ? `Menyetujui ${bulkBusy.done}/${bulkBusy.total}…` : `✓ Setujui semua (${items.length})`}
+          </button>
+        )}
       </div>
 
       <div className="card" style={{ padding: '14px 18px', marginBottom: 16, display: 'flex', flexWrap: 'wrap', gap: 16, alignItems: 'center' }}>
