@@ -149,14 +149,11 @@ export async function parseKarakterWorkbook(file, { sekolahId }) {
 
   const periodeCount = {};
   const badRows = [];
-  function resolvePeriode(sheetName, r, rowIdx) {
-    const periode = parseBulan(getField(r, 'bulan', 'periode', 'periode_id'));
-    if (!periode) {
-      badRows.push(`${sheetName} baris ${rowIdx + 2}`);
-      return null;
-    }
-    periodeCount[periode] = (periodeCount[periode] || 0) + 1;
-    return periode;
+  function ownBulan(r) {
+    return parseBulan(getField(r, 'bulan', 'periode', 'periode_id'));
+  }
+  function countPeriode(periode) {
+    if (periode) periodeCount[periode] = (periodeCount[periode] || 0) + 1;
   }
 
   const { byNama, nextNum } = await loadExistingMuridIds(sekolahId);
@@ -168,9 +165,14 @@ export async function parseKarakterWorkbook(file, { sekolahId }) {
     return id;
   }
 
+  // detail_persentase_karakter wajib punya kolom bulan sendiri, jadi ini yang jadi acuan.
+  const namaPeriode = {};
   const skorRows = [];
   dk.forEach((r, i) => {
-    const periode = resolvePeriode('detail_persentase_karakter', r, i);
+    const periode = ownBulan(r);
+    if (!periode) { badRows.push(`detail_persentase_karakter baris ${i + 2}`); return; }
+    countPeriode(periode);
+    if (r.nama) namaPeriode[r.nama] = periode;
     const mid = muridId(r.nama);
     ASPEK_COLS.forEach(([aspek, col]) => {
       skorRows.push({
@@ -180,9 +182,14 @@ export async function parseKarakterWorkbook(file, { sekolahId }) {
     });
   });
 
+  // Sheet lain sering tidak punya kolom bulan sendiri: fallback ke periode murid yang sama
+  // dari detail_persentase_karakter (dicocokkan lewat nama), baru dianggap gagal kalau
+  // benar-benar tidak ada cara menentukan periodenya.
   const skorIndikatorRows = [];
   di.forEach((r, i) => {
-    const periode = resolvePeriode('detail_persentase_indikator', r, i);
+    const periode = ownBulan(r) || namaPeriode[r.nama];
+    if (!periode) { badRows.push(`detail_persentase_indikator baris ${i + 2}`); return; }
+    countPeriode(periode);
     const mid = muridId(r.nama);
     INDIKATOR_COLS.forEach(([aspek, kode]) => {
       const col = `${aspek}_${kode}`;
@@ -194,39 +201,52 @@ export async function parseKarakterWorkbook(file, { sekolahId }) {
     });
   });
 
-  const pernyataanRows = po.map((r, i) => ({
-    sekolah_id: sekolahId, kelas_id: r.kelas, murid_id: muridId(r.Nama), nama_murid: r.Nama,
-    periode_id: resolvePeriode('detail_pernyataan_orangtua', r, i),
-    kategori_pernyataan: r.kategori_pernyataan, pernyataan: r.pernyataan_orangtua,
-    emosi_anak: r.emosi_anak, alasan_emosi: r.alasan_emosi_anak,
-    dukungan_dibutuhkan: r.dukungan_yang_dibutuhkan_orangtua, dukungan_lainnya: r.dukungan_lainya,
-    hal_disyukuri: r.hal_yang_disyukuri_orangtua, status: 'disetujui',
-  }));
+  const pernyataanRows = [];
+  po.forEach((r, i) => {
+    const periode = ownBulan(r) || namaPeriode[r.Nama];
+    if (!periode) { badRows.push(`detail_pernyataan_orangtua baris ${i + 2}`); return; }
+    countPeriode(periode);
+    pernyataanRows.push({
+      sekolah_id: sekolahId, kelas_id: r.kelas, murid_id: muridId(r.Nama), nama_murid: r.Nama,
+      periode_id: periode,
+      kategori_pernyataan: r.kategori_pernyataan, pernyataan: r.pernyataan_orangtua,
+      emosi_anak: r.emosi_anak, alasan_emosi: r.alasan_emosi_anak,
+      dukungan_dibutuhkan: r.dukungan_yang_dibutuhkan_orangtua, dukungan_lainnya: r.dukungan_lainya,
+      hal_disyukuri: r.hal_yang_disyukuri_orangtua, status: 'disetujui',
+    });
+  });
 
+  // Ringkasan per kelas/jenjang/sekolah tidak punya nama murid untuk dicocokkan; kalau
+  // barisnya sendiri tidak punya bulan, pakai periode dominan dari detail_persentase_karakter
+  // (aman selama file itu memang cuma cakup satu bulan dominan, yang jadi kasus umum).
+  const periodeDominan = Object.entries(periodeCount).sort((a, b) => b[1] - a[1])[0]?.[0] || null;
   const summaryRows = [];
   sk.forEach((r, i) => {
     if (!r.Kelas) return;
-    const periode = resolvePeriode('summary_kelas', r, i);
+    const periode = ownBulan(r) || periodeDominan;
+    if (!periode) { badRows.push(`summary_kelas baris ${i + 2}`); return; }
     const { bulan, Kelas, ...rest } = r;
     summaryRows.push({ sekolah_id: sekolahId, scope: 'kelas', scope_id: Kelas, periode_id: periode, ringkasan: rest, status: 'disetujui' });
   });
   sj.forEach((r, i) => {
     if (!r.jenjang) return;
-    const periode = resolvePeriode('summary_jenjang', r, i);
+    const periode = ownBulan(r) || periodeDominan;
+    if (!periode) { badRows.push(`summary_jenjang baris ${i + 2}`); return; }
     const { bulan, jenjang, ...rest } = r;
     summaryRows.push({ sekolah_id: sekolahId, scope: 'jenjang', scope_id: jenjang, periode_id: periode, ringkasan: rest, status: 'disetujui' });
   });
   ss.forEach((r, i) => {
     const { bulan, ...rest } = r;
     if (Object.values(rest).every((v) => v === '')) return;
-    const periode = resolvePeriode('summary_sekolah', r, i);
+    const periode = ownBulan(r) || periodeDominan;
+    if (!periode) { badRows.push(`summary_sekolah baris ${i + 2}`); return; }
     summaryRows.push({ sekolah_id: sekolahId, scope: 'sekolah', scope_id: sekolahId, periode_id: periode, ringkasan: rest, status: 'disetujui' });
   });
 
   if (badRows.length > 0) {
     return {
       preview, ok: false,
-      error: `Kolom "bulan" tidak terbaca di: ${badRows.slice(0, 5).join(', ')}${badRows.length > 5 ? ` (+${badRows.length - 5} baris lain)` : ''}. Format yang didukung: tanggal Excel, "2026-07", "07/2026", atau "Juli 2026".`,
+      error: `Periode tidak terbaca di: ${badRows.slice(0, 5).join(', ')}${badRows.length > 5 ? ` (+${badRows.length - 5} baris lain)` : ''}. Kolom "bulan" di detail_persentase_karakter wajib terisi (format: tanggal Excel, "2026-07", "07/2026", "Juli 2026", atau "October 2025"); sheet lain boleh kosong asal nama muridnya cocok dengan detail_persentase_karakter.`,
     };
   }
 
