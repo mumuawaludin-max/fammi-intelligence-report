@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { getSession, logoutSupabase } from "./lib/auth";
+import { useOverviewBriefing } from "./hooks/useOverviewBriefing";
 import LoginPage from "./pages/LoginPage";
 import Header from "./components/Header";
 import NavBar from "./components/NavBar";
@@ -7,59 +8,57 @@ import PeriodPicker from "./components/PeriodPicker";
 import BriefingHero from "./components/BriefingHero";
 import FollowupRibbon from "./components/FollowupRibbon";
 import MIPage from "./pages/mi/MIPage";
+import KarakterPage from "./pages/karakter/KarakterPage";
 import SiswaPage from "./pages/siswa/SiswaPage";
+import AdminCmsPage from "./pages/admin/AdminCmsPage";
 import styles from "./App.module.css";
 
-const SAMPLE_BRIEFING = {
-  teks:
-    "Secara umum, SMA Harapan Bangsa menunjukkan perkembangan yang stabil pada periode ini. " +
-    "Aspek tanggung jawab dan disiplin masih perlu perhatian di beberapa kelas, " +
-    "sementara kecerdasan musikal dan interpersonal mencatat pertumbuhan positif.",
-  sumber: ["Rapor Karakter", "Screening", "Multiple Intelligence"],
-};
+function periodeLabel(periodeId) {
+  if (!periodeId) return "";
+  const BULAN = ["Januari", "Februari", "Maret", "April", "Mei", "Juni", "Juli", "Agustus", "September", "Oktober", "November", "Desember"];
+  const [y, m] = periodeId.split("-").map(Number);
+  return `${BULAN[m - 1] || ""} ${y}`.trim();
+}
 
-const SAMPLE_FOLLOWUP = [
-  {
-    id: "TL001",
-    action: "Jadwalkan sesi refleksi kelompok untuk kelas dengan skor tanggung jawab di bawah rata-rata sekolah.",
-    trigger: "4 kelas mencatat skor tanggung jawab < 60",
-    module: "karakter",
-    priority: "tinggi",
-  },
-  {
-    id: "TL002",
-    action: "Koordinasikan dengan guru BK untuk tindak lanjut siswa dengan indikator risiko pada modul Screening.",
-    trigger: "12 siswa teridentifikasi perlu perhatian",
-    module: "screening",
-    priority: "tinggi",
-  },
-  {
-    id: "TL003",
-    action: "Sediakan kegiatan pengayaan berbasis kecerdasan musikal di jam ekstrakurikuler semester depan.",
-    trigger: "Kecerdasan musikal mendominasi 38% siswa",
-    module: "mi",
-    priority: "sedang",
-  },
-  {
-    id: "TL004",
-    action: "Diskusikan hasil profil karakter bersama wali kelas pada rapat bulanan pekan ini.",
-    trigger: "Laporan bulanan sudah final dan siap dibagikan",
-    module: "karakter",
-    priority: "sedang",
-  },
-  {
-    id: "TL005",
-    action: "Bagikan ringkasan hasil Multiple Intelligence ke orang tua melalui grup komunikasi kelas.",
-    trigger: "Data MI periode ini sudah disetujui",
-    module: "mi",
-    priority: "rendah",
-  },
-];
+function OverviewTab({ overview, period }) {
+  const { loading, error, schoolName, briefing, tindakLanjut, periode } = overview;
+
+  if (loading) {
+    return <p className={styles.placeholderNote}>Memuat ringkasan…</p>;
+  }
+  if (error) {
+    return <p className={styles.placeholderNote}>Gagal memuat ringkasan: {error}</p>;
+  }
+  if (!briefing && tindakLanjut.length === 0) {
+    return <p className={styles.placeholderNote}>Belum ada briefing atau tindak lanjut yang disetujui untuk {schoolName || "sekolah ini"} pada periode ini.</p>;
+  }
+
+  return (
+    <>
+      {briefing && (
+        <BriefingHero
+          teks={briefing.teks}
+          periode={periodeLabel(periode) || period.period}
+          tipePeriode={period.type}
+          sumber={Array.isArray(briefing.sumber) ? briefing.sumber : [briefing.sumber].filter(Boolean)}
+        />
+      )}
+      {tindakLanjut.length > 0 && (
+        <FollowupRibbon
+          items={tindakLanjut.map((r) => ({
+            id: r.id, action: r.action, trigger: r.trigger_desc, module: r.modul, priority: r.priority,
+          }))}
+        />
+      )}
+    </>
+  );
+}
 
 export default function App() {
   const [session, setSession]     = useState(() => getSession());
   const [activeTab, setActiveTab] = useState("overview");
   const [period, setPeriod]       = useState({ type: "bulanan", period: "Juni 2026" });
+  const overview = useOverviewBriefing(session);
 
   function handleLogin(newSession) { setSession(newSession); }
   function handleLogout() {
@@ -73,12 +72,16 @@ export default function App() {
     return <SiswaPage session={session} onLogout={handleLogout} />;
   }
 
+  if (session.peran === "AdminFammi") {
+    return <AdminCmsPage session={session} onLogout={handleLogout} />;
+  }
+
   return (
     <div className={styles.app}>
       <Header
         userName={session.nama}
         role={session.peran}
-        schoolName="SMA Harapan Bangsa"
+        schoolName={overview.schoolName || ""}
         onLogout={handleLogout}
       />
       <NavBar
@@ -100,23 +103,18 @@ export default function App() {
 
       <main className={styles.main}>
         {activeTab === "overview" && (
-          <>
-            <BriefingHero
-              teks={SAMPLE_BRIEFING.teks}
-              periode={period.period}
-              tipePeriode={period.type}
-              sumber={SAMPLE_BRIEFING.sumber}
-              isSample
-            />
-            <FollowupRibbon items={SAMPLE_FOLLOWUP} isSample />
-          </>
+          <OverviewTab overview={overview} period={period} />
         )}
 
         {activeTab === "mi" && (
           <MIPage session={session} periodeId={null} />
         )}
 
-        {(activeTab === "karakter" || activeTab === "screening") && (
+        {activeTab === "karakter" && (
+          <KarakterPage session={session} />
+        )}
+
+        {activeTab === "screening" && (
           <div className={styles.placeholder}>
             <p className={styles.placeholderTab}>{activeTab}</p>
             <p className={styles.placeholderPeriod}>

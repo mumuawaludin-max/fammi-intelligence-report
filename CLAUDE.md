@@ -20,19 +20,19 @@ Fammi Intelligence Report adalah dashboard sekolah berbasis peran. Ia membaca ha
 - Frontend React, di-deploy ke Vercel.
 - Backend data dan autentikasi memakai Supabase: Postgres, Supabase Auth, Row Level Security (RLS) sebagai gerbang akses.
 - React memanggil Supabase langsung lewat `@supabase/supabase-js` dengan anon key. RLS di tiap tabel yang membatasi baris mana yang boleh dibaca user yang sedang login, bukan kode di sisi server.
-- Gemini API hanya dipakai di pipeline hulu (di luar repo ini) untuk merumuskan tindak lanjut, tidak pernah dipanggil dari jalur baca FIR.
+- Gemini API dipakai untuk merumuskan tindak lanjut lewat dua jalur, keduanya di luar jalur baca FIR: (1) pipeline hulu batch di luar repo ini, dan (2) trigger on-demand dari FIR yang memanggil Supabase Edge Function (server-side, API key Gemini tidak pernah ada di kode React/browser). Kedua jalur menulis draf ke `tindak_lanjut`/`briefing` berstatus `menunggu_persetujuan`, bukan `disetujui`. Jalur baca FIR sendiri tidak pernah memanggil Gemini dan tidak pernah menampilkan baris yang belum `disetujui`.
 - Google Sheets dan Google Apps Script (GAS) tidak lagi dipakai. Riwayat lama menyebut GAS sebagai gerbang; itu sudah digantikan Supabase + RLS sejak migrasi 2026-07.
 
 ## Keputusan arsitektur yang terkunci
 
-1. Satu wadah, satu pintu login, enam peran: Admin Fammi, Yayasan, Kepala Sekolah, Wali Kelas, Orang Tua, Siswa. Tampilan dan data disaring per peran.
+1. Satu wadah, satu pintu login, tujuh peran: Admin Fammi, Yayasan, Kepala Sekolah, Wakil Kepala Sekolah, Wali Kelas, Orang Tua, Siswa. Tampilan dan data disaring per peran. Nilai `peran` di kolom `profiles.peran` (ditegakkan lewat check constraint `profiles_peran_check`) memakai PascalCase tanpa spasi: `AdminFammi`, `Yayasan`, `KepalaSekolah`, `WakilKepalaSekolah`, `WaliKelas`, `OrangTua`, `Siswa`. Selalu bandingkan `session.peran` dengan nilai persis ini di kode, bukan versi berspasi. `WakilKepalaSekolah` cakupan/aksesnya identik dengan `KepalaSekolah` (sekolah-wide) di semua tempat kode membedakan lewat peran, cuma beda label tampilan; setiap `case "KepalaSekolah":` di kode wajib diikuti `case "WakilKepalaSekolah":` yang sama.
 2. RLS adalah satu-satunya gerbang. React boleh memanggil Supabase langsung, tapi tiap tabel sensitif wajib punya policy RLS yang menyaring berdasarkan `school_id`/`murid_id` milik user yang sedang login (lewat helper `my_school_id()` atau setara). Jangan pernah menonaktifkan RLS di tabel yang menyimpan data sekolah atau siswa.
 3. FIR tidak menghitung apa pun. Skor, status, agregat, dominan, dan tindak lanjut sudah final di tabel Supabase (`mi_hasil`, `tindak_lanjut`, `briefing`, dst). FIR membaca, menyaring per peran dan periode, lalu menampilkan.
 4. Satu mesin tampilan untuk tiga modul. Perbedaan antar modul ada di data/konfigurasi, bukan di kode.
 5. Entitlement-aware. Modul yang menyala hanya yang aktif untuk sekolah itu di tabel `school_modules`.
-6. Tindak lanjut dirumuskan di hulu lewat aturan deterministik, pencocokan master, perumusan Gemini, lalu gerbang persetujuan manusia. FIR menampilkan hanya baris dengan `status = 'disetujui'`.
+6. Tindak lanjut dirumuskan lewat aturan deterministik, pencocokan master, perumusan Gemini (batch di hulu atau on-demand lewat Edge Function), lalu gerbang persetujuan manusia. Tidak ada jalur yang melewati gerbang ini. FIR menampilkan hanya baris dengan `status = 'disetujui'`.
 7. Sensitivitas per modul. Screening paling ketat dengan proxy dan gerbang ahli. MI menampilkan nama untuk wali kelas. Karakter normal.
-8. Responsif. Desktop-first untuk Yayasan, Kepala Sekolah, Wali Kelas. Mobile-first untuk Orang Tua dan Siswa.
+8. Responsif. Desktop-only untuk Yayasan. Wali Kelas dan Kepala Sekolah wajib bagus di mobile maupun desktop (responsive penuh, bukan cuma desktop-first). Mobile-first untuk Orang Tua dan Siswa.
 
 ## Design token, pakai persis nilai ini
 
@@ -53,6 +53,8 @@ Warna status, dipakai hemat sebagai penanda kecil:
 - Waspada `#D6455A`, latar `#FBE7EA`.
 
 Radius: 12, 16, 22, 28. Bayangan kartu lembut, bayangan hero kebiruan ungu tipis. Jangan menambah warna di luar token ini.
+
+**Pengecualian yang disengaja**: laporan MI Individu (`BakatView` di `web/src/pages/siswa/SiswaPage.jsx`) dan seluruh laporan modul Karakter untuk Wali Kelas/Kepala Sekolah/Yayasan (`web/src/pages/karakter/`) memakai **Montserrat** dan latar abu muda `#EDEDF0`, bukan token di atas. Ini instruksi eksplisit dan berulang dari pemilik produk supaya modul Karakter senada dengan laporan MI Individu, di-scope lewat custom property CSS lokal (`--font-body`/`--font-display` didefinisikan ulang di `.page`) supaya tidak menjalar ke halaman lain (Header, NavBar, LoginPage, MIPage agregat tetap pakai token biasa). Jangan "perbaiki" balik ke token dengan alasan aturan ini.
 
 ## Inventaris komponen
 
@@ -90,7 +92,7 @@ React tidak pernah memegang service_role key, hanya anon key yang aman dipublika
 - Jangan mengganti font atau menambah warna di luar token.
 - Jangan menampilkan nama murid pada modul Screening. Pakai proxy_code.
 - Jangan menampilkan angka contoh seolah temuan nyata. Pertahankan penanda contoh.
-- Jangan memanggil Gemini dari jalur baca FIR. Tindak lanjut sudah final sebelum tampil.
+- Jangan memanggil Gemini dari jalur baca FIR, dan jangan memanggil Gemini API langsung dari kode React/browser (API key wajib server-side, lewat Supabase Edge Function). Jangan pernah menampilkan tindak lanjut/briefing yang belum berstatus `disetujui`, termasuk hasil trigger on-demand.
 
 ## Dokumen rujukan
 

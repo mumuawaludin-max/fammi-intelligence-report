@@ -1,0 +1,205 @@
+/* Yayasan: desktop-only, tidak perlu breakpoint mobile.
+   Font Montserrat + latar abu muda disamakan dengan Laporan Bakat (MI Page Individu),
+   di-scope lokal lewat custom property supaya tidak menjalar ke halaman lain. */
+.page {
+  --font-body: "Montserrat", sans-serif;
+  --font-display: "Montserrat", sans-serif;
+  font-family: var(--font-body);
+  display: flex;
+  flex-direction: column;
+  gap: 28px;
+  min-width: 960px;
+  background: #EDEDF0;
+  margin: -32px -24px;
+  padding: 28px 24px 48px;
+}
+
+.heroLabel {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.heroTitleRow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.eyebrow {
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--purple-600);
+  margin: 0;
+}
+
+.heroPill {
+  font-family: var(--font-display);
+  font-size: 24px;
+  font-weight: 800;
+  color: var(--ink);
+  letter-spacing: -0.4px;
+  margin: 0;
+}
+
+.periodTag {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--purple-700);
+  background: var(--purple-050);
+  border-radius: 999px;
+  padding: 3px 10px;
+}
+
+.section {
+  display: flex;
+  flex-direction: column;
+}
+
+.emptyNote {
+  font-size: 13.5px;
+  color: var(--ink-3);
+  background: var(--surface-soft);
+  border-radius: var(--radius-md);
+  padding: 16px 18px;
+  margin: 0;
+}
+
+/* ── Grid kartu sekolah ── */
+.sekolahGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 16px;
+}
+
+.sekolahCard {
+  width: 100%;
+  text-align: left;
+  font-family: inherit;
+  cursor: pointer;
+  background: linear-gradient(150deg, var(--purple-050) 0%, var(--surface) 55%);
+  border: none;
+  border-radius: var(--radius-xl);
+  padding: 22px 24px;
+  box-shadow: var(--shadow-card);
+  transition: transform var(--transition-fast), box-shadow var(--transition-fast);
+}
+
+.sekolahCard:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-hero);
+}
+
+.sekolahTop {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+
+.sekolahIcon {
+  width: 34px;
+  height: 34px;
+  border-radius: 11px;
+  background: var(--surface);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  box-shadow: var(--shadow-card);
+}
+
+.rowArrowStatic {
+  color: var(--purple-300);
+  font-weight: 800;
+  font-size: 16px;
+}
+
+.sekolahCard:hover .rowArrowStatic {
+  color: var(--purple-600);
+}
+
+.sekolahNama {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--ink);
+  margin: 0 0 14px;
+}
+
+.sekolahStat {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin-bottom: 14px;
+}
+
+.sekolahVal {
+  font-family: var(--font-display);
+  font-size: 30px;
+  font-weight: 800;
+  color: var(--purple-600);
+  letter-spacing: -0.02em;
+}
+
+.sekolahLabel {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--ink-4);
+}
+
+.sekolahMeta {
+  font-size: 12.5px;
+  color: var(--ink-3);
+  margin: 6px 0 0;
+}
+
+.sekolahMeta strong {
+  color: var(--purple-700);
+}
+
+/* ── Blok tindak lanjut per sekolah ── */
+.sekolahBlock {
+  margin-top: 18px;
+}
+
+.sekolahBlockTitle {
+  display: inline-block;
+  font-size: 12px;
+  font-weight: 800;
+  color: var(--purple-700);
+  background: var(--purple-050);
+  border-radius: 999px;
+  padding: 4px 14px;
+  margin: 0 0 12px;
+}
+
+.tlGrid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 14px;
+}
+
+/* ── Isi dialog detail ── */
+.dialogSectionTitle {
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+  margin: 0 0 12px;
+}
+
+.dialogParagraph {
+  font-size: 13.5px;
+  line-height: 1.6;
+  color: var(--ink-2);
+  margin: 0;
+  background: var(--surface);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-card);
+  padding: 16px 18px;
+}

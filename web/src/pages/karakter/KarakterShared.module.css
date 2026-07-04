@@ -1,0 +1,464 @@
+/* ── State box (loading/error) ── */
+.stateBox {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  min-height: 260px;
+  background: var(--surface);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-card);
+  padding: 48px 32px;
+  text-align: center;
+}
+
+.stateIcon {
+  width: 44px;
+  height: 44px;
+  border-radius: 14px;
+  background: var(--status-caution-bg);
+  color: var(--status-caution);
+  font-size: 20px;
+  font-weight: 800;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.stateTitle {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--ink);
+  margin: 0;
+}
+
+.stateMsg {
+  font-size: 13.5px;
+  color: var(--ink-3);
+  margin: 0;
+  max-width: 420px;
+  line-height: 1.5;
+}
+
+.retryBtn {
+  padding: 9px 20px;
+  font-size: 13px;
+  font-weight: 700;
+  font-family: var(--font-body);
+  color: var(--surface);
+  background: var(--purple-600);
+  border: none;
+  border-radius: 100px;
+  cursor: pointer;
+  box-shadow: var(--shadow-hero);
+}
+
+.spinner {
+  width: 34px;
+  height: 34px;
+  border: 3px solid var(--purple-100);
+  border-top-color: var(--purple-600);
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* ── Briefing empty state ── */
+.briefingEmpty {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  background: linear-gradient(135deg, var(--purple-050) 0%, var(--surface-soft) 100%);
+  border-radius: var(--radius-xl);
+  padding: 22px 26px;
+}
+
+.briefingEmptyIcon {
+  width: 38px;
+  height: 38px;
+  border-radius: 12px;
+  background: var(--surface);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  flex-shrink: 0;
+  box-shadow: var(--shadow-card);
+}
+
+.briefingEmptyLabel {
+  font-family: var(--font-display);
+  font-size: 12px;
+  font-weight: 800;
+  color: var(--purple-700);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.briefingEmptyText {
+  margin: 6px 0 0;
+  font-size: 14px;
+  line-height: 1.6;
+  color: var(--ink-2);
+}
+
+/* ── Card umum (dipakai radar, list, dsb) ── */
+.card {
+  background: var(--surface);
+  border: none;
+  border-radius: var(--radius-xl);
+  padding: 22px 24px;
+  box-shadow: var(--shadow-card);
+}
+
+.cardTitle {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--ink);
+  margin: 0 0 2px;
+}
+
+.cardSub {
+  font-size: 12px;
+  color: var(--ink-3);
+  margin: 0 0 16px;
+}
+
+.radarWrap {
+  display: flex;
+  justify-content: center;
+  padding: 8px 0 4px;
+}
+
+.legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: center;
+  margin-top: 14px;
+}
+
+.legendItem {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11.5px;
+  font-weight: 700;
+  border-radius: 100px;
+  padding: 5px 12px 5px 8px;
+}
+
+/* ── Aspek bar list (dialog detail) ── */
+.aspekBarList {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.aspekBarRow {
+  display: grid;
+  grid-template-columns: 20px 1fr 1fr auto;
+  align-items: center;
+  gap: 10px;
+}
+
+.aspekBarIcon {
+  font-size: 14px;
+  text-align: center;
+}
+
+.aspekBarLabel {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--ink-2);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.aspekBarTrack {
+  height: 8px;
+  background: var(--surface);
+  border-radius: 99px;
+  overflow: hidden;
+}
+
+.aspekBarFill {
+  height: 100%;
+  border-radius: 99px;
+  transition: width 0.4s ease;
+}
+
+.aspekBarVal {
+  font-family: var(--font-display);
+  font-size: 12.5px;
+  font-weight: 800;
+  color: var(--ink);
+  min-width: 36px;
+  text-align: right;
+}
+
+/* ── Indikator grid (dialog detail) ── */
+.indikatorGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.indikatorChip {
+  background: var(--surface);
+  border: none;
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-card);
+  padding: 10px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  text-align: left;
+  font-family: inherit;
+}
+
+.indikatorChip span {
+  font-size: 10.5px;
+  color: var(--ink-3);
+  line-height: 1.35;
+}
+
+.indikatorChip strong {
+  font-family: var(--font-display);
+  font-size: 14px;
+  color: var(--purple-600);
+}
+
+/* ── Refleksi orang tua (dialog detail) ── */
+.reflectionCard {
+  background: var(--surface);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-card);
+  padding: 18px 20px;
+}
+
+.reflectionTag {
+  display: inline-block;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--purple-700);
+  background: var(--purple-050);
+  border-radius: 999px;
+  padding: 3px 11px;
+  margin-bottom: 12px;
+}
+
+.reflectionQuote {
+  margin: 0 0 14px;
+  font-size: 13.5px;
+  font-style: italic;
+  color: var(--ink-2);
+  line-height: 1.6;
+}
+
+.reflectionMetaGrid {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.metaLabel {
+  display: block;
+  font-size: 10.5px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--ink-4);
+  margin-bottom: 3px;
+}
+
+.metaVal {
+  display: block;
+  font-size: 13px;
+  color: var(--ink);
+  line-height: 1.5;
+}
+
+/* ── Mini leaderboard (dialog detail indikator) ── */
+.miniLeaderboard {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-height: 320px;
+  overflow-y: auto;
+}
+
+.miniLeaderboardRow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: var(--surface);
+  border-radius: var(--radius-sm);
+  padding: 8px 12px;
+  box-shadow: var(--shadow-card);
+}
+
+.miniRank {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: var(--purple-100);
+  color: var(--purple-700);
+  font-size: 10.5px;
+  font-weight: 800;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.miniNama {
+  flex: 1;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.miniVal {
+  font-family: var(--font-display);
+  font-size: 12.5px;
+  font-weight: 800;
+  color: var(--purple-600);
+}
+
+/* ── Entity chip picker (bento, dipakai perbandingan antar kelas/sekolah) ── */
+.entityChipRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 18px;
+}
+
+.entityChip {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  border: none;
+  border-radius: 14px;
+  padding: 8px 13px;
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  background: var(--surface-soft);
+  color: var(--ink-3);
+  box-shadow: inset 0 0 0 1px var(--line);
+  transition: 0.14s;
+}
+
+.entityChipActive {
+  background: var(--purple-050);
+  color: var(--purple-700);
+  box-shadow: inset 0 0 0 1.5px var(--purple-300);
+}
+
+.entityChipDot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.entityChipVal {
+  font-family: var(--font-display);
+  font-weight: 800;
+}
+
+/* ── Toggle rincian angka (collapsible) ── */
+.detailToggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border: none;
+  background: none;
+  color: var(--purple-600);
+  font-family: inherit;
+  font-size: 12.5px;
+  font-weight: 700;
+  cursor: pointer;
+  padding: 10px 0 0;
+}
+
+/* ── Kartu penutup / CTA ── */
+.ctaCard {
+  background: linear-gradient(135deg, var(--purple-600) 0%, var(--purple-700) 100%);
+  border-radius: var(--radius-xl);
+  padding: 24px 26px;
+  color: #fff;
+  box-shadow: var(--shadow-hero);
+}
+
+.ctaEyebrow {
+  font-size: 11px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  opacity: 0.85;
+  margin: 0 0 6px;
+}
+
+.ctaTitle {
+  font-family: var(--font-display);
+  font-size: 18px;
+  font-weight: 700;
+  margin: 0 0 8px;
+  line-height: 1.3;
+}
+
+.ctaText {
+  font-size: 13.5px;
+  line-height: 1.6;
+  margin: 0;
+  opacity: 0.92;
+}
+
+/* ── Suara orang tua, ringkas (bento) ── */
+.quoteBentoGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 12px;
+}
+
+.quoteBentoCard {
+  background: var(--surface-soft);
+  border-radius: var(--radius-lg);
+  padding: 16px 18px;
+}
+
+.quoteBentoText {
+  margin: 0 0 8px;
+  font-size: 13px;
+  font-style: italic;
+  color: var(--ink-2);
+  line-height: 1.55;
+}
+
+.quoteBentoMeta {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--ink-4);
+}
+
+/* ── Trend chart ── */
+.trendSingle {
+  text-align: center;
+  padding: 8px 0;
+}
+
+.trendSingleVal {
+  font-family: var(--font-display);
+  font-size: 34px;
+  font-weight: 800;
+  color: var(--purple-600);
+  margin-bottom: 8px;
+}

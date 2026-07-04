@@ -13,11 +13,14 @@ const SESSION_KEY = "fir_session";
 
 /**
  * Login dengan username + kode khusus.
- * Email Supabase dibentuk: username@fammi.internal
+ * Email Supabase dibentuk: username@fammi.internal — kecuali username sudah berupa
+ * alamat email asli (mengandung "@"), dipakai langsung (dipakai akun staf yang login
+ * dengan email sekolah, lihat create-user Edge Function yang menerapkan aturan sama).
  * Kembalikan objek sesi atau lempar Error.
  */
 export async function loginSupabase(username, kode) {
-  const email = `${username.trim()}@fammi.internal`;
+  const usernameTrim = username.trim();
+  const email = usernameTrim.includes("@") ? usernameTrim : `${usernameTrim}@fammi.internal`;
 
   const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
     email,

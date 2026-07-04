@@ -12,12 +12,18 @@ const MODUL_LABEL = {
   mi:        "Multiple Intelligence",
 };
 
-export default function FollowupCard({ action, trigger, module: modul, priority }) {
+export default function FollowupCard({ action, trigger, module: modul, priority, onClick }) {
   const meta = PRIORITAS_META[priority] ?? PRIORITAS_META.rendah;
   const modulLabel = MODUL_LABEL[modul] ?? modul;
+  const Tag = onClick ? "button" : "div";
 
   return (
-    <div className={`${styles.card} ${styles[meta.cls]}`}>
+    <Tag
+      type={onClick ? "button" : undefined}
+      className={`${styles.card} ${styles[meta.cls]}`}
+      onClick={onClick}
+      style={onClick ? { cursor: "pointer", textAlign: "left", width: "100%", font: "inherit" } : undefined}
+    >
       <div className={styles.header}>
         <span className={`${styles.priorityBadge} ${styles[`badge_${meta.cls}`]}`}>
           {meta.label}
@@ -26,6 +32,6 @@ export default function FollowupCard({ action, trigger, module: modul, priority 
       </div>
       <p className={styles.action}>{action}</p>
       <p className={styles.trigger}>{trigger}</p>
-    </div>
+    </Tag>
   );
 }

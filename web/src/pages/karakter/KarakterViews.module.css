@@ -1,0 +1,470 @@
+/* Dipakai oleh WaliKelasView dan KepsekView — wajib bagus di mobile maupun desktop.
+   Font Montserrat dan latar abu muda sengaja disamakan dengan Laporan Bakat (MI Page
+   Individu, lihat SiswaPage.jsx T.bg #EDEDF0 + MONT) atas instruksi eksplisit pemilik
+   produk. Di-scope lewat custom property lokal supaya MI/halaman lain tidak ikut berubah. */
+.page {
+  --font-body: "Montserrat", sans-serif;
+  --font-display: "Montserrat", sans-serif;
+  font-family: var(--font-body);
+  display: flex;
+  flex-direction: column;
+  gap: 28px;
+  background: #EDEDF0;
+  margin: -32px -24px;
+  padding: 28px 24px 48px;
+}
+
+/* ── Hero label ── */
+.heroLabel {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.eyebrow {
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--purple-600);
+  margin: 0;
+}
+
+.heroPill {
+  font-family: var(--font-display);
+  font-size: 24px;
+  font-weight: 800;
+  color: var(--ink);
+  letter-spacing: -0.4px;
+  margin: 0;
+}
+
+.periodTag {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--purple-700);
+  background: var(--purple-050);
+  border-radius: 999px;
+  padding: 3px 10px;
+}
+
+/* ── Stat tiles ── */
+.tiles {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 14px;
+}
+
+@media (min-width: 768px) {
+  .tiles {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}
+
+/* ── Section / card ── */
+.section {
+  display: flex;
+  flex-direction: column;
+}
+
+.card {
+  background: var(--surface);
+  border: none;
+  border-radius: var(--radius-xl);
+  padding: 22px 24px;
+  box-shadow: var(--shadow-card);
+}
+
+.cardTitle {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--ink);
+  margin: 0 0 2px;
+}
+
+.cardSub {
+  font-size: 12px;
+  color: var(--ink-3);
+  margin: 0 0 16px;
+}
+
+.cardSubTop {
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--ink-2);
+  margin: 20px 0 10px;
+}
+
+.gridTwo {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 16px;
+}
+
+@media (min-width: 768px) {
+  .gridTwo {
+    grid-template-columns: 1.1fr 1fr;
+    align-items: start;
+  }
+}
+
+.stackTwo {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.emptyNote {
+  font-size: 13.5px;
+  color: var(--ink-3);
+  background: var(--surface-soft);
+  border-radius: var(--radius-md);
+  padding: 16px 18px;
+  margin: 0;
+}
+
+/* ── Bar list (leaderboard kelas) ── */
+.barList {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.barRow {
+  display: grid;
+  grid-template-columns: 110px 1fr auto;
+  align-items: center;
+  gap: 10px;
+}
+
+.barName {
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--ink);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.barTrack {
+  height: 9px;
+  background: var(--purple-050);
+  border-radius: 99px;
+  overflow: hidden;
+}
+
+.barFill {
+  height: 100%;
+  border-radius: 99px;
+  background: linear-gradient(90deg, var(--purple-300), var(--purple-600));
+  transition: width 0.4s ease;
+}
+
+.barCount {
+  font-family: var(--font-display);
+  font-size: 13px;
+  font-weight: 800;
+  color: var(--ink);
+  min-width: 34px;
+  text-align: right;
+}
+
+/* ── Top 5 list: badge nomor bulat, bukan angka <ol> polos ── */
+.top5List {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.top5Row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  border: none;
+  background: transparent;
+  font-family: inherit;
+  text-align: left;
+  padding: 6px 8px;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: background var(--transition-fast);
+}
+
+.top5Row:hover {
+  background: var(--surface-soft);
+}
+
+.rowArrowStatic {
+  color: var(--purple-300);
+  font-weight: 800;
+  font-size: 15px;
+  opacity: 0;
+  transition: opacity var(--transition-fast);
+}
+
+.top5Row:hover .rowArrowStatic {
+  opacity: 1;
+  color: var(--purple-600);
+}
+
+.rankBadge,
+.rankBadgeWarn {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  font-weight: 800;
+  color: var(--surface);
+  flex-shrink: 0;
+}
+
+.rankBadge { background: var(--purple-600); }
+.rankBadgeWarn { background: var(--status-caution); }
+
+.top5Nama {
+  flex: 1;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.top5Nilai,
+.top5NilaiWarn {
+  font-family: var(--font-display);
+  font-size: 13px;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.top5Nilai { color: var(--purple-600); }
+.top5NilaiWarn { color: var(--status-caution); }
+
+/* ── Indikator list ── */
+.indikatorList {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.indikatorRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 12px;
+  width: 100%;
+  border: none;
+  font-family: inherit;
+  text-align: left;
+  font-size: 13px;
+  color: var(--ink-2);
+  padding: 10px 12px;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: background var(--transition-fast);
+}
+
+.indikatorRow:nth-child(odd) {
+  background: var(--surface-soft);
+}
+
+.indikatorRow:hover {
+  background: var(--purple-050);
+}
+
+.indikatorRow strong {
+  color: var(--ink);
+  white-space: nowrap;
+  font-family: var(--font-display);
+}
+
+/* ── Sentimen ── */
+.sentimenRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.sentimenPill {
+  font-size: 12px;
+  font-weight: 700;
+  border-radius: 999px;
+  padding: 6px 13px;
+}
+
+.tone_aman { background: var(--status-ok-bg); color: var(--status-ok); }
+.tone_perhatian { background: var(--status-caution-bg); color: var(--status-caution); }
+.tone_waspada { background: var(--status-alert-bg); color: var(--status-alert); }
+.tone_default { background: var(--bg-2); color: var(--ink-2); }
+
+.dukunganList {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.dukunganList li {
+  display: flex;
+  justify-content: space-between;
+  font-size: 13px;
+  color: var(--ink-2);
+  padding: 8px 12px;
+  border-radius: var(--radius-sm);
+}
+
+.dukunganList li:nth-child(odd) {
+  background: var(--surface-soft);
+}
+
+.dukunganList strong {
+  color: var(--purple-700);
+  font-family: var(--font-display);
+}
+
+.quoteList {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.quote {
+  margin: 0;
+  padding: 14px 16px;
+  background: var(--purple-050);
+  border-radius: var(--radius-md);
+  font-size: 13px;
+  font-style: italic;
+  color: var(--purple-700);
+  line-height: 1.55;
+}
+
+.quote cite {
+  display: block;
+  margin-top: 6px;
+  font-style: normal;
+  font-size: 11.5px;
+  font-weight: 700;
+  color: var(--ink-4);
+}
+
+/* ── Table ── */
+.tableWrap {
+  overflow-x: auto;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+.table thead tr {
+  background: var(--surface-soft);
+}
+
+.table th {
+  text-align: left;
+  padding: 12px 14px;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--ink-4);
+  white-space: nowrap;
+}
+
+.table th:first-child { border-radius: var(--radius-sm) 0 0 var(--radius-sm); }
+.table th:last-child { border-radius: 0 var(--radius-sm) var(--radius-sm) 0; }
+
+.thCenter {
+  text-align: center;
+}
+
+.table tbody tr:hover {
+  background: var(--purple-050);
+}
+
+.rowClickable {
+  cursor: pointer;
+}
+
+.rowArrow {
+  color: var(--purple-300);
+  font-weight: 800;
+  margin-left: 4px;
+  opacity: 0;
+  transition: opacity var(--transition-fast);
+}
+
+.rowClickable:hover .rowArrow {
+  opacity: 1;
+  color: var(--purple-600);
+}
+
+.table td {
+  padding: 12px 14px;
+  border-bottom: 1px solid var(--surface-soft);
+}
+
+.tdNama {
+  font-weight: 700;
+  color: var(--ink);
+  white-space: nowrap;
+}
+
+.tdCenter {
+  text-align: center;
+  color: var(--ink-2);
+}
+
+.rowClickableTr {
+  cursor: pointer;
+  transition: background var(--transition-fast);
+}
+
+/* ── Isi dialog detail (dipakai lewat DetailDialog) ── */
+.dialogSectionTitle {
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+  margin: 0 0 12px;
+}
+
+.dialogParagraph {
+  font-size: 13.5px;
+  line-height: 1.6;
+  color: var(--ink-2);
+  margin: 0;
+  background: var(--surface);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-card);
+  padding: 16px 18px;
+}
+
+/* ── Bar leaderboard clickable (KepsekView) ── */
+.barRowClickable {
+  display: grid;
+  grid-template-columns: 110px 1fr auto auto;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  border: none;
+  background: transparent;
+  font-family: inherit;
+  padding: 6px 8px;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: background var(--transition-fast);
+}
+
+.barRowClickable:hover {
+  background: var(--surface-soft);
+}

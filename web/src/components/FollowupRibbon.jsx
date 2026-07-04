@@ -5,7 +5,7 @@ import SampleTag from "./SampleTag";
 
 const URUTAN_PRIORITAS = { tinggi: 0, sedang: 1, rendah: 2 };
 
-export default function FollowupRibbon({ items = [], isSample = false }) {
+export default function FollowupRibbon({ items = [], isSample = false, onItemClick }) {
   const sorted = [...items].sort(
     (a, b) =>
       (URUTAN_PRIORITAS[a.priority] ?? 9) - (URUTAN_PRIORITAS[b.priority] ?? 9)
@@ -32,6 +32,7 @@ export default function FollowupRibbon({ items = [], isSample = false }) {
               trigger={item.trigger}
               module={item.module}
               priority={item.priority}
+              onClick={onItemClick ? () => onItemClick(item) : undefined}
             />
           ))}
         </div>
