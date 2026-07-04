@@ -9,7 +9,7 @@ import { IconMoreVertical } from '../components/icons';
 const PERAN_ORDER = ['AdminFammi', 'Yayasan', 'KepalaSekolah', 'WakilKepalaSekolah', 'WaliKelas', 'OrangTua', 'Siswa'];
 
 export function Pengguna() {
-  const { data, loading, error, setAddUserOpen, refetch, bulkResetAndExport } = useCms();
+  const { data, loading, error, setAddUserOpen, refetch, bulkResetAndExport, bulkDeleteUsers, session } = useCms();
   const [selected, setSelected] = useState(new Set());
   const [sekolahFilter, setSekolahFilter] = useState('all');
   const [busy, setBusy] = useState(false);
@@ -53,6 +53,23 @@ export function Pengguna() {
     }
   };
 
+  const doDelete = async () => {
+    const targets = selectedUsers.filter(u => u.id !== session?.user_id);
+    if (targets.length === 0) return;
+    const skippedSelf = selectedUsers.length !== targets.length;
+    if (!window.confirm(
+      `Hapus ${targets.length} akun terpilih? Aksi ini permanen: akun langsung tidak bisa login lagi dan tidak bisa dipulihkan.` +
+      (skippedSelf ? '\n\n(Akunmu sendiri yang sedang login dilewati, tidak ikut dihapus.)' : '')
+    )) return;
+    setBusy(true);
+    try {
+      await bulkDeleteUsers(targets);
+      setSelected(new Set());
+    } finally {
+      setBusy(false);
+    }
+  };
+
   return (
     <div style={{ padding: '22px 26px 40px' }}>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7,1fr)', gap: 10, marginBottom: 18 }}>
@@ -79,9 +96,14 @@ export function Pengguna() {
         </div>
         <div style={{ display: 'flex', gap: 8 }}>
           {selected.size > 0 && (
-            <button className="btn-secondary" onClick={doExport} disabled={busy}>
-              {busy ? 'Memproses…' : `⬇ Reset & Export kode (${selected.size})`}
-            </button>
+            <>
+              <button className="btn-secondary" onClick={doExport} disabled={busy}>
+                {busy ? 'Memproses…' : `⬇ Reset & Export kode (${selected.size})`}
+              </button>
+              <button className="btn-secondary" style={{ color: 'var(--status-alert)' }} onClick={doDelete} disabled={busy}>
+                {busy ? 'Memproses…' : `🗑 Hapus akun (${selected.size})`}
+              </button>
+            </>
           )}
           <button className="btn-primary" onClick={() => setAddUserOpen(true)}>+ Buat akun baru</button>
         </div>
@@ -107,7 +129,7 @@ export function Pengguna() {
             </thead>
             <tbody>
               {filtered.map(u => (
-                <UserRow key={u.id} u={u} checked={selected.has(u.id)} onToggle={() => toggleOne(u.id)} />
+                <UserRow key={u.id} u={u} checked={selected.has(u.id)} onToggle={() => toggleOne(u.id)} isSelf={u.id === session?.user_id} />
               ))}
             </tbody>
           </table>
@@ -124,8 +146,8 @@ export function Pengguna() {
   );
 }
 
-function UserRow({ u, checked, onToggle }) {
-  const { resetPassword, setEditUserTarget } = useCms();
+function UserRow({ u, checked, onToggle, isSelf }) {
+  const { resetPassword, deleteUser, setEditUserTarget } = useCms();
   const pc = peranColor(u.peran);
   const initials = (u.nama || u.username).split(' ').slice(0, 2).map(x => x[0]).join('').toUpperCase();
   const [open, setOpen] = useState(false);
@@ -139,6 +161,12 @@ function UserRow({ u, checked, onToggle }) {
   const onEdit = () => {
     setOpen(false);
     setEditUserTarget(u);
+  };
+
+  const onDelete = async () => {
+    setOpen(false);
+    if (!window.confirm(`Hapus akun ${u.nama || u.username}? Aksi ini permanen: akun langsung tidak bisa login lagi dan tidak bisa dipulihkan.`)) return;
+    await deleteUser(u.id, u.nama || u.username);
   };
 
   return (
@@ -170,6 +198,15 @@ function UserRow({ u, checked, onToggle }) {
               </button>
               <button className="btn-ghost" style={{ width: '100%', textAlign: 'left', padding: '9px 12px', fontSize: 12.5, borderRadius: 0 }} onClick={onReset}>
                 Reset kode khusus
+              </button>
+              <button
+                className="btn-ghost"
+                style={{ width: '100%', textAlign: 'left', padding: '9px 12px', fontSize: 12.5, borderRadius: 0, color: isSelf ? 'var(--ink-4)' : 'var(--status-alert)' }}
+                onClick={onDelete}
+                disabled={isSelf}
+                title={isSelf ? 'Tidak bisa menghapus akun sendiri yang sedang login' : undefined}
+              >
+                Hapus pengguna
               </button>
             </div>
           </>

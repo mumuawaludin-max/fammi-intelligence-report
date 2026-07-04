@@ -290,3 +290,19 @@ export async function bulkResetPasswordAction(users) {
   if (error) throw new Error(error.message || 'Edge Function create-user (bulk reset) gagal dipanggil.');
   return data.results;
 }
+
+export async function deleteUserAction(userId) {
+  const { data, error } = await supabase.functions.invoke('create-user', {
+    body: { delete_user_id: userId },
+  });
+  if (error) throw new Error(error.message || 'Edge Function create-user (hapus) gagal dipanggil.');
+  return data;
+}
+
+export async function bulkDeleteUsersAction(userIds) {
+  const { data, error } = await supabase.functions.invoke('create-user', {
+    body: { delete_user_ids: userIds },
+  });
+  if (error) throw new Error(error.message || 'Edge Function create-user (bulk hapus) gagal dipanggil.');
+  return data.results;
+}

@@ -20,7 +20,9 @@
 // atau `{ reset_user_id, reset_username }` (reset satu akun), atau
 // `{ reset_users: [ {user_id, username}, ... ] }` (reset banyak akun sekaligus, dipakai fitur
 // "Reset & Export kode" di layar Pengguna — password lama TIDAK BISA diambil ulang, cuma bisa
-// digenerate baru, makanya fiturnya "reset lalu export", bukan "export yang sudah ada").
+// digenerate baru, makanya fiturnya "reset lalu export", bukan "export yang sudah ada"), atau
+// `{ delete_user_id }` / `{ delete_user_ids: [...] }` (hapus akun: baris profiles dihapus dulu,
+// baru akun Supabase Auth-nya, supaya tidak ada auth user yatim tanpa profile).
 //
 // Deploy: supabase functions deploy create-user
 // Secret: SUPABASE_SERVICE_ROLE_KEY sudah otomatis tersedia sebagai env bawaan Supabase Functions.
@@ -73,6 +75,25 @@ Deno.serve(async (req) => {
         results.push(resetErr
           ? { ok: false, username: row.username, error: resetErr.message }
           : { ok: true, username: row.username, password });
+      }
+      return json({ ok: true, results });
+    }
+
+    if (body.delete_user_id) {
+      if (body.delete_user_id === userData.user.id) {
+        return json({ error: "Tidak bisa menghapus akun sendiri yang sedang login." }, 400);
+      }
+      const result = await deleteOne(admin, body.delete_user_id);
+      if (!result.ok) return json({ error: result.error }, 500);
+      return json(result);
+    }
+
+    if (Array.isArray(body.delete_user_ids)) {
+      const results = [];
+      for (const id of body.delete_user_ids) {
+        results.push(id === userData.user.id
+          ? { ok: false, id, error: "Tidak bisa menghapus akun sendiri yang sedang login." }
+          : await deleteOne(admin, id));
       }
       return json({ ok: true, results });
     }
@@ -131,6 +152,17 @@ async function createOne(admin, row) {
   }
 
   return { ok: true, nama, username: usernameTrim, password, user_id: created.user.id };
+}
+
+/** Hapus profile dulu, baru auth user, supaya tidak ada baris profile yatim kalau auth delete gagal di tengah. */
+async function deleteOne(admin, userId) {
+  const { error: profileErr } = await admin.from("profiles").delete().eq("id", userId);
+  if (profileErr) return { ok: false, id: userId, error: `Gagal hapus profile: ${profileErr.message}` };
+
+  const { error: authErr } = await admin.auth.admin.deleteUser(userId);
+  if (authErr) return { ok: false, id: userId, error: `Profile terhapus tapi akun Auth gagal dihapus: ${authErr.message}` };
+
+  return { ok: true, id: userId };
 }
 
 /** Kata pertama bagian lokal email, huruf kecil semua (tanpa huruf besar biar minim salah ketik) + 3 digit acak. */

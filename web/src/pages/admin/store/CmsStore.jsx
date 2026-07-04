@@ -1,5 +1,5 @@
 import { createContext, useCallback, useContext, useMemo, useRef, useState } from 'react';
-import { useAdminCmsData, actApprovalAction, toggleModuleAction, addSchoolAction, runImportAction, triggerGeminiJobAction, createUserAction, updateUserAction, resetPasswordAction, bulkResetPasswordAction, updateGeminiScheduleAction, regenerateDraftAction } from '../useAdminCmsData';
+import { useAdminCmsData, actApprovalAction, toggleModuleAction, addSchoolAction, runImportAction, triggerGeminiJobAction, createUserAction, updateUserAction, resetPasswordAction, bulkResetPasswordAction, deleteUserAction, bulkDeleteUsersAction, updateGeminiScheduleAction, regenerateDraftAction } from '../useAdminCmsData';
 import { bulkCreateUsers as bulkCreateUsersAction } from '../importers/guruImporter';
 import { downloadCsv } from '../data/helpers';
 
@@ -126,6 +126,37 @@ export function CmsProvider({ session, children }) {
     }
   }, [showToast]);
 
+  const deleteUser = useCallback(async (userId, nama) => {
+    try {
+      await deleteUserAction(userId);
+      showToast(`Akun ${nama || userId} dihapus.`, 'safe');
+      refetch();
+      return true;
+    } catch (e) {
+      showToast('Gagal hapus akun: ' + e.message, 'alert');
+      return false;
+    }
+  }, [showToast, refetch]);
+
+  const bulkDeleteUsers = useCallback(async (users) => {
+    try {
+      const results = await bulkDeleteUsersAction(users.map((u) => u.id));
+      const ok = results.filter((r) => r.ok);
+      const failed = results.filter((r) => !r.ok);
+      showToast(
+        failed.length === 0
+          ? `${ok.length} akun dihapus.`
+          : `${ok.length} berhasil dihapus, ${failed.length} gagal (${failed.map((f) => f.error).join('; ')}).`,
+        failed.length === 0 ? 'safe' : 'warn', 8000,
+      );
+      refetch();
+      return results;
+    } catch (e) {
+      showToast('Gagal hapus akun: ' + e.message, 'alert');
+      return null;
+    }
+  }, [showToast, refetch]);
+
   const updateUser = useCallback(async (userId, payload) => {
     try {
       await updateUserAction(userId, payload);
@@ -187,6 +218,7 @@ export function CmsProvider({ session, children }) {
   }, [showToast, refetch]);
 
   const value = useMemo(() => ({
+    session,
     data: data || { yayasan: [], sekolah: [], antrian: [], riwayatDisetujui: [], uploadHistory: [], geminiJobs: [], users: [], rekomendasi: [], geminiSchedule: { aktif: false, interval_jam: 6, terakhir_jalan: null } },
     loading,
     error,
@@ -212,6 +244,8 @@ export function CmsProvider({ session, children }) {
     bulkCreateUsers,
     resetPassword,
     bulkResetAndExport,
+    deleteUser,
+    bulkDeleteUsers,
     updateGeminiSchedule,
     regenerateDraft,
     setApprovalEditText: (id, text) => setState((s) => ({ ...s, approvalEditText: { ...s.approvalEditText, [id]: text } })),
@@ -220,7 +254,7 @@ export function CmsProvider({ session, children }) {
       delete n[id];
       return { ...s, approvalEditText: n };
     }),
-  }), [data, loading, error, refetch, state, showToast, actApproval, toggleModule, isModuleOn, addSchool, runImport, triggerGeminiJob, createUser, updateUser, bulkCreateUsers, resetPassword, bulkResetAndExport, updateGeminiSchedule, regenerateDraft]);
+  }), [session, data, loading, error, refetch, state, showToast, actApproval, toggleModule, isModuleOn, addSchool, runImport, triggerGeminiJob, createUser, updateUser, bulkCreateUsers, resetPassword, bulkResetAndExport, deleteUser, bulkDeleteUsers, updateGeminiSchedule, regenerateDraft]);
 
   return <CmsContext.Provider value={value}>{children}</CmsContext.Provider>;
 }
