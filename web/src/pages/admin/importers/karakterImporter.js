@@ -7,7 +7,26 @@ function pct(v) {
   return Number.isFinite(n) ? Math.round(n) : null;
 }
 
-const NAMA_BULAN = ['januari', 'februari', 'maret', 'april', 'mei', 'juni', 'juli', 'agustus', 'september', 'oktober', 'november', 'desember'];
+/** Tiap indeks: [nama Indonesia lengkap, singkatan Indonesia, nama Inggris lengkap, singkatan Inggris]. */
+const NAMA_BULAN = [
+  ['januari', 'jan', 'january', 'jan'],
+  ['februari', 'feb', 'february', 'feb'],
+  ['maret', 'mar', 'march', 'mar'],
+  ['april', 'apr', 'april', 'apr'],
+  ['mei', 'mei', 'may', 'may'],
+  ['juni', 'jun', 'june', 'jun'],
+  ['juli', 'jul', 'july', 'jul'],
+  ['agustus', 'agu', 'august', 'aug'],
+  ['september', 'sep', 'september', 'sep'],
+  ['oktober', 'okt', 'october', 'oct'],
+  ['november', 'nov', 'november', 'nov'],
+  ['desember', 'des', 'december', 'dec'],
+];
+
+/** Cari indeks bulan (0-11) dari kata apa pun (Indonesia/Inggris, lengkap/singkatan). */
+function bulanIndex(word) {
+  return NAMA_BULAN.findIndex((names) => names.includes(word));
+}
 
 /** Cari kolom di baris tanpa peduli besar/kecil huruf, karena header sumber tidak konsisten. */
 function getField(row, ...names) {
@@ -21,7 +40,11 @@ function excelSerialToDate(n) {
   return new Date(Math.round((n - 25569) * 86400 * 1000));
 }
 
-/** Ubah nilai kolom "bulan" (Date, serial Excel, "2026-07", "07/2026", atau "Juli 2026") jadi periode_id "YYYY-MM". Null kalau tidak terbaca. */
+/**
+ * Ubah nilai kolom "bulan" jadi periode_id "YYYY-MM". Null kalau tidak terbaca.
+ * Dukung: Date/serial Excel, "2026-07", "07/2026", nama bulan Indonesia atau Inggris
+ * lengkap/singkatan dalam urutan apa pun ("Juli 2026", "October, 2025", "Oct 2025", "2025 October").
+ */
 function parseBulan(raw) {
   if (raw === '' || raw === null || raw === undefined) return null;
   if (raw instanceof Date) {
@@ -36,10 +59,12 @@ function parseBulan(raw) {
   if (m) return `${m[1]}-${String(parseInt(m[2], 10)).padStart(2, '0')}`;
   m = s.match(/^(\d{1,2})[-\/](\d{4})$/);
   if (m) return `${m[2]}-${String(parseInt(m[1], 10)).padStart(2, '0')}`;
-  const parts = s.toLowerCase().replace(/[^a-z0-9 ]/g, ' ').trim().split(/\s+/);
+  const parts = s.toLowerCase().replace(/[^a-z0-9 ]/g, ' ').trim().split(/\s+/).filter(Boolean);
   if (parts.length >= 2) {
-    const idx = NAMA_BULAN.indexOf(parts[0]);
+    let idx = bulanIndex(parts[0]);
     if (idx >= 0 && /^\d{4}$/.test(parts[1])) return `${parts[1]}-${String(idx + 1).padStart(2, '0')}`;
+    idx = bulanIndex(parts[1]);
+    if (idx >= 0 && /^\d{4}$/.test(parts[0])) return `${parts[0]}-${String(idx + 1).padStart(2, '0')}`;
   }
   return null;
 }
