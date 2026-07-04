@@ -1,6 +1,6 @@
 /* Admin Fammi CMS — di-scope ke .admin-cms-root supaya tidak menjalar ke halaman lain.
-   Semua warna pakai token asli tokens.css (--purple-*/--status-*/--info*) langsung,
-   tanpa lapisan alias — sempat ada alias --p-*/--s-* di sini tapi bikin nilainya jadi
+   Semua warna pakai token asli tokens.css (--purple-x, --status-x, --info-x) langsung,
+   tanpa lapisan alias — sempat ada alias --p-x/--s-x di sini tapi bikin nilainya jadi
    referensi ke dirinya sendiri (cyclic var()) sehingga browser menganggapnya invalid dan
    elemen terkait (toggle, tombol) jadi transparan. Jangan tambah alias serupa lagi. */
 .admin-cms-root {
