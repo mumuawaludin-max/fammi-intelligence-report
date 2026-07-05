@@ -269,6 +269,12 @@ paham maksudnya tanpa perlu menebak atau mencari konteks lain. Satu kalimat pend
 cuma menyebut kesimpulan, tanpa menjelaskan kenapa atau bagaimana, dianggap GAGAL. Tulis
 2 sampai 3 kalimat yang mengalir wajar, bukan satu kalimat kaku yang dipadatkan paksa.
 
+Tes wajib sebelum menulis tiap field (di dalam nalar, jangan ditampilkan): kalau setelah
+membaca field ini pembaca yang belum tahu apa-apa soal kelas/sekolah ini masih mungkin
+bertanya "terus kenapa?", "maksudnya gimana?", atau "terus harus ngapain?", berarti field
+itu GAGAL dan harus ditulis ulang lebih lengkap. Jangan berhenti menulis sebelum
+pertanyaan susulan itu sudah terjawab duluan di dalam kalimatnya sendiri.
+
 title: judul aksi, bukan masalah. "Beri Lima Menit Anak Rapikan Alat Sendiri", bukan
 "Kemandirian Rendah". Maksimal 8 kata. Ini satu-satunya field yang memang harus singkat.
 
@@ -284,10 +290,33 @@ kemungkinan akar masalahnya, dan kenapa sudut pandang ini penting dipahami sebel
 bertindak. Dilarang mengulang mengapa_data beda kalimat, dan dilarang berhenti di satu
 kalimat pendek yang menyisakan tanda tanya bagi pembaca.
 
-dasar_teori: nama kerangka dan penjelasan singkat maknanya dalam bahasa sehari-hari,
-sesuai jenjang, misalnya "Sokongan bertahap (Vygotsky): bantuan dikurangi pelan-pelan
-sampai anak bisa sendiri". Ini catatan internal untuk CMS, boleh sedikit teknis, tapi
-tetap jelaskan maknanya, jangan cuma menyebut nama tokoh dan teori tanpa penjelasan.
+dasar_teori: WAJIB, TIDAK BOLEH KOSONG, dan WAJIB menyebut nama teori/konsep DAN nama
+tokohnya kalau tabel jenjang punya nama tokohnya. Field ini khusus untuk CMS internal
+(psikolog/admin Fammi), jadi justru di sinilah nama teknis harus muncul jelas, beda dari
+field lain yang harus bahasa awam. Format wajib: "<Nama teori/konsep> (<Nama tokoh kalau
+ada>): <penjelasan maknanya dalam bahasa sehari-hari, 1 kalimat>". Contoh format yang
+benar per jenjang, sesuaikan dengan jenjang data:
+- PAUD/TK: "Inisiatif vs rasa bersalah (Erikson): anak usia ini perlu ruang mencoba
+  sendiri tanpa terlalu sering disalahkan supaya berani berinisiatif."
+- SD rendah: "Zona perkembangan terdekat (Vygotsky): bantuan diberikan pas porsinya,
+  dikurangi bertahap sampai anak bisa sendiri."
+- SD tinggi: "Pola pikir berkembang (Dweck): dipuji karena usahanya, bukan hasilnya,
+  supaya anak berani mencoba lagi walau belum berhasil." atau "Keterampilan sosial
+  emosional (CASEL): anak dilatih sadar diri dan bekerja sama lewat kegiatan berulang."
+- SMP: "Pembentukan identitas (Erikson): remaja tahap ini sedang mencari tahu siapa
+  dirinya, butuh dilibatkan memilih, bukan cuma diperintah."
+- SMA: "Identitas menuju kemandirian (Erikson): remaja akhir butuh kepemilikan penuh
+  atas keputusannya sendiri supaya benar-benar terbentuk jadi kebiasaan, bukan patuh
+  sesaat."
+Kalau data memang tidak menyebut jenjang (lintas_jenjang), tetap pilih satu kerangka yang
+paling relevan dari daftar yang diizinkan (Erikson, Vygotsky, Dweck, CASEL,
+Bronfenbrenner, pola pikir berkembang), jangan dikosongkan dengan alasan jenjang tidak
+jelas. JANGAN PERNAH cuma menyebut nama tokoh/teori tanpa penjelasan maknanya, dan JANGAN
+PERNAH mengosongkan atau menyamarkan nama tokoh kalau tabel jenjang menyediakannya.
+
+manfaat: jelaskan dampak konkret dalam 1 sampai 2 kalimat, gambarkan situasi setelah
+dijalankan supaya pembaca bisa membayangkan hasilnya. Hindari klaim berlebihan yang tidak
+bisa dibuktikan.
 
 manfaat: jelaskan dampak konkret dalam 1 sampai 2 kalimat, gambarkan situasi setelah
 dijalankan supaya pembaca bisa membayangkan hasilnya. Hindari klaim berlebihan yang tidak
@@ -425,8 +454,9 @@ mengapa_perspektif: "Permintaan yang berulang dari orang tua berbeda biasanya bu
 kebutuhan satu keluarga, tapi celah yang dirasakan banyak orang tua sekaligus. Kalau
 cuma dijawab satu per satu lewat pesan singkat, celah itu akan muncul lagi tiap
 periode karena akar kebutuhannya belum benar-benar dijawab."
-dasar_teori: "Keselarasan sekolah dan rumah: pembiasaan anak lebih kuat kalau sekolah
-dan orang tua memakai cara yang sama, bukan berjalan sendiri-sendiri."
+dasar_teori: "Keselarasan sistem ekologis (Bronfenbrenner): anak berkembang paling baik
+kalau lingkungan-lingkungan di sekitarnya, terutama sekolah dan rumah, sejalan dan saling
+menguatkan, bukan berjalan sendiri-sendiri tanpa saling tahu."
 manfaat: "Orang tua merasa didampingi, bukan cuma dijawab, dan pembiasaan yang diajarkan
 di sekolah lebih konsisten diteruskan di rumah."
 konkret:
@@ -439,6 +469,59 @@ konkret:
      dipakai menentukan tema sesi berikutnya."
   - "Di bulan keenam, tinjau apakah permintaan serupa di refleksi orang tua berkurang
      dibanding sebelum program ini mulai."
+
+Contoh keempat, singkat, jenjang PAUD/TK, term "short", fokus "mutu", supaya polanya
+jelas juga dipakai untuk anak usia paling kecil, bukan cuma anak SD:
+
+title: "Latih Anak Pakai Sepatu Sendiri Sebelum Pulang"
+teaser: "Kemandirian memakai perlengkapan sendiri masih rendah di kelompok ini, mulai
+dari hal sekecil sepatu."
+mengapa_data: "Indikator kemandirian dasar (memakai perlengkapan sendiri) jadi yang
+paling rendah di kelompok TK B periode ini, dan guru masih terbiasa membantu penuh
+tiap kali bersiap pulang."
+mengapa_perspektif: "Di usia ini, anak sebenarnya sedang dalam masa paling ingin
+mencoba sendiri, tapi kalau orang dewasa di sekitarnya terus buru-buru membantu
+supaya cepat selesai, dorongan mencoba itu perlahan hilang, bukan tumbuh, karena
+anak belajar bahwa selalu ada yang akan membantunya."
+dasar_teori: "Inisiatif vs rasa bersalah (Erikson): anak usia ini butuh kesempatan
+mencoba sendiri tanpa buru-buru dibantu atau disalahkan, supaya berani berinisiatif
+di hal-hal kecil sehari-hari."
+manfaat: "Anak lebih percaya diri mengurus dirinya sendiri, dan waktu bersiap pulang
+di kelas jadi lebih tertata karena tidak semua anak menunggu dibantu guru."
+konkret:
+  - "Besok, mulai kegiatan bersiap pulang dengan lagu pendek tentang pakai sepatu
+     sendiri, supaya terasa seperti permainan, bukan tugas."
+  - "Tiap hari, beri waktu dua menit anak mencoba sendiri dulu sebelum guru membantu,
+     cukup tunggu dan tepuk tangan kalau berhasil."
+  - "Akhir minggu, tempel stiker bintang sederhana di rak sepatu anak yang sudah bisa
+     sendiri, supaya terlihat kemajuannya oleh anak dan orang tua."
+
+Contoh kelima, singkat, jenjang SMP, term "short", fokus "citra", supaya polanya jelas
+juga dipakai untuk remaja, bukan cuma anak kecil:
+
+title: "Buka Jam Curhat Singkat Wali Kelas Tiap Minggu"
+teaser: "Beberapa orang tua siswa SMP kelas ini bilang anaknya jadi tertutup soal
+sekolah, ini sinyal yang gampang terlewat kalau cuma dilihat dari nilai."
+mengapa_data: "Dari refleksi orang tua periode ini, beberapa orang tua kelas ini
+menyebut anaknya makin jarang cerita soal sekolah di rumah, dan beberapa juga
+menyebut ingin tahu lebih banyak soal keseharian anaknya di kelas."
+mengapa_perspektif: "Anak SMP secara alami mulai menjaga jarak dari orang dewasa
+saat mencari jati dirinya sendiri, jadi diamnya bukan berarti ada masalah besar.
+Tapi kalau sekolah tidak membuka ruang bicara yang terasa aman dan tidak
+menghakimi, orang tua kehilangan gambaran keseharian anaknya, dan masalah kecil
+bisa telat diketahui."
+dasar_teori: "Pembentukan identitas (Erikson): remaja usia ini wajar mulai menjaga
+privasi dari orang dewasa, tapi tetap butuh ruang bicara yang terasa aman dan
+pilihannya sendiri, bukan interogasi."
+manfaat: "Orang tua lebih tenang karena tetap punya gambaran keseharian anaknya di
+sekolah, dan siswa merasa didengar tanpa merasa diawasi."
+konkret:
+  - "Minggu ini, umumkan satu slot 15 menit tiap Jumat sore untuk siswa yang mau
+     mengobrol santai dengan wali kelas, sifatnya sukarela, bukan wajib."
+  - "Tiap sesi, biarkan siswa memilih topik obrolannya sendiri, wali kelas cukup
+     mendengarkan dan sesekali bertanya, bukan menasihati panjang."
+  - "Akhir bulan, kirim satu pesan singkat ke grup orang tua tentang suasana kelas
+     secara umum, tanpa membocorkan isi obrolan personal siapa pun."
 
 
 ## CONTOH YANG DIHINDARI
@@ -454,6 +537,8 @@ konkret:
   penjelasan, sampai pembaca tidak paham kenapa atau bagaimana.
 - Singkatan bahasa Inggris seperti "WHY", "WHAT", "HOW", "SMART", "SMART GOAL" di field
   mana pun. Selalu tulis penuh dalam bahasa Indonesia.
+- dasar_teori yang kosong, atau yang cuma menyebut nama tokoh/teori tanpa penjelasan
+  ("Vygotsky" saja), atau sebaliknya penjelasan tanpa nama tokoh/teori sama sekali.
 
 
 ## GERBANG WAJIB
