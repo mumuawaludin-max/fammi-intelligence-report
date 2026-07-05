@@ -323,12 +323,16 @@ teaser: satu kalimat, memancing ingin tahu, tidak membocorkan seluruh isi.
 
 mengapa_data: jelaskan temuan dari data secara utuh, 2 sampai 3 kalimat. WAJIB dimulai
 dengan menyebut asal datanya secara jelas supaya tidak ada yang bertanya-tanya apakah ini
-data satu anak: sebut ini rata-rata/agregat cakupan apa (kelas mana atau seluruh sekolah)
-dan periode mana. Contoh pembuka yang benar: "Rata-rata kelas G1 Abu Bakar pada periode
-Juli 2026 untuk aspek Kejujuran ada di 71 persen, dihitung dari seluruh siswa yang
-dinilai." Baru setelah itu jelaskan angkanya artinya apa dalam bahasa biasa (turun dari
-kategori apa ke kategori apa). Jangan cuma menyebut angka telanjang tanpa asal dan tanpa
-makna. Jangan pernah menulis seolah angka ini milik satu siswa tertentu.
+data satu anak: sebut ini rata-rata capaian cakupan apa (kelas mana atau seluruh sekolah)
+dan periode mana. Angka persen yang kamu sebut WAJIB diambil dari "rata_rata_per_aspek"
+(angka aspek yang persis dilihat sekolah di kartu), bilangan bulat tanpa desimal, dan
+ditulis sebagai nilai capaian bukan proporsi jumlah siswa. Contoh pembuka yang benar:
+"Rata-rata capaian aspek Kejujuran di kelas G1 Abu Bakar pada periode Juli 2026 ada di
+71 persen, agregat semua siswa yang dinilai (bukan satu anak)." Baru setelah itu jelaskan
+artinya dalam bahasa biasa, misalnya aspek ini yang paling rendah dibanding aspek lain.
+Kalau ingin menunjuk butir spesifik yang paling perlu dikuatkan, sebut NAMA indikatornya
+saja sebagai sasaran, tanpa angka indikator terpisah. Jangan cuma menyebut angka telanjang
+tanpa asal dan makna, dan jangan pernah menulis seolah angka ini milik satu siswa.
 
 mengapa_perspektif: WAJIB beda sudut dari mengapa_data, dan wajib memberi momen sadar,
 sudut yang tidak langsung kelihatan. Jelaskan penuh dalam 2 sampai 3 kalimat: apa
@@ -992,16 +996,51 @@ function ringkasOrtuRows(rows: any[]): string[] {
  *    nama sebelum sampai ke model, bukan cuma mengandalkan Gemini untuk tidak menuliskannya.
  * Fungsi ini membersihkan dan menjernihkan ringkasan sebelum dikirim di prompt.
  */
-function siapkanRingkasanUntukGemini(ringkasan: Record<string, any>): Record<string, any> {
+function siapkanRingkasanUntukGemini(
+  ringkasan: Record<string, any>,
+  opts: { scope?: string; aspekLabels?: Record<string, string> } = {},
+): Record<string, any> {
+  const { scope, aspekLabels = {} } = opts;
+
+  // Bulatkan ke persen bulat PERSIS seperti helper pct() di frontend, supaya angka yang
+  // dikutip Gemini identik dengan yang tampil di layar (bukan 70.31 padahal UI tampil 70).
+  const roundPct = (v: any) => {
+    if (v === null || v === undefined || v === "") return null;
+    const n = parseFloat(String(v).replace("%", "").trim());
+    return Number.isFinite(n) ? Math.round(n) : null;
+  };
+  const isPercentKey = (k: string) =>
+    /^(input_guru_|input_orangtua_|rata_input_guru_|rata_input_orangtua_|pencapaian_|rata_pencapaian_|rata_rata_pencapaian_)/.test(k);
+
   const bersih: Record<string, any> = {};
   for (const [key, value] of Object.entries(ringkasan || {})) {
     // Buang total field yang mengandung nama murid -- tidak boleh sampai ke Gemini.
     if (/^top5_siswa_/.test(key) || /^top5_nilai_siswa_/.test(key)) continue;
-    bersih[key] = value;
+    if (isPercentKey(key)) {
+      const r = roundPct(value);
+      bersih[key] = r == null ? value : r;
+    } else {
+      bersih[key] = value;
+    }
   }
+
+  // Rata-rata per aspek dengan label yang benar dan angka bulat, PERSIS seperti yang
+  // dihitung frontend (ringkasanAspekValue -> pct) untuk kartu/tooltip aspek. Prefix beda
+  // per scope: kelas pakai "input_guru_", sekolah pakai "rata_input_guru_". Ini yang WAJIB
+  // dipakai Gemini untuk angka, supaya tidak beda dengan yang dilihat sekolah.
+  const aspekPrefix = scope === "sekolah" ? "rata_input_guru_" : "input_guru_";
+  const rataPerAspek: Record<string, number> = {};
+  for (const [kode, label] of Object.entries(aspekLabels)) {
+    const key = Object.keys(ringkasan || {}).find((k) => k.startsWith(`${aspekPrefix}${kode}_`));
+    if (!key) continue;
+    const val = roundPct(ringkasan[key]);
+    if (val != null) rataPerAspek[label] = val;
+  }
+  if (Object.keys(rataPerAspek).length > 0) bersih.rata_rata_per_aspek = rataPerAspek;
 
   // Parse top5_indikator_terbaik/terendah dari string JSON jadi array asli, dengan
   // peringkat dan label predikat eksplisit supaya tidak ambigu mana tertinggi/terendah.
+  // Nilai dibulatkan juga supaya tidak muncul desimal aneh seperti 70.31.
   for (const [key, labelPredikat] of [
     ["top5_indikator_terbaik", "tertinggi (paling kuat)"],
     ["top5_indikator_terendah", "terendah (paling lemah)"],
@@ -1015,7 +1054,7 @@ function siapkanRingkasanUntukGemini(ringkasan: Record<string, any>): Record<str
           peringkat: i + 1,
           predikat: i === 0 ? `peringkat 1, ${labelPredikat}` : `peringkat ${i + 1}`,
           indikator: item.pencapaian ?? item.indikator ?? item.label ?? null,
-          nilai_persen: item.nilai ?? item.value ?? null,
+          nilai_persen: roundPct(item.nilai ?? item.value),
         }));
       }
     } catch {
@@ -1028,8 +1067,8 @@ function siapkanRingkasanUntukGemini(ringkasan: Record<string, any>): Record<str
   return bersih;
 }
 
-export function buildUserPrompt({ role, scope, scope_id, modul, periode_id, ringkasan, kutipanOrtu, arahanReviewer, tipe }) {
-  const fakta = JSON.stringify(siapkanRingkasanUntukGemini(ringkasan), null, 2);
+export function buildUserPrompt({ role, scope, scope_id, modul, periode_id, ringkasan, kutipanOrtu, arahanReviewer, tipe, aspekLabels }) {
+  const fakta = JSON.stringify(siapkanRingkasanUntukGemini(ringkasan, { scope, aspekLabels }), null, 2);
   const kutipanBlok = kutipanOrtu && kutipanOrtu.length > 0
     ? `\nRefleksi orang tua periode ini, satu baris per orang tua (dipakai untuk temuan\nfokus citra, jangan lewatkan kalau ada beberapa kategori berbeda yang cukup sering muncul):\n${kutipanOrtu.map((k) => `- ${k}`).join("\n")}\n`
     : "";
@@ -1070,10 +1109,23 @@ ASAL DATA, WAJIB DIPAHAMI SEBELUM MENULIS APA PUN:
   banyak orang tua di cakupan itu pada periode ini, bukan satu keluarga.
 - Kamu HANYA boleh membahas periode ${periode_id}. Jangan menyebut atau mencampur periode
   lain, karena data periode lain memang tidak diberikan di permintaan ini.
-- Di field mengapa_data, WAJIB sebut secara eksplisit bahwa angkanya adalah rata-rata
-  ${cakupanLabel} pada periode ${periode_id}, supaya kepala sekolah, wali kelas, dan
-  yayasan tahu persis data ini valid dan dari mana asalnya, bukan menebak-nebak apakah
-  ini data satu anak.
+- ANGKA PERSEN, WAJIB DIPATUHI supaya tidak beda dengan yang dilihat sekolah di layar:
+  * Kalau kamu menyebut angka persen capaian aspek, AMBIL dari objek "rata_rata_per_aspek"
+    di data. Itu angka RATA-RATA ASPEK yang PERSIS ditampilkan di kartu/tooltip aspek yang
+    dilihat sekolah. Jangan pakai angka lain untuk aspek.
+  * Semua angka di data sudah bulat (tanpa desimal). DILARANG menambah desimal sendiri
+    (mis. jangan tulis "70,31 persen" atau "70.31 persen"), tulis bilangan bulat saja.
+  * "top5_indikator_terendah/terbaik" cuma untuk tahu butir/indikator mana yang paling
+    lemah atau kuat sebagai SASARAN. Kamu boleh menyebut NAMA indikatornya, tapi JANGAN
+    mencantumkan angka persen per indikator yang berdiri sendiri, karena angka indikator
+    bisa beda dari angka aspek dan bikin pembaca bingung membandingkan dengan kartu.
+    Untuk angka, tetap pakai angka aspek dari "rata_rata_per_aspek".
+  * Tulis angka sebagai capaian, bukan proporsi jumlah siswa. Contoh benar: "rata-rata
+    capaian aspek X di ${cakupanLabel} periode ini 77 persen". Contoh SALAH: "77 persen
+    dari seluruh siswa" (itu terbaca seolah 77 persen jumlah siswa, bukan nilai capaian).
+- Di field mengapa_data, sebutkan bahwa angka itu adalah rata-rata capaian ${cakupanLabel}
+  pada periode ${periode_id} (agregat semua siswa yang dinilai, bukan satu anak), supaya
+  semua peran tahu data ini valid dan dari mana asalnya.
 ${arahanBlok}
 Data kuantitatif AGREGAT untuk ${cakupanLabel} periode ${periode_id} (sumber kebenaran
 satu-satunya untuk angka, jangan pakai angka di luar ini):
@@ -1158,7 +1210,14 @@ export async function generateAndInsertDraft(
     .order("created_at", { ascending: false }).limit(10);
   const arahanReviewer = (feedbackRows || []).map((r) => r.catatan).filter(Boolean);
 
-  const prompt = buildUserPrompt({ role, scope, scope_id, modul, periode_id, ringkasan: summaryRow.ringkasan, kutipanOrtu, arahanReviewer, tipe });
+  // Label aspek (aspek_kode -> aspek_label), dipakai untuk membangun rata_rata_per_aspek
+  // yang labelnya PERSIS seperti kartu aspek yang dilihat sekolah.
+  const { data: aspekCfgRows } = await db.from("karakter_aspek_config")
+    .select("aspek_kode, aspek_label").eq("sekolah_id", sekolah_id);
+  const aspekLabels: Record<string, string> = {};
+  (aspekCfgRows || []).forEach((a: any) => { if (a.aspek_kode) aspekLabels[a.aspek_kode] = a.aspek_label; });
+
+  const prompt = buildUserPrompt({ role, scope, scope_id, modul, periode_id, ringkasan: summaryRow.ringkasan, kutipanOrtu, arahanReviewer, tipe, aspekLabels });
 
   if (tipe === "briefing") {
     const hasil = await callGemini(apiKey, model, SYSTEM_INSTRUCTION_BRIEFING, prompt);
