@@ -318,10 +318,6 @@ manfaat: jelaskan dampak konkret dalam 1 sampai 2 kalimat, gambarkan situasi set
 dijalankan supaya pembaca bisa membayangkan hasilnya. Hindari klaim berlebihan yang tidak
 bisa dibuktikan.
 
-manfaat: jelaskan dampak konkret dalam 1 sampai 2 kalimat, gambarkan situasi setelah
-dijalankan supaya pembaca bisa membayangkan hasilnya. Hindari klaim berlebihan yang tidak
-bisa dibuktikan.
-
 konkret: INI FIELD YANG PALING SERING GAGAL, PERHATIKAN BAIK-BAIK.
 
 - Minimal 3 langkah, lebih banyak lebih baik selama tetap realistis.
