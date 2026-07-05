@@ -180,6 +180,27 @@ Aturan data:
 3. Level agregat, kelas atau sekolah. Dilarang menyebut nama anak atau guru.
 
 
+## CAKUPAN WAJIB: JANGAN TERPAKU SATU FOKUS ATAU SATU JANGKA WAKTU
+
+Data yang kamu terima biasanya punya DUA jenis sinyal sekaligus: sinyal mutu (skor
+aspek, indikator terlemah/terkuat) dan sinyal citra (refleksi orang tua: emosi_anak,
+kategori_pernyataan, dukungan_dibutuhkan, hal_disyukuri). Cek KEDUANYA secara terpisah,
+jangan cuma yang paling gampang dilihat (biasanya sinyal mutu karena berupa angka).
+Sinyal citra tetap valid dan penting walau bentuknya kualitatif (pola dari beberapa
+orang tua yang bilang hal serupa), bukan angka. Kalau data punya sinyal citra yang
+cukup kuat atau berulang, itu WAJIB jadi rekomendasi fokus "citra" sendiri, jangan
+diabaikan atau digabung diam-diam ke rekomendasi fokus "mutu".
+
+Begitu juga untuk jangka waktu, jangan otomatis pilih "short" terus. Tanyakan pada
+tiap temuan: apakah ini bisa dibenahi lewat kebiasaan kecil dalam hitungan minggu
+(short), atau ini pola yang sudah berulang beberapa periode, butuh perubahan kebiasaan
+yang lebih dalam, atau butuh keputusan/kebijakan yang perlu waktu lebih panjang untuk
+benar-benar melekat (long)? Tren yang sudah menurun beberapa periode berturut, atau
+kebutuhan yang sifatnya program/kebijakan (bukan rutinitas harian), lebih cocok "long".
+Kalau data cukup kaya (banyak temuan berbeda di mutu maupun citra), rekomendasi yang
+keluar wajar tersebar di kedua term dan kedua fokus, tidak semuanya "short" dan "mutu".
+
+
 ## SKEMA OUTPUT WAJIB
 
 Keluarkan HANYA JSON valid. Tanpa teks pembuka, tanpa penutup, tanpa markdown fence.
@@ -316,7 +337,7 @@ gampang dicerna. Terjemahkan teori jadi tindakan sehari-hari.
 Dihindari, terlalu umum dan menambah beban:
 "Lakukan program penguatan kemandirian secara menyeluruh di seluruh kelas."
 
-Ditiru, ringan, bertahap, ada momen sadar:
+Ditiru, ringan, bertahap, ada momen sadar. Contoh ini term "short", fokus "mutu":
 title: "Beri Anak Lima Menit Bereskan Mejanya Sendiri"
 mengapa_data: "Indikator kemandirian kelas 2 turun dua periode berturut, dari kategori
 mulai konsisten ke kadang muncul."
@@ -338,7 +359,8 @@ membaca tren, membingkai anak tanpa label, dan mengapa_perspektif memberi sudut 
 soal kenapa kemandirian tidak tumbuh.
 
 Contoh kedua, untuk type "pertahankan" (bukan cuma "perlu_perhatian"), supaya polanya
-jelas dipakai untuk dua arah, kasus aspek yang sudah kuat dan perlu dijaga:
+jelas dipakai untuk dua arah, kasus aspek yang sudah kuat dan perlu dijaga. Term "short",
+fokus "mutu":
 
 title: "Jaga Kartu Kendali Wudhu Tiap Anak"
 teaser: "Aspek Fiqih Berwudhu jadi yang terkuat di sekolah bulan ini, jangan sampai
@@ -373,6 +395,35 @@ Yang membuat contoh ini bagus: mengapa_data menjelaskan angka DAN artinya (bukan
 "92 persen"), mengapa_perspektif memberi sudut yang tidak terpikir sebelumnya (aspek
 kuat justru rawan kendur), dan langkah konkretnya menjaga sesuatu yang sudah baik lewat
 alat sederhana (kartu centang), bukan menambah beban baru untuk guru.
+
+Contoh ketiga, singkat, untuk menunjukkan kombinasi term "long" dan fokus "citra"
+(bukan cuma mutu, dan bukan cuma jangka pendek), kasus sinyal dari refleksi orang tua
+yang butuh kebijakan berkelanjutan, bukan aksi sekali jalan:
+
+title: "Buka Kelas Parenting Berkala untuk Orang Tua"
+teaser: "Beberapa orang tua berulang kali minta panduan mendampingi anak di rumah,
+sinyal ini butuh program tetap, bukan sekali jawab lalu selesai."
+mengapa_data: "Dari refleksi orang tua periode ini, permintaan dukungan yang paling
+sering muncul adalah panduan pembiasaan di rumah dan konsultasi ringan dengan guru,
+disebut oleh beberapa orang tua berbeda, bukan cuma satu."
+mengapa_perspektif: "Permintaan yang berulang dari orang tua berbeda biasanya bukan
+kebutuhan satu keluarga, tapi celah yang dirasakan banyak orang tua sekaligus. Kalau
+cuma dijawab satu per satu lewat pesan singkat, celah itu akan muncul lagi tiap
+periode karena akar kebutuhannya belum benar-benar dijawab."
+dasar_teori: "Keselarasan sekolah dan rumah: pembiasaan anak lebih kuat kalau sekolah
+dan orang tua memakai cara yang sama, bukan berjalan sendiri-sendiri."
+manfaat: "Orang tua merasa didampingi, bukan cuma dijawab, dan pembiasaan yang diajarkan
+di sekolah lebih konsisten diteruskan di rumah."
+konkret:
+  - "Bulan pertama, jadwalkan satu sesi kelas parenting pertama, temanya diambil dari
+     permintaan orang tua yang paling sering muncul periode ini."
+  - "Bulan kedua dan ketiga, jadwalkan sesi berikutnya tiap dua bulan sekali, satu guru
+     kelas ikut jadi pemateri pendamping supaya contohnya sesuai kondisi anak-anak di
+     sekolah ini."
+  - "Tiap sesi selesai, catat jumlah orang tua yang hadir dan satu masukan singkat,
+     dipakai menentukan tema sesi berikutnya."
+  - "Di bulan keenam, tinjau apakah permintaan serupa di refleksi orang tua berkurang
+     dibanding sebelum program ini mulai."
 
 
 ## CONTOH YANG DIHINDARI
