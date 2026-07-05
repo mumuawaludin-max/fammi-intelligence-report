@@ -92,11 +92,17 @@ function TermRow({ term, items, who, onOpen }) {
         <span className={styles.termRange}>{meta.range}</span>
         <span className={styles.termWho}>{who}</span>
       </div>
-      <div className={styles.termGrid}>
-        {items.map((k) => (
-          <GoalCard key={k.id} k={k} onOpen={onOpen} />
-        ))}
-      </div>
+      {items.length > 0 ? (
+        <div className={styles.termGrid}>
+          {items.map((k) => (
+            <GoalCard key={k.id} k={k} onOpen={onOpen} />
+          ))}
+        </div>
+      ) : (
+        <p className={styles.termEmpty}>
+          Belum ada rekomendasi {meta.label.toLowerCase()} untuk periode ini.
+        </p>
+      )}
     </div>
   );
 }

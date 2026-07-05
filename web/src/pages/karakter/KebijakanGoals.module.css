@@ -74,6 +74,14 @@
   .termGrid { grid-template-columns: repeat(3, 1fr); }
 }
 
+.termEmpty {
+  font-size: 13px;
+  color: var(--ink-3);
+  background: var(--surface);
+  border-radius: 16px;
+  padding: 16px 18px;
+}
+
 /* ── Kartu goal: semua putih, warna tipe jadi penanda mencolok ── */
 .card {
   display: flex;
