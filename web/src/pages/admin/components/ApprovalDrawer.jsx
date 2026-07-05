@@ -52,6 +52,19 @@ function comboLabel(type, fokus) {
   return type === 'pertahankan' ? `Pertahankan ${f}` : `${f} Perlu Perhatian`;
 }
 
+/** manfaat bisa objek, string JSON dari kolom text lama, atau string biasa. Kembalikan yang tepat. */
+function coerceManfaat(manfaat) {
+  if (manfaat && typeof manfaat === 'object') return manfaat;
+  if (typeof manfaat === 'string') {
+    const s = manfaat.trim();
+    if (s.startsWith('{')) {
+      try { const p = JSON.parse(s); if (p && typeof p === 'object') return p; } catch { /* teks biasa */ }
+    }
+    return s;
+  }
+  return null;
+}
+
 /** Isi drawer untuk baris skema baru: title/teaser/mengapa/dasar_teori/manfaat/konkret. */
 function KebijakanBaruBody({ a }) {
   return (
@@ -91,20 +104,24 @@ function KebijakanBaruBody({ a }) {
         </div>
       )}
 
-      {a.manfaat && (
-        <div style={{ marginBottom: 16 }}>
-          <label style={{ fontSize: 11, fontWeight: 800, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--ink-3)', marginBottom: 8, display: 'block' }}>Manfaatnya</label>
-          {typeof a.manfaat === 'string' ? (
-            <div style={{ fontSize: 13, color: 'var(--ink-2)', lineHeight: 1.6 }}>{a.manfaat}</div>
-          ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-              {a.manfaat.anak && <div style={{ fontSize: 13, color: 'var(--ink-2)', lineHeight: 1.6 }}><strong style={{ color: 'var(--purple-700)' }}>Untuk anak:</strong> {a.manfaat.anak}</div>}
-              {a.manfaat.orang_tua && <div style={{ fontSize: 13, color: 'var(--ink-2)', lineHeight: 1.6 }}><strong style={{ color: 'var(--purple-700)' }}>Untuk orang tua:</strong> {a.manfaat.orang_tua}</div>}
-              {a.manfaat.sekolah && <div style={{ fontSize: 13, color: 'var(--ink-2)', lineHeight: 1.6 }}><strong style={{ color: 'var(--purple-700)' }}>Untuk sekolah:</strong> {a.manfaat.sekolah}</div>}
-            </div>
-          )}
-        </div>
-      )}
+      {a.manfaat && (() => {
+        const m = coerceManfaat(a.manfaat);
+        if (!m) return null;
+        return (
+          <div style={{ marginBottom: 16 }}>
+            <label style={{ fontSize: 11, fontWeight: 800, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--ink-3)', marginBottom: 8, display: 'block' }}>Manfaatnya</label>
+            {typeof m === 'string' ? (
+              <div style={{ fontSize: 13, color: 'var(--ink-2)', lineHeight: 1.6 }}>{m}</div>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                {m.anak && <div style={{ fontSize: 13, color: 'var(--ink-2)', lineHeight: 1.6 }}><strong style={{ color: 'var(--purple-700)' }}>Untuk anak:</strong> {m.anak}</div>}
+                {m.orang_tua && <div style={{ fontSize: 13, color: 'var(--ink-2)', lineHeight: 1.6 }}><strong style={{ color: 'var(--purple-700)' }}>Untuk orang tua:</strong> {m.orang_tua}</div>}
+                {m.sekolah && <div style={{ fontSize: 13, color: 'var(--ink-2)', lineHeight: 1.6 }}><strong style={{ color: 'var(--purple-700)' }}>Untuk sekolah:</strong> {m.sekolah}</div>}
+              </div>
+            )}
+          </div>
+        );
+      })()}
 
       <div>
         <label style={{ fontSize: 11, fontWeight: 800, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--ink-3)', marginBottom: 8, display: 'block' }}>Langkah konkret</label>
@@ -115,7 +132,7 @@ function KebijakanBaruBody({ a }) {
                 <div>
                   <div style={{ fontWeight: 600, color: 'var(--ink)' }}>{k.aksi}</div>
                   {k.waktu && <div style={{ color: 'var(--purple-700)', fontWeight: 600, fontSize: 11.5, marginTop: 2 }}>🕒 {k.waktu}</div>}
-                  {k.kenapa && <div style={{ color: 'var(--ink-3)', fontSize: 11.5, marginTop: 2 }}>Kenapa: {k.kenapa}</div>}
+                  {k.kenapa && <div style={{ color: 'var(--ink-3)', fontSize: 11.5, marginTop: 2 }}>Mengapa ini penting: {k.kenapa}</div>}
                 </div>
               )}
             </li>

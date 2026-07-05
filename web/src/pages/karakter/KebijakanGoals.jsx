@@ -32,20 +32,42 @@ function comboLabel(type, fokus) {
 // perlu_perhatian selalu tampil lebih dulu (permintaan: prioritaskan yang perlu perhatian).
 const TYPE_ORDER = { perlu_perhatian: 0, pertahankan: 1 };
 
-/** manfaat bisa string lama atau objek anak/orang_tua/sekolah baru -- ratakan jadi baris teks. */
+/**
+ * manfaat bisa: objek {anak,orang_tua,sekolah} (kolom jsonb), string JSON dari kolom text
+ * lama (perlu di-parse dulu), atau string biasa. Kembalikan objek kalau bisa, string kalau
+ * memang teks biasa. Ini yang mencegah objek manfaat tampil sebagai JSON mentah di layar.
+ */
+function coerceManfaat(manfaat) {
+  if (manfaat && typeof manfaat === "object") return manfaat;
+  if (typeof manfaat === "string") {
+    const s = manfaat.trim();
+    if (s.startsWith("{")) {
+      try {
+        const parsed = JSON.parse(s);
+        if (parsed && typeof parsed === "object") return parsed;
+      } catch { /* biarkan sebagai teks biasa */ }
+    }
+    return s;
+  }
+  return null;
+}
+
+/** manfaat -> daftar baris teks untuk WhatsApp, handle objek maupun string. */
 function formatManfaat(manfaat) {
-  if (typeof manfaat === "string") return [manfaat];
+  const m = coerceManfaat(manfaat);
+  if (!m) return [];
+  if (typeof m === "string") return [m];
   return [
-    manfaat?.anak && `Untuk anak: ${manfaat.anak}`,
-    manfaat?.orang_tua && `Untuk orang tua: ${manfaat.orang_tua}`,
-    manfaat?.sekolah && `Untuk sekolah: ${manfaat.sekolah}`,
+    m.anak && `Untuk anak: ${m.anak}`,
+    m.orang_tua && `Untuk orang tua: ${m.orang_tua}`,
+    m.sekolah && `Untuk sekolah: ${m.sekolah}`,
   ].filter(Boolean);
 }
 
 /** Satu langkah konkret bisa string lama atau objek aksi/waktu/kenapa baru -- jadi satu baris. */
 function formatKonkretStep(s) {
   if (typeof s === "string") return s;
-  return [s.aksi, s.waktu && `(${s.waktu})`, s.kenapa && `Kenapa: ${s.kenapa}`].filter(Boolean).join(" ");
+  return [s.aksi, s.waktu && `(${s.waktu})`, s.kenapa && `Mengapa ini penting: ${s.kenapa}`].filter(Boolean).join(" ");
 }
 
 /** Susun teks ringkas kartu untuk dibagikan ke WhatsApp lewat wa.me (jalan di desktop & HP). */
@@ -161,30 +183,33 @@ function KebijakanDialog({ k, onClose }) {
           </section>
           <section className={styles.modalSection}>
             <p className={styles.modalLabel}>Manfaatnya</p>
-            {typeof k.manfaat === "string" ? (
-              <p className={styles.modalText}>{k.manfaat}</p>
-            ) : (
-              <div className={styles.manfaatGrid}>
-                {k.manfaat?.anak && (
-                  <div className={styles.manfaatItem}>
-                    <span className={styles.manfaatTag}>Untuk anak</span>
-                    <p className={styles.modalText}>{k.manfaat.anak}</p>
-                  </div>
-                )}
-                {k.manfaat?.orang_tua && (
-                  <div className={styles.manfaatItem}>
-                    <span className={styles.manfaatTag}>Untuk orang tua</span>
-                    <p className={styles.modalText}>{k.manfaat.orang_tua}</p>
-                  </div>
-                )}
-                {k.manfaat?.sekolah && (
-                  <div className={styles.manfaatItem}>
-                    <span className={styles.manfaatTag}>Untuk sekolah</span>
-                    <p className={styles.modalText}>{k.manfaat.sekolah}</p>
-                  </div>
-                )}
-              </div>
-            )}
+            {(() => {
+              const m = coerceManfaat(k.manfaat);
+              if (!m) return null;
+              if (typeof m === "string") return <p className={styles.modalText}>{m}</p>;
+              return (
+                <div className={styles.manfaatGrid}>
+                  {m.anak && (
+                    <div className={styles.manfaatItem}>
+                      <span className={styles.manfaatTag}>Untuk anak</span>
+                      <p className={styles.modalText}>{m.anak}</p>
+                    </div>
+                  )}
+                  {m.orang_tua && (
+                    <div className={styles.manfaatItem}>
+                      <span className={styles.manfaatTag}>Untuk orang tua</span>
+                      <p className={styles.modalText}>{m.orang_tua}</p>
+                    </div>
+                  )}
+                  {m.sekolah && (
+                    <div className={styles.manfaatItem}>
+                      <span className={styles.manfaatTag}>Untuk sekolah</span>
+                      <p className={styles.modalText}>{m.sekolah}</p>
+                    </div>
+                  )}
+                </div>
+              );
+            })()}
           </section>
           <section className={styles.modalSection}>
             <p className={styles.modalLabel}>Langkah konkret</p>
@@ -195,7 +220,7 @@ function KebijakanDialog({ k, onClose }) {
                     <div className={styles.konkretStep}>
                       <p className={styles.konkretAksi}>{s.aksi}</p>
                       {s.waktu && <p className={styles.konkretWaktu}>🕒 {s.waktu}</p>}
-                      {s.kenapa && <p className={styles.konkretKenapa}>Kenapa: {s.kenapa}</p>}
+                      {s.kenapa && <p className={styles.konkretKenapa}>Mengapa ini penting: {s.kenapa}</p>}
                     </div>
                   )}
                 </li>

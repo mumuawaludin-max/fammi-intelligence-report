@@ -29,7 +29,7 @@ export function Gemini() {
   const recent = data.antrian.slice(0, 8);
 
   async function generateRekomendasi(r) {
-    const key = `${r.sekolahId}|${r.kelasId}`;
+    const key = `${r.sekolahId}|${r.kelasId}|${r.periodeId}`;
     setBusyKey(key);
     try {
       await triggerGeminiJob({
@@ -58,7 +58,7 @@ export function Gemini() {
   }
 
   async function generateSekolah(r) {
-    const key = `sekolah|${r.sekolahId}`;
+    const key = `sekolah|${r.sekolahId}|${r.periodeId}`;
     setBusyKey(key);
     try {
       await triggerGeminiJob({
@@ -71,7 +71,7 @@ export function Gemini() {
   }
 
   async function generateYayasan(r) {
-    const key = `yayasan|${r.sekolahId}`;
+    const key = `yayasan|${r.sekolahId}|${r.periodeId}`;
     setBusyKey(key);
     try {
       await triggerGeminiJob({
@@ -167,10 +167,10 @@ function RekomendasiPanel({ rekomendasi, busyKey, batchProgress, onGenerate, onG
     <div className="card" style={{ padding: '18px 22px' }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
         <span style={{ fontSize: 18 }}>💡</span>
-        <div className="disp" style={{ fontSize: 16, fontWeight: 700, color: 'var(--ink)' }}>Rekomendasi</div>
-        <span className="pill" style={{ background: 'var(--status-warn-bg)', color: 'var(--status-warn)' }}>{rekomendasi.length} kelas</span>
+        <div className="disp" style={{ fontSize: 16, fontWeight: 700, color: 'var(--ink)' }}>Rekomendasi Wali Kelas</div>
+        <span className="pill" style={{ background: 'var(--status-warn-bg)', color: 'var(--status-warn)' }}>{rekomendasi.length} kelas×periode</span>
       </div>
-      <div style={{ fontSize: 12, color: 'var(--ink-3)', marginBottom: 14 }}>Kelas ini punya data karakter periode berjalan tapi belum ada draf tindak lanjut. Generate satu per satu, atau semua kelas satu sekolah sekaligus.</div>
+      <div style={{ fontSize: 12, color: 'var(--ink-3)', marginBottom: 14 }}>Tiap baris = satu kelas di satu periode yang punya data karakter tapi belum ada draf tindak lanjut. Tindak lanjut dibuat per periode, jadi kalau ada 4 periode data, keempatnya muncul terpisah. Generate satu per satu, atau semua sekaligus per sekolah.</div>
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: 14, maxHeight: 340, overflowY: 'auto' }}>
         {Object.entries(bySekolah).map(([sekolahId, items]) => {
@@ -182,7 +182,7 @@ function RekomendasiPanel({ rekomendasi, busyKey, batchProgress, onGenerate, onG
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                   <span style={{ fontSize: 14 }}>🏫</span>
                   <span style={{ fontSize: 13, fontWeight: 800, color: 'var(--ink)' }}>{items[0].sekolahNama}</span>
-                  <span className="pill" style={{ background: 'var(--purple-050)', color: 'var(--purple-700)', fontSize: 10.5 }}>{items.length} kelas</span>
+                  <span className="pill" style={{ background: 'var(--purple-050)', color: 'var(--purple-700)', fontSize: 10.5 }}>{items.length} item</span>
                 </div>
                 <button
                   className="btn-primary" style={{ padding: '6px 13px', fontSize: 11.5 }}
@@ -196,7 +196,7 @@ function RekomendasiPanel({ rekomendasi, busyKey, batchProgress, onGenerate, onG
               </div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                 {items.map((r) => {
-                  const key = `${r.sekolahId}|${r.kelasId}`;
+                  const key = `${r.sekolahId}|${r.kelasId}|${r.periodeId}`;
                   return (
                     <div key={key} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px 12px', background: 'var(--surface-soft)', borderRadius: 10 }}>
                       <div>
@@ -251,7 +251,7 @@ function RekomendasiSederhanaPanel({ judul, ikon, satuan, items, busyKey, onGene
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: 6, maxHeight: 260, overflowY: 'auto' }}>
         {items.map((r) => {
-          const key = `${busyPrefix}|${r.sekolahId}`;
+          const key = `${busyPrefix}|${r.sekolahId}|${r.periodeId}`;
           return (
             <div key={key} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px 12px', background: 'var(--surface-soft)', borderRadius: 10 }}>
               <div>

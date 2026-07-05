@@ -109,50 +109,52 @@ export function useAdminCmsData(session) {
 
       const schoolNameById = Object.fromEntries(sekolah.map((s) => [s.id, s.nama]));
 
-      // Rekomendasi: kelas dengan karakter_summary periode terbaru tapi belum ada
-      // tindak_lanjut sama sekali untuk periode itu (scope=kelas).
-      const kelasSummaryBySekolah = {};
-      (kelasSummaryRes.data || []).forEach((r) => {
-        (kelasSummaryBySekolah[r.sekolah_id] ||= []).push(r);
-      });
+      // Rekomendasi PER PERIODE: setiap (sekolah, kelas, periode) yang punya karakter_summary
+      // tapi belum ada tindak_lanjut untuk periode itu. Sengaja SEMUA periode (bukan cuma
+      // terbaru) supaya kalau ada 4 periode data, keempatnya bisa digenerate sendiri-sendiri
+      // dan tiap periode punya kelompok tindak lanjutnya sendiri, sesuai filter periode di FIR.
       const tlKelasKeySet = new Set(
         (tlKelasAllRes.data || []).map((r) => `${r.sekolah_id}|${r.scope_id}|${r.periode_id}`)
       );
       const rekomendasi = [];
-      Object.entries(kelasSummaryBySekolah).forEach(([sekolahId, rows]) => {
-        const periodeTerbaru = rows.reduce((max, r) => (!max || r.periode_id > max ? r.periode_id : max), null);
-        const kelasList = [...new Set(rows.filter((r) => r.periode_id === periodeTerbaru).map((r) => r.scope_id))];
-        kelasList.forEach((kelasId) => {
-          const key = `${sekolahId}|${kelasId}|${periodeTerbaru}`;
-          if (!tlKelasKeySet.has(key)) {
-            rekomendasi.push({ sekolahId, sekolahNama: schoolNameById[sekolahId] || sekolahId, kelasId, periodeId: periodeTerbaru });
-          }
-        });
+      (kelasSummaryRes.data || []).forEach((r) => {
+        const key = `${r.sekolah_id}|${r.scope_id}|${r.periode_id}`;
+        if (!tlKelasKeySet.has(key)) {
+          rekomendasi.push({ sekolahId: r.sekolah_id, sekolahNama: schoolNameById[r.sekolah_id] || r.sekolah_id, kelasId: r.scope_id, periodeId: r.periode_id });
+        }
       });
+      // Urut per sekolah, lalu periode terbaru dulu, lalu kelas, supaya panel gampang dibaca.
+      rekomendasi.sort((a, b) =>
+        a.sekolahNama.localeCompare(b.sekolahNama) || (a.periodeId < b.periodeId ? 1 : a.periodeId > b.periodeId ? -1 : 0) || String(a.kelasId).localeCompare(String(b.kelasId), 'id', { numeric: true })
+      );
 
-      // Rekomendasi level Kepala Sekolah: sekolah dengan karakter_summary sekolah periode
-      // terbaru (summaryRes, sudah difilter modul karakter aktif lewat `sekolah` di atas)
-      // tapi belum ada tindak_lanjut target_role='kepala_sekolah' untuk periode itu.
-      // Rekomendasi level Yayasan: sama, tapi target_role='yayasan', dikelompokkan per
-      // yayasan supaya adminnya bisa lihat per yayasan mana yang sekolahnya belum lengkap.
+      // Rekomendasi level Kepala Sekolah & Yayasan, juga PER PERIODE: tiap (sekolah, periode)
+      // yang punya karakter_summary scope=sekolah (summaryRes) tapi belum ada tindak_lanjut
+      // untuk target_role itu di periode tsb. Kepsek dan Yayasan sama-sama baca scope=sekolah,
+      // dibedakan target_role.
       const tlSekolahKeySet = new Set(
         (tlSekolahYayasanRes.data || []).map((r) => `${r.sekolah_id}|${r.periode_id}|${r.target_role}`)
       );
       const yayasanNameById = Object.fromEntries((yayasanRes.data || []).map((y) => [y.id, y.nama]));
+      const sekolahInfoById = Object.fromEntries(sekolah.map((s) => [s.id, s]));
       const rekomendasiSekolah = [];
       const rekomendasiYayasan = [];
-      sekolah.forEach((s) => {
-        if (!s.modules.includes('karakter') || !s.periode) return;
-        if (!tlSekolahKeySet.has(`${s.id}|${s.periode}|kepala_sekolah`)) {
-          rekomendasiSekolah.push({ sekolahId: s.id, sekolahNama: s.nama, periodeId: s.periode });
+      (summaryRes.data || []).forEach((r) => {
+        const info = sekolahInfoById[r.sekolah_id];
+        if (!info || !info.modules.includes('karakter')) return;
+        if (!tlSekolahKeySet.has(`${r.sekolah_id}|${r.periode_id}|kepala_sekolah`)) {
+          rekomendasiSekolah.push({ sekolahId: r.sekolah_id, sekolahNama: info.nama, periodeId: r.periode_id });
         }
-        if (s.yay && !tlSekolahKeySet.has(`${s.id}|${s.periode}|yayasan`)) {
+        if (info.yay && !tlSekolahKeySet.has(`${r.sekolah_id}|${r.periode_id}|yayasan`)) {
           rekomendasiYayasan.push({
-            yayasanId: s.yay, yayasanNama: yayasanNameById[s.yay] || s.yay,
-            sekolahId: s.id, sekolahNama: s.nama, periodeId: s.periode,
+            yayasanId: info.yay, yayasanNama: yayasanNameById[info.yay] || info.yay,
+            sekolahId: r.sekolah_id, sekolahNama: info.nama, periodeId: r.periode_id,
           });
         }
       });
+      const byNamaPeriodeDesc = (a, b) => a.sekolahNama.localeCompare(b.sekolahNama) || (a.periodeId < b.periodeId ? 1 : a.periodeId > b.periodeId ? -1 : 0);
+      rekomendasiSekolah.sort(byNamaPeriodeDesc);
+      rekomendasiYayasan.sort(byNamaPeriodeDesc);
 
       const antrianTlAll = (tlRes.data || []).map((r) => ({
         id: r.id, tipe: 'tindak_lanjut', modul: r.modul, sekolah: r.sekolah_id,

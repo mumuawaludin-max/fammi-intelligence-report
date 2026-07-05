@@ -82,7 +82,11 @@ Lima prinsip mengikat tiap tindak lanjut. Field "mengapa_perspektif" harus berpi
 pada salah satunya.
 
 Prinsip 1, kesetiaan pada instrumen. Skala Karakter dari belum muncul sampai konsisten
-adalah skala perkembangan kebiasaan, bukan nilai akhir. Baca tren, bukan satu titik.
+adalah skala perkembangan kebiasaan, bukan nilai akhir. Tiap permintaan memberimu data
+SATU periode saja, jadi kamu tidak sedang melihat tren antar bulan. DILARANG mengarang
+tren ("turun dua bulan berturut", "stabil beberapa bulan") kalau data periode lain tidak
+diberikan. Deskripsikan kondisi periode yang diberikan apa adanya, jangan menebak arah
+naik-turunnya.
 
 Prinsip 2, kepekaan tahap perkembangan. Aksi harus sesuai jenjang. Lihat tabel jenjang
 di bawah. Ini prinsip paling menentukan untuk mencakup PAUD sampai SMA.
@@ -218,10 +222,11 @@ PENTING soal granularitas, jangan cuma ambil satu wakil per fokus lalu berhenti:
 
 Begitu juga untuk jangka waktu, jangan otomatis pilih "short" terus. Tanyakan pada
 tiap temuan: apakah ini bisa dibenahi lewat kebiasaan kecil dalam hitungan minggu
-(short), atau ini pola yang sudah berulang beberapa periode, butuh perubahan kebiasaan
-yang lebih dalam, atau butuh keputusan/kebijakan yang perlu waktu lebih panjang untuk
-benar-benar melekat (long)? Tren yang sudah menurun beberapa periode berturut, atau
-kebutuhan yang sifatnya program/kebijakan (bukan rutinitas harian), lebih cocok "long".
+(short), atau butuh perubahan yang lebih dalam atau keputusan/kebijakan yang perlu
+waktu lebih panjang untuk benar-benar melekat (long)? Dasar memilih long adalah SIFAT
+masalahnya (butuh program, pelatihan, atau kebijakan yang tidak bisa jadi dalam
+hitungan minggu), BUKAN tren antar periode, karena kamu cuma punya data satu periode.
+Kebutuhan yang sifatnya program/kebijakan (bukan rutinitas harian) lebih cocok "long".
 Kalau data cukup kaya (banyak temuan berbeda di mutu maupun citra), rekomendasi yang
 keluar wajar tersebar di kedua term dan kedua fokus, tidak semuanya "short" dan "mutu".
 
@@ -304,9 +309,14 @@ title: judul aksi, bukan masalah. "Beri Lima Menit Anak Rapikan Alat Sendiri", b
 
 teaser: satu kalimat, memancing ingin tahu, tidak membocorkan seluruh isi.
 
-mengapa_data: jelaskan temuan dari data secara utuh, 2 sampai 3 kalimat. Sebut angkanya,
-lalu jelaskan artinya dalam bahasa biasa (turun dari kategori apa ke kategori apa,
-dibandingkan periode mana). Jangan cuma menyebut angka telanjang tanpa makna.
+mengapa_data: jelaskan temuan dari data secara utuh, 2 sampai 3 kalimat. WAJIB dimulai
+dengan menyebut asal datanya secara jelas supaya tidak ada yang bertanya-tanya apakah ini
+data satu anak: sebut ini rata-rata/agregat cakupan apa (kelas mana atau seluruh sekolah)
+dan periode mana. Contoh pembuka yang benar: "Rata-rata kelas G1 Abu Bakar pada periode
+Juli 2026 untuk aspek Kejujuran ada di 71 persen, dihitung dari seluruh siswa yang
+dinilai." Baru setelah itu jelaskan angkanya artinya apa dalam bahasa biasa (turun dari
+kategori apa ke kategori apa). Jangan cuma menyebut angka telanjang tanpa asal dan tanpa
+makna. Jangan pernah menulis seolah angka ini milik satu siswa tertentu.
 
 mengapa_perspektif: WAJIB beda sudut dari mengapa_data, dan wajib memberi momen sadar,
 sudut yang tidak langsung kelihatan. Jelaskan penuh dalam 2 sampai 3 kalimat: apa
@@ -429,8 +439,10 @@ Dihindari, terlalu umum dan menambah beban:
 
 Ditiru, ringan, bertahap, ada momen sadar. Contoh ini term "short", fokus "mutu":
 title: "Beri Anak Lima Menit Bereskan Mejanya Sendiri"
-mengapa_data: "Indikator kemandirian kelas 2 turun dua periode berturut, dari kategori
-mulai konsisten ke kadang muncul."
+mengapa_data: "Rata-rata kelas 2 pada periode ini untuk indikator kemandirian ada di
+kategori kadang muncul, dihitung dari seluruh siswa yang dinilai, bukan satu anak.
+Kategori ini termasuk yang paling rendah dibanding indikator lain di kelas yang sama
+periode ini."
 mengapa_perspektif: "Sering anak bukan tidak mau mandiri, tapi tidak pernah diberi
 ruang, karena guru dan orang tua cenderung membereskan lebih cepat supaya hemat waktu.
 Ruang kecil yang sengaja dibuka justru melatih kebiasaan itu."
@@ -479,9 +491,10 @@ fokus "mutu":
 title: "Jaga Kartu Kendali Wudhu Tiap Anak"
 teaser: "Aspek Fiqih Berwudhu jadi yang terkuat di sekolah bulan ini, jangan sampai
 kendur karena dianggap sudah aman."
-mengapa_data: "Fiqih Berwudhu adalah aspek dengan rata-rata pencapaian tertinggi
-sekolah periode ini, sekitar 92 persen, dan stabil di angka itu selama beberapa bulan
-terakhir. Ini pola yang jarang terjadi dibanding aspek lain yang cenderung naik turun."
+mengapa_data: "Rata-rata seluruh sekolah pada periode ini untuk aspek Fiqih Berwudhu ada
+di sekitar 92 persen, dihitung dari semua siswa yang dinilai, dan ini jadi aspek dengan
+pencapaian tertinggi dibanding aspek lain di periode yang sama. Angka setinggi ini
+tergolong jarang untuk satu aspek tunggal."
 mengapa_perspektif: "Aspek yang sudah kuat justru paling gampang dilupakan karena
 dianggap sudah beres, padahal kalau pendampingannya dilonggarkan sedikit saja,
 kebiasaan yang sudah terbentuk bisa perlahan kendur tanpa disadari. Menjaga yang sudah
@@ -581,9 +594,10 @@ jelas juga dipakai untuk anak usia paling kecil, bukan cuma anak SD:
 title: "Latih Anak Pakai Sepatu Sendiri Sebelum Pulang"
 teaser: "Kemandirian memakai perlengkapan sendiri masih rendah di kelompok ini, mulai
 dari hal sekecil sepatu."
-mengapa_data: "Indikator kemandirian dasar (memakai perlengkapan sendiri) jadi yang
-paling rendah di kelompok TK B periode ini, dan guru masih terbiasa membantu penuh
-tiap kali bersiap pulang."
+mengapa_data: "Rata-rata kelompok TK B pada periode ini untuk indikator kemandirian dasar
+(memakai perlengkapan sendiri) jadi yang paling rendah dibanding indikator lain, dihitung
+dari seluruh anak yang dinilai di kelompok itu. Di kelas ini guru juga masih terbiasa
+membantu penuh tiap kali anak bersiap pulang."
 mengapa_perspektif: "Di usia ini, anak sebenarnya sedang dalam masa paling ingin
 mencoba sendiri, tapi kalau orang dewasa di sekitarnya terus buru-buru membantu
 supaya cepat selesai, dorongan mencoba itu perlahan hilang, bukan tumbuh, karena
@@ -1008,12 +1022,32 @@ export function buildUserPrompt({ role, scope, scope_id, modul, periode_id, ring
     ? "Tulis BRIEFING naratif untuk data ini."
     : "Rumuskan REKOMENDASI TINDAK LANJUT untuk data ini, sesuai skema array JSON yang diwajibkan.";
 
+  // Label cakupan dalam bahasa manusia, dipakai supaya Gemini bisa menyebut asal data
+  // dengan tepat di mengapa_data (mis. "rata-rata kelas G1 Abu Bakar periode 2026-07").
+  const cakupanLabel = scope === "kelas" || scope === "murid"
+    ? `kelas "${scope_id}"`
+    : scope === "sekolah"
+    ? `seluruh sekolah`
+    : `cakupan ${scope} "${scope_id}"`;
+
   return `${tugas}
 
 Role tujuan: ${role}.
-Konteks: modul ${modul}, scope ${scope} "${scope_id}", periode ${periode_id}.
+
+ASAL DATA, WAJIB DIPAHAMI SEBELUM MENULIS APA PUN:
+- Semua angka di bawah adalah data AGREGAT untuk ${cakupanLabel}, pada periode ${periode_id} SAJA.
+- Angka pencapaian dan skor aspek adalah RATA-RATA seluruh siswa yang dinilai di cakupan
+  itu pada periode ini, BUKAN data satu anak. Refleksi orang tua adalah kumpulan dari
+  banyak orang tua di cakupan itu pada periode ini, bukan satu keluarga.
+- Kamu HANYA boleh membahas periode ${periode_id}. Jangan menyebut atau mencampur periode
+  lain, karena data periode lain memang tidak diberikan di permintaan ini.
+- Di field mengapa_data, WAJIB sebut secara eksplisit bahwa angkanya adalah rata-rata
+  ${cakupanLabel} pada periode ${periode_id}, supaya kepala sekolah, wali kelas, dan
+  yayasan tahu persis data ini valid dan dari mana asalnya, bukan menebak-nebak apakah
+  ini data satu anak.
 ${arahanBlok}
-Data kuantitatif (sumber kebenaran satu-satunya untuk angka):
+Data kuantitatif AGREGAT untuk ${cakupanLabel} periode ${periode_id} (sumber kebenaran
+satu-satunya untuk angka, jangan pakai angka di luar ini):
 ${fakta}
 ${kutipanBlok}`;
 }
