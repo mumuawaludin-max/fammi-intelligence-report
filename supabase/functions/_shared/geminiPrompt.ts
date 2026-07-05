@@ -191,6 +191,21 @@ orang tua yang bilang hal serupa), bukan angka. Kalau data punya sinyal citra ya
 cukup kuat atau berulang, itu WAJIB jadi rekomendasi fokus "citra" sendiri, jangan
 diabaikan atau digabung diam-diam ke rekomendasi fokus "mutu".
 
+PENTING soal granularitas, jangan cuma ambil satu wakil per fokus lalu berhenti:
+- Untuk mutu, data biasanya memuat BEBERAPA indikator terlemah dan BEBERAPA indikator
+  terkuat (bukan cuma satu). Periksa tiap indikator satu per satu. Kalau ada 2 atau lebih
+  indikator lemah yang jelas berbeda topik (misalnya "Sabar" dan "Disiplin" itu dua hal
+  berbeda, bukan sekadar dua sebutan untuk kelemahan yang sama), masing-masing berhak
+  jadi rekomendasi mutu tersendiri, jangan dirangkum jadi satu rekomendasi umum
+  "karakter lemah". Berlaku juga untuk indikator terkuat (fokus pertahankan).
+- Untuk citra, refleksi orang tua diberikan satu baris per orang tua (kategori, emosi
+  anak, dukungan dibutuhkan, hal disyukuri, kutipan). Perhatikan sebarannya: kalau ada
+  2 atau lebih kategori/kebutuhan yang berbeda topik dan sama-sama cukup sering muncul
+  di banyak orang tua berbeda, masing-masing berhak jadi rekomendasi citra tersendiri,
+  jangan dirangkum jadi satu rekomendasi umum "orang tua butuh komunikasi".
+- Jangan berhenti setelah menemukan satu temuan di tiap fokus hanya karena itu terasa
+  "cukup". Periksa apakah ada temuan lain yang levelnya sama kuat sebelum menutup daftar.
+
 Begitu juga untuk jangka waktu, jangan otomatis pilih "short" terus. Tanyakan pada
 tiap temuan: apakah ini bisa dibenahi lewat kebiasaan kecil dalam hitungan minggu
 (short), atau ini pola yang sudah berulang beberapa periode, butuh perubahan kebiasaan
@@ -684,10 +699,27 @@ code fence, tanpa teks lain di luar JSON, sesuai skema persis ini:
 }
 "opsi" SELALU array kosong untuk briefing. Jangan mengisi apa pun di dalamnya.`;
 
+/**
+ * Ringkas baris karakter_pernyataan_ortu jadi baris teks terstruktur per orang tua
+ * (bukan cuma kutipan pernyataan bebas), supaya Gemini bisa melihat sendiri sebaran
+ * kategori/emosi/dukungan/hal_disyukuri antar orang tua dan mendeteksi kalau ada
+ * BEBERAPA sinyal citra yang berbeda satu sama lain, bukan menganggap semuanya satu
+ * sinyal tunggal hanya karena datanya kualitatif (bukan angka).
+ */
+function ringkasOrtuRows(rows: any[]): string[] {
+  const isi = (v: any) => (v && String(v).trim()) ? String(v).trim() : "(kosong)";
+  return (rows || [])
+    .filter((r) => r.pernyataan || r.kategori_pernyataan || r.emosi_anak || r.dukungan_dibutuhkan || r.hal_disyukuri)
+    .slice(0, 40)
+    .map((r) =>
+      `kategori: ${isi(r.kategori_pernyataan)} | emosi anak: ${isi(r.emosi_anak)} | dukungan dibutuhkan: ${isi(r.dukungan_dibutuhkan)} | hal disyukuri: ${isi(r.hal_disyukuri)} | kutipan: "${isi(r.pernyataan)}"`
+    );
+}
+
 export function buildUserPrompt({ role, scope, scope_id, modul, periode_id, ringkasan, kutipanOrtu, arahanReviewer, tipe }) {
   const fakta = JSON.stringify(ringkasan, null, 2);
   const kutipanBlok = kutipanOrtu && kutipanOrtu.length > 0
-    ? `\nKutipan refleksi orang tua periode ini:\n${kutipanOrtu.map((k) => `- "${k}"`).join("\n")}\n`
+    ? `\nRefleksi orang tua periode ini, satu baris per orang tua (dipakai untuk temuan\nfokus citra, jangan lewatkan kalau ada beberapa kategori berbeda yang cukup sering muncul):\n${kutipanOrtu.map((k) => `- ${k}`).join("\n")}\n`
     : "";
   const arahanBlok = arahanReviewer && arahanReviewer.length > 0
     ? `\nArahan perbaikan dari reviewer sebelumnya, WAJIB dipatuhi semuanya di draf ini:\n${arahanReviewer.map((a) => `- ${a}`).join("\n")}\n`
@@ -755,18 +787,25 @@ export async function generateAndInsertDraft(
   if (summaryErr) throw new Error(summaryErr.message);
   if (!summaryRow) throw new Error(`Tidak ada karakter_summary untuk scope=${scope}, scope_id=${scope_id}, periode=${periode_id}.`);
 
-  let kutipanOrtu: string[] = [];
+  // Ambil baris LENGKAP (bukan cuma kutipan pernyataan bebas), supaya Gemini bisa melihat
+  // sebaran kategori/emosi/dukungan/hal_disyukuri antar orang tua, bukan cuma beberapa
+  // kutipan teks lepas. Ini yang bikin Gemini bisa mendeteksi ada BEBERAPA sinyal citra
+  // yang berbeda (bukan cuma satu), sama seperti top5_indikator memberi beberapa sinyal
+  // mutu berbeda lewat karakter_summary.
+  const ORTU_COLUMNS = "pernyataan, kategori_pernyataan, emosi_anak, alasan_emosi, dukungan_dibutuhkan, dukungan_lainnya, hal_disyukuri";
+  let ortuRows: any[] = [];
   if (scope === "kelas" || scope === "murid") {
     const { data } = await db.from("karakter_pernyataan_ortu")
-      .select("pernyataan").eq("sekolah_id", sekolah_id).eq("kelas_id", scope_id)
-      .eq("periode_id", periode_id).not("pernyataan", "is", null).limit(15);
-    kutipanOrtu = (data || []).map((r) => r.pernyataan).filter(Boolean);
+      .select(ORTU_COLUMNS).eq("sekolah_id", sekolah_id).eq("kelas_id", scope_id)
+      .eq("periode_id", periode_id).limit(60);
+    ortuRows = data || [];
   } else if (scope === "sekolah") {
     const { data } = await db.from("karakter_pernyataan_ortu")
-      .select("pernyataan").eq("sekolah_id", sekolah_id)
-      .eq("periode_id", periode_id).not("pernyataan", "is", null).limit(15);
-    kutipanOrtu = (data || []).map((r) => r.pernyataan).filter(Boolean);
+      .select(ORTU_COLUMNS).eq("sekolah_id", sekolah_id)
+      .eq("periode_id", periode_id).limit(60);
+    ortuRows = data || [];
   }
+  const kutipanOrtu = ringkasOrtuRows(ortuRows);
 
   // Arahan reviewer terdahulu untuk scope ini: memori perbaikan yang menumpuk dari
   // tiap regenerate, dipatuhi Gemini di semua generate berikutnya.
