@@ -19,7 +19,8 @@ const INTERVAL_OPTIONS = [1, 3, 6, 12, 24];
 export function Gemini() {
   const { data, loading, error, setScreen, triggerGeminiJob, updateGeminiSchedule, refetch } = useCms();
   const [busyKey, setBusyKey] = useState(null);
-  const [batchProgress, setBatchProgress] = useState(null); // { sekolahId, done, total }
+  const [batchProgress, setBatchProgress] = useState(null); // { sekolahId, done, total } -- panel kelas
+  const [batchSimple, setBatchSimple] = useState(null); // { panel: 'sekolah'|'yayasan', done, total }
 
   if (loading) return <LoadingCards rows={4} />;
   if (error) {
@@ -83,17 +84,40 @@ export function Gemini() {
     }
   }
 
+  // Batch untuk panel Kepala Sekolah / Yayasan: generate semua (sekolah, periode) sekaligus.
+  async function generateSemuaLevel(panel, items, role) {
+    setBatchSimple({ panel, done: 0, total: items.length });
+    try {
+      for (let i = 0; i < items.length; i++) {
+        const r = items[i];
+        await triggerGeminiJob({
+          scope: 'sekolah', scopeId: r.sekolahId, sekolahId: r.sekolahId, modul: 'karakter',
+          tipe: 'tindak_lanjut', periodeId: r.periodeId, role,
+        });
+        setBatchSimple({ panel, done: i + 1, total: items.length });
+      }
+    } finally {
+      setBatchSimple(null);
+    }
+  }
+
   return (
     <div style={{ padding: '22px 26px 40px', display: 'flex', flexDirection: 'column', gap: 16 }}>
       <RekomendasiPanel rekomendasi={data.rekomendasi} busyKey={busyKey} batchProgress={batchProgress} onGenerate={generateRekomendasi} onGenerateSemua={generateSemuaSekolah} />
       <RekomendasiSederhanaPanel
-        judul="Rekomendasi Kepala Sekolah" ikon="🏫" satuan="sekolah" busyPrefix="sekolah"
+        judul="Rekomendasi Kepala Sekolah" ikon="🏫" satuan="sekolah×periode" busyPrefix="sekolah"
         items={data.rekomendasiSekolah} busyKey={busyKey} onGenerate={generateSekolah}
+        onGenerateSemua={() => generateSemuaLevel('sekolah', data.rekomendasiSekolah, 'kepala_sekolah')}
+        batchProgress={batchSimple?.panel === 'sekolah' ? batchSimple : null}
+        anyBusy={busyKey != null || batchSimple != null || batchProgress != null}
         labelBaris={(r) => r.sekolahNama}
       />
       <RekomendasiSederhanaPanel
-        judul="Rekomendasi Yayasan" ikon="🏛️" satuan="sekolah (per yayasan)" busyPrefix="yayasan"
+        judul="Rekomendasi Yayasan" ikon="🏛️" satuan="sekolah×periode" busyPrefix="yayasan"
         items={data.rekomendasiYayasan} busyKey={busyKey} onGenerate={generateYayasan}
+        onGenerateSemua={() => generateSemuaLevel('yayasan', data.rekomendasiYayasan, 'yayasan')}
+        batchProgress={batchSimple?.panel === 'yayasan' ? batchSimple : null}
+        anyBusy={busyKey != null || batchSimple != null || batchProgress != null}
         labelBaris={(r) => `${r.sekolahNama} · ${r.yayasanNama}`}
       />
 
@@ -227,7 +251,7 @@ function RekomendasiPanel({ rekomendasi, busyKey, batchProgress, onGenerate, onG
  * Yayasan: daftar datar (tidak dikelompokkan per kelas), satu tombol Generate per baris.
  * Dipisah dari RekomendasiPanel supaya panel kelas tidak makin rumit dicampur dua level lain.
  */
-function RekomendasiSederhanaPanel({ judul, ikon, satuan, items, busyKey, onGenerate, labelBaris, busyPrefix }) {
+function RekomendasiSederhanaPanel({ judul, ikon, satuan, items, busyKey, onGenerate, onGenerateSemua, batchProgress, anyBusy, labelBaris, busyPrefix }) {
   if (!items || items.length === 0) {
     return (
       <div className="card" style={{ padding: '18px 22px', display: 'flex', alignItems: 'center', gap: 12 }}>
@@ -240,12 +264,25 @@ function RekomendasiSederhanaPanel({ judul, ikon, satuan, items, busyKey, onGene
     );
   }
 
+  const batchAktif = batchProgress != null;
+
   return (
     <div className="card" style={{ padding: '18px 22px' }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
-        <span style={{ fontSize: 18 }}>{ikon}</span>
-        <div className="disp" style={{ fontSize: 16, fontWeight: 700, color: 'var(--ink)' }}>{judul}</div>
-        <span className="pill" style={{ background: 'var(--status-warn-bg)', color: 'var(--status-warn)' }}>{items.length} {satuan}</span>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, marginBottom: 4 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <span style={{ fontSize: 18 }}>{ikon}</span>
+          <div className="disp" style={{ fontSize: 16, fontWeight: 700, color: 'var(--ink)' }}>{judul}</div>
+          <span className="pill" style={{ background: 'var(--status-warn-bg)', color: 'var(--status-warn)' }}>{items.length} {satuan}</span>
+        </div>
+        <button
+          className="btn-primary" style={{ padding: '6px 13px', fontSize: 11.5 }}
+          onClick={onGenerateSemua}
+          disabled={anyBusy}
+        >
+          {batchAktif
+            ? `Memproses ${batchProgress.done}/${batchProgress.total}…`
+            : <><IconZap size={12} />Generate semua ({items.length})</>}
+        </button>
       </div>
       <div style={{ fontSize: 12, color: 'var(--ink-3)', marginBottom: 14 }}>Belum ada draf tindak lanjut untuk periode berjalan di level ini.</div>
 
@@ -261,7 +298,7 @@ function RekomendasiSederhanaPanel({ judul, ikon, satuan, items, busyKey, onGene
               <button
                 className="btn-secondary" style={{ padding: '6px 12px', fontSize: 11.5 }}
                 onClick={() => onGenerate(r)}
-                disabled={busyKey === key}
+                disabled={busyKey === key || anyBusy}
               >
                 {busyKey === key ? 'Memicu…' : 'Generate'}
               </button>
