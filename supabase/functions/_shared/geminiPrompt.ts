@@ -322,15 +322,41 @@ manfaat: jelaskan dampak konkret dalam 1 sampai 2 kalimat, gambarkan situasi set
 dijalankan supaya pembaca bisa membayangkan hasilnya. Hindari klaim berlebihan yang tidak
 bisa dibuktikan.
 
-konkret:
+konkret: INI FIELD YANG PALING SERING GAGAL, PERHATIKAN BAIK-BAIK.
+
 - Minimal 3 langkah, lebih banyak lebih baik selama tetap realistis.
-- Tiap langkah ditulis selengkap mungkin dalam satu kalimat: aksinya persis apa, kapan
-  dilakukan, dan kenapa langkah itu (bukan langkah lain) yang dipilih di urutan itu.
-  Jangan tulis langkah sebagai frasa pendek terputus seperti catatan agenda, tulis
-  sebagai kalimat utuh yang bisa langsung dipahami tanpa penjelasan tambahan.
+- WAJIB, tiap langkah harus memuat SEMUA lima hal ini sekaligus dalam satu kalimat,
+  hilang salah satu berarti langkah itu belum konkret:
+  1. Siapa yang melakukan (guru, wali kelas, kepala sekolah, orang tua, atau anaknya
+     sendiri didampingi siapa). Jangan biarkan pelakunya ambigu.
+  2. Aksi persisnya apa, bukan kategori atau niat umum. "Ajarkan kebiasaan baik" atau
+     "tingkatkan kepedulian" itu KATEGORI, bukan aksi, dan DILARANG dipakai sebagai
+     langkah. Aksi yang benar bisa langsung dibayangkan kejadiannya: siapa berdiri di
+     mana, memegang apa, mengucapkan atau melakukan apa.
+  3. Alat atau bahan konkret kalau memang perlu alat (kartu centang, poster, buku
+     catatan kecil, pesan di grup WhatsApp, stiker bintang, dsb). Sebutkan wujud
+     bendanya, jangan cuma tulis "alat bantu" atau "media pendukung".
+  4. Berapa lama tiap kali dilakukan, atau seberapa sering (mis. "5 menit", "tiap pagi
+     sebelum pelajaran pertama", "sekali seminggu tiap Jumat").
+  5. Kapan mulainya dan kapan hasilnya bisa mulai dicek (hari, minggu, atau tanggal
+     relatif seperti "akhir minggu ini").
+- Tes cepat sebelum menulis: kalau kamu tidak bisa membayangkan adegannya persis di
+  depan mata cuma dari membaca satu kalimat itu (siapa berdiri di mana, melakukan apa,
+  dengan apa), langkah itu BELUM cukup konkret, tulis ulang lebih detail sebelum lanjut.
+- Contoh perbandingan supaya jelas bedanya:
+  KURANG KONKRET (dilarang, ini masih kategori/niat, bukan aksi): "Latih anak
+  berbicara sopan setiap hari." / "Bangun komunikasi yang lebih baik dengan orang tua."
+  CUKUP KONKRET (lolos kelima syarat di atas): "Tiap pagi jam 7 sebelum pelajaran
+  pertama, guru memandu latihan 3 menit mengucap tolong, maaf, terima kasih lewat
+  tanya-jawab bergantian dengan 3 siswa berbeda tiap hari, dimulai besok dan
+  dievaluasi tiap akhir minggu." / "Minggu ini, wali kelas membuka satu grup
+  WhatsApp resmi kelas, aturan pemakaiannya ditulis di pesan pertama, dan wali kelas
+  membalas tiap pertanyaan orang tua paling lambat dalam 2 hari kerja."
 - Langkah pertama harus kemenangan cepat yang hasilnya kelihatan dalam hitungan hari.
 - Urut waktu jelas: "Hari pertama", "tiap pagi minggu ini", "akhir bulan".
-- Tiap langkah bisa dicek selesai atau belum. Tindakan, bukan sikap.
+- Tiap langkah bisa dicek selesai atau belum lewat tanda yang kelihatan (dicentang,
+  ditempel, dikirim, dicatat, diumumkan), bukan cuma niat atau sikap yang tidak
+  kelihatan wujudnya ("lebih memperhatikan", "membiasakan", "meningkatkan kepedulian").
 - Ringan untuk guru. Selipkan ke rutinitas yang sudah ada.
 - Sasar rutinitas kelas dan pendampingan rumah, bukan perubahan langsung pada anak.
 
