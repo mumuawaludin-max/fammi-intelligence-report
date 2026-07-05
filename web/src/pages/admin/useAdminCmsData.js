@@ -274,11 +274,31 @@ export async function runImportAction({ sekolahId, modul, fileName, parsed }) {
   return result;
 }
 
+/**
+ * Ambil pesan error ASLI dari body respons Edge Function. supabase.functions.invoke cuma
+ * kasih pesan generik "non-2xx status code"; error sebenarnya (mis. kolom belum ada,
+ * Gemini balas JSON tak valid) ada di body JSON {error: "..."} yang tersimpan di
+ * error.context (sebuah Response). Baca itu supaya toast menampilkan penyebab nyata.
+ */
+async function edgeErrorDetail(error, fallback) {
+  try {
+    const ctx = error?.context;
+    if (ctx && typeof ctx.json === 'function') {
+      const body = await ctx.json();
+      if (body?.error) return body.error;
+    } else if (ctx && typeof ctx.text === 'function') {
+      const t = await ctx.text();
+      if (t) return t;
+    }
+  } catch { /* body tidak bisa dibaca, pakai fallback */ }
+  return error?.message || fallback;
+}
+
 export async function triggerGeminiJobAction({ scope, scopeId, sekolahId, modul, tipe, periodeId, role }) {
   const { data, error } = await supabase.functions.invoke('generate-tindak-lanjut', {
     body: { scope, scope_id: scopeId, sekolah_id: sekolahId, modul, tipe, periode_id: periodeId, role },
   });
-  if (error) throw new Error(error.message || 'Edge Function generate-tindak-lanjut gagal dipanggil.');
+  if (error) throw new Error(await edgeErrorDetail(error, 'Edge Function generate-tindak-lanjut gagal dipanggil.'));
   return data;
 }
 
@@ -286,7 +306,7 @@ export async function regenerateDraftAction({ id, catatan }) {
   const { data, error } = await supabase.functions.invoke('generate-tindak-lanjut', {
     body: { regenerate_of: id, catatan: catatan || '' },
   });
-  if (error) throw new Error(error.message || 'Edge Function generate-tindak-lanjut (regenerate) gagal dipanggil.');
+  if (error) throw new Error(await edgeErrorDetail(error, 'Edge Function generate-tindak-lanjut (regenerate) gagal dipanggil.'));
   return data;
 }
 

@@ -1155,26 +1155,54 @@ export async function generateAndInsertDraft(
   );
   if (valid.length === 0) throw new Error("Gemini tidak mengembalikan rekomendasi tindak lanjut yang valid.");
 
-  const rows = valid.map((r) => ({
-    sekolah_id, modul, scope, scope_id, periode_id,
-    // target_role memisahkan siapa yang berhak melihat baris ini -- Kepsek dan Yayasan
-    // sama-sama baca scope='sekolah' untuk sekolah yang sama, jadi tanpa kolom ini
-    // draf yang digenerate untuk satu POV akan ikut muncul di POV yang lain juga.
-    target_role: role,
-    term: r.term, type: r.type, fokus: r.fokus, jenjang: r.jenjang || null,
-    icon: r.icon || null, title: r.title, teaser: r.teaser || null,
-    mengapa_data: r.mengapa_data || null, mengapa_perspektif: r.mengapa_perspektif || null,
-    dasar_teori: r.dasar_teori || null, manfaat: r.manfaat || null, konkret: r.konkret,
-    // Kolom lama dipertahankan biar kontrak FollowupCard/ApprovalDrawer yang belum
-    // disentuh (mis. MI/Screening) tidak ikut rusak; diisi dari field baru yang setara.
-    action: r.title, trigger_desc: r.teaser || r.mengapa_data || r.title,
-    priority: r.type === "perlu_perhatian" ? "tinggi" : "sedang",
-    regenerate_dari: regenerateDari || null,
-    status: "menunggu_persetujuan",
-  }));
+  // Normalisasi nilai enum supaya TIDAK PERNAH melanggar CHECK constraint di DB, apapun
+  // yang dikembalikan Gemini. Kalau Gemini kirim varian yang sedikit meleset (mis. jenjang
+  // "SD" bukan "SD_rendah", atau type "perhatian" bukan "perlu_perhatian"), tanpa normalisasi
+  // ini seluruh insert gagal dan tombol Generate memunculkan error non-2xx.
+  const TERM_OK = new Set(["short", "long"]);
+  const TYPE_OK = new Set(["perlu_perhatian", "pertahankan"]);
+  const FOKUS_OK = new Set(["mutu", "citra"]);
+  const JENJANG_OK = new Set(["PAUD", "TK", "SD_rendah", "SD_tinggi", "SMP", "SMA", "lintas_jenjang"]);
+
+  const rows = valid.map((r) => {
+    const type = TYPE_OK.has(r.type) ? r.type : "perlu_perhatian";
+    return {
+      sekolah_id, modul, scope, scope_id, periode_id,
+      // target_role memisahkan siapa yang berhak melihat baris ini -- Kepsek dan Yayasan
+      // sama-sama baca scope='sekolah' untuk sekolah yang sama, jadi tanpa kolom ini
+      // draf yang digenerate untuk satu POV akan ikut muncul di POV yang lain juga.
+      target_role: role,
+      term: TERM_OK.has(r.term) ? r.term : "short",
+      type,
+      fokus: FOKUS_OK.has(r.fokus) ? r.fokus : "mutu",
+      jenjang: JENJANG_OK.has(r.jenjang) ? r.jenjang : null,
+      icon: r.icon || null, title: r.title, teaser: r.teaser || null,
+      mengapa_data: r.mengapa_data || null, mengapa_perspektif: r.mengapa_perspektif || null,
+      dasar_teori: r.dasar_teori || null, manfaat: r.manfaat ?? null, konkret: r.konkret,
+      // Kolom lama dipertahankan biar kontrak FollowupCard/ApprovalDrawer yang belum
+      // disentuh (mis. MI/Screening) tidak ikut rusak; diisi dari field baru yang setara.
+      action: r.title, trigger_desc: r.teaser || r.mengapa_data || r.title,
+      priority: type === "perlu_perhatian" ? "tinggi" : "sedang",
+      regenerate_dari: regenerateDari || null,
+      status: "menunggu_persetujuan",
+    };
+  });
 
   const { error: insErr } = await db.from("tindak_lanjut").insert(rows);
-  if (insErr) throw new Error(insErr.message);
+  if (insErr) {
+    // Insert borongan gagal. Coba satu-satu supaya satu baris bermasalah tidak
+    // menggagalkan semua rekomendasi lain. Kalau SEMUA gagal, lempar error asli
+    // (mis. kolom belum ada) supaya penyebabnya kelihatan, bukan cuma "non-2xx".
+    const okRows: any[] = [];
+    let lastErr = insErr.message;
+    for (const row of rows) {
+      const { error: e } = await db.from("tindak_lanjut").insert(row);
+      if (e) lastErr = e.message;
+      else okRows.push(row);
+    }
+    if (okRows.length === 0) throw new Error(`Gagal menyimpan draf tindak lanjut: ${lastErr}`);
+    return valid;
+  }
 
   return valid;
 }
