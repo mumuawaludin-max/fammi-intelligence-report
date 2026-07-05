@@ -172,12 +172,22 @@ Hanya boleh merujuk field berikut. Jangan mengarang field lain.
 - Refleksi orang tua: kategori_pernyataan, emosi_anak, dukungan_dibutuhkan, hal_disyukuri
 - Tren antar periode: karakter_summary
 
+PENTING soal membaca top5_indikator_terbaik/top5_indikator_terendah: tiap item punya
+field "peringkat" (1 = paling ekstrem) dan "predikat" yang secara eksplisit bilang
+"tertinggi" atau "terendah". BACA field "predikat" ini, jangan menebak dari urutan array
+saja, dan jangan pernah menukar isi top5_indikator_terbaik dengan top5_indikator_terendah.
+Kesalahan paling sering: menyebut indikator dari daftar "terbaik" sebagai yang lemah, atau
+sebaliknya. Sebelum menulis "yang paling rendah adalah X" atau "yang paling tinggi adalah
+Y", cek ulang field predikat di baris X dan Y itu benar-benar bilang begitu.
+
 Aturan data:
 1. Angka di "mengapa_data" harus dari field di atas. Jangan mengarang angka. Kalau
    angka spesifik tidak ada, rujuk temuan kualitatifnya, jangan menulis seolah ada.
 2. Kalau cuma satu periode dan tidak cukup untuk tren, sebut kondisi periode berjalan
    saja, jangan menyebut tren.
-3. Level agregat, kelas atau sekolah. Dilarang menyebut nama anak atau guru.
+3. Level agregat, kelas atau sekolah. Dilarang menyebut nama anak atau guru. (Data yang
+   kamu terima sudah dibersihkan dari nama murid oleh sistem, jadi kamu tidak akan
+   melihatnya sama sekali -- tapi tetap jangan pernah mengarang atau menebak nama.)
 
 
 ## CAKUPAN WAJIB: JANGAN TERPAKU SATU FOKUS ATAU SATU JANGKA WAKTU
@@ -242,8 +252,18 @@ dalamnya, bukan berarti hasilnya harus selalu satu objek:
   "mengapa_data": "alasan dari angka atau temuan periode berjalan, sebut angkanya",
   "mengapa_perspektif": "sudut perkembangan anak atau kebijakan sekolah, beda dari mengapa_data, memberi momen sadar",
   "dasar_teori": "nama kerangka teori yang dipakai, ringkas, untuk tampil di CMS",
-  "manfaat": "dampak konkret kalau dijalankan",
-  "konkret": ["langkah 1 kemenangan cepat", "langkah 2", "langkah 3", "langkah 4 opsional"],
+  "manfaat": {
+    "anak": "manfaat spesifik buat anak kalau ini dijalankan",
+    "orang_tua": "manfaat spesifik buat orang tua",
+    "sekolah": "manfaat spesifik buat sekolah atau guru"
+  },
+  "konkret": [
+    {
+      "aksi": "apa persis yang dilakukan, kemenangan cepat dulu di langkah pertama",
+      "waktu": "kapan mulai dan berapa lama atau seberapa sering",
+      "kenapa": "kenapa langkah ini (bukan langkah lain) yang dipilih di urutan ini"
+    }
+  ],
   "status": "menunggu_persetujuan"
 }
 
@@ -258,6 +278,10 @@ Keterangan nilai:
 - dasar_teori: sebut kerangka yang kamu pakai, misalnya "Sokongan bertahap, Vygotsky"
   atau "Pola pikir berkembang, Dweck". Ini tampil di CMS sebagai pertanggungjawaban
   keilmuan, jadi wajib jujur dan sesuai tabel jenjang. Jangan mengarang.
+- manfaat: objek, BUKAN string. Tiga sub-field wajib terisi (anak, orang_tua, sekolah).
+  Lihat detail di bagian ATURAN ISI TIAP FIELD di bawah.
+- konkret: array objek, BUKAN array string. Tiap objek wajib punya aksi, waktu, kenapa.
+  Lihat detail di bagian ATURAN ISI TIAP FIELD di bawah.
 - status: SELALU "menunggu_persetujuan".
 
 
@@ -314,42 +338,42 @@ Bronfenbrenner, pola pikir berkembang), jangan dikosongkan dengan alasan jenjang
 jelas. JANGAN PERNAH cuma menyebut nama tokoh/teori tanpa penjelasan maknanya, dan JANGAN
 PERNAH mengosongkan atau menyamarkan nama tokoh kalau tabel jenjang menyediakannya.
 
-manfaat: jelaskan dampak konkret dalam 1 sampai 2 kalimat, gambarkan situasi setelah
-dijalankan supaya pembaca bisa membayangkan hasilnya. Hindari klaim berlebihan yang tidak
-bisa dibuktikan.
+manfaat: OBJEK dengan tiga sub-field wajib terisi semua, masing-masing 1 sampai 2
+kalimat, gambarkan situasi setelah dijalankan supaya tiap pembaca bisa membayangkan
+manfaatnya langsung dari sudutnya sendiri:
+- "anak": manfaatnya buat anak itu sendiri, dari sisi perkembangan atau perasaannya.
+- "orang_tua": manfaatnya buat orang tua, dari sisi apa yang mereka rasakan atau lihat
+  di rumah.
+- "sekolah": manfaatnya buat sekolah atau guru, dari sisi operasional atau citra.
+Kalau salah satu sisi memang tidak langsung relevan untuk rekomendasi tertentu, tetap
+isi dengan penjelasan jujur seperlunya (boleh singkat), jangan dikosongkan atau diisi
+kalimat generik yang bisa dipakai di rekomendasi manapun. Hindari klaim berlebihan yang
+tidak bisa dibuktikan.
 
-konkret: INI FIELD YANG PALING SERING GAGAL, PERHATIKAN BAIK-BAIK.
+konkret: INI FIELD YANG PALING SERING GAGAL, PERHATIKAN BAIK-BAIK. Array OBJEK, bukan
+array string. Tiap objek WAJIB punya tiga sub-field: "aksi", "waktu", "kenapa".
 
 - Minimal 3 langkah, lebih banyak lebih baik selama tetap realistis.
-- WAJIB, tiap langkah harus memuat SEMUA lima hal ini sekaligus dalam satu kalimat,
-  hilang salah satu berarti langkah itu belum konkret:
-  1. Siapa yang melakukan (guru, wali kelas, kepala sekolah, orang tua, atau anaknya
-     sendiri didampingi siapa). Jangan biarkan pelakunya ambigu.
-  2. Aksi persisnya apa, bukan kategori atau niat umum. "Ajarkan kebiasaan baik" atau
-     "tingkatkan kepedulian" itu KATEGORI, bukan aksi, dan DILARANG dipakai sebagai
-     langkah. Aksi yang benar bisa langsung dibayangkan kejadiannya: siapa berdiri di
-     mana, memegang apa, mengucapkan atau melakukan apa.
-  3. Alat atau bahan konkret kalau memang perlu alat (kartu centang, poster, buku
-     catatan kecil, pesan di grup WhatsApp, stiker bintang, dsb). Sebutkan wujud
-     bendanya, jangan cuma tulis "alat bantu" atau "media pendukung".
-  4. Berapa lama tiap kali dilakukan, atau seberapa sering (mis. "5 menit", "tiap pagi
-     sebelum pelajaran pertama", "sekali seminggu tiap Jumat").
-  5. Kapan mulainya dan kapan hasilnya bisa mulai dicek (hari, minggu, atau tanggal
-     relatif seperti "akhir minggu ini").
-- Tes cepat sebelum menulis: kalau kamu tidak bisa membayangkan adegannya persis di
-  depan mata cuma dari membaca satu kalimat itu (siapa berdiri di mana, melakukan apa,
-  dengan apa), langkah itu BELUM cukup konkret, tulis ulang lebih detail sebelum lanjut.
-- Contoh perbandingan supaya jelas bedanya:
+- "aksi": apa persis yang dilakukan, bukan kategori atau niat umum. "Ajarkan kebiasaan
+  baik" atau "tingkatkan kepedulian" itu KATEGORI, bukan aksi, dan DILARANG dipakai.
+  Aksi yang benar bisa langsung dibayangkan kejadiannya: siapa melakukan, di mana,
+  memegang atau memakai apa (sebutkan alat/bahan konkret kalau perlu alat, mis. kartu
+  centang, poster, grup WhatsApp, stiker bintang, bukan cuma "alat bantu").
+- "waktu": kapan mulainya dan berapa lama tiap kali dilakukan, atau seberapa sering
+  (mis. "Mulai besok, 5 menit tiap pagi sebelum pelajaran pertama, dievaluasi akhir
+  minggu" atau "Minggu ini, sekali, lalu dicek hasilnya akhir bulan").
+- "kenapa": kenapa langkah ini (bukan langkah lain) yang dipilih di urutan ini, satu
+  kalimat pendek yang menyambung ke temuan data atau ke langkah sebelumnya/berikutnya.
+- Tes cepat sebelum menulis "aksi": kalau kamu tidak bisa membayangkan adegannya
+  persis di depan mata cuma dari membaca satu kalimat itu (siapa berdiri di mana,
+  melakukan apa, dengan apa), langkah itu BELUM cukup konkret, tulis ulang lebih detail.
+- Contoh perbandingan supaya jelas bedanya "aksi" yang kurang vs cukup konkret:
   KURANG KONKRET (dilarang, ini masih kategori/niat, bukan aksi): "Latih anak
   berbicara sopan setiap hari." / "Bangun komunikasi yang lebih baik dengan orang tua."
-  CUKUP KONKRET (lolos kelima syarat di atas): "Tiap pagi jam 7 sebelum pelajaran
-  pertama, guru memandu latihan 3 menit mengucap tolong, maaf, terima kasih lewat
-  tanya-jawab bergantian dengan 3 siswa berbeda tiap hari, dimulai besok dan
-  dievaluasi tiap akhir minggu." / "Minggu ini, wali kelas membuka satu grup
-  WhatsApp resmi kelas, aturan pemakaiannya ditulis di pesan pertama, dan wali kelas
-  membalas tiap pertanyaan orang tua paling lambat dalam 2 hari kerja."
+  CUKUP KONKRET: "Guru memandu latihan 3 menit mengucap tolong, maaf, terima kasih
+  lewat tanya-jawab bergantian dengan 3 siswa berbeda." / "Wali kelas membuka satu
+  grup WhatsApp resmi kelas, aturan pemakaiannya ditulis di pesan pertama."
 - Langkah pertama harus kemenangan cepat yang hasilnya kelihatan dalam hitungan hari.
-- Urut waktu jelas: "Hari pertama", "tiap pagi minggu ini", "akhir bulan".
 - Tiap langkah bisa dicek selesai atau belum lewat tanda yang kelihatan (dicentang,
   ditempel, dikirim, dicatat, diumumkan), bukan cuma niat atau sikap yang tidak
   kelihatan wujudnya ("lebih memperhatikan", "membiasakan", "meningkatkan kepedulian").
@@ -410,19 +434,43 @@ mulai konsisten ke kadang muncul."
 mengapa_perspektif: "Sering anak bukan tidak mau mandiri, tapi tidak pernah diberi
 ruang, karena guru dan orang tua cenderung membereskan lebih cepat supaya hemat waktu.
 Ruang kecil yang sengaja dibuka justru melatih kebiasaan itu."
-dasar_teori: "Sokongan bertahap, Vygotsky"
-konkret:
-  - "Hari pertama, sisakan lima menit sebelum pulang untuk anak membereskan alat sendiri
-     tanpa dibantu, cukup diawasi."
-  - "Minggu ini, kurangi bantuan pelan, cukup ingatkan lewat satu pertanyaan, bukan
-     langsung membereskan."
-  - "Akhir minggu, tempel papan bintang sederhana untuk yang konsisten membereskan
-     sendiri."
-  - "Titipkan pesan singkat ke orang tua supaya menerapkan lima menit yang sama di rumah."
+dasar_teori: "Sokongan bertahap (Vygotsky): bantuan dikurangi bertahap sampai anak
+bisa sendiri."
+manfaat: {
+  anak: "Anak merasa dipercaya mengurus barangnya sendiri, tumbuh rasa mampu yang
+    jadi bekal untuk tugas mandiri lain.",
+  orang_tua: "Orang tua melihat langsung tanda kemandirian anaknya bertambah, bukan
+    cuma dengar laporan.",
+  sekolah: "Guru tidak perlu mengingatkan berulang tiap hari, waktu bersiap pulang
+    jadi lebih tertata."
+}
+konkret: [
+  { aksi: "Guru menyisakan lima menit sebelum pulang untuk anak membereskan alat
+      sendiri tanpa dibantu, cukup diawasi dari jarak dekat.",
+    waktu: "Mulai hari pertama, lima menit tiap hari, dievaluasi akhir minggu ini.",
+    kenapa: "Langkah paling ringan dan paling cepat kelihatan hasilnya, jadi
+      kemenangan awal sebelum masuk ke langkah yang butuh lebih banyak kesabaran." },
+  { aksi: "Guru mengurangi bantuan pelan-pelan, cukup mengingatkan lewat satu
+      pertanyaan ("sudah dicek belum tasnya?"), bukan langsung membereskan.",
+    waktu: "Minggu ini, tiap kali anak bersiap pulang.",
+    kenapa: "Sokongan yang ditarik bertahap ini yang bikin kemandirian benar-benar
+      melekat, bukan cuma nurut selama diawasi." },
+  { aksi: "Guru menempel papan bintang sederhana di dinding kelas, satu bintang
+      untuk tiap anak yang konsisten membereskan sendiri.",
+    waktu: "Ditempel akhir minggu pertama, dicek dan ditambah tiap Jumat.",
+    kenapa: "Anak di usia ini butuh tanda yang kelihatan supaya usahanya terasa
+      dihargai, bukan cuma pujian lisan sesaat." },
+  { aksi: "Guru menitipkan pesan singkat ke grup orang tua supaya menerapkan lima
+      menit yang sama di rumah, dengan contoh kalimat yang bisa langsung dipakai.",
+    waktu: "Dikirim akhir minggu pertama, setelah pola kelasnya mulai jalan.",
+    kenapa: "Kebiasaan yang cuma jalan di kelas gampang hilang, harus disambung ke
+      rumah supaya benar-benar jadi kebiasaan anak, bukan aturan kelas." }
+]
 
 Yang membuat contoh ini bagus: ringan untuk guru, langkah pertama langsung bisa hari itu,
-membaca tren, membingkai anak tanpa label, dan mengapa_perspektif memberi sudut baru
-soal kenapa kemandirian tidak tumbuh.
+membaca tren, membingkai anak tanpa label, mengapa_perspektif memberi sudut baru soal
+kenapa kemandirian tidak tumbuh, dan tiap langkah konkret sudah jelas siapa-apa-kapan-
+kenapanya sendiri-sendiri.
 
 Contoh kedua, untuk type "pertahankan" (bukan cuma "perlu_perhatian"), supaya polanya
 jelas dipakai untuk dua arah, kasus aspek yang sudah kuat dan perlu dijaga. Term "short",
@@ -439,23 +487,39 @@ dianggap sudah beres, padahal kalau pendampingannya dilonggarkan sedikit saja,
 kebiasaan yang sudah terbentuk bisa perlahan kendur tanpa disadari. Menjaga yang sudah
 baik butuh usaha yang sama sadarnya dengan memperbaiki yang masih lemah, cuma bentuknya
 beda: bukan membangun dari nol, tapi memastikan rutinitasnya tidak diam-diam berkurang."
-dasar_teori: "Pembiasaan lewat pengulangan konsisten: perilaku yang sudah rutin tetap
-butuh pengulangan dan pengakuan supaya tidak luntur, bukan cuma dibiarkan berjalan
-sendiri."
-manfaat: "Kekuatan ibadah anak tetap terjaga sebagai identitas sekolah, dan kartu kendali
-ini juga jadi bukti nyata yang bisa ditunjukkan ke orang tua kalau ditanya soal
-pembiasaan ibadah di sekolah."
-konkret:
-  - "Hari ini, cetak satu kartu kendali wudhu per anak berisi kotak centang untuk tiap
-     hari dalam seminggu, ditempel di locker atau map masing-masing anak."
-  - "Tiap selesai praktik wudhu terpimpin, guru mengecek dan mencentang kartu anak yang
-     melakukannya dengan benar, cukup 30 detik per anak sambil antre masuk kelas."
-  - "Akhir minggu, guru memilih 3 anak dengan catatan paling rapi untuk diberi apresiasi
-     kecil di depan kelas, supaya kebiasaan ini tetap terasa berarti, bukan rutinitas
-     kosong."
-  - "Akhir bulan, kepala sekolah meminta satu wali kelas bercerita singkat di rapat guru
-     tentang bagaimana kartu kendali ini dijalankan, supaya kelas lain bisa meniru
-     polanya kalau belum melakukannya."
+dasar_teori: "Sokongan bertahap (Vygotsky): pendampingan yang ditarik terlalu cepat,
+bahkan untuk kebiasaan yang sudah kuat, bisa membuatnya perlahan kendur lagi."
+manfaat: {
+  anak: "Anak terus mendapat pengakuan atas kebiasaan baik yang sudah dimilikinya,
+    bukan cuma diperhatikan saat lemah.",
+  orang_tua: "Orang tua punya bukti nyata (kartu kendali) yang bisa dilihat langsung
+    soal konsistensi ibadah anaknya di sekolah.",
+  sekolah: "Kekuatan ibadah tetap terjaga sebagai identitas sekolah, dan jadi materi
+    nyata untuk ditunjukkan ke orang tua atau calon wali murid."
+}
+konkret: [
+  { aksi: "Guru mencetak satu kartu kendali wudhu per anak berisi kotak centang
+      untuk tiap hari dalam seminggu, ditempel di locker atau map masing-masing anak.",
+    waktu: "Dicetak dan ditempel hari ini, dipakai mulai besok.",
+    kenapa: "Alat sederhana ini yang bikin kebiasaan tetap kelihatan dan terpantau,
+      bukan cuma diasumsikan berjalan karena sudah biasa." },
+  { aksi: "Guru mengecek dan mencentang kartu anak yang berwudhu dengan benar
+      langsung setelah praktik wudhu terpimpin, cukup 30 detik per anak sambil
+      antre masuk kelas.",
+    waktu: "Tiap hari, langsung setelah praktik wudhu, mulai besok.",
+    kenapa: "Pengecekan harus menempel ke rutinitas yang sudah ada supaya guru
+      tidak merasa dibebani tugas tambahan." },
+  { aksi: "Guru memilih 3 anak dengan catatan paling rapi di kartu kendali untuk
+      diberi apresiasi kecil di depan kelas.",
+    waktu: "Akhir minggu, tiap Jumat.",
+    kenapa: "Kebiasaan yang sudah kuat butuh pengakuan berkala supaya tidak terasa
+      seperti rutinitas kosong yang lama-lama diabaikan." },
+  { aksi: "Kepala sekolah meminta satu wali kelas bercerita singkat di rapat guru
+      tentang bagaimana kartu kendali ini dijalankan.",
+    waktu: "Akhir bulan, di rapat guru bulanan.",
+    kenapa: "Supaya kelas lain yang belum menerapkan bisa meniru polanya, bukan
+      cuma jadi praktik baik satu kelas saja." }
+]
 
 Yang membuat contoh ini bagus: mengapa_data menjelaskan angka DAN artinya (bukan cuma
 "92 persen"), mengapa_perspektif memberi sudut yang tidak terpikir sebelumnya (aspek
@@ -479,18 +543,37 @@ periode karena akar kebutuhannya belum benar-benar dijawab."
 dasar_teori: "Keselarasan sistem ekologis (Bronfenbrenner): anak berkembang paling baik
 kalau lingkungan-lingkungan di sekitarnya, terutama sekolah dan rumah, sejalan dan saling
 menguatkan, bukan berjalan sendiri-sendiri tanpa saling tahu."
-manfaat: "Orang tua merasa didampingi, bukan cuma dijawab, dan pembiasaan yang diajarkan
-di sekolah lebih konsisten diteruskan di rumah."
-konkret:
-  - "Bulan pertama, jadwalkan satu sesi kelas parenting pertama, temanya diambil dari
-     permintaan orang tua yang paling sering muncul periode ini."
-  - "Bulan kedua dan ketiga, jadwalkan sesi berikutnya tiap dua bulan sekali, satu guru
-     kelas ikut jadi pemateri pendamping supaya contohnya sesuai kondisi anak-anak di
-     sekolah ini."
-  - "Tiap sesi selesai, catat jumlah orang tua yang hadir dan satu masukan singkat,
-     dipakai menentukan tema sesi berikutnya."
-  - "Di bulan keenam, tinjau apakah permintaan serupa di refleksi orang tua berkurang
-     dibanding sebelum program ini mulai."
+manfaat: {
+  anak: "Pembiasaan yang diajarkan di sekolah lebih konsisten diteruskan di rumah,
+    karena orang tua tahu persis caranya.",
+  orang_tua: "Orang tua merasa didampingi, bukan cuma dijawab satu per satu lewat
+    pesan singkat.",
+  sekolah: "Kebutuhan yang sama tidak terus berulang tiap periode, dan sekolah
+    punya program nyata yang bisa ditunjukkan sebagai bentuk kepedulian."
+}
+konkret: [
+  { aksi: "Wali kelas menjadwalkan satu sesi kelas parenting pertama, temanya
+      diambil dari permintaan orang tua yang paling sering muncul periode ini.",
+    waktu: "Bulan pertama, satu sesi.",
+    kenapa: "Tema harus diambil dari kebutuhan nyata supaya orang tua merasa
+      didengar, bukan sekadar diundang ke acara umum." },
+  { aksi: "Wali kelas menjadwalkan sesi berikutnya tiap dua bulan sekali, satu
+      guru kelas ikut jadi pemateri pendamping supaya contohnya sesuai kondisi
+      anak-anak di sekolah ini.",
+    waktu: "Bulan kedua dan ketiga, tiap dua bulan sekali.",
+    kenapa: "Sesi berkala yang dijadwalkan dari awal yang membuatnya jadi program
+      tetap, bukan cuma acara sekali jalan yang terlupakan." },
+  { aksi: "Wali kelas mencatat jumlah orang tua yang hadir dan satu masukan
+      singkat dari peserta.",
+    waktu: "Tiap sesi selesai, langsung dicatat.",
+    kenapa: "Catatan ini yang dipakai menentukan tema sesi berikutnya supaya
+      programnya terus relevan, bukan mengulang tema yang sama." },
+  { aksi: "Kepala sekolah meninjau apakah permintaan serupa di refleksi orang
+      tua berkurang dibanding sebelum program ini mulai.",
+    waktu: "Bulan keenam, di akhir periode program ini.",
+    kenapa: "Ini titik cek hasil program, supaya jelas apakah kelas parenting
+      benar-benar menjawab kebutuhan atau perlu diubah polanya." }
+]
 
 Contoh keempat, singkat, jenjang PAUD/TK, term "short", fokus "mutu", supaya polanya
 jelas juga dipakai untuk anak usia paling kecil, bukan cuma anak SD:
@@ -508,15 +591,31 @@ anak belajar bahwa selalu ada yang akan membantunya."
 dasar_teori: "Inisiatif vs rasa bersalah (Erikson): anak usia ini butuh kesempatan
 mencoba sendiri tanpa buru-buru dibantu atau disalahkan, supaya berani berinisiatif
 di hal-hal kecil sehari-hari."
-manfaat: "Anak lebih percaya diri mengurus dirinya sendiri, dan waktu bersiap pulang
-di kelas jadi lebih tertata karena tidak semua anak menunggu dibantu guru."
-konkret:
-  - "Besok, mulai kegiatan bersiap pulang dengan lagu pendek tentang pakai sepatu
-     sendiri, supaya terasa seperti permainan, bukan tugas."
-  - "Tiap hari, beri waktu dua menit anak mencoba sendiri dulu sebelum guru membantu,
-     cukup tunggu dan tepuk tangan kalau berhasil."
-  - "Akhir minggu, tempel stiker bintang sederhana di rak sepatu anak yang sudah bisa
-     sendiri, supaya terlihat kemajuannya oleh anak dan orang tua."
+manfaat: {
+  anak: "Anak lebih percaya diri mengurus dirinya sendiri, dan merasa bangga bisa
+    melakukannya tanpa dibantu.",
+  orang_tua: "Orang tua melihat tanda kemandirian yang kelihatan langsung lewat
+    stiker bintang, bukan cuma laporan lisan.",
+  sekolah: "Waktu bersiap pulang di kelas jadi lebih tertata karena tidak semua
+    anak menunggu dibantu guru satu per satu."
+}
+konkret: [
+  { aksi: "Guru memulai kegiatan bersiap pulang dengan lagu pendek tentang pakai
+      sepatu sendiri, supaya terasa seperti permainan, bukan tugas.",
+    waktu: "Mulai besok, tiap hari saat bersiap pulang.",
+    kenapa: "Di usia ini, lagu dan permainan jauh lebih efektif daripada instruksi
+      verbal panjang untuk membentuk kebiasaan baru." },
+  { aksi: "Guru memberi waktu dua menit anak mencoba sendiri dulu sebelum dibantu,
+      cukup menunggu dan bertepuk tangan kalau berhasil.",
+    waktu: "Tiap hari, dua menit, mulai bersamaan dengan langkah pertama.",
+    kenapa: "Anak butuh ruang mencoba tanpa buru-buru dibantu supaya dorongan
+      berinisiatifnya tidak hilang." },
+  { aksi: "Guru menempel stiker bintang sederhana di rak sepatu anak yang sudah
+      bisa memakai sepatu sendiri.",
+    waktu: "Ditempel akhir minggu pertama, ditambah tiap minggu berikutnya.",
+    kenapa: "Tanda yang kelihatan secara visual ini yang membuat anak dan orang
+      tua sama-sama melihat kemajuannya, bukan cuma diberi tahu." }
+]
 
 Contoh kelima, singkat, jenjang SMP, term "short", fokus "citra", supaya polanya jelas
 juga dipakai untuk remaja, bukan cuma anak kecil:
@@ -535,15 +634,31 @@ bisa telat diketahui."
 dasar_teori: "Pembentukan identitas (Erikson): remaja usia ini wajar mulai menjaga
 privasi dari orang dewasa, tapi tetap butuh ruang bicara yang terasa aman dan
 pilihannya sendiri, bukan interogasi."
-manfaat: "Orang tua lebih tenang karena tetap punya gambaran keseharian anaknya di
-sekolah, dan siswa merasa didengar tanpa merasa diawasi."
-konkret:
-  - "Minggu ini, umumkan satu slot 15 menit tiap Jumat sore untuk siswa yang mau
-     mengobrol santai dengan wali kelas, sifatnya sukarela, bukan wajib."
-  - "Tiap sesi, biarkan siswa memilih topik obrolannya sendiri, wali kelas cukup
-     mendengarkan dan sesekali bertanya, bukan menasihati panjang."
-  - "Akhir bulan, kirim satu pesan singkat ke grup orang tua tentang suasana kelas
-     secara umum, tanpa membocorkan isi obrolan personal siapa pun."
+manfaat: {
+  anak: "Siswa merasa didengar tanpa merasa diawasi, punya ruang aman untuk
+    bicara tanpa takut dihakimi.",
+  orang_tua: "Orang tua lebih tenang karena tetap punya gambaran keseharian
+    anaknya di sekolah, tanpa harus memaksa anaknya cerita.",
+  sekolah: "Wali kelas lebih cepat tahu kalau ada tanda perlu perhatian, karena
+    ada ruang bicara yang rutin, bukan menunggu masalah membesar."
+}
+konkret: [
+  { aksi: "Wali kelas mengumumkan satu slot 15 menit untuk siswa yang mau
+      mengobrol santai dengannya, sifatnya sukarela bukan wajib.",
+    waktu: "Minggu ini, tiap Jumat sore, mulai minggu depan.",
+    kenapa: "Sifat sukarela penting supaya siswa yang belum siap tidak merasa
+      dipaksa terbuka." },
+  { aksi: "Wali kelas membiarkan siswa memilih topik obrolannya sendiri, cukup
+      mendengarkan dan sesekali bertanya, bukan menasihati panjang.",
+    waktu: "Tiap sesi Jumat, 15 menit.",
+    kenapa: "Remaja usia ini lebih terbuka kalau merasa memegang kendali obrolan,
+      bukan sedang diinterogasi." },
+  { aksi: "Wali kelas mengirim satu pesan singkat ke grup orang tua tentang
+      suasana kelas secara umum, tanpa membocorkan isi obrolan personal siapa pun.",
+    waktu: "Akhir bulan, sekali.",
+    kenapa: "Orang tua tetap dapat gambaran keseharian anaknya tanpa privasi
+      obrolan personal ikut terbuka." }
+]
 
 
 ## CONTOH YANG DIHINDARI
@@ -561,6 +676,11 @@ konkret:
   mana pun. Selalu tulis penuh dalam bahasa Indonesia.
 - dasar_teori yang kosong, atau yang cuma menyebut nama tokoh/teori tanpa penjelasan
   ("Vygotsky" saja), atau sebaliknya penjelasan tanpa nama tokoh/teori sama sekali.
+- "konkret" berupa array string biasa (bukan array objek aksi/waktu/kenapa), atau
+  "manfaat" berupa string biasa (bukan objek anak/orang_tua/sekolah). Skema ini WAJIB
+  diikuti persis, lihat SKEMA OUTPUT WAJIB.
+- Klaim "paling tinggi"/"paling rendah" yang tertukar antara top5_indikator_terbaik
+  dan top5_indikator_terendah. Selalu cek field "predikat" sebelum menulis klaim begitu.
 
 
 ## GERBANG WAJIB
@@ -593,7 +713,12 @@ konkret:
 8. Hitung ulang: apakah jumlah rekomendasi di array sudah sesuai jumlah temuan berbeda
    yang tersisa di langkah 4? Kalau kamu cuma keluarkan 1 padahal ada 2 atau 3 temuan
    berbeda yang lolos, tambahkan yang kurang sebelum menjawab.
-9. Keluarkan JSON valid saja.
+9. Cek ulang tiap klaim "paling tinggi"/"paling rendah"/"terkuat"/"terlemah" yang kamu
+   tulis di mengapa_data: buka lagi baris datanya, pastikan field "predikat" di baris itu
+   memang bilang begitu. Kalau kamu menyebut indikator atau aspek tertentu sebagai lemah,
+   pastikan itu benar datang dari top5_indikator_terendah (bukan tertukar dari
+   top5_indikator_terbaik), dan sebaliknya.
+10. Keluarkan JSON valid saja.
 
 Kalau data tidak cukup untuk rekomendasi yang jujur dan berdasar, keluarkan array lebih
 pendek, termasuk array kosong kalau memang tidak ada temuan yang lolos. Lebih baik
@@ -823,8 +948,56 @@ function ringkasOrtuRows(rows: any[]): string[] {
     );
 }
 
+/**
+ * karakter_summary.ringkasan itu kolom "sisa" hasil import sheet apa adanya, bukan
+ * struktur yang dirancang untuk dibaca Gemini. Dua masalah nyata di dalamnya:
+ * 1. top5_indikator_terbaik/terendah tersimpan sebagai STRING berisi JSON (bukan array
+ *    asli), jadi kalau langsung di-JSON.stringify ulang, Gemini menerima JSON di dalam
+ *    JSON (escaped) yang gampang salah baca urutan tertinggi/terendahnya.
+ * 2. top5_siswa_tertinggi/terendah (+ pasangan nilainya) berisi NAMA MURID ASLI. Ini
+ *    tidak boleh pernah dikirim ke API pihak ketiga (Gemini), apapun instruksinya --
+ *    modul Karakter melarang menyebut nama anak, jadi datanya sendiri harus bersih dari
+ *    nama sebelum sampai ke model, bukan cuma mengandalkan Gemini untuk tidak menuliskannya.
+ * Fungsi ini membersihkan dan menjernihkan ringkasan sebelum dikirim di prompt.
+ */
+function siapkanRingkasanUntukGemini(ringkasan: Record<string, any>): Record<string, any> {
+  const bersih: Record<string, any> = {};
+  for (const [key, value] of Object.entries(ringkasan || {})) {
+    // Buang total field yang mengandung nama murid -- tidak boleh sampai ke Gemini.
+    if (/^top5_siswa_/.test(key) || /^top5_nilai_siswa_/.test(key)) continue;
+    bersih[key] = value;
+  }
+
+  // Parse top5_indikator_terbaik/terendah dari string JSON jadi array asli, dengan
+  // peringkat dan label predikat eksplisit supaya tidak ambigu mana tertinggi/terendah.
+  for (const [key, labelPredikat] of [
+    ["top5_indikator_terbaik", "tertinggi (paling kuat)"],
+    ["top5_indikator_terendah", "terendah (paling lemah)"],
+  ] as const) {
+    const raw = ringkasan?.[key];
+    if (!raw) continue;
+    try {
+      const arr = typeof raw === "string" ? JSON.parse(raw) : raw;
+      if (Array.isArray(arr) && arr.length > 0) {
+        bersih[key] = arr.map((item, i) => ({
+          peringkat: i + 1,
+          predikat: i === 0 ? `peringkat 1, ${labelPredikat}` : `peringkat ${i + 1}`,
+          indikator: item.pencapaian ?? item.indikator ?? item.label ?? null,
+          nilai_persen: item.nilai ?? item.value ?? null,
+        }));
+      }
+    } catch {
+      // Kalau gagal parse, buang field ini daripada mengirim string JSON mentah yang
+      // berisiko disalahbaca -- lebih aman tidak ada data daripada data ambigu.
+      delete bersih[key];
+    }
+  }
+
+  return bersih;
+}
+
 export function buildUserPrompt({ role, scope, scope_id, modul, periode_id, ringkasan, kutipanOrtu, arahanReviewer, tipe }) {
-  const fakta = JSON.stringify(ringkasan, null, 2);
+  const fakta = JSON.stringify(siapkanRingkasanUntukGemini(ringkasan), null, 2);
   const kutipanBlok = kutipanOrtu && kutipanOrtu.length > 0
     ? `\nRefleksi orang tua periode ini, satu baris per orang tua (dipakai untuk temuan\nfokus citra, jangan lewatkan kalau ada beberapa kategori berbeda yang cukup sering muncul):\n${kutipanOrtu.map((k) => `- ${k}`).join("\n")}\n`
     : "";

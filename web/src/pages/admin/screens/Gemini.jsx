@@ -57,9 +57,45 @@ export function Gemini() {
     }
   }
 
+  async function generateSekolah(r) {
+    const key = `sekolah|${r.sekolahId}`;
+    setBusyKey(key);
+    try {
+      await triggerGeminiJob({
+        scope: 'sekolah', scopeId: r.sekolahId, sekolahId: r.sekolahId, modul: 'karakter',
+        tipe: 'tindak_lanjut', periodeId: r.periodeId, role: 'kepala_sekolah',
+      });
+    } finally {
+      setBusyKey(null);
+    }
+  }
+
+  async function generateYayasan(r) {
+    const key = `yayasan|${r.sekolahId}`;
+    setBusyKey(key);
+    try {
+      await triggerGeminiJob({
+        scope: 'sekolah', scopeId: r.sekolahId, sekolahId: r.sekolahId, modul: 'karakter',
+        tipe: 'tindak_lanjut', periodeId: r.periodeId, role: 'yayasan',
+      });
+    } finally {
+      setBusyKey(null);
+    }
+  }
+
   return (
     <div style={{ padding: '22px 26px 40px', display: 'flex', flexDirection: 'column', gap: 16 }}>
       <RekomendasiPanel rekomendasi={data.rekomendasi} busyKey={busyKey} batchProgress={batchProgress} onGenerate={generateRekomendasi} onGenerateSemua={generateSemuaSekolah} />
+      <RekomendasiSederhanaPanel
+        judul="Rekomendasi Kepala Sekolah" ikon="🏫" satuan="sekolah" busyPrefix="sekolah"
+        items={data.rekomendasiSekolah} busyKey={busyKey} onGenerate={generateSekolah}
+        labelBaris={(r) => r.sekolahNama}
+      />
+      <RekomendasiSederhanaPanel
+        judul="Rekomendasi Yayasan" ikon="🏛️" satuan="sekolah (per yayasan)" busyPrefix="yayasan"
+        items={data.rekomendasiYayasan} busyKey={busyKey} onGenerate={generateYayasan}
+        labelBaris={(r) => `${r.sekolahNama} · ${r.yayasanNama}`}
+      />
 
       <div style={{ display: 'grid', gridTemplateColumns: '380px 1fr', gap: 16 }}>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
@@ -178,6 +214,57 @@ function RekomendasiPanel({ rekomendasi, busyKey, batchProgress, onGenerate, onG
                   );
                 })}
               </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+/**
+ * Versi lebih sederhana dari RekomendasiPanel, dipakai untuk level Kepala Sekolah dan
+ * Yayasan: daftar datar (tidak dikelompokkan per kelas), satu tombol Generate per baris.
+ * Dipisah dari RekomendasiPanel supaya panel kelas tidak makin rumit dicampur dua level lain.
+ */
+function RekomendasiSederhanaPanel({ judul, ikon, satuan, items, busyKey, onGenerate, labelBaris, busyPrefix }) {
+  if (!items || items.length === 0) {
+    return (
+      <div className="card" style={{ padding: '18px 22px', display: 'flex', alignItems: 'center', gap: 12 }}>
+        <span style={{ fontSize: 22 }}>✅</span>
+        <div>
+          <div className="disp" style={{ fontSize: 15, fontWeight: 700, color: 'var(--ink)' }}>{judul}: semua sudah ada tindak lanjut</div>
+          <div style={{ fontSize: 12, color: 'var(--ink-3)' }}>Tidak ada rekomendasi untuk periode berjalan.</div>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="card" style={{ padding: '18px 22px' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
+        <span style={{ fontSize: 18 }}>{ikon}</span>
+        <div className="disp" style={{ fontSize: 16, fontWeight: 700, color: 'var(--ink)' }}>{judul}</div>
+        <span className="pill" style={{ background: 'var(--status-warn-bg)', color: 'var(--status-warn)' }}>{items.length} {satuan}</span>
+      </div>
+      <div style={{ fontSize: 12, color: 'var(--ink-3)', marginBottom: 14 }}>Belum ada draf tindak lanjut untuk periode berjalan di level ini.</div>
+
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 6, maxHeight: 260, overflowY: 'auto' }}>
+        {items.map((r) => {
+          const key = `${busyPrefix}|${r.sekolahId}`;
+          return (
+            <div key={key} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px 12px', background: 'var(--surface-soft)', borderRadius: 10 }}>
+              <div>
+                <div style={{ fontSize: 12.5, fontWeight: 700, color: 'var(--ink)' }}>{labelBaris(r)}</div>
+                <div style={{ fontSize: 10.5, color: 'var(--ink-3)' }}>periode {r.periodeId}</div>
+              </div>
+              <button
+                className="btn-secondary" style={{ padding: '6px 12px', fontSize: 11.5 }}
+                onClick={() => onGenerate(r)}
+                disabled={busyKey === key}
+              >
+                {busyKey === key ? 'Memicu…' : 'Generate'}
+              </button>
             </div>
           );
         })}

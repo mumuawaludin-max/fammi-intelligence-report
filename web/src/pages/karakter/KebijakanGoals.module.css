@@ -386,6 +386,57 @@
   color: var(--ink-2);
 }
 
+/* Manfaat per stakeholder (anak/orang tua/sekolah), skema baru. */
+.manfaatGrid {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.manfaatItem {
+  background: var(--surface-soft);
+  border-radius: var(--radius-md);
+  padding: 10px 14px;
+}
+
+.manfaatTag {
+  display: block;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  color: var(--purple-700);
+  margin-bottom: 3px;
+}
+
+/* Satu langkah konkret: aksi utama + waktu + alasan, skema baru aksi/waktu/kenapa. */
+.konkretStep {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.konkretAksi {
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.55;
+  color: var(--ink);
+  margin: 0;
+}
+
+.konkretWaktu {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--purple-700);
+  margin: 0;
+}
+
+.konkretKenapa {
+  font-size: 12.5px;
+  font-weight: 500;
+  color: var(--ink-3);
+  margin: 0;
+}
+
 .shareBtn {
   position: sticky;
   bottom: 0;

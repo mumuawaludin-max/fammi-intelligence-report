@@ -32,6 +32,22 @@ function comboLabel(type, fokus) {
 // perlu_perhatian selalu tampil lebih dulu (permintaan: prioritaskan yang perlu perhatian).
 const TYPE_ORDER = { perlu_perhatian: 0, pertahankan: 1 };
 
+/** manfaat bisa string lama atau objek anak/orang_tua/sekolah baru -- ratakan jadi baris teks. */
+function formatManfaat(manfaat) {
+  if (typeof manfaat === "string") return [manfaat];
+  return [
+    manfaat?.anak && `Untuk anak: ${manfaat.anak}`,
+    manfaat?.orang_tua && `Untuk orang tua: ${manfaat.orang_tua}`,
+    manfaat?.sekolah && `Untuk sekolah: ${manfaat.sekolah}`,
+  ].filter(Boolean);
+}
+
+/** Satu langkah konkret bisa string lama atau objek aksi/waktu/kenapa baru -- jadi satu baris. */
+function formatKonkretStep(s) {
+  if (typeof s === "string") return s;
+  return [s.aksi, s.waktu && `(${s.waktu})`, s.kenapa && `Kenapa: ${s.kenapa}`].filter(Boolean).join(" ");
+}
+
 /** Susun teks ringkas kartu untuk dibagikan ke WhatsApp lewat wa.me (jalan di desktop & HP). */
 function shareToWhatsApp(k) {
   const teks = [
@@ -43,10 +59,10 @@ function shareToWhatsApp(k) {
     `Dari sisi anak & kebijakan: ${k.mengapa_perspektif}`,
     ``,
     `*Manfaat*`,
-    k.manfaat,
+    ...formatManfaat(k.manfaat),
     ``,
     `*Langkah konkret*`,
-    ...k.konkret.map((s, i) => `${i + 1}. ${s}`),
+    ...k.konkret.map((s, i) => `${i + 1}. ${formatKonkretStep(s)}`),
     ``,
     `— Rapor Karakter, Fammi Intelligence Report`,
   ].join("\n");
@@ -145,12 +161,45 @@ function KebijakanDialog({ k, onClose }) {
           </section>
           <section className={styles.modalSection}>
             <p className={styles.modalLabel}>Manfaatnya</p>
-            <p className={styles.modalText}>{k.manfaat}</p>
+            {typeof k.manfaat === "string" ? (
+              <p className={styles.modalText}>{k.manfaat}</p>
+            ) : (
+              <div className={styles.manfaatGrid}>
+                {k.manfaat?.anak && (
+                  <div className={styles.manfaatItem}>
+                    <span className={styles.manfaatTag}>Untuk anak</span>
+                    <p className={styles.modalText}>{k.manfaat.anak}</p>
+                  </div>
+                )}
+                {k.manfaat?.orang_tua && (
+                  <div className={styles.manfaatItem}>
+                    <span className={styles.manfaatTag}>Untuk orang tua</span>
+                    <p className={styles.modalText}>{k.manfaat.orang_tua}</p>
+                  </div>
+                )}
+                {k.manfaat?.sekolah && (
+                  <div className={styles.manfaatItem}>
+                    <span className={styles.manfaatTag}>Untuk sekolah</span>
+                    <p className={styles.modalText}>{k.manfaat.sekolah}</p>
+                  </div>
+                )}
+              </div>
+            )}
           </section>
           <section className={styles.modalSection}>
             <p className={styles.modalLabel}>Langkah konkret</p>
             <ol className={styles.modalSteps}>
-              {k.konkret.map((s, i) => <li key={i}>{s}</li>)}
+              {k.konkret.map((s, i) => (
+                <li key={i}>
+                  {typeof s === "string" ? s : (
+                    <div className={styles.konkretStep}>
+                      <p className={styles.konkretAksi}>{s.aksi}</p>
+                      {s.waktu && <p className={styles.konkretWaktu}>🕒 {s.waktu}</p>}
+                      {s.kenapa && <p className={styles.konkretKenapa}>Kenapa: {s.kenapa}</p>}
+                    </div>
+                  )}
+                </li>
+              ))}
             </ol>
           </section>
         </div>

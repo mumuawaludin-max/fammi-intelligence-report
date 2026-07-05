@@ -94,15 +94,31 @@ function KebijakanBaruBody({ a }) {
       {a.manfaat && (
         <div style={{ marginBottom: 16 }}>
           <label style={{ fontSize: 11, fontWeight: 800, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--ink-3)', marginBottom: 8, display: 'block' }}>Manfaatnya</label>
-          <div style={{ fontSize: 13, color: 'var(--ink-2)', lineHeight: 1.6 }}>{a.manfaat}</div>
+          {typeof a.manfaat === 'string' ? (
+            <div style={{ fontSize: 13, color: 'var(--ink-2)', lineHeight: 1.6 }}>{a.manfaat}</div>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+              {a.manfaat.anak && <div style={{ fontSize: 13, color: 'var(--ink-2)', lineHeight: 1.6 }}><strong style={{ color: 'var(--purple-700)' }}>Untuk anak:</strong> {a.manfaat.anak}</div>}
+              {a.manfaat.orang_tua && <div style={{ fontSize: 13, color: 'var(--ink-2)', lineHeight: 1.6 }}><strong style={{ color: 'var(--purple-700)' }}>Untuk orang tua:</strong> {a.manfaat.orang_tua}</div>}
+              {a.manfaat.sekolah && <div style={{ fontSize: 13, color: 'var(--ink-2)', lineHeight: 1.6 }}><strong style={{ color: 'var(--purple-700)' }}>Untuk sekolah:</strong> {a.manfaat.sekolah}</div>}
+            </div>
+          )}
         </div>
       )}
 
       <div>
         <label style={{ fontSize: 11, fontWeight: 800, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--ink-3)', marginBottom: 8, display: 'block' }}>Langkah konkret</label>
-        <ol style={{ margin: 0, paddingLeft: 20, display: 'flex', flexDirection: 'column', gap: 6 }}>
+        <ol style={{ margin: 0, paddingLeft: 20, display: 'flex', flexDirection: 'column', gap: 8 }}>
           {a.konkret.map((k, i) => (
-            <li key={i} style={{ fontSize: 12.5, color: 'var(--ink-2)', lineHeight: 1.5 }}>{k}</li>
+            <li key={i} style={{ fontSize: 12.5, color: 'var(--ink-2)', lineHeight: 1.5 }}>
+              {typeof k === 'string' ? k : (
+                <div>
+                  <div style={{ fontWeight: 600, color: 'var(--ink)' }}>{k.aksi}</div>
+                  {k.waktu && <div style={{ color: 'var(--purple-700)', fontWeight: 600, fontSize: 11.5, marginTop: 2 }}>🕒 {k.waktu}</div>}
+                  {k.kenapa && <div style={{ color: 'var(--ink-3)', fontSize: 11.5, marginTop: 2 }}>Kenapa: {k.kenapa}</div>}
+                </div>
+              )}
+            </li>
           ))}
         </ol>
       </div>

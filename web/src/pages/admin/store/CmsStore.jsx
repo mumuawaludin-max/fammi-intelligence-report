@@ -219,7 +219,7 @@ export function CmsProvider({ session, children }) {
 
   const value = useMemo(() => ({
     session,
-    data: data || { yayasan: [], sekolah: [], antrian: [], riwayatDisetujui: [], uploadHistory: [], geminiJobs: [], users: [], rekomendasi: [], geminiSchedule: { aktif: false, interval_jam: 6, terakhir_jalan: null } },
+    data: data || { yayasan: [], sekolah: [], antrian: [], riwayatDisetujui: [], uploadHistory: [], geminiJobs: [], users: [], rekomendasi: [], rekomendasiSekolah: [], rekomendasiYayasan: [], geminiSchedule: { aktif: false, interval_jam: 6, terakhir_jalan: null } },
     loading,
     error,
     refetch,

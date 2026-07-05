@@ -31,7 +31,7 @@ export function useAdminCmsData(session) {
       const [
         yayasanRes, schoolsRes, modulesRes, summaryRes, aspekRes,
         briefingRes, tlRes, importLogRes, profilesRes,
-        kelasSummaryRes, tlKelasAllRes, scheduleRes,
+        kelasSummaryRes, tlKelasAllRes, tlSekolahYayasanRes, scheduleRes,
       ] = await Promise.all([
         supabase.from('yayasan').select('id, nama'),
         supabase.from('schools').select('id, nama, yayasan_id, aktif'),
@@ -48,10 +48,13 @@ export function useAdminCmsData(session) {
         // bukan malah hilang dari daftar rekomendasi selamanya.
         supabase.from('karakter_summary').select('sekolah_id, scope_id, periode_id').eq('scope', 'kelas'),
         supabase.from('tindak_lanjut').select('sekolah_id, scope_id, periode_id').eq('scope', 'kelas').in('status', ['menunggu_persetujuan', 'disetujui']),
+        // Sama, tapi buat level sekolah (Kepala Sekolah) dan lintas sekolah (Yayasan) --
+        // dua-duanya sama-sama scope='sekolah', dibedakan lewat target_role.
+        supabase.from('tindak_lanjut').select('sekolah_id, periode_id, target_role').eq('scope', 'sekolah').in('target_role', ['kepala_sekolah', 'yayasan']).in('status', ['menunggu_persetujuan', 'disetujui']),
         supabase.from('gemini_schedule').select('*').eq('id', 'default').maybeSingle(),
       ]);
 
-      const firstError = [yayasanRes, schoolsRes, modulesRes, summaryRes, aspekRes, briefingRes, tlRes, importLogRes, profilesRes, kelasSummaryRes, tlKelasAllRes]
+      const firstError = [yayasanRes, schoolsRes, modulesRes, summaryRes, aspekRes, briefingRes, tlRes, importLogRes, profilesRes, kelasSummaryRes, tlKelasAllRes, tlSekolahYayasanRes]
         .find((r) => r.error);
       if (firstError) throw new Error(firstError.error.message);
 
@@ -127,6 +130,30 @@ export function useAdminCmsData(session) {
         });
       });
 
+      // Rekomendasi level Kepala Sekolah: sekolah dengan karakter_summary sekolah periode
+      // terbaru (summaryRes, sudah difilter modul karakter aktif lewat `sekolah` di atas)
+      // tapi belum ada tindak_lanjut target_role='kepala_sekolah' untuk periode itu.
+      // Rekomendasi level Yayasan: sama, tapi target_role='yayasan', dikelompokkan per
+      // yayasan supaya adminnya bisa lihat per yayasan mana yang sekolahnya belum lengkap.
+      const tlSekolahKeySet = new Set(
+        (tlSekolahYayasanRes.data || []).map((r) => `${r.sekolah_id}|${r.periode_id}|${r.target_role}`)
+      );
+      const yayasanNameById = Object.fromEntries((yayasanRes.data || []).map((y) => [y.id, y.nama]));
+      const rekomendasiSekolah = [];
+      const rekomendasiYayasan = [];
+      sekolah.forEach((s) => {
+        if (!s.modules.includes('karakter') || !s.periode) return;
+        if (!tlSekolahKeySet.has(`${s.id}|${s.periode}|kepala_sekolah`)) {
+          rekomendasiSekolah.push({ sekolahId: s.id, sekolahNama: s.nama, periodeId: s.periode });
+        }
+        if (s.yay && !tlSekolahKeySet.has(`${s.id}|${s.periode}|yayasan`)) {
+          rekomendasiYayasan.push({
+            yayasanId: s.yay, yayasanNama: yayasanNameById[s.yay] || s.yay,
+            sekolahId: s.id, sekolahNama: s.nama, periodeId: s.periode,
+          });
+        }
+      });
+
       const antrianTlAll = (tlRes.data || []).map((r) => ({
         id: r.id, tipe: 'tindak_lanjut', modul: r.modul, sekolah: r.sekolah_id,
         kelas: r.scope === 'kelas' ? r.scope_id : null, scope: r.scope,
@@ -171,7 +198,7 @@ export function useAdminCmsData(session) {
         error: null,
         data: {
           yayasan: yayasanRes.data || [], sekolah, antrian, riwayatDisetujui, uploadHistory, geminiJobs: [], users,
-          rekomendasi,
+          rekomendasi, rekomendasiSekolah, rekomendasiYayasan,
           geminiSchedule: scheduleRes.data || { id: 'default', aktif: false, interval_jam: 6, terakhir_jalan: null },
         },
       });
