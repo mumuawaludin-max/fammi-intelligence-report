@@ -55,16 +55,18 @@ function OverviewTab({ overview, period }) {
   );
 }
 
-function isKepsekPeran(peran) {
-  return peran === "KepalaSekolah" || peran === "WakilKepalaSekolah";
+// Peran yang memakai shell "satu modul (Rapor Karakter), periode di topbar, tanpa tab Ringkasan".
+// Wali Kelas & Yayasan ikut shell ini karena modul yang dilihat cuma Rapor Karakter, sama seperti Kepsek.
+function isKarakterShellPeran(peran) {
+  return peran === "KepalaSekolah" || peran === "WakilKepalaSekolah" || peran === "WaliKelas" || peran === "Yayasan";
 }
 
 export default function App() {
   const [session, setSession]     = useState(() => getSession());
-  const [activeTab, setActiveTab] = useState(() => (isKepsekPeran(getSession()?.peran) ? "karakter" : "overview"));
+  const [activeTab, setActiveTab] = useState(() => (isKarakterShellPeran(getSession()?.peran) ? "karakter" : "overview"));
   const [period, setPeriod]       = useState({ type: "bulanan", period: "Juni 2026" });
   const overview = useOverviewBriefing(session);
-  const isKepsekShell = isKepsekPeran(session?.peran);
+  const isKepsekShell = isKarakterShellPeran(session?.peran);
   const availablePeriods = useAvailablePeriods(session);
 
   // Begitu daftar periode asli sekolah ini dimuat, ganti default palsu ("Juni 2026") ke
@@ -80,7 +82,7 @@ export default function App() {
 
   function handleLogin(newSession) {
     setSession(newSession);
-    setActiveTab(isKepsekPeran(newSession.peran) ? "karakter" : "overview");
+    setActiveTab(isKarakterShellPeran(newSession.peran) ? "karakter" : "overview");
   }
   function handleLogout() {
     logoutSupabase();
@@ -98,8 +100,9 @@ export default function App() {
   }
 
   const bulananOptions = availablePeriods.map((id) => ({ id, label: periodeLabel(id) }));
+  const shellModules = (session.modules || []).filter((m) => m !== "overview");
   const modules = isKepsekShell
-    ? (session.modules || []).filter((m) => m !== "overview")
+    ? (shellModules.length ? shellModules : ["karakter"])
     : ["overview", ...(session.modules || [])];
 
   const navBar = (

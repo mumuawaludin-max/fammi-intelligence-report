@@ -1,210 +1,312 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import SectionHeading from "../../components/SectionHeading";
-import FollowupCard from "../../components/FollowupCard";
-import { KarakterStateBox, AspekBarList, CompareSection, NextStepCTA, ParentVoiceBento, withEntityColor, TindakLanjutDetailBody } from "./KarakterShared";
-import DetailDialog from "./DetailDialog";
+import SampleTag from "../../components/SampleTag";
+import {
+  KarakterStateBox, AskMascot, ScoreBarList, GoodEmptyState, Donut,
+  ParentVoiceBento, TrendChart, useSummaryTrend,
+} from "./KarakterShared";
+import { StatCardMini, StatCardLandscape, AllGoodBanner, splitByClassify, scrollToId } from "./KarakterViewParts";
+import KebijakanGoals from "./KebijakanGoals";
+import { KEBIJAKAN_YAYASAN } from "./dummyKebijakan";
 import { useKarakterYayasan } from "./useKarakterData";
-import { pct, ringkasanAspekValue, SECTION_ICON } from "./karakterMeta";
-import styles from "./YayasanView.module.css";
+import {
+  pct, deltaVsPrevious, classifyPencapaian, periodeLabel, aspekIcon,
+  avgAspek, ringkasanAspekValue, isKebijakanReady, SECTION_ICON,
+} from "./karakterMeta";
+import styles from "./KarakterViews.module.css";
 
-function SekolahCard({ sekolah, ringkasan, tlCount, onSelect }) {
-  const rataGuru = pct(ringkasan?.rata_pencapaian_guru ?? ringkasan?.pencapaian_guru);
-  const aspekTerkuat = ringkasan?.karakter_tertinggi;
+const WHO_YAYASAN = { short: "untuk Pengurus Yayasan", long: "untuk Yayasan" };
 
-  return (
-    <button type="button" className={styles.sekolahCard} onClick={() => onSelect(sekolah)}>
-      <div className={styles.sekolahTop}>
-        <span className={styles.sekolahIcon}>🏫</span>
-        <span className={styles.rowArrowStatic}>›</span>
-      </div>
-      <p className={styles.sekolahNama}>{sekolah.nama}</p>
-      <div className={styles.sekolahStat}>
-        <span className={styles.sekolahVal}>{rataGuru != null ? `${rataGuru}%` : "—"}</span>
-        <span className={styles.sekolahLabel}>Rata-rata pencapaian</span>
-      </div>
-      {aspekTerkuat && (
-        <p className={styles.sekolahMeta}>Aspek terkuat: <strong>{aspekTerkuat}</strong></p>
-      )}
-      <p className={styles.sekolahMeta}>
-        {tlCount > 0 ? `${tlCount} tindak lanjut aktif` : "Belum ada tindak lanjut disetujui"}
-      </p>
-    </button>
-  );
-}
+export default function YayasanView({ session, periodeId }) {
+  const { loading, error, data } = useKarakterYayasan(session, periodeId);
+  const [activeCategory, setActiveCategory] = useState("kualitas");
+  const [sekolahTab, setSekolahTab] = useState("semua");
+  const [selectedSekolahId, setSelectedSekolahId] = useState(null);
 
-export default function YayasanView({ session }) {
-  const { loading, error, data } = useKarakterYayasan(session);
-  const [selectedSekolah, setSelectedSekolah] = useState(null);
-  const [selectedTindakLanjut, setSelectedTindakLanjut] = useState(null);
+  // Satu baris per sekolah: identitas + ringkasan resmi periode berjalan.
+  const sekolahRows = useMemo(() => {
+    if (!data) return [];
+    const ringkasanById = Object.fromEntries((data.summary || []).map((r) => [r.sekolah_id, r.ringkasan]));
+    return (data.sekolahList || [])
+      .map((s) => {
+        const rk = ringkasanById[s.id] || null;
+        return { id: s.id, nama: s.nama, ringkasan: rk, rata: pct(rk?.rata_pencapaian_guru ?? rk?.pencapaian_guru) };
+      })
+      .sort((a, b) => (b.rata ?? -1) - (a.rata ?? -1));
+  }, [data]);
+
+  const sekolahIds = useMemo(() => sekolahRows.map((s) => s.id), [sekolahRows]);
+  const { points: trendPoints } = useSummaryTrend({
+    sekolahId: sekolahIds.length ? sekolahIds : null,
+    scope: "sekolah",
+    scopeId: sekolahIds.length ? sekolahIds : null,
+  });
 
   if (loading || error) return <KarakterStateBox loading={loading} error={error} />;
 
-  const { periode, sekolahList, summary, aspekBySekolah, briefing, tindakLanjut, pernyataan } = data;
+  const { periode, aspekBySekolah, indikatorBySekolah, pernyataan, tindakLanjut } = data;
 
-  if (sekolahList.length === 0) {
-    return (
-      <div className={styles.page}>
-        <div className={styles.heroLabel}>
-          <p className={styles.eyebrow}>Rapor Karakter</p>
-          <h1 className={styles.heroPill}>Yayasan</h1>
-        </div>
-        <p className={styles.emptyNote}>
-          Belum ada sekolah yang terdaftar di bawah yayasan ini (cek kolom schools.yayasan_id).
-        </p>
-      </div>
-    );
-  }
+  // Baris nyata (sudah disetujui) kalau ada, fallback ke contoh sampai Gemini mengisi tabelnya.
+  const kebijakanReal = (tindakLanjut || []).filter(isKebijakanReady);
+  const kebijakanData = kebijakanReal.length > 0 ? kebijakanReal : KEBIJAKAN_YAYASAN;
+  const kebijakanIsSample = kebijakanReal.length === 0;
+  const singleSekolah = sekolahRows.length === 1 ? sekolahRows[0] : null;
 
-  const summaryBySekolah = Object.fromEntries(summary.map((r) => [r.sekolah_id, r.ringkasan]));
-  const tlBySekolah = {};
-  tindakLanjut.forEach((r) => {
-    (tlBySekolah[r.sekolah_id] ||= []).push(r);
-  });
-  const briefingBySekolah = Object.fromEntries((briefing || []).map((b) => [b.sekolah_id, b]));
+  const rataVals = sekolahRows.map((s) => s.rata).filter((v) => v != null);
+  const rataYayasan = rataVals.length ? Math.round(rataVals.reduce((a, b) => a + b, 0) / rataVals.length) : null;
+  const heroDelta = deltaVsPrevious(trendPoints);
 
-  const selectedRingkasan = selectedSekolah ? summaryBySekolah[selectedSekolah.id] : null;
-  const selectedAspek = selectedSekolah ? aspekBySekolah[selectedSekolah.id] || [] : [];
+  const sekolahSplitAll = splitByClassify(sekolahRows, (s) => s.rata);
+  const sekolahTerkuat = sekolahRows[0] || null;
+  const sekolahPerhatian = sekolahSplitAll.perhatian[0] || null;
 
-  // Aspek karakter custom per sekolah, jadi radar/bar antar sekolah pakai daftar aspek
-  // sekolah pertama sebagai acuan sumbu. Sekolah lain yang tidak punya aspek itu tampil 0.
-  const referenceAspek = aspekBySekolah[sekolahList[0]?.id] || [];
-  const sekolahEntities = withEntityColor(sekolahList).map((s) => ({
-    id: s.id, nama: s.nama, ringkasan: summaryBySekolah[s.id], prefix: "rata_input_guru_", color: s.color,
+  const sekolahSplit = splitByClassify(sekolahRows, (s) => s.rata);
+  const sekolahTabRows =
+    sekolahTab === "baik" ? sekolahSplit.baik :
+    sekolahTab === "perhatian" ? sekolahSplit.perhatian :
+    sekolahRows;
+  const activeSekolah = sekolahTabRows.find((s) => s.id === selectedSekolahId) || sekolahTabRows[0] || null;
+
+  const activeAspek = activeSekolah ? (aspekBySekolah[activeSekolah.id] || []) : [];
+  // ringkasan sekolah memakai prefix rata_input_guru_ (bukan input_guru_ milik kelas)
+  const activeAspekItems = activeAspek.map((a) => ({
+    label: a.aspek_label, icon: aspekIcon(a.aspek_label),
+    value: ringkasanAspekValue(activeSekolah?.ringkasan, a.aspek_kode, "rata_input_guru_"),
   }));
+  const guruAch = activeSekolah ? avgAspek(activeSekolah.ringkasan, activeAspek, "rata_input_guru_") : null;
+  const ortuAch = activeSekolah ? avgAspek(activeSekolah.ringkasan, activeAspek, "rata_input_orangtua_") : null;
+  // Indikator diagregat dari skor murid tiap sekolah (bukan dari summary sekolah yang tak punya top5 indikator).
+  const activeIndikator = activeSekolah ? (indikatorBySekolah[activeSekolah.id] || []) : [];
+  const adaIndikator = activeIndikator.length > 0;
+  const indTerbaik = [...activeIndikator].sort((a, b) => b.value - a.value).slice(0, 5);
+  const indLemah = activeIndikator.filter((it) => it.value < 80).sort((a, b) => a.value - b.value).slice(0, 5);
 
   return (
-    <div className={styles.page}>
-      <div className={styles.heroLabel}>
-        <p className={styles.eyebrow}>Rapor Karakter</p>
-        <div className={styles.heroTitleRow}>
-          <h1 className={styles.heroPill}>Yayasan</h1>
-          {periode && <span className={styles.periodTag}>{periode}</span>}
-        </div>
-      </div>
+    <div className={`${styles.page} ${styles.pageFullBleed}`}>
+      <AskMascot activeCategory={activeCategory} onSelect={setActiveCategory} />
 
-      <section className={styles.section}>
-        <SectionHeading
-          icon={SECTION_ICON.perbandinganSekolah}
-          title="Perbandingan Antar Sekolah"
-          subtitle="Tiap kartu memuat angka yang sudah final per sekolah, tidak digabung jadi satu rata-rata baru. Klik kartu untuk detail."
-        />
-        <div className={styles.sekolahGrid}>
-          {sekolahList.map((s) => (
-            <SekolahCard
-              key={s.id}
-              sekolah={s}
-              ringkasan={summaryBySekolah[s.id]}
-              tlCount={(tlBySekolah[s.id] || []).length}
-              onSelect={setSelectedSekolah}
-            />
-          ))}
+      {/* ── Kategori 1: Perkembangan Kualitas dan Mutu Layanan Pendidikan (lintas sekolah) ── */}
+      {activeCategory === "kualitas" && (
+      <div className={styles.megaCategory}>
+        <div className={styles.megaCategoryHeader}>
+          <h2 className={styles.megaCategoryTitle}>Perkembangan Kualitas dan Mutu Layanan Pendidikan</h2>
+          <p className={styles.megaCategorySub}>
+            Bagaimana perkembangan karakter anak di tiap sekolah di bawah yayasan: sekolah mana yang
+            sudah baik, mana yang butuh dukungan tambahan, dan langkah konkret yang mengikutinya.
+          </p>
         </div>
-      </section>
 
-      {sekolahEntities.length >= 2 && (
         <section className={styles.section}>
           <SectionHeading
-            icon={SECTION_ICON.perbandinganSekolah}
-            eyebrow="Perbandingan"
-            title="Bandingkan Antar Sekolah"
-            subtitle="Memakai daftar aspek sekolah pertama sebagai acuan sumbu."
+            icon={SECTION_ICON.tren}
+            eyebrow="Perjalanan yayasan · kenapa ini penting"
+            title="Rata-Rata Perkembangan dan Peta Sekolah"
+            subtitle="Angka ini bukan rapor akhir, ini titik sekarang yang terus dipantau tiap bulan. Satu bulan turun bukan berarti mundur, yang penting arah beberapa bulan terakhir."
           />
-          <CompareSection
-            title="Radar per sekolah"
-            subtitle="Index 0-100 per aspek karakter"
-            aspek={referenceAspek}
-            allEntities={sekolahEntities}
-          />
-        </section>
-      )}
+          <div className={styles.statHeroRow}>
+            <StatCardMini
+              icon="📈" label="Rata-rata Perkembangan Karakter Yayasan"
+              value={rataYayasan != null ? rataYayasan : "—"} unit={rataYayasan != null ? "%" : ""}
+              sub={heroDelta
+                ? `${heroDelta.direction === "up" ? "↑" : heroDelta.direction === "down" ? "↓" : "→"} ${heroDelta.value > 0 ? "+" : ""}${heroDelta.value}pp dari bulan lalu`
+                : `Periode ${periodeLabel(periode) || "ini"}`}
+              subTone={heroDelta ? (heroDelta.direction === "up" ? "aman" : heroDelta.direction === "down" ? "perhatian" : "default") : "default"}
+            >
+              <TrendChart
+                points={trendPoints}
+                aspek={singleSekolah ? (aspekBySekolah[singleSekolah.id] || undefined) : undefined}
+                aspekPrefix="rata_input_guru_"
+              />
+            </StatCardMini>
 
-      <section className={styles.section}>
-        <SectionHeading
-          icon={SECTION_ICON.tindakLanjut}
-          title="Tindak Lanjut per Sekolah"
-          subtitle="Dikelompokkan per sekolah, urut prioritas."
-        />
-        {sekolahList.every((s) => !(tlBySekolah[s.id] || []).length) ? (
-          <p className={styles.emptyNote}>Belum ada tindak lanjut disetujui untuk sekolah-sekolah ini.</p>
-        ) : (
-          sekolahList.map((s) => {
-            const items = tlBySekolah[s.id] || [];
-            if (!items.length) return null;
-            return (
-              <div key={s.id} className={styles.sekolahBlock}>
-                <p className={styles.sekolahBlockTitle}>{s.nama}</p>
-                <div className={styles.tlGrid}>
-                  {items.map((t) => (
-                    <FollowupCard
-                      key={t.id}
-                      action={t.action}
-                      trigger={t.trigger_desc}
-                      module="karakter"
-                      priority={t.priority}
-                      onClick={() => setSelectedTindakLanjut(t)}
-                    />
-                  ))}
+            <div className={styles.statHeroSide}>
+              <StatCardLandscape
+                icon="🏫" label="Sekolah Dipetakan" value={sekolahRows.length}
+                sub={`${sekolahSplitAll.baik.length} sudah baik · ${sekolahSplitAll.perhatian.length} perlu perhatian`}
+                onClick={() => scrollToId("sekolah-detail")}
+              />
+              <StatCardLandscape
+                icon="🌟" label="Sekolah Terkuat" value={sekolahTerkuat?.nama ?? "—"}
+                sub={sekolahTerkuat?.rata != null ? `Perkembangan karakter ${sekolahTerkuat.rata}%` : "Belum ada data"}
+                onClick={sekolahTerkuat ? () => {
+                  setSekolahTab("baik");
+                  setSelectedSekolahId(sekolahTerkuat.id);
+                  scrollToId("sekolah-detail");
+                } : undefined}
+              />
+              <StatCardLandscape
+                icon="🌱" tone="perhatian" label="Perlu Perhatian"
+                value={sekolahPerhatian?.nama ?? "—"}
+                sub={sekolahPerhatian
+                  ? `Perkembangan karakter ${sekolahPerhatian.rata}%`
+                  : "Semua sekolah sudah baik"}
+                subTone="perhatian"
+                onClick={sekolahPerhatian ? () => {
+                  setSekolahTab("perhatian");
+                  setSelectedSekolahId(sekolahPerhatian.id);
+                  scrollToId("sekolah-detail");
+                } : undefined}
+              />
+            </div>
+          </div>
+        </section>
+
+        <section className={styles.section} id="sekolah-detail">
+          <SectionHeading
+            icon={SECTION_ICON.perbandinganSekolah}
+            eyebrow="Sekolah mana yang perlu perhatian"
+            title="Sekolah: Sudah Baik vs Perlu Perhatian"
+            subtitle="Sekolah yang sudah baik layak dipertahankan, bukan titik berhenti. Sekolah yang perlu perhatian butuh dukungan yayasan sekarang, bisa berubah periode berikutnya."
+          />
+          {sekolahSplit.allGood && <div style={{ marginBottom: 14 }}><AllGoodBanner subject="sekolah" /></div>}
+          {sekolahRows.length === 0 ? (
+            <p className={styles.emptyNote}>Belum ada sekolah dengan data Rapor Karakter pada periode ini.</p>
+          ) : (
+            <div className={styles.masterDetail}>
+              <div className={styles.masterList}>
+                <div className={styles.masterListTabs}>
+                  <button type="button" className={`${styles.masterListTab} ${sekolahTab === "semua" ? styles.masterListTabActive : ""}`} onClick={() => setSekolahTab("semua")}>
+                    Semua ({sekolahRows.length})
+                  </button>
+                  <button type="button" className={`${styles.masterListTab} ${sekolahTab === "baik" ? styles.masterListTabActive : ""}`} onClick={() => setSekolahTab("baik")}>
+                    Sudah Baik ({sekolahSplit.baik.length})
+                  </button>
+                  <button type="button" className={`${styles.masterListTab} ${sekolahTab === "perhatian" ? styles.masterListTabActive : ""}`} onClick={() => setSekolahTab("perhatian")}>
+                    Perlu Perhatian ({sekolahSplit.perhatian.length})
+                  </button>
+                </div>
+                <div className={styles.masterListRows}>
+                  {sekolahTabRows.length === 0 ? (
+                    <p className={styles.emptyNote}>Tidak ada sekolah di kategori ini.</p>
+                  ) : sekolahTabRows.map((s) => {
+                    const tone = classifyPencapaian(s.rata);
+                    const active = activeSekolah?.id === s.id;
+                    return (
+                      <button
+                        type="button" key={s.id}
+                        className={`${styles.masterListRow} ${active ? styles.masterListRowActive : ""}`}
+                        onClick={() => setSelectedSekolahId(s.id)}
+                      >
+                        <span className={styles.masterListAvatar}>🏫</span>
+                        <span className={styles.masterListName}>{s.nama}</span>
+                        <span className={`${styles.masterListTone} ${tone === "baik" ? styles.tonePillAman : tone === "perlu_perhatian" ? styles.tonePillPerhatian : styles.tonePillDefault}`}>
+                          {tone === "baik" ? "Sudah Baik" : tone === "perlu_perhatian" ? "Perlu Perhatian" : "Belum ada data"}
+                        </span>
+                        <span className={styles.masterListScore}>{s.rata != null ? `${s.rata}%` : "—"}</span>
+                      </button>
+                    );
+                  })}
                 </div>
               </div>
-            );
-          })
-        )}
-      </section>
 
-      {Object.keys(briefingBySekolah).length === 0 && (
-        <p className={styles.emptyNote}>
-          Briefing naratif per sekolah untuk periode ini belum tersedia.
-        </p>
-      )}
+              <div className={styles.masterDetailPanel}>
+                {activeSekolah ? (
+                  <>
+                    <div className={styles.masterDetailHeader}>
+                      <span className={styles.eyebrow}>Detail Sekolah</span>
+                      <h3 className={styles.masterDetailTitle}>{activeSekolah.nama}</h3>
+                      <p className={styles.cardSub}>
+                        Rata-rata perkembangan karakter {activeSekolah.rata != null ? `${activeSekolah.rata}%` : "—"}
+                      </p>
+                    </div>
 
-      <section className={styles.section}>
-        <SectionHeading icon={SECTION_ICON.suaraOrtu} title="Suara Orang Tua" subtitle="Refleksi orang tua lintas sekolah periode ini." />
-        <ParentVoiceBento pernyataan={pernyataan} />
-      </section>
+                    <div className={styles.detailRows}>
+                      {/* Baris 1: dua sisi penilaian */}
+                      <section>
+                        <p className={styles.dialogSectionTitle}>🧭 Dua sisi penilaian</p>
+                        <div className={styles.detail2col}>
+                          <Donut value={guruAch} label="Rata-rata karakter (guru)" />
+                          <Donut value={ortuAch} label="Rata-rata karakter (orang tua)" />
+                        </div>
+                      </section>
 
-      <NextStepCTA tindakLanjut={tindakLanjut} />
+                      {/* Baris 2: skor per aspek, urut tertinggi */}
+                      <section>
+                        <p className={styles.dialogSectionTitle}>📊 Skor per aspek (urut tertinggi)</p>
+                        <ScoreBarList items={activeAspekItems} emptyText="Konfigurasi aspek/skor belum tersedia untuk sekolah ini." />
+                      </section>
 
-      {selectedSekolah && (
-        <DetailDialog
-          icon="🏫"
-          eyebrow="Detail Sekolah"
-          title={selectedSekolah.nama}
-          subtitle={periode || ""}
-          onClose={() => setSelectedSekolah(null)}
-        >
-          {selectedRingkasan ? (
-            <>
-              <p className={styles.dialogParagraph}>
-                Rata-rata pencapaian: <strong>{pct(selectedRingkasan.rata_pencapaian_guru ?? selectedRingkasan.pencapaian_guru)}%</strong>.
-                {selectedRingkasan.karakter_tertinggi && <> Aspek terkuat: <strong>{selectedRingkasan.karakter_tertinggi}</strong>.</>}
-              </p>
-              {selectedAspek.length > 0 && (
-                <section>
-                  <p className={styles.dialogSectionTitle}>Skor per aspek</p>
-                  <AspekBarList
-                    aspek={selectedAspek}
-                    skorByAspek={Object.fromEntries(
-                      selectedAspek.map((a) => [a.aspek_kode, ringkasanAspekValue(selectedRingkasan, a.aspek_kode, "rata_input_guru_")])
-                    )}
-                  />
-                </section>
-              )}
-            </>
-          ) : (
-            <p className={styles.dialogParagraph}>Belum ada ringkasan untuk sekolah ini periode ini.</p>
+                      {/* Baris 3: dua kolom indikator */}
+                      <div className={styles.detail2col}>
+                        <section>
+                          <p className={styles.dialogSectionTitle}>⭐ Top 5 indikator terbaik</p>
+                          <ScoreBarList items={indTerbaik} emptyText="Belum ada data indikator level sekolah." />
+                        </section>
+                        <section>
+                          <p className={styles.dialogSectionTitle}>🔧 Top 5 indikator perlu penguatan</p>
+                          {indLemah.length > 0 ? (
+                            <ScoreBarList items={indLemah} />
+                          ) : adaIndikator ? (
+                            <GoodEmptyState
+                              title="Semua indikator sudah di atas 80%"
+                              text="Tidak ada indikator di bawah 80% di sekolah ini periode ini."
+                            />
+                          ) : (
+                            <p className={styles.emptyNote}>Belum ada data indikator level sekolah.</p>
+                          )}
+                        </section>
+                      </div>
+                    </div>
+                  </>
+                ) : (
+                  <p className={styles.emptyNote}>Pilih sekolah di daftar sebelah kiri.</p>
+                )}
+              </div>
+            </div>
           )}
-        </DetailDialog>
+        </section>
+      </div>
       )}
 
-      {selectedTindakLanjut && (
-        <DetailDialog
-          icon={SECTION_ICON.tindakLanjut}
-          eyebrow="Tindak Lanjut"
-          title={selectedTindakLanjut.action}
-          onClose={() => setSelectedTindakLanjut(null)}
-        >
-          <TindakLanjutDetailBody item={selectedTindakLanjut} />
-        </DetailDialog>
+      {/* ── Kategori 2: Perkembangan Citra Sekolah di Mata Orang Tua (lintas sekolah) ── */}
+      {activeCategory === "citra" && (
+      <div className={`${styles.megaCategory} ${styles.megaCategoryB}`}>
+        <div className={styles.megaCategoryHeader}>
+          <h2 className={styles.megaCategoryTitle}>Perkembangan Citra Sekolah di Mata Orang Tua</h2>
+          <p className={styles.megaCategorySub}>
+            Sinyal dari rumah lintas sekolah yayasan: bagaimana karakter anak terlihat di luar sekolah,
+            dan kepercayaan seperti apa yang sedang terbentuk di mata orang tua.
+          </p>
+        </div>
+
+        <section className={styles.section}>
+          <SectionHeading
+            icon={SECTION_ICON.suaraOrtu}
+            eyebrow="Sinyal dari luar sekolah"
+            title="Suara Orang Tua"
+            subtitle="Ini bukan testimoni, ini sinyal dari lingkungan rumah. Kalau banyak orang tua lintas sekolah menyebut hal yang sama, itu sinyal kuat untuk yayasan. Saring per sekolah untuk fokus ke satu sekolah."
+          />
+          <ParentVoiceBento
+            pernyataan={pernyataan}
+            aspekBySekolah={aspekBySekolah}
+            sekolahOptions={sekolahRows.map((s) => ({ id: s.id, nama: s.nama }))}
+            periodeId={periode}
+          />
+        </section>
+      </div>
+      )}
+
+      {/* ── Kategori 3: Tindak Lanjut Yayasan di Periode Ini ── */}
+      {activeCategory === "tindaklanjut" && (
+      <div className={styles.megaCategory}>
+        <div className={styles.megaCategoryHeader}>
+          <h2 className={styles.megaCategoryTitle}>Tindak Lanjut Yayasan di Periode Ini</h2>
+          <p className={styles.megaCategorySub}>
+            Dari Fammi berdasarkan data lintas sekolah periode ini, bukan keputusan final. Sebagian
+            menyasar mutu pembinaan, sebagian menyasar citra yayasan di mata orang tua; yang perlu
+            perhatian didahulukan. Tiap kartu bisa dibuka dan dibagikan ke WhatsApp.
+          </p>
+        </div>
+
+        <section className={styles.section}>
+          {kebijakanIsSample && (
+            <p className={styles.sampleNote}>
+              <SampleTag /> Isi rekomendasi masih contoh, menunggu perumusan otomatis. Strukturnya sudah final.
+            </p>
+          )}
+          <KebijakanGoals data={kebijakanData} who={WHO_YAYASAN} />
+        </section>
+      </div>
       )}
     </div>
   );

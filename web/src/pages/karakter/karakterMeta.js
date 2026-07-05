@@ -36,6 +36,18 @@ export function ringkasanAspekValue(ringkasan, aspekKode, prefix = "input_guru_"
   return key ? pct(ringkasan[key]) : null;
 }
 
+/** Rata-rata skor aspek untuk satu prefix ringkasan (mis. rata_input_guru_ / rata_input_orangtua_). */
+export function avgAspek(ringkasan, aspek, prefix) {
+  const vals = (aspek || []).map((a) => ringkasanAspekValue(ringkasan, a.aspek_kode, prefix)).filter((v) => v != null);
+  if (vals.length === 0) return null;
+  return Math.round(vals.reduce((s, v) => s + v, 0) / vals.length);
+}
+
+/** "89" → "89%"; null → "—". */
+export function persen(v) {
+  return v == null ? "—" : `${v}%`;
+}
+
 /** top5_siswa_tertinggi ("Nama1\nNama2\n...") + top5_nilai_siswa_tertinggi ("100%\n98%\n...") → pasangan. */
 export function parseTop5Pair(namaStr, nilaiStr) {
   const namaList = String(namaStr || "").split("\n").map((s) => s.trim()).filter(Boolean);
@@ -106,6 +118,20 @@ export function classifyPencapaian(value) {
   const v = pct(value);
   if (v === null) return null;
   return v >= 80 ? "baik" : "perlu_perhatian";
+}
+
+/**
+ * Tiga tingkat warna untuk bar skor, sesuai palet status Fammi: hijau (bagus),
+ * kuning (perlu perhatian), merah (waspada, hanya untuk skor sungguh rendah supaya
+ * merah tetap berarti peringatan, bukan hiasan). Cutoff 80/60 masih sementara,
+ * salah satu parameter yang menunggu penetapan pemilik produk (lihat CLAUDE.md).
+ */
+export function classifyBarTone(value) {
+  const v = pct(value);
+  if (v === null) return null;
+  if (v >= 80) return "aman";
+  if (v >= 60) return "perhatian";
+  return "waspada";
 }
 
 /**
@@ -264,6 +290,15 @@ export function countEmosi(rows) {
   });
   const items = EMOSI_ORDER.filter((o) => counts[o.key] > 0).map((o) => ({ label: o.key, count: counts[o.key], tone: o.tone, icon: o.icon }));
   return { items, total };
+}
+
+/**
+ * Baris `tindak_lanjut` (modul='karakter', status='disetujui') dianggap siap tampil di
+ * KebijakanGoals hanya kalau semua field skema baru terisi lengkap -- baris lama/setengah
+ * jadi dari sisa skema sebelumnya (kalau ada) tidak boleh bikin kartu kosong/pecah.
+ */
+export function isKebijakanReady(r) {
+  return !!(r && r.title && r.type && r.fokus && r.term && Array.isArray(r.konkret) && r.konkret.length > 0);
 }
 
 /** Ikon untuk judul-judul bagian yang sifatnya tetap di modul Karakter. */

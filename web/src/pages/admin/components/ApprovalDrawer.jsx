@@ -36,6 +36,76 @@ function isOpsiBaru(opsi) {
   return Array.isArray(opsi?.fase);
 }
 
+/** Baris tindak_lanjut skema kartu Rapor Karakter (satu baris = satu rekomendasi utuh). */
+function isKebijakanBaru(a) {
+  return a.tipe === 'tindak_lanjut' && !!a.title && Array.isArray(a.konkret);
+}
+
+const TERM_LABEL = { short: '1-3 bulan', long: '6 bulan' };
+const FOKUS_LABEL = { mutu: 'Mutu Layanan', citra: 'Citra Sekolah' };
+
+function comboLabel(type, fokus) {
+  const f = FOKUS_LABEL[fokus] || fokus;
+  return type === 'pertahankan' ? `Pertahankan ${f}` : `${f} Perlu Perhatian`;
+}
+
+/** Isi drawer untuk baris skema baru: title/teaser/mengapa/dasar_teori/manfaat/konkret. */
+function KebijakanBaruBody({ a }) {
+  return (
+    <div style={{ marginBottom: 20 }}>
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 10 }}>
+        <span className="pill" style={{ background: 'var(--purple-050)', color: 'var(--purple-700)' }}>
+          {comboLabel(a.type, a.fokus)}
+        </span>
+        {a.term && <span className="pill" style={{ background: 'var(--surface-soft)', color: 'var(--ink-3)' }}>{TERM_LABEL[a.term] || a.term}</span>}
+        {a.jenjang && <span className="pill" style={{ background: 'var(--surface-soft)', color: 'var(--ink-3)' }}>{a.jenjang}</span>}
+      </div>
+
+      <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10, marginBottom: 4 }}>
+        {a.icon && <span style={{ fontSize: 22 }}>{a.icon}</span>}
+        <div className="disp" style={{ fontSize: 18, fontWeight: 700, color: 'var(--ink)', lineHeight: 1.3 }}>{a.title}</div>
+      </div>
+      {a.teaser && <div style={{ fontSize: 13, color: 'var(--ink-3)', marginBottom: 16 }}>{a.teaser}</div>}
+
+      <div style={{ marginBottom: 16 }}>
+        <label style={{ fontSize: 11, fontWeight: 800, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--ink-3)', marginBottom: 8, display: 'block' }}>Mengapa ini perlu</label>
+        {a.mengapaData && (
+          <div style={{ padding: '12px 14px', background: 'var(--surface)', borderRadius: 12, fontSize: 13, color: 'var(--ink-2)', lineHeight: 1.6, marginBottom: 8, boxShadow: '0 2px 8px rgba(33,27,46,.05)' }}>
+            <strong style={{ color: 'var(--purple-700)' }}>📊 Dari data:</strong> {a.mengapaData}
+          </div>
+        )}
+        {a.mengapaPerspektif && (
+          <div style={{ padding: '12px 14px', background: 'var(--surface)', borderRadius: 12, fontSize: 13, color: 'var(--ink-2)', lineHeight: 1.6, boxShadow: '0 2px 8px rgba(33,27,46,.05)' }}>
+            <strong style={{ color: 'var(--purple-700)' }}>🌱 Dari sisi perkembangan anak:</strong> {a.mengapaPerspektif}
+          </div>
+        )}
+      </div>
+
+      {a.dasarTeori && (
+        <div style={{ marginBottom: 16, padding: '10px 14px', background: 'var(--status-warn-bg)', borderRadius: 10, fontSize: 12, color: 'var(--ink-2)' }}>
+          <strong style={{ color: 'var(--status-warn)' }}>⚠ Dasar teori (internal, bukan untuk tayang):</strong> {a.dasarTeori}
+        </div>
+      )}
+
+      {a.manfaat && (
+        <div style={{ marginBottom: 16 }}>
+          <label style={{ fontSize: 11, fontWeight: 800, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--ink-3)', marginBottom: 8, display: 'block' }}>Manfaatnya</label>
+          <div style={{ fontSize: 13, color: 'var(--ink-2)', lineHeight: 1.6 }}>{a.manfaat}</div>
+        </div>
+      )}
+
+      <div>
+        <label style={{ fontSize: 11, fontWeight: 800, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--ink-3)', marginBottom: 8, display: 'block' }}>Langkah konkret</label>
+        <ol style={{ margin: 0, paddingLeft: 20, display: 'flex', flexDirection: 'column', gap: 6 }}>
+          {a.konkret.map((k, i) => (
+            <li key={i} style={{ fontSize: 12.5, color: 'var(--ink-2)', lineHeight: 1.5 }}>{k}</li>
+          ))}
+        </ol>
+      </div>
+    </div>
+  );
+}
+
 function SmartChips({ smart }) {
   const [openKey, setOpenKey] = useState(null);
   if (!smart) return null;
@@ -156,7 +226,8 @@ function DrawerContent({ a }) {
   const currentText = editedText != null ? editedText : a.teks;
 
   const isDisetujui = a.status === 'disetujui';
-  const punyaOpsi = a.tipe === 'tindak_lanjut' && Array.isArray(a.opsiKandidat) && a.opsiKandidat.length > 0;
+  const kebijakanBaru = isKebijakanBaru(a);
+  const punyaOpsi = !kebijakanBaru && a.tipe === 'tindak_lanjut' && Array.isArray(a.opsiKandidat) && a.opsiKandidat.length > 0;
 
   const [selectedIdx, setSelectedIdx] = useState(() => new Set(punyaOpsi ? [0] : []));
   const [catatanRegen, setCatatanRegen] = useState('');
@@ -216,7 +287,9 @@ function DrawerContent({ a }) {
       </div>
 
       <div style={{ flex: 1, overflow: 'auto', padding: '20px 26px', background: 'var(--surface-soft)' }}>
-        {a.gambaran && (
+        {kebijakanBaru && <KebijakanBaruBody a={a} />}
+
+        {!kebijakanBaru && a.gambaran && (
           <div style={{ marginBottom: 20 }}>
             <label style={{ fontSize: 11, fontWeight: 800, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--ink-3)', marginBottom: 8, display: 'block' }}>Gambaran situasi</label>
             <div style={{ padding: '14px 16px', background: 'var(--surface)', borderRadius: 14, fontSize: 13.5, color: 'var(--ink-2)', lineHeight: 1.6, boxShadow: '0 2px 10px rgba(33,27,46,.06)' }}>
@@ -248,7 +321,7 @@ function DrawerContent({ a }) {
           </div>
         )}
 
-        {!isDisetujui && (
+        {!isDisetujui && !kebijakanBaru && (
           <div style={{ marginBottom: 20 }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
               <label style={{ fontSize: 11, fontWeight: 800, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--ink-3)' }}>

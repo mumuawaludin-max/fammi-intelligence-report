@@ -106,6 +106,119 @@
   color: var(--ink-2);
 }
 
+/* ── AskMascot: logo Fammi "bertanya", pengganti Ringkasan Sekolah + kotak briefing kosong ── */
+.heroAsk {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 14px;
+  background: linear-gradient(135deg, var(--purple-050) 0%, var(--surface) 100%);
+  border-radius: var(--radius-xl);
+  padding: 20px 24px;
+  box-shadow: var(--shadow-card);
+}
+
+@media (min-width: 640px) {
+  .heroAsk {
+    flex-direction: row;
+    align-items: center;
+    gap: 20px;
+  }
+}
+
+.heroAskLogo {
+  position: relative;
+  flex-shrink: 0;
+  width: 84px;
+  height: 84px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.heroAskLogoImg {
+  width: 76px;
+  height: 76px;
+  object-fit: contain;
+  position: relative;
+  z-index: 1;
+  animation: heroAskBob 2.8s ease-in-out infinite;
+  filter: drop-shadow(0 6px 14px rgba(99, 35, 218, 0.28));
+}
+
+/* Halo lembut di belakang logo kotak, denyut tenang seperti sedang "berpikir". */
+.heroAskPulse {
+  position: absolute;
+  inset: 6px;
+  border-radius: 26px;
+  background: radial-gradient(circle, var(--purple-100) 0%, rgba(99, 35, 218, 0) 70%);
+  animation: heroAskPulse 2.8s ease-out infinite;
+}
+
+@keyframes heroAskBob {
+  0%, 100% { transform: translateY(0) rotate(-2deg); }
+  50% { transform: translateY(-6px) rotate(2deg); }
+}
+
+@keyframes heroAskPulse {
+  0% { transform: scale(0.7); opacity: 0.9; }
+  70% { transform: scale(1.5); opacity: 0; }
+  100% { transform: scale(1.5); opacity: 0; }
+}
+
+.heroAskBody {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.heroAskQuestion {
+  font-family: var(--font-display);
+  font-size: 16px;
+  font-weight: 800;
+  color: var(--ink);
+  margin: 0;
+}
+
+.heroAskChoices {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.heroAskChoice {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border: none;
+  border-radius: 100px;
+  padding: 9px 16px;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--ink-2);
+  background: var(--surface);
+  cursor: pointer;
+  transition: background var(--transition-fast), color var(--transition-fast);
+}
+
+.heroAskChoice:hover {
+  background: var(--purple-050);
+  color: var(--ink);
+}
+
+.heroAskChoiceActive,
+.heroAskChoiceActive:hover {
+  background: var(--purple-600);
+  color: #fff;
+}
+
+.heroAskChoiceIcon {
+  font-size: 15px;
+}
+
 /* ── Card umum (dipakai radar, list, dsb) ── */
 .card {
   background: var(--surface);
@@ -180,9 +293,10 @@
   font-size: 12px;
   font-weight: 600;
   color: var(--ink-2);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  line-height: 1.3;
+  /* Nama siswa / indikator panjang boleh turun ke baris berikutnya, jangan dipotong. */
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 
 .aspekBarTrack {
@@ -195,7 +309,63 @@
 .aspekBarFill {
   height: 100%;
   border-radius: 99px;
-  transition: width 0.4s ease;
+  transition: width 0.7s cubic-bezier(0.22, 0.61, 0.36, 1);
+}
+
+/* Empty-state positif (perlu penguatan kosong = kabar baik). */
+.goodEmpty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 6px;
+  padding: 22px 16px;
+  background: linear-gradient(150deg, var(--status-ok-bg) 0%, var(--surface-soft) 100%);
+  border-radius: var(--radius-md);
+}
+
+.goodEmptyIcon {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: var(--status-ok);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  font-weight: 800;
+}
+
+.goodEmptyTitle {
+  font-size: 13px;
+  font-weight: 800;
+  color: var(--status-ok);
+  margin: 0;
+}
+
+.goodEmptyText {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--ink-2);
+  line-height: 1.5;
+  margin: 0;
+  max-width: 34ch;
+}
+
+/* Donut/pie per jenjang. */
+.donutWrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+}
+
+.donutLabel {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--ink-2);
+  text-align: center;
 }
 
 .aspekBarVal {
@@ -456,10 +626,10 @@
 
 .quoteBentoText {
   margin: 0 0 8px;
-  font-size: 13px;
-  font-weight: 700;
-  color: var(--ink);
-  line-height: 1.55;
+  font-size: 13.5px;
+  font-weight: 500;
+  color: var(--ink-2);
+  line-height: 1.6;
 }
 
 .quoteBentoTags {
@@ -486,6 +656,14 @@
   gap: 18px;
 }
 
+.voiceTabsRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
 .voiceTabs {
   display: flex;
   flex-wrap: wrap;
@@ -494,6 +672,38 @@
   border-radius: 100px;
   padding: 5px;
   width: fit-content;
+}
+
+/* Filter sekolah di ParentVoiceBento (Yayasan lintas sekolah): sekolah dulu, baru kelas
+   di dalam kolom kanan mengikuti sekolah yang dipilih di sini. */
+.pvSekolahFilterRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.pvFilterBadge {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--purple-700);
+  background: var(--purple-050);
+  border-radius: 999px;
+  padding: 6px 14px;
+  white-space: nowrap;
+}
+
+.pvSekolahFilter {
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ink);
+  background: var(--surface);
+  border: none;
+  border-radius: var(--radius-md);
+  padding: 9px 14px;
+  box-shadow: var(--shadow-card);
+  cursor: pointer;
 }
 
 .voiceTab {
@@ -525,6 +735,213 @@
   padding: 16px 18px;
 }
 
+/* ── Dua kolom: hitungan kiri, narasi kanan ── */
+.pvTwoCol {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 16px;
+}
+
+/* align-items sengaja dibiarkan default (stretch): frame putih kolom kiri harus
+   mengikuti tinggi kolom narasi di kanan, bukan berhenti setelah bar terakhir. */
+@media (min-width: 900px) {
+  .pvTwoCol {
+    grid-template-columns: minmax(300px, 400px) 1fr;
+  }
+}
+
+.pvColLeft {
+  background: var(--surface);
+  border-radius: var(--radius-lg);
+  padding: 18px;
+  box-shadow: var(--shadow-card);
+}
+
+.pvColRight {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-width: 0;
+}
+
+@media (min-width: 900px) {
+  .pvColRight {
+    max-height: 560px;
+    overflow-y: auto;
+    padding-right: 4px;
+  }
+}
+
+/* Baris atas kolom kanan: judul kategori + dropdown filter kelas. Sticky supaya filter
+   tetap kelihatan saat daftar panjang di-scroll. */
+.pvColRightBar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px;
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background: #EDEDF0;
+  padding: 2px 0 8px;
+}
+
+.pvColRightHead {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  font-size: 13.5px;
+  font-weight: 700;
+  color: var(--ink);
+  margin: 0;
+}
+
+.pvColRightCount {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--ink-3);
+}
+
+.pvKelasFilter {
+  font-family: inherit;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--ink);
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 99px;
+  padding: 7px 12px;
+  cursor: pointer;
+}
+
+.pvEssayList {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+/* ── Daftar nama (Hal Disyukuri): siapa saja yang memilih kategori itu ── */
+.pvNamesGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 10px;
+}
+
+.pvNameCard {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  border: none;
+  font-family: inherit;
+  text-align: left;
+  background: var(--surface);
+  border-radius: var(--radius-md);
+  padding: 10px 12px;
+  box-shadow: var(--shadow-card);
+}
+
+.pvNameCardClickable {
+  cursor: pointer;
+  transition: transform var(--transition-fast), box-shadow var(--transition-fast);
+}
+
+.pvNameCardClickable:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-hero);
+}
+
+.pvNameArrow {
+  margin-left: auto;
+  color: var(--ink-4);
+  font-size: 17px;
+  flex-shrink: 0;
+}
+
+/* ── Dialog resume anak (klik nama di Hal Disyukuri) ── */
+.dialogSectionTitle {
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--purple-700);
+  margin: 0 0 10px;
+}
+
+.resumeReflection {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.resumeRow {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.resumeRowLabel {
+  font-size: 11.5px;
+  font-weight: 700;
+  color: var(--ink-3);
+  margin: 0;
+}
+
+.resumeQuote {
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 1.6;
+  color: var(--ink-2);
+  margin: 0;
+  padding: 12px 14px;
+  background: var(--surface-soft);
+  border-radius: var(--radius-md);
+}
+
+.resumeText {
+  font-size: 13.5px;
+  font-weight: 500;
+  line-height: 1.55;
+  color: var(--ink-2);
+  margin: 0;
+}
+
+.pvNameAvatar {
+  flex-shrink: 0;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background: var(--purple-050);
+  color: var(--purple-700);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 800;
+  font-size: 14px;
+}
+
+.pvNameMeta {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.pvNameText {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--ink);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.pvNameKelas {
+  font-size: 11.5px;
+  font-weight: 500;
+  color: var(--ink-3);
+}
+
 .pvChartTitle {
   font-size: 12.5px;
   font-weight: 800;
@@ -538,33 +955,34 @@
   gap: 10px;
 }
 
+/* Tiap kategori jadi kotak lega yang enak dipilih, bukan baris dempet. */
 .pvBarRow {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr) auto;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr) auto;
   align-items: center;
-  gap: 10px;
+  gap: 12px;
   width: 100%;
   border: none;
-  background: none;
+  background: var(--surface-soft);
+  border-radius: var(--radius-md);
   font-family: inherit;
   text-align: left;
-  padding: 0;
+  padding: 15px 16px;
+  min-height: 58px;
 }
 
 .pvBarRowClickable {
   cursor: pointer;
-  padding: 6px 8px;
-  margin: -6px -8px;
-  border-radius: var(--radius-sm);
-  transition: background var(--transition-fast);
+  transition: background var(--transition-fast), box-shadow var(--transition-fast);
 }
 
 .pvBarRowClickable:hover {
-  background: var(--surface);
+  background: var(--purple-050);
 }
 
 .pvBarRowActive {
   background: var(--purple-050) !important;
+  box-shadow: inset 0 0 0 2px var(--purple-300);
 }
 
 .pvBarRowActive .pvBarLabel {
@@ -573,33 +991,33 @@
 }
 
 .pvBarLabel {
-  font-size: 12px;
+  font-size: 13.5px;
   font-weight: 600;
   color: var(--ink-2);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  line-height: 1.3;
 }
 
 .pvBarTrack {
-  height: 8px;
+  height: 12px;
   background: var(--surface);
   border-radius: 99px;
   overflow: hidden;
+  box-shadow: inset 0 0 0 1px var(--line);
 }
 
 .pvBarFill {
   height: 100%;
   border-radius: 99px;
   background: linear-gradient(90deg, var(--purple-300), var(--purple-600));
+  transition: width 0.7s cubic-bezier(0.22, 0.61, 0.36, 1);
 }
 
 .pvBarCount {
   font-family: var(--font-display);
-  font-size: 12.5px;
+  font-size: 15px;
   font-weight: 800;
   color: var(--ink);
-  min-width: 20px;
+  min-width: 26px;
   text-align: right;
 }
 
@@ -703,10 +1121,10 @@
 .voiceFeaturedText {
   flex: 1;
   margin: 18px 0 0;
-  font-size: 15.5px;
-  font-weight: 700;
-  line-height: 1.55;
-  color: var(--ink);
+  font-size: 15px;
+  font-weight: 500;
+  line-height: 1.6;
+  color: var(--ink-2);
   position: relative;
   z-index: 1;
 }
@@ -723,10 +1141,76 @@
   display: flex;
   align-items: center;
   gap: 10px;
-  margin-top: 14px;
   position: relative;
   z-index: 1;
 }
+
+/* Baris bawah kartu suara: identitas orang tua + tombol "Ingatkan" (share WhatsApp). */
+.voiceCardBottom {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-top: 14px;
+}
+
+.voiceShareBtn {
+  flex-shrink: 0;
+  border: none;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 11.5px;
+  font-weight: 800;
+  color: #147244;
+  background: #C7EBD4;
+  border-radius: 999px;
+  padding: 7px 13px;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  transition: background var(--transition-fast);
+}
+
+.voiceShareBtn:hover { background: #B7E4C7; }
+
+/* Catatan "pakai secukupnya" di dialog konfirmasi share. */
+.shareNote {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  background: var(--surface-soft);
+  border-radius: var(--radius-md);
+  padding: 12px 14px;
+}
+
+.shareNoteIcon { font-size: 16px; flex-shrink: 0; }
+
+.shareNoteText {
+  font-size: 12.5px;
+  font-weight: 500;
+  line-height: 1.55;
+  color: var(--ink-2);
+  margin: 0;
+}
+
+.shareWaBtn {
+  border: none;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 800;
+  color: #147244;
+  background: #C7EBD4;
+  border-radius: 14px;
+  padding: 13px 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  transition: background var(--transition-fast);
+}
+
+.shareWaBtn:hover { background: #B7E4C7; }
 
 .voiceAvatarSm {
   width: 30px;
@@ -798,6 +1282,77 @@
 }
 
 /* ── Trend chart ── */
+/* ── Grafik tren + tooltip hover (menjelaskan kenapa rata-ratanya segitu) ── */
+.trendWrap {
+  position: relative;
+}
+
+.trendTip {
+  position: absolute;
+  bottom: calc(100% - 6px);
+  transform: translateX(-50%);
+  min-width: 190px;
+  max-width: 250px;
+  background: var(--ink);
+  color: #fff;
+  border-radius: 14px;
+  padding: 11px 13px;
+  box-shadow: var(--shadow-hero);
+  z-index: 20;
+  pointer-events: none;
+}
+
+.trendTipHead {
+  font-size: 13px;
+  font-weight: 600;
+  margin: 0;
+}
+
+.trendTipHead strong {
+  font-family: var(--font-display);
+  font-weight: 800;
+}
+
+.trendTipDelta {
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--purple-300);
+  margin: 2px 0 0;
+}
+
+.trendTipLabel {
+  font-size: 10.5px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: rgba(255, 255, 255, 0.6);
+  margin: 9px 0 5px;
+}
+
+.trendTipList {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.trendTipList li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  font-size: 11.5px;
+  font-weight: 500;
+}
+
+.trendTipList li strong {
+  font-family: var(--font-display);
+  font-weight: 800;
+  color: #fff;
+}
+
 .trendSingle {
   text-align: center;
   padding: 8px 0;

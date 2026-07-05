@@ -12,13 +12,13 @@ import styles from "./KarakterViews.module.css";
 export default function KarakterPage({ session, periodeId }) {
   switch (session.peran) {
     case "WaliKelas":
-      return <WaliKelasView session={session} />;
+      return <WaliKelasView session={session} periodeId={periodeId} />;
     case "KepalaSekolah":
     case "WakilKepalaSekolah":
     case "AdminFammi":
       return <KepsekView session={session} periodeId={periodeId} />;
     case "Yayasan":
-      return <YayasanView session={session} />;
+      return <YayasanView session={session} periodeId={periodeId} />;
     default:
       return (
         <p className={styles.emptyNote}>

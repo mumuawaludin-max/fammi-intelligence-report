@@ -1,11 +1,12 @@
-import { useEffect, useId, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import BriefingHero from "../../components/BriefingHero";
 import RadarChart from "../../components/charts/RadarChart";
 import GroupedBarChart from "../../components/charts/GroupedBarChart";
+import DetailDialog from "./DetailDialog";
 import { supabase } from "../../lib/supabase";
 import styles from "./KarakterShared.module.css";
 import {
-  ringkasanAspekValue, aspekIcon, periodeLabel, pct, classifyPencapaian,
+  ringkasanAspekValue, aspekIcon, periodeLabel, pct, classifyBarTone,
   extractPlainText, isBlankEssay, KATEGORI_PERNYATAAN_OPTIONS, DUKUNGAN_OPTIONS, HAL_DISYUKURI_OPTIONS,
   countMultiValue, matchedCategoryTags, matchedOptions, countEmosi,
 } from "./karakterMeta";
@@ -65,6 +66,44 @@ export function BriefingOrEmpty({ briefing, periode, tipePeriode = "Bulanan", la
           Briefing naratif untuk periode ini belum tersedia. Data di bawah sudah final dan bisa dibaca,
           ringkasan naratifnya menyusul setelah ditinjau.
         </p>
+      </div>
+    </div>
+  );
+}
+
+/**
+ * Pengganti "Ringkasan Sekolah" + kotak briefing kosong: logo Fammi dengan animasi halus
+ * mengajukan pertanyaan, lalu tiga pilihan langsung memetakan ke kategori (activeCategory:
+ * kualitas / citra / tindaklanjut). Dipakai sebagai satu-satunya navigasi kategori di Kepsek/Wakil.
+ */
+const ASK_CHOICES = [
+  { id: "kualitas", icon: "📈", label: "Lihat mutu layanan" },
+  { id: "citra", icon: "💬", label: "Citra sekolah" },
+  { id: "tindaklanjut", icon: "🎯", label: "Tindak lanjut sekolah di periode ini" },
+];
+
+export function AskMascot({ activeCategory, onSelect }) {
+  return (
+    <div className={styles.heroAsk}>
+      <div className={styles.heroAskLogo}>
+        <span className={styles.heroAskPulse} />
+        <img className={styles.heroAskLogoImg} src="/favicon-512.png" alt="Fammi" />
+      </div>
+      <div className={styles.heroAskBody}>
+        <p className={styles.heroAskQuestion}>Mana yang ingin Anda ketahui?</p>
+        <div className={styles.heroAskChoices}>
+          {ASK_CHOICES.map((c) => (
+            <button
+              key={c.id}
+              type="button"
+              className={`${styles.heroAskChoice} ${activeCategory === c.id ? styles.heroAskChoiceActive : ""}`}
+              onClick={() => onSelect(c.id)}
+            >
+              <span className={styles.heroAskChoiceIcon}>{c.icon}</span>
+              {c.label}
+            </button>
+          ))}
+        </div>
       </div>
     </div>
   );
@@ -407,12 +446,13 @@ export function TindakLanjutDetailBody({ item }) {
  * (onItemClick diisi) atau murni tampilan (dukungan_dibutuhkan, belum diminta jadi filter).
  */
 function StatBarMiniList({ items, emptyText, onItemClick, activeLabel }) {
+  const [wrapRef, shown] = useReveal();
   const filtered = items.filter((it) => it.count > 0).sort((a, b) => b.count - a.count);
   if (filtered.length === 0) return <p className={styles.briefingEmptyText}>{emptyText || "Belum ada data."}</p>;
   const max = Math.max(...filtered.map((it) => it.count), 1);
   return (
-    <div className={styles.pvBarList}>
-      {filtered.map((it) => {
+    <div ref={wrapRef} className={styles.pvBarList}>
+      {filtered.map((it, i) => {
         const active = activeLabel === it.label;
         const Tag = onItemClick ? "button" : "div";
         return (
@@ -424,7 +464,10 @@ function StatBarMiniList({ items, emptyText, onItemClick, activeLabel }) {
           >
             <span className={styles.pvBarLabel} title={it.label}>{it.icon ? `${it.icon} ` : ""}{it.label}</span>
             <div className={styles.pvBarTrack}>
-              <div className={styles.pvBarFill} style={{ width: `${(it.count / max) * 100}%` }} />
+              <div
+                className={styles.pvBarFill}
+                style={{ width: shown ? `${(it.count / max) * 100}%` : 0, transitionDelay: `${i * 55}ms` }}
+              />
             </div>
             <span className={styles.pvBarCount}>{it.count}</span>
           </Tag>
@@ -438,7 +481,6 @@ const QUOTE_LOAD_STEP = 10;
 const KATEGORI_MATCH_BY_LABEL = Object.fromEntries(KATEGORI_PERNYATAAN_OPTIONS.map((o) => [o.label, o.match]));
 const DUKUNGAN_MATCH_BY_LABEL = Object.fromEntries(DUKUNGAN_OPTIONS.map((o) => [o.label, o.match]));
 const HAL_DISYUKURI_MATCH_BY_LABEL = Object.fromEntries(HAL_DISYUKURI_OPTIONS.map((o) => [o.label, o.match]));
-const HAL_DISYUKURI_FULL_BY_LABEL = Object.fromEntries(HAL_DISYUKURI_OPTIONS.map((o) => [o.label, o.full]));
 const QUOTE_TONE_CLASS = {
   "Apresiasi": "quoteCardApresiasi",
   "Harapan": "quoteCardHarapan",
@@ -449,7 +491,7 @@ const VOICE_TABS = [
   { id: "testimoni", label: "Testimoni", icon: "💬" },
   { id: "emosi", label: "Emosi Anak", icon: "🙂" },
   { id: "dukungan", label: "Dukungan Dibutuhkan", icon: "🤲" },
-  { id: "halDisyukuri", label: "Hal Disyukuri", icon: "🙏" },
+  { id: "halDisyukuri", label: "Keberhasilan Sekolah di Mata Orang Tua", icon: "🙏" },
 ];
 
 /** Kolom esai mentah per tab -- tiap dimensi punya sumber teksnya sendiri, bukan berbagi satu kolom. */
@@ -495,26 +537,8 @@ function VoiceCardFooter({ quote, size }) {
   );
 }
 
-/** Kartu besar (paling menonjol), berisi kutipan terpanjang/paling substantif untuk pilihan yang aktif. */
-function FeaturedQuoteCard({ quote, badgeIcon, badgeLabel, activeTab, emosiItems }) {
-  const extraTags = tagsForActiveTab(quote, activeTab, emosiItems).filter((t) => t.label !== badgeLabel);
-  return (
-    <div className={`${styles.voiceFeaturedCard} ${toneClassForQuote(quote)}`}>
-      <span className={styles.voiceFeaturedBadge}>{badgeIcon} {badgeLabel}</span>
-      {extraTags.length > 0 && (
-        <div className={styles.quoteBentoTags} style={{ marginTop: 8 }}>
-          {extraTags.map((t) => <span key={t.label} className={styles.quoteBentoTag}>{t.icon} {t.label}</span>)}
-        </div>
-      )}
-      <span className={styles.voiceFeaturedMark} aria-hidden="true">”</span>
-      <p className={styles.voiceFeaturedText}>{quote.text}</p>
-      <VoiceCardFooter quote={quote} size="lg" />
-    </div>
-  );
-}
-
-/** Kartu grid pendukung, satu kutipan per kartu, tag mengikuti dimensi tab yang sedang aktif. */
-function VoiceGridCard({ quote, activeTab, emosiItems }) {
+/** Kartu kutipan, satu narasi per kartu, tag mengikuti dimensi tab yang sedang aktif. */
+function VoiceGridCard({ quote, activeTab, emosiItems, onShare }) {
   const tags = tagsForActiveTab(quote, activeTab, emosiItems);
   return (
     <div className={`${styles.quoteBentoCard} ${toneClassForQuote(quote)}`}>
@@ -524,8 +548,210 @@ function VoiceGridCard({ quote, activeTab, emosiItems }) {
         </div>
       )}
       <p className={styles.quoteBentoText}>“{quote.text}”</p>
-      <VoiceCardFooter quote={quote} size="sm" />
+      <div className={styles.voiceCardBottom}>
+        <VoiceCardFooter quote={quote} size="sm" />
+        {onShare && (
+          <button type="button" className={styles.voiceShareBtn} onClick={() => onShare(quote)}>
+            <span aria-hidden="true">↗</span> Teruskan
+          </button>
+        )}
+      </div>
     </div>
+  );
+}
+
+/** Teks WhatsApp untuk kartu suara orang tua: bingkai sebagai pengingat, bukan sekadar forward. */
+function voiceReminderText(quote) {
+  const kelas = quote.kelas_id || "—";
+  return [
+    `*Diteruskan lewat Rapor Karakter Fammi*`,
+    `Kelas: ${kelas}`,
+    `Masukan orang tua (${quote.nama_murid || "orang tua"}):`,
+    ``,
+    `"${quote.text}"`,
+    ``,
+    `Mohon jadi perhatian pihak yang berkepentingan.`,
+  ].join("\n");
+}
+
+/**
+ * Dialog konfirmasi sebelum share ke WhatsApp: pimpinan lihat dulu isinya, dengan pengingat
+ * bahwa ini untuk mengingatkan wali kelas/guru terkait, bukan untuk disebar sembarangan.
+ */
+function VoiceShareDialog({ quote, onClose }) {
+  function kirim() {
+    window.open(`https://wa.me/?text=${encodeURIComponent(voiceReminderText(quote))}`, "_blank", "noopener,noreferrer");
+    onClose();
+  }
+  return (
+    <DetailDialog
+      icon="↗"
+      eyebrow="Teruskan kepada yang berkepentingan"
+      title="Teruskan masukan orang tua"
+      subtitle={`${quote.nama_murid || "Orang tua"} · ${quote.kelas_id || "—"}`}
+      onClose={onClose}
+    >
+      <section>
+        <p className={styles.dialogSectionTitle}>Yang akan diteruskan</p>
+        <p className={styles.resumeQuote}>“{quote.text}”</p>
+      </section>
+      <div className={styles.shareNote}>
+        <span className={styles.shareNoteIcon} aria-hidden="true">🔒</span>
+        <p className={styles.shareNoteText}>
+          Bagikan hanya kepada pihak yang memang perlu tahu dan bisa menindaklanjuti, sesuai
+          pertimbangan Anda. Mohon tidak disebarkan ke pihak lain.
+        </p>
+      </div>
+      <button type="button" className={styles.shareWaBtn} onClick={kirim}>
+        <span aria-hidden="true">↗</span> Kirim ke WhatsApp
+      </button>
+    </DetailDialog>
+  );
+}
+
+/**
+ * Untuk Hal Disyukuri: "esai" cuma teks opsi yang sama diulang-ulang, jadi tidak berguna
+ * ditampilkan. Ganti dengan daftar nama murid yang memilih kategori itu, biar kelihatan
+ * siapa saja. Tiap nama bisa diklik untuk membuka resume karakter anak + refleksi orang tuanya.
+ */
+function NamesGrid({ rows, onSelect }) {
+  return (
+    <div className={styles.pvNamesGrid}>
+      {rows.map((r, i) => {
+        const Tag = onSelect ? "button" : "div";
+        return (
+          <Tag
+            type={onSelect ? "button" : undefined}
+            key={r.murid_id ? `${r.murid_id}-${i}` : i}
+            className={`${styles.pvNameCard} ${onSelect ? styles.pvNameCardClickable : ""}`}
+            onClick={onSelect ? () => onSelect(r) : undefined}
+          >
+            <span className={styles.pvNameAvatar}>{(r.nama_murid || "?").charAt(0).toUpperCase()}</span>
+            <div className={styles.pvNameMeta}>
+              <span className={styles.pvNameText}>{r.nama_murid || "Orang tua"}</span>
+              <span className={styles.pvNameKelas}>{r.kelas_id || "—"}</span>
+            </div>
+            {onSelect && <span className={styles.pvNameArrow}>›</span>}
+          </Tag>
+        );
+      })}
+    </div>
+  );
+}
+
+/** Ambil skor per aspek satu murid untuk periode berjalan (buat resume di dialog). */
+function useMuridAspek(sekolahId, muridId, periodeId) {
+  const [state, setState] = useState({ loading: true, skorByAspek: {} });
+
+  useEffect(() => {
+    if (!sekolahId || !muridId) { setState({ loading: false, skorByAspek: {} }); return; }
+    let alive = true;
+    setState({ loading: true, skorByAspek: {} });
+
+    let q = supabase.from("karakter_skor").select("aspek_kode, skor, periode_id")
+      .eq("sekolah_id", sekolahId).eq("murid_id", muridId);
+    if (periodeId) q = q.eq("periode_id", periodeId);
+
+    q.then(({ data }) => {
+      if (!alive) return;
+      const map = {};
+      (data || []).forEach((r) => { map[r.aspek_kode] = r.skor; });
+      setState({ loading: false, skorByAspek: map });
+    });
+
+    return () => { alive = false; };
+  }, [sekolahId, muridId, periodeId]);
+
+  return state;
+}
+
+/** Satu baris refleksi orang tua di dialog resume (label + isi), disembunyikan kalau kosong. */
+function ReflectionRow({ label, children }) {
+  return (
+    <div className={styles.resumeRow}>
+      <p className={styles.resumeRowLabel}>{label}</p>
+      {children}
+    </div>
+  );
+}
+
+/**
+ * Dialog resume satu anak: hasil karakter per aspek (kalau data & konfigurasi tersedia) plus
+ * refleksi orang tuanya (apresiasi/harapan, emosi anak, dukungan yang diminta, hal yang disyukuri).
+ */
+function MuridResumeDialog({ row, aspek, sekolahId, periodeId, onClose }) {
+  const { loading, skorByAspek } = useMuridAspek(sekolahId, row.murid_id, periodeId);
+  const hasSkor = Object.keys(skorByAspek).length > 0;
+
+  const kategoriTags = matchedCategoryTags(row.kategori_pernyataan);
+  const quote = extractPlainText(row.pernyataan);
+  const showQuote = !isBlankEssay(row.pernyataan);
+  const emosi = (row.emosi_anak || "").trim();
+  const showEmosi = emosi && emosi !== "0";
+  const alasan = extractPlainText(row.alasan_emosi);
+  const showAlasan = !isBlankEssay(row.alasan_emosi);
+  const dukungan = matchedOptions(row.dukungan_dibutuhkan, DUKUNGAN_OPTIONS);
+  const disyukuri = matchedOptions(row.hal_disyukuri, HAL_DISYUKURI_OPTIONS);
+
+  return (
+    <DetailDialog
+      icon="🧑‍🎓"
+      eyebrow="Resume Anak"
+      title={row.nama_murid || "Orang tua"}
+      subtitle={row.kelas_id || "—"}
+      onClose={onClose}
+    >
+      <section>
+        <p className={styles.dialogSectionTitle}>Hasil karakter</p>
+        {aspek && aspek.length > 0 && hasSkor ? (
+          <AspekBarList aspek={aspek} skorByAspek={skorByAspek} />
+        ) : loading ? (
+          <p className={styles.briefingEmptyText}>Memuat skor karakter…</p>
+        ) : (
+          <p className={styles.briefingEmptyText}>Skor karakter per aspek belum tersedia untuk anak ini pada periode ini.</p>
+        )}
+      </section>
+
+      <section>
+        <p className={styles.dialogSectionTitle}>Refleksi orang tua</p>
+        <div className={styles.resumeReflection}>
+          {kategoriTags.length > 0 && (
+            <ReflectionRow label="Jenis masukan">
+              <div className={styles.quoteBentoTags}>
+                {kategoriTags.map((t) => <span key={t.label} className={styles.quoteBentoTag}>{t.icon} {t.label}</span>)}
+              </div>
+            </ReflectionRow>
+          )}
+          {showQuote && (
+            <ReflectionRow label="Pesan orang tua">
+              <p className={styles.resumeQuote}>“{quote}”</p>
+            </ReflectionRow>
+          )}
+          {showEmosi && (
+            <ReflectionRow label="Emosi anak di rumah">
+              <p className={styles.resumeText}>{emosi}{showAlasan ? ` — ${alasan}` : ""}</p>
+            </ReflectionRow>
+          )}
+          {dukungan.length > 0 && (
+            <ReflectionRow label="Dukungan yang diminta">
+              <div className={styles.quoteBentoTags}>
+                {dukungan.map((t) => <span key={t.label} className={styles.quoteBentoTag}>{t.icon} {t.label}</span>)}
+              </div>
+            </ReflectionRow>
+          )}
+          {disyukuri.length > 0 && (
+            <ReflectionRow label="Yang disyukuri">
+              <div className={styles.quoteBentoTags}>
+                {disyukuri.map((t) => <span key={t.label} className={styles.quoteBentoTag}>{t.icon} {t.label}</span>)}
+              </div>
+            </ReflectionRow>
+          )}
+          {kategoriTags.length === 0 && !showQuote && !showEmosi && dukungan.length === 0 && disyukuri.length === 0 && (
+            <p className={styles.briefingEmptyText}>Orang tua belum mengisi refleksi lain untuk periode ini.</p>
+          )}
+        </div>
+      </section>
+    </DetailDialog>
   );
 }
 
@@ -541,188 +767,357 @@ function VoiceGridCard({ quote, activeTab, emosiItems }) {
  * paling substantif jadi kartu besar, sisanya jadi grid pendukung, tampil 10 dulu lalu bisa
  * dimuat semua. Tidak pernah menampilkan baris kosong/placeholder seolah ada isinya.
  */
-export function ParentVoiceBento({ pernyataan }) {
+export function ParentVoiceBento({ pernyataan, aspek, sekolahId, periodeId, sekolahOptions, aspekBySekolah }) {
   const [activeTab, setActiveTab] = useState("testimoni");
   const [selectedValue, setSelectedValue] = useState(null);
   const [showAllQuotes, setShowAllQuotes] = useState(false);
+  const [filterKelas, setFilterKelas] = useState(null);
+  const [filterSekolah, setFilterSekolah] = useState(null);
+  const [selectedMurid, setSelectedMurid] = useState(null);
+  const [shareTarget, setShareTarget] = useState(null);
 
   if (!pernyataan || pernyataan.length === 0) {
     return <p className={styles.briefingEmptyText}>Belum ada refleksi orang tua untuk periode ini.</p>;
   }
 
-  const emosi = countEmosi(pernyataan);
-  const dukungan = countMultiValue(pernyataan, "dukungan_dibutuhkan", DUKUNGAN_OPTIONS);
-  const testimoni = countMultiValue(pernyataan, "kategori_pernyataan", KATEGORI_PERNYATAAN_OPTIONS);
-  const halDisyukuri = countMultiValue(pernyataan, "hal_disyukuri", HAL_DISYUKURI_OPTIONS);
+  const hasSekolahFilter = sekolahOptions && sekolahOptions.length > 0;
+  // Filter sekolah diterapkan paling awal, sebelum hitungan kategori, supaya bar kiri dan
+  // narasi kanan selalu konsisten merujuk sekolah yang sama saat sekolah tertentu dipilih.
+  const basePernyataan = filterSekolah ? pernyataan.filter((p) => p.sekolah_id === filterSekolah) : pernyataan;
+
+  const emosi = countEmosi(basePernyataan);
+  const dukungan = countMultiValue(basePernyataan, "dukungan_dibutuhkan", DUKUNGAN_OPTIONS);
+  const testimoni = countMultiValue(basePernyataan, "kategori_pernyataan", KATEGORI_PERNYATAAN_OPTIONS);
+  const halDisyukuri = countMultiValue(basePernyataan, "hal_disyukuri", HAL_DISYUKURI_OPTIONS);
 
   const hasAnyData = emosi.total > 0 || dukungan.totalWithAnswer > 0 || testimoni.totalWithAnswer > 0 || halDisyukuri.totalWithAnswer > 0;
-  if (!hasAnyData) {
-    return <p className={styles.briefingEmptyText}>Belum ada refleksi orang tua yang bisa ditampilkan untuk periode ini.</p>;
-  }
 
   function selectTab(tabId) {
     setActiveTab(tabId);
     setSelectedValue(null);
     setShowAllQuotes(false);
+    setFilterKelas(null);
   }
   function toggleValue(label) {
     setSelectedValue((prev) => (prev === label ? null : label));
     setShowAllQuotes(false);
   }
-
-  let filteredQuotes = [];
-  if (selectedValue) {
-    if (activeTab === "halDisyukuri") {
-      const match = HAL_DISYUKURI_MATCH_BY_LABEL[selectedValue];
-      const full = HAL_DISYUKURI_FULL_BY_LABEL[selectedValue];
-      filteredQuotes = pernyataan
-        .filter((p) => (p.hal_disyukuri || "").includes(match))
-        .map((p) => ({ ...p, text: full }));
-    } else {
-      const field = essayFieldForTab(activeTab);
-      let base = pernyataan
-        .map((p) => ({ ...p, text: extractPlainText(p[field]) }))
-        .filter((p) => !isBlankEssay(p[field]));
-      if (activeTab === "emosi") {
-        base = base.filter((q) => (q.emosi_anak || "").trim() === selectedValue);
-      } else if (activeTab === "dukungan") {
-        const match = DUKUNGAN_MATCH_BY_LABEL[selectedValue];
-        base = base.filter((q) => (q.dukungan_dibutuhkan || "").includes(match));
-      } else {
-        const match = KATEGORI_MATCH_BY_LABEL[selectedValue];
-        base = base.filter((q) => (q.kategori_pernyataan || "").includes(match));
-      }
-      filteredQuotes = base.sort((a, b) => b.text.length - a.text.length);
-    }
+  function changeKelas(value) {
+    setFilterKelas(value || null);
+    setShowAllQuotes(false);
   }
-
-  const [featured, ...rest] = filteredQuotes;
-  const visibleRest = showAllQuotes ? rest : rest.slice(0, QUOTE_LOAD_STEP - 1);
-  const remainingCount = rest.length - visibleRest.length;
+  function changeSekolah(value) {
+    setFilterSekolah(value || null);
+    setFilterKelas(null);
+    setSelectedValue(null);
+    setShowAllQuotes(false);
+  }
 
   const activeItems = activeTab === "emosi" ? emosi.items
     : activeTab === "dukungan" ? dukungan.items
     : activeTab === "halDisyukuri" ? halDisyukuri.items
     : testimoni.items;
-  const badgeIcon = activeItems.find((it) => it.label === selectedValue)?.icon || "";
+
+  // Kalau belum ada yang dipilih, pakai kategori terbanyak supaya narasi di kolom kanan
+  // langsung tampil tanpa harus klik dulu.
+  const sortedItems = activeItems.filter((it) => it.count > 0).sort((a, b) => b.count - a.count);
+  const effectiveValue = selectedValue ?? sortedItems[0]?.label ?? null;
+
+  // Hal Disyukuri sengaja beda: "esai"-nya cuma teks opsi yang diulang, jadi tidak ditampilkan
+  // sebagai narasi. Kolom kanan menampilkan daftar nama yang memilih kategori itu.
+  const isNamesMode = activeTab === "halDisyukuri";
+
+  let matchedRows = [];
+  if (effectiveValue) {
+    if (isNamesMode) {
+      const match = HAL_DISYUKURI_MATCH_BY_LABEL[effectiveValue];
+      matchedRows = basePernyataan.filter((p) => (p.hal_disyukuri || "").includes(match));
+    } else {
+      const field = essayFieldForTab(activeTab);
+      let base = basePernyataan
+        .map((p) => ({ ...p, text: extractPlainText(p[field]) }))
+        .filter((p) => !isBlankEssay(p[field]));
+      if (activeTab === "emosi") {
+        base = base.filter((q) => (q.emosi_anak || "").trim() === effectiveValue);
+      } else if (activeTab === "dukungan") {
+        const match = DUKUNGAN_MATCH_BY_LABEL[effectiveValue];
+        base = base.filter((q) => (q.dukungan_dibutuhkan || "").includes(match));
+      } else {
+        const match = KATEGORI_MATCH_BY_LABEL[effectiveValue];
+        base = base.filter((q) => (q.kategori_pernyataan || "").includes(match));
+      }
+      matchedRows = base.sort((a, b) => b.text.length - a.text.length);
+    }
+  }
+
+  // Daftar kelas untuk dropdown filter (dari baris yang cocok kategori terpilih, biar relevan).
+  const kelasOptions = Array.from(new Set(matchedRows.map((r) => r.kelas_id).filter(Boolean)))
+    .sort((a, b) => String(a).localeCompare(String(b), "id", { numeric: true }));
+  const rows = filterKelas ? matchedRows.filter((r) => r.kelas_id === filterKelas) : matchedRows;
+
+  const pageStep = isNamesMode ? 30 : QUOTE_LOAD_STEP;
+  const visibleRows = showAllQuotes ? rows : rows.slice(0, pageStep);
+  const remainingCount = rows.length - visibleRows.length;
+  const badgeIcon = activeItems.find((it) => it.label === effectiveValue)?.icon || "";
 
   return (
     <div className={styles.parentVoiceWrap}>
-      <div className={styles.voiceTabs}>
-        {VOICE_TABS.map((t) => (
-          <button
-            key={t.id} type="button"
-            className={`${styles.voiceTab} ${activeTab === t.id ? styles.voiceTabActive : ""}`}
-            onClick={() => selectTab(t.id)}
-          >
-            {t.icon} {t.label}
-          </button>
-        ))}
+      <div className={styles.voiceTabsRow}>
+        <div className={styles.voiceTabs}>
+          {VOICE_TABS.map((t) => (
+            <button
+              key={t.id} type="button"
+              className={`${styles.voiceTab} ${activeTab === t.id ? styles.voiceTabActive : ""}`}
+              onClick={() => selectTab(t.id)}
+            >
+              {t.icon} {t.label}
+            </button>
+          ))}
+        </div>
+        {hasSekolahFilter && (
+          <div className={styles.pvSekolahFilterRow}>
+            <span className={styles.pvFilterBadge}>Filter sekolah ({filterSekolah ? 1 : 0})</span>
+            <select
+              className={styles.pvSekolahFilter}
+              value={filterSekolah || ""}
+              onChange={(e) => changeSekolah(e.target.value)}
+            >
+              <option value="">Semua Sekolah</option>
+              {sekolahOptions.map((s) => <option key={s.id} value={s.id}>{s.nama}</option>)}
+            </select>
+          </div>
+        )}
       </div>
 
-      <div className={styles.pvChartCard}>
-        {activeTab === "emosi" && (
-          emosi.total > 0 ? (
-            <div className={styles.pvEmosiRow}>
-              {emosi.items.map((e) => {
-                const active = selectedValue === e.label;
-                return (
-                  <button
-                    type="button" key={e.label}
-                    className={`${styles.pvEmosiChip} ${styles[`pvEmosi_${e.tone}`]} ${active ? styles.pvEmosiChipActive : ""}`}
-                    onClick={() => toggleValue(e.label)}
+      {!hasAnyData ? (
+        <p className={styles.briefingEmptyText}>
+          Belum ada refleksi orang tua yang bisa ditampilkan{filterSekolah ? " untuk sekolah ini" : ""} periode ini.
+        </p>
+      ) : (
+      <>
+      {/* Dua kolom: hitungan per kategori di kiri, narasi orang tua yang cocok langsung di kanan.
+          Semua tab memakai tampilan yang sama supaya konsisten. */}
+      <div className={styles.pvTwoCol}>
+        <div className={styles.pvColLeft}>
+          <StatBarMiniList
+            items={activeItems}
+            emptyText="Belum ada data untuk periode ini."
+            onItemClick={toggleValue}
+            activeLabel={effectiveValue}
+          />
+        </div>
+
+        <div className={styles.pvColRight}>
+          {effectiveValue && matchedRows.length > 0 ? (
+            <>
+              <div className={styles.pvColRightBar}>
+                <p className={styles.pvColRightHead}>
+                  {badgeIcon ? `${badgeIcon} ` : ""}{effectiveValue}
+                  <span className={styles.pvColRightCount}>
+                    {rows.length} {isNamesMode ? "orang tua" : "narasi"}
+                  </span>
+                </p>
+                {kelasOptions.length > 1 && (
+                  <select
+                    className={styles.pvKelasFilter}
+                    value={filterKelas || ""}
+                    onChange={(e) => changeKelas(e.target.value)}
                   >
-                    {e.icon} {e.label} <strong>{e.count}</strong>
-                  </button>
-                );
-              })}
-            </div>
-          ) : <p className={styles.briefingEmptyText}>Belum ada data emosi anak untuk periode ini.</p>
-        )}
-
-        {activeTab === "dukungan" && (
-          <StatBarMiniList
-            items={dukungan.items}
-            emptyText="Belum ada data kebutuhan dukungan untuk periode ini."
-            onItemClick={toggleValue}
-            activeLabel={selectedValue}
-          />
-        )}
-
-        {activeTab === "testimoni" && (
-          <StatBarMiniList
-            items={testimoni.items}
-            emptyText="Belum ada refleksi berkategori untuk periode ini."
-            onItemClick={toggleValue}
-            activeLabel={selectedValue}
-          />
-        )}
-
-        {activeTab === "halDisyukuri" && (
-          <StatBarMiniList
-            items={halDisyukuri.items}
-            emptyText="Belum ada data hal yang disyukuri untuk periode ini."
-            onItemClick={toggleValue}
-            activeLabel={selectedValue}
-          />
-        )}
-      </div>
-
-      {selectedValue ? (
-        filteredQuotes.length > 0 ? (
-          <div className={styles.voiceLayout}>
-            <FeaturedQuoteCard quote={featured} badgeIcon={badgeIcon} badgeLabel={selectedValue} activeTab={activeTab} emosiItems={emosi.items} />
-            <div className={styles.voiceGridWrap}>
-              <div className={styles.quoteBentoGrid}>
-                {visibleRest.map((q, i) => <VoiceGridCard key={q.murid_id ? `${q.murid_id}-${i}` : i} quote={q} activeTab={activeTab} emosiItems={emosi.items} />)}
+                    <option value="">Semua kelas</option>
+                    {kelasOptions.map((k) => <option key={k} value={k}>{k}</option>)}
+                  </select>
+                )}
               </div>
+
+              {rows.length === 0 ? (
+                <p className={styles.briefingEmptyText}>Tidak ada di kelas ini.</p>
+              ) : isNamesMode ? (
+                <NamesGrid rows={visibleRows} onSelect={setSelectedMurid} />
+              ) : (
+                <div className={styles.pvEssayList}>
+                  {visibleRows.map((q, i) => (
+                    <VoiceGridCard
+                      key={q.murid_id ? `${q.murid_id}-${i}` : i}
+                      quote={q}
+                      activeTab={activeTab}
+                      emosiItems={emosi.items}
+                      onShare={setShareTarget}
+                    />
+                  ))}
+                </div>
+              )}
+
               {remainingCount > 0 && (
                 <button type="button" className={styles.quoteLoadMoreBtn} onClick={() => setShowAllQuotes(true)}>
                   Muat semua ({remainingCount} lagi)
                 </button>
               )}
-              {showAllQuotes && rest.length > QUOTE_LOAD_STEP - 1 && (
+              {showAllQuotes && rows.length > pageStep && (
                 <button type="button" className={styles.quoteLoadMoreBtn} onClick={() => setShowAllQuotes(false)}>
                   Tampilkan lebih sedikit
                 </button>
               )}
-            </div>
-          </div>
-        ) : (
-          <p className={styles.briefingEmptyText}>Belum ada esai tertulis untuk pilihan ini.</p>
-        )
-      ) : (
-        <p className={styles.briefingEmptyText}>Pilih salah satu di atas untuk lihat esainya.</p>
+            </>
+          ) : (
+            <p className={styles.briefingEmptyText}>Belum ada data untuk pilihan ini.</p>
+          )}
+        </div>
+      </div>
+      </>
       )}
+
+      {selectedMurid && (
+        <MuridResumeDialog
+          row={selectedMurid}
+          aspek={(aspekBySekolah && selectedMurid.sekolah_id) ? (aspekBySekolah[selectedMurid.sekolah_id] || aspek) : aspek}
+          sekolahId={selectedMurid.sekolah_id || sekolahId}
+          periodeId={periodeId}
+          onClose={() => setSelectedMurid(null)}
+        />
+      )}
+
+      {shareTarget && <VoiceShareDialog quote={shareTarget} onClose={() => setShareTarget(null)} />}
     </div>
   );
 }
 
-const THRESHOLD_COLOR = { baik: "var(--status-ok)", perlu_perhatian: "var(--status-caution)" };
+const BAR_TONE_COLOR = {
+  aman: "var(--status-ok)",
+  perhatian: "var(--status-caution)",
+  waspada: "var(--status-alert)",
+};
 
 /**
- * Baris bar per aspek (dipakai di dialog detail siswa/kelas/jenjang/sekolah).
- * colorByThreshold: kalau true, warna bar mengikuti klasifikasi 80% (classifyPencapaian)
- * bukan warna spoke aspek — dipakai di split "aspek sudah baik / perlu perhatian" Kepsek.
+ * Baris bar per aspek (dipakai di dialog detail siswa/kelas/jenjang/sekolah dan split aspek).
+ * Warna bar SELALU mengikuti skor lewat palet status 3 tingkat (hijau/kuning/merah), bukan warna
+ * spoke aspek — supaya merah cuma muncul saat skor benar-benar rendah (waspada), bukan sekadar
+ * karena posisi aspek. Skor kosong pakai abu netral.
  */
-export function AspekBarList({ aspek, skorByAspek, colorByThreshold = false }) {
+export function AspekBarList({ aspek, skorByAspek }) {
+  const [wrapRef, shown] = useReveal();
   return (
-    <div className={styles.aspekBarList}>
-      {aspek.map((a) => {
+    <div ref={wrapRef} className={styles.aspekBarList}>
+      {aspek.map((a, i) => {
         const skor = skorByAspek[a.aspek_kode];
-        const tone = colorByThreshold ? classifyPencapaian(skor) : null;
-        const barColor = tone ? THRESHOLD_COLOR[tone] : a.color;
+        const tone = classifyBarTone(skor);
+        const barColor = tone ? BAR_TONE_COLOR[tone] : "var(--ink-4)";
         return (
           <div className={styles.aspekBarRow} key={a.aspek_kode}>
             <span className={styles.aspekBarIcon}>{aspekIcon(a.aspek_label)}</span>
             <span className={styles.aspekBarLabel}>{a.aspek_label}</span>
             <div className={styles.aspekBarTrack}>
-              <div className={styles.aspekBarFill} style={{ width: `${skor ?? 0}%`, background: barColor }} />
+              <div
+                className={styles.aspekBarFill}
+                style={{ width: shown ? `${skor ?? 0}%` : 0, background: barColor, transitionDelay: `${i * 55}ms` }}
+              />
             </div>
             <span className={styles.aspekBarVal}>{skor != null ? `${skor}%` : "—"}</span>
           </div>
         );
       })}
+    </div>
+  );
+}
+
+/**
+ * Reveal saat elemen masuk viewport, dan re-trigger tiap kali masuk lagi -- dipakai untuk
+ * animasi grafik tumbuh dari 0 ke nilainya saat di-scroll. Fallback: kalau IntersectionObserver
+ * tidak ada, langsung tampil penuh (tanpa animasi) supaya konten tidak pernah tersangkut kosong.
+ */
+function useReveal(threshold = 0.2) {
+  const ref = useRef(null);
+  const [shown, setShown] = useState(false);
+  useEffect(() => {
+    const el = ref.current;
+    if (!el || typeof IntersectionObserver === "undefined") { setShown(true); return; }
+    let ioFired = false;
+    // Pengaman: kalau IntersectionObserver tidak pernah callback di lingkungan tertentu,
+    // tetap tampilkan grafik penuh supaya tidak pernah tersangkut kosong di 0.
+    const fallback = setTimeout(() => { if (!ioFired) setShown(true); }, 900);
+    const io = new IntersectionObserver((entries) => {
+      ioFired = true;
+      clearTimeout(fallback);
+      setShown(entries[0].isIntersecting);
+    }, { threshold });
+    io.observe(el);
+    return () => { clearTimeout(fallback); io.disconnect(); };
+  }, [threshold]);
+  return [ref, shown];
+}
+
+/**
+ * Daftar bar generik untuk skor apa pun (aspek / siswa / indikator), diurutkan dari nilai
+ * tertinggi. Warna bar ikut palet status 3 tingkat. `rankByNumber` menampilkan nomor urut
+ * (1..n) sebagai pengganti ikon, dipakai untuk peringkat siswa. Batang tumbuh 0->nilai saat
+ * masuk viewport (dengan sedikit stagger antar baris).
+ */
+export function ScoreBarList({ items, rankByNumber = false, emptyText }) {
+  const [wrapRef, shown] = useReveal();
+  const rows = items.filter((it) => it.value != null).sort((a, b) => b.value - a.value);
+  if (rows.length === 0) return <p className={styles.briefingEmptyText}>{emptyText || "Belum ada data."}</p>;
+  return (
+    <div ref={wrapRef} className={styles.aspekBarList}>
+      {rows.map((r, i) => {
+        const tone = classifyBarTone(r.value);
+        const color = tone ? BAR_TONE_COLOR[tone] : "var(--ink-4)";
+        return (
+          <div className={styles.aspekBarRow} key={r.key ?? `${r.label}-${i}`}>
+            <span className={styles.aspekBarIcon}>{rankByNumber ? i + 1 : (r.icon || "•")}</span>
+            <span className={styles.aspekBarLabel} title={r.label}>{r.label}</span>
+            <div className={styles.aspekBarTrack}>
+              <div
+                className={styles.aspekBarFill}
+                style={{ width: shown ? `${r.value}%` : 0, background: color, transitionDelay: `${i * 55}ms` }}
+              />
+            </div>
+            <span className={styles.aspekBarVal}>{r.value}%</span>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+/** Empty-state positif: dipakai saat "perlu penguatan" ternyata kosong (semua sudah baik). */
+export function GoodEmptyState({ title, text }) {
+  return (
+    <div className={styles.goodEmpty}>
+      <span className={styles.goodEmptyIcon}>✓</span>
+      <p className={styles.goodEmptyTitle}>{title}</p>
+      {text && <p className={styles.goodEmptyText}>{text}</p>}
+    </div>
+  );
+}
+
+/**
+ * Donut/pie sederhana: satu lingkaran dengan porsi terisi = value% dan angka di tengah.
+ * Warna ikut palet status 3 tingkat supaya makna tetap konsisten.
+ */
+export function Donut({ value, size = 116, label }) {
+  const [wrapRef, shown] = useReveal();
+  const v = value == null ? null : Math.max(0, Math.min(100, value));
+  const stroke = 13;
+  const r = (size - stroke) / 2;
+  const c = 2 * Math.PI * r;
+  const tone = classifyBarTone(v);
+  const color = tone ? BAR_TONE_COLOR[tone] : "var(--ink-4)";
+  // Arc mengisi 0 -> nilai saat masuk viewport (re-animate tiap scroll masuk lagi).
+  const dash = (shown && v != null) ? (v / 100) * c : 0;
+  return (
+    <div ref={wrapRef} className={styles.donutWrap} style={{ width: size }}>
+      <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
+        <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="var(--line)" strokeWidth={stroke} />
+        <circle
+          cx={size / 2} cy={size / 2} r={r} fill="none" stroke={color} strokeWidth={stroke}
+          strokeDasharray={`${dash} ${c - dash}`} strokeDashoffset={c / 4} strokeLinecap="round"
+          transform={`rotate(-90 ${size / 2} ${size / 2})`} style={{ transition: "stroke-dasharray 0.7s ease" }}
+        />
+        <text x="50%" y="50%" textAnchor="middle" dominantBaseline="central"
+          fontFamily="Montserrat, sans-serif" fontSize={size * 0.24} fontWeight={800} fill="var(--ink)">
+          {v == null ? "—" : `${v}%`}
+        </text>
+      </svg>
+      {label && <span className={styles.donutLabel}>{label}</span>}
     </div>
   );
 }
@@ -837,14 +1232,35 @@ export function useMuridTrend(sekolahId, muridId) {
   return state;
 }
 
-export function TrendChart({ points }) {
+export function TrendChart({ points, aspek, aspekPrefix = "rata_input_guru_" }) {
   const gradientId = useId();
+  const [hover, setHover] = useState(null);
+  const wrapRef = useRef(null);
+  // Ukur lebar kontainer supaya SVG benar-benar mengisi penuh frame (viewBox = piksel nyata,
+  // 1:1, tanpa preserveAspectRatio yang bikin grafik ke-center dengan margin kiri-kanan).
+  const [chartW, setChartW] = useState(600);
+  useEffect(() => {
+    // Baca lebar langsung (tidak bergantung ResizeObserver yang belum tentu ter-fire),
+    // lalu ikuti perubahan lewat resize window + ResizeObserver bila ada.
+    function measure() {
+      const el = wrapRef.current;
+      if (el && el.offsetWidth) setChartW(Math.round(el.offsetWidth));
+    }
+    measure();
+    window.addEventListener("resize", measure);
+    let ro;
+    if (typeof ResizeObserver !== "undefined" && wrapRef.current) {
+      ro = new ResizeObserver(measure);
+      ro.observe(wrapRef.current);
+    }
+    return () => { window.removeEventListener("resize", measure); if (ro) ro.disconnect(); };
+  }, []);
 
-  if (points.length === 0) return <p className={styles.briefingEmptyText}>Memuat riwayat…</p>;
+  if (points.length === 0) return <div ref={wrapRef}><p className={styles.briefingEmptyText}>Memuat riwayat…</p></div>;
 
   if (points.length < 2) {
     return (
-      <div className={styles.trendSingle}>
+      <div ref={wrapRef} className={styles.trendSingle}>
         <div className={styles.trendSingleVal}>{points[0].rata}%</div>
         <p className={styles.briefingEmptyText}>
           Baru ada data {periodeLabel(points[0].periode)}. Grafik perkembangan antar bulan
@@ -854,7 +1270,7 @@ export function TrendChart({ points }) {
     );
   }
 
-  const w = 460, h = 120, pad = 20;
+  const w = Math.max(chartW, 240), h = 150, pad = 26;
   const maxV = 100, minV = 0;
   const stepX = (w - pad * 2) / (points.length - 1);
   const coords = points.map((p, i) => ({
@@ -866,9 +1282,19 @@ export function TrendChart({ points }) {
   const areaPath = `${path} L ${coords[coords.length - 1].x} ${h - pad} L ${coords[0].x} ${h - pad} Z`;
   const gridLevels = [0.25, 0.5, 0.75];
 
+  const hc = hover != null ? coords[hover] : null;
+  const prev = hover != null && hover > 0 ? coords[hover - 1] : null;
+  const delta = hc && prev ? hc.rata - prev.rata : null;
+  const breakdown = hc && aspek
+    ? aspek
+        .map((a) => ({ label: a.aspek_label, icon: aspekIcon(a.aspek_label), value: ringkasanAspekValue(hc.ringkasan, a.aspek_kode, aspekPrefix) }))
+        .filter((x) => x.value != null)
+    : [];
+  const tipLeft = hc ? Math.min(Math.max((hc.x / w) * 100, 24), 76) : 0;
+
   return (
-    <div>
-      <svg viewBox={`0 0 ${w} ${h}`} width="100%" height={h} style={{ overflow: "visible" }}>
+    <div ref={wrapRef} className={styles.trendWrap}>
+      <svg viewBox={`0 0 ${w} ${h}`} width="100%" height={h} preserveAspectRatio="none" style={{ overflow: "visible" }}>
         <defs>
           <linearGradient id={gradientId} x1="0" y1="0" x2="0" y2="1">
             <stop offset="0%" stopColor="var(--purple-600)" stopOpacity="0.18" />
@@ -885,18 +1311,51 @@ export function TrendChart({ points }) {
         ))}
         <path d={areaPath} fill={`url(#${gradientId})`} stroke="none" />
         <path d={path} fill="none" stroke="var(--purple-600)" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" />
+        {hc && <line x1={hc.x} x2={hc.x} y1={pad} y2={h - pad} stroke="var(--purple-300)" strokeWidth={1.5} />}
         {coords.map((c) => (
           <g key={c.periode}>
-            <circle cx={c.x} cy={c.y} r={4} fill="var(--purple-600)" stroke="#EDEDF0" strokeWidth={2} />
+            <circle cx={c.x} cy={c.y} r={hc === c ? 6 : 4} fill="var(--purple-600)" stroke="#EDEDF0" strokeWidth={2} />
             <text x={c.x} y={c.y - 12} textAnchor="middle" fontSize={11} fontWeight={800} fill="var(--purple-700)" fontFamily="Montserrat, sans-serif">
               {c.rata}%
             </text>
-            <text x={c.x} y={h - 2} textAnchor="middle" fontSize={9.5} fill="var(--ink-4)" fontFamily="Montserrat, sans-serif">
+            <text x={c.x} y={h - 2} textAnchor="middle" fontSize={9.5} fontWeight={600} fill="var(--ink-3)" fontFamily="Montserrat, sans-serif">
               {periodeLabel(c.periode)}
             </text>
           </g>
         ))}
+        {/* Area sentuh per titik: hover memunculkan penjelasan angka rata-ratanya. */}
+        {coords.map((c, i) => (
+          <rect
+            key={`hit-${c.periode}`}
+            x={c.x - stepX / 2} y={0} width={stepX} height={h}
+            fill="transparent" style={{ cursor: "pointer" }}
+            onMouseEnter={() => setHover(i)} onMouseLeave={() => setHover(null)}
+          />
+        ))}
       </svg>
+
+      {hc && (
+        <div className={styles.trendTip} style={{ left: `${tipLeft}%` }}>
+          <p className={styles.trendTipHead}>
+            {periodeLabel(hc.periode)} · <strong>{hc.rata}%</strong>
+          </p>
+          {delta != null && (
+            <p className={styles.trendTipDelta}>
+              {delta > 0 ? `▲ +${delta}` : delta < 0 ? `▼ ${delta}` : "→ 0"} poin dari bulan sebelumnya
+            </p>
+          )}
+          {breakdown.length > 0 && (
+            <>
+              <p className={styles.trendTipLabel}>Rata-rata ini dari aspek karakter:</p>
+              <ul className={styles.trendTipList}>
+                {breakdown.map((b) => (
+                  <li key={b.label}><span>{b.icon} {b.label}</span><strong>{b.value}%</strong></li>
+                ))}
+              </ul>
+            </>
+          )}
+        </div>
+      )}
     </div>
   );
 }
@@ -916,12 +1375,14 @@ export function useSummaryTrend({ sekolahId, scope, scopeId, limit = 6 }) {
     setState({ loading: true, points: [] });
 
     const scopeIds = Array.isArray(scopeId) ? scopeId : [scopeId];
+    // sekolahId boleh array (Yayasan memantau banyak sekolah sekaligus).
+    const sekolahIds = Array.isArray(sekolahId) ? sekolahId : [sekolahId];
     const field = scope === "sekolah" ? "rata_pencapaian_guru" : "rata_rata_pencapaian_guru";
 
     supabase
       .from("karakter_summary")
       .select("periode_id, ringkasan")
-      .eq("sekolah_id", sekolahId)
+      .in("sekolah_id", sekolahIds)
       .eq("scope", scope)
       .in("scope_id", scopeIds)
       .then(({ data }) => {
@@ -930,19 +1391,23 @@ export function useSummaryTrend({ sekolahId, scope, scopeId, limit = 6 }) {
         (data || []).forEach((r) => {
           const v = pct(r.ringkasan?.[field]);
           if (v === null) return;
-          if (!byPeriode[r.periode_id]) byPeriode[r.periode_id] = { sum: 0, n: 0 };
+          if (!byPeriode[r.periode_id]) byPeriode[r.periode_id] = { sum: 0, n: 0, ringkasan: null };
           byPeriode[r.periode_id].sum += v;
           byPeriode[r.periode_id].n += 1;
+          // Simpan ringkasan mentah (untuk scope tunggal seperti sekolah) supaya tooltip grafik
+          // bisa menjelaskan kenapa rata-ratanya segitu, dari aspek apa saja.
+          byPeriode[r.periode_id].ringkasan = r.ringkasan;
         });
         const points = Object.entries(byPeriode)
-          .map(([periode, v]) => ({ periode, rata: Math.round(v.sum / v.n) }))
+          .map(([periode, v]) => ({ periode, rata: Math.round(v.sum / v.n), ringkasan: v.ringkasan }))
           .sort((a, b) => (a.periode > b.periode ? 1 : -1))
           .slice(-limit);
         setState({ loading: false, points });
       });
 
     return () => { alive = false; };
-  }, [sekolahId, scope, JSON.stringify(scopeId), limit]);
+    // stringify supaya array baru dengan isi sama tidak memicu fetch ulang tiap render
+  }, [JSON.stringify(sekolahId), scope, JSON.stringify(scopeId), limit]);
 
   return state;
 }

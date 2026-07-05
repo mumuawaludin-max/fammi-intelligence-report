@@ -1,433 +1,357 @@
 import { useMemo, useState } from "react";
-import StatTile from "../../components/StatTile";
 import SectionHeading from "../../components/SectionHeading";
-import FollowupRibbon from "../../components/FollowupRibbon";
+import SampleTag from "../../components/SampleTag";
 import {
-  KarakterStateBox, BriefingOrEmpty, AspekRadarCard,
-  AspekBarList, IndikatorGrid, ReflectionBlock, TrendChart, useMuridTrend, useSummaryTrend,
-  CompareSection, NextStepCTA, withEntityColor, TindakLanjutDetailBody,
+  KarakterStateBox, AskMascot, ScoreBarList, GoodEmptyState,
+  ParentVoiceBento, TrendChart, useSummaryTrend, useMuridTrend,
 } from "./KarakterShared";
-import DetailDialog from "./DetailDialog";
+import { StatCardMini, StatCardLandscape, AllGoodBanner, splitByClassify, scrollToId } from "./KarakterViewParts";
+import KebijakanGoals from "./KebijakanGoals";
+import { KEBIJAKAN_WALIKELAS } from "./dummyKebijakan";
 import { useKarakterWaliKelas } from "./useKarakterData";
-import { pct, fracToPct, parseTop5Pair, parseTop5Indikator, deltaVsPrevious, SECTION_ICON } from "./karakterMeta";
+import {
+  pct, deltaVsPrevious, classifyPencapaian, periodeLabel, aspekIcon,
+  extractPlainText, isBlankEssay, matchedCategoryTags, isKebijakanReady, SECTION_ICON,
+} from "./karakterMeta";
 import styles from "./KarakterViews.module.css";
 
-function Top5List({ title, icon, tone, pairs, onSelect }) {
-  if (!pairs.length) return null;
-  const badgeCls = tone === "perhatian" ? styles.rankBadgeWarn : styles.rankBadge;
-  return (
-    <div className={styles.card}>
-      <p className={styles.cardTitle}>{icon} {title}</p>
-      <div className={styles.top5List}>
-        {pairs.map((p, i) => (
-          <button type="button" className={styles.top5Row} key={i} onClick={() => onSelect(p.nama)}>
-            <span className={badgeCls}>{i + 1}</span>
-            <span className={styles.top5Nama}>{p.nama}</span>
-            <span className={tone === "perhatian" ? styles.top5NilaiWarn : styles.top5Nilai}>{p.nilai}</span>
-            <span className={styles.rowArrowStatic}>›</span>
-          </button>
-        ))}
-      </div>
-    </div>
-  );
+const WHO_WALIKELAS = { short: "untuk Wali Kelas", long: "untuk Wali Kelas & Kepala Sekolah" };
+
+/** Tren rata-rata satu anak antar periode; dipisah jadi komponen supaya hook-nya per murid terpilih. */
+function MuridTrendBlock({ sekolahId, muridId }) {
+  const { points } = useMuridTrend(sekolahId, muridId);
+  return <TrendChart points={points} />;
 }
 
-function IndikatorList({ title, items, onSelect }) {
-  if (!items.length) return null;
-  return (
-    <div className={styles.card}>
-      <p className={styles.cardTitle}>{title}</p>
-      <div className={styles.indikatorList}>
-        {items.map((it, i) => (
-          <button type="button" className={styles.indikatorRow} key={i} onClick={() => onSelect(it)}>
-            <span>{it.label}</span>
-            <strong>{it.nilai}</strong>
-          </button>
-        ))}
-      </div>
-    </div>
-  );
-}
-
-function SiswaTable({ list, aspek, onSelect }) {
-  if (!list.length) return <p className={styles.emptyNote}>Belum ada skor siswa untuk periode ini.</p>;
-
-  return (
-    <div className={styles.tableWrap}>
-      <table className={styles.table}>
-        <thead>
-          <tr>
-            <th>Nama</th>
-            {aspek.map((a) => (
-              <th key={a.aspek_kode} className={styles.thCenter}>{a.aspek_label}</th>
-            ))}
-          </tr>
-        </thead>
-        <tbody>
-          {list.map((s) => (
-            <tr key={s.murid_id} className={styles.rowClickable} onClick={() => onSelect(s)}>
-              <td className={styles.tdNama}>{s.nama} <span className={styles.rowArrow}>›</span></td>
-              {aspek.map((a) => (
-                <td key={a.aspek_kode} className={styles.tdCenter}>
-                  {s.skor[a.aspek_kode] != null ? `${s.skor[a.aspek_kode]}%` : "—"}
-                </td>
-              ))}
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
-  );
-}
-
-function SentimenCard({ ringkasan, pernyataan }) {
-  if (!ringkasan) return null;
-  const perasaan = [
-    { label: "Sangat positif", val: fracToPct(ringkasan.perasaan_sangat_positif), tone: "aman" },
-    { label: "Positif", val: fracToPct(ringkasan.perasaan_positif), tone: "aman" },
-    { label: "Netral", val: fracToPct(ringkasan.perasaan_netral), tone: "default" },
-    { label: "Negatif", val: fracToPct(ringkasan.perasaan_negatif), tone: "perhatian" },
-    { label: "Sangat negatif", val: fracToPct(ringkasan.perasaan_sangat_negatif), tone: "waspada" },
-  ].filter((p) => p.val > 0);
-
-  const dukungan = [
-    ["dukungan_konsultasi_ringan", "Konsultasi ringan dengan guru"],
-    ["dukungan_panduan_sederhana", "Panduan pembiasaan di rumah"],
-    ["dukungan_rekomendasi_aktivitas", "Rekomendasi aktivitas bermain"],
-    ["dukungan_kelas_parenting", "Kelas parenting tematik"],
-    ["dukungan_sesi_diskusi", "Sesi diskusi reflektif"],
-    ["dukungan_wadah_komunikasi", "Wadah komunikasi dua arah"],
-    ["dukungan_belum_tahu", "Belum tahu"],
-    ["dukungan_tidak_ada", "Tidak ada"],
-  ]
-    .map(([key, label]) => ({ label, val: fracToPct(ringkasan[key]) }))
-    .filter((d) => d.val > 0)
-    .sort((a, b) => b.val - a.val)
-    .slice(0, 4);
-
-  const quotes = (pernyataan || []).slice(0, 3);
-
-  return (
-    <div className={styles.card}>
-      <p className={styles.cardTitle}>💬 Perasaan orang tua bulan ini</p>
-      <div className={styles.sentimenRow}>
-        {perasaan.map((p) => (
-          <span key={p.label} className={`${styles.sentimenPill} ${styles[`tone_${p.tone}`]}`}>
-            {p.label} · {p.val}%
-          </span>
-        ))}
-      </div>
-
-      {dukungan.length > 0 && (
-        <>
-          <p className={styles.cardSubTop}>Dukungan yang paling banyak diminta</p>
-          <ul className={styles.dukunganList}>
-            {dukungan.map((d) => (
-              <li key={d.label}>
-                <span>{d.label}</span>
-                <strong>{d.val}%</strong>
-              </li>
-            ))}
-          </ul>
-        </>
-      )}
-
-      {quotes.length > 0 && (
-        <>
-          <p className={styles.cardSubTop}>Sebagian refleksi orang tua</p>
-          <div className={styles.quoteList}>
-            {quotes.map((q, i) => (
-              <blockquote key={i} className={styles.quote}>
-                “{q.pernyataan}”
-                <cite>{q.nama_murid}</cite>
-              </blockquote>
-            ))}
-          </div>
-        </>
-      )}
-    </div>
-  );
-}
-
-/** Isi dialog detail satu murid: skor per aspek, per indikator, tren antar bulan, refleksi ortu. */
-function MuridDialogBody({ murid, aspek, indikator, pernyataan, sekolahId }) {
-  const { points } = useMuridTrend(sekolahId, murid.murid_id);
-  return (
-    <>
-      <section>
-        <p className={styles.dialogSectionTitle}>{SECTION_ICON.tren} Tren antar bulan</p>
-        <TrendChart points={points} />
-      </section>
-      <section>
-        <p className={styles.dialogSectionTitle}>🧭 Skor per aspek</p>
-        <AspekBarList aspek={aspek} skorByAspek={murid.skor} />
-      </section>
-      {indikator.length > 0 && (
-        <section>
-          <p className={styles.dialogSectionTitle}>⭐ Skor per indikator</p>
-          <IndikatorGrid items={indikator} />
-        </section>
-      )}
-      <section>
-        <p className={styles.dialogSectionTitle}>💬 Refleksi orang tua</p>
-        <ReflectionBlock pernyataan={pernyataan} namaMurid={murid.nama} />
-      </section>
-    </>
-  );
-}
-
-export default function WaliKelasView({ session }) {
-  const { loading, error, data } = useKarakterWaliKelas(session);
+export default function WaliKelasView({ session, periodeId }) {
+  const { loading, error, data } = useKarakterWaliKelas(session, periodeId);
+  const kelasList = Array.isArray(session.cakupan) ? session.cakupan.filter(Boolean) : [];
   const { points: trendPoints } = useSummaryTrend({
-    sekolahId: session.school_id, scope: "kelas", scopeId: data?.kelasList,
+    sekolahId: session.school_id, scope: "kelas", scopeId: kelasList,
   });
+  const [activeCategory, setActiveCategory] = useState("kualitas");
+  const [muridTab, setMuridTab] = useState("semua");
+  const [filterKelas, setFilterKelas] = useState(null);
   const [selectedMuridId, setSelectedMuridId] = useState(null);
-  const [selectedIndikatorItem, setSelectedIndikatorItem] = useState(null);
-  const [selectedTindakLanjut, setSelectedTindakLanjut] = useState(null);
 
-  const byMurid = useMemo(() => {
-    if (!data) return {};
-    const map = {};
+  // Listing progres seluruh murid: gabungkan skor per aspek jadi satu baris per anak.
+  const muridList = useMemo(() => {
+    if (!data) return [];
+    const byMurid = {};
     data.skor.forEach((r) => {
-      if (!map[r.murid_id]) map[r.murid_id] = { murid_id: r.murid_id, nama: r.nama_murid, kelas_id: r.kelas_id, skor: {} };
-      map[r.murid_id].skor[r.aspek_kode] = r.skor;
+      if (!byMurid[r.murid_id]) {
+        byMurid[r.murid_id] = { murid_id: r.murid_id, nama: r.nama_murid, kelas_id: r.kelas_id, skorByAspek: {}, sum: 0, n: 0 };
+      }
+      byMurid[r.murid_id].skorByAspek[r.aspek_kode] = r.skor;
+      if (r.skor != null) { byMurid[r.murid_id].sum += r.skor; byMurid[r.murid_id].n += 1; }
     });
-    return map;
-  }, [data]);
-
-  const byNama = useMemo(() => {
-    const map = {};
-    Object.values(byMurid).forEach((m) => { map[m.nama] = m.murid_id; });
-    return map;
-  }, [byMurid]);
-
-  const siswaList = useMemo(
-    () => Object.values(byMurid).sort((a, b) => a.nama.localeCompare(b.nama)),
-    [byMurid]
-  );
-
-  const indikatorByAspek = useMemo(() => {
-    if (!data) return {};
-    const map = {};
-    data.indikator.forEach((it) => { map[`${it.aspek_kode}_${it.indikator_kode}`] = it.indikator_label; });
-    return map;
+    return Object.values(byMurid)
+      .map((m) => ({ ...m, rata: m.n ? Math.round(m.sum / m.n) : null }))
+      .sort((a, b) => (b.rata ?? -1) - (a.rata ?? -1));
   }, [data]);
 
   if (loading || error) return <KarakterStateBox loading={loading} error={error} />;
 
-  const { periode, kelasList, aspek, summary, sekolahSummary, pernyataan, briefing, tindakLanjut } = data;
-  const ringkasan = summary[0]?.ringkasan || null;
+  const { periode, aspek, indikator, summary, skorIndikator, pernyataan, tindakLanjut } = data;
 
-  const kelasEntities = withEntityColor(
-    kelasList.map((kelasId) => ({
-      id: kelasId, nama: kelasId,
-      ringkasan: summary.find((r) => r.scope_id === kelasId)?.ringkasan || null,
-      prefix: "input_guru_",
-    }))
+  // Baris nyata (sudah disetujui) kalau ada, fallback ke contoh sampai Gemini mengisi tabelnya.
+  const kebijakanReal = (tindakLanjut || []).filter(isKebijakanReady);
+  const kebijakanData = kebijakanReal.length > 0 ? kebijakanReal : KEBIJAKAN_WALIKELAS;
+  const kebijakanIsSample = kebijakanReal.length === 0;
+
+  const indikatorLabel = Object.fromEntries(
+    indikator.map((it) => [`${it.aspek_kode}_${it.indikator_kode}`, it.indikator_label])
   );
-  const compareEntities = sekolahSummary
-    ? [...kelasEntities, { id: "sekolah", nama: "Rata-rata Sekolah", ringkasan: sekolahSummary.ringkasan, prefix: "rata_input_guru_", color: "var(--ink-3)" }]
-    : kelasEntities;
 
-  const nSiswa = ringkasan ? pct(ringkasan.total_siswa) ?? ringkasan.total_siswa : "—";
-  const rataGuru = ringkasan ? pct(ringkasan.rata_rata_pencapaian_guru) : null;
-  const aspekTerkuat = ringkasan?.karakter_tertinggi || "—";
-  const aspekPerhatian = ringkasan?.karakter_terendah || "—";
-
-  const top5Terbaik = ringkasan ? parseTop5Pair(ringkasan.top5_siswa_tertinggi, ringkasan.top5_nilai_siswa_tertinggi) : [];
-  const top5Perhatian = ringkasan ? parseTop5Pair(ringkasan.top5_siswa_terendah, ringkasan.top5_nilai_siswa_terendah) : [];
-  const indikatorTerbaik = ringkasan ? parseTop5Indikator(ringkasan.top5_indikator_terbaik) : [];
-  const indikatorTerendah = ringkasan ? parseTop5Indikator(ringkasan.top5_indikator_terendah) : [];
-
-  const tl = tindakLanjut.map((r) => ({
-    id: r.id, action: r.action, trigger: r.trigger_desc, module: "karakter", priority: r.priority, _raw: r,
-  }));
-
-  const selectedMurid = selectedMuridId ? byMurid[selectedMuridId] : null;
-  const selectedIndikator = selectedMurid
-    ? data.skorIndikator
-        .filter((r) => r.murid_id === selectedMuridId)
-        .map((r) => ({
-          aspek_kode: r.aspek_kode,
-          indikator_kode: r.indikator_kode,
-          label: indikatorByAspek[`${r.aspek_kode}_${r.indikator_kode}`] || r.indikator_kode,
-          skor: r.skor,
-        }))
-    : [];
-  const selectedPernyataan = selectedMurid
-    ? pernyataan.find((p) => p.murid_id === selectedMuridId) || null
+  // Rata-rata kelas resmi dari ringkasan (bukan hitung ulang); multi-kelas dirata-ratakan.
+  const kelasRataVals = summary.map((r) => pct(r.ringkasan?.rata_rata_pencapaian_guru)).filter((v) => v != null);
+  const rataKelas = kelasRataVals.length
+    ? Math.round(kelasRataVals.reduce((s, v) => s + v, 0) / kelasRataVals.length)
     : null;
+  const heroDelta = deltaVsPrevious(trendPoints);
 
-  function openByNama(nama) {
-    const muridId = byNama[nama];
-    if (muridId) {
-      setSelectedIndikatorItem(null);
-      setSelectedMuridId(muridId);
-    }
-  }
+  const muridSplitAll = splitByClassify(muridList, (m) => m.rata);
+  const muridTerbaik = muridList[0] || null;
+  const muridPerhatianCount = muridSplitAll.perhatian.length;
 
-  function openMurid(muridId) {
-    setSelectedIndikatorItem(null);
-    setSelectedMuridId(muridId);
-  }
+  // Filter kelas hanya relevan kalau wali kelas memegang lebih dari satu kelas.
+  const muridFiltered = filterKelas ? muridList.filter((m) => m.kelas_id === filterKelas) : muridList;
+  const muridSplit = splitByClassify(muridFiltered, (m) => m.rata);
+  const muridTabRows =
+    muridTab === "baik" ? muridSplit.baik :
+    muridTab === "perhatian" ? muridSplit.perhatian :
+    muridFiltered;
+  const activeMurid = muridTabRows.find((m) => m.murid_id === selectedMuridId) || muridTabRows[0] || null;
 
-  function openIndikator(item) {
-    setSelectedMuridId(null);
-    setSelectedIndikatorItem(item);
-  }
+  // Detail per anak: refleksi orang tuanya + skor indikator.
+  const activeRefleksi = activeMurid ? pernyataan.find((p) => p.murid_id === activeMurid.murid_id) || null : null;
+  const activeIndikator = activeMurid
+    ? skorIndikator
+        .filter((r) => r.murid_id === activeMurid.murid_id)
+        .map((r) => ({
+          label: indikatorLabel[`${r.aspek_kode}_${r.indikator_kode}`] || r.indikator_kode,
+          value: pct(r.skor),
+        }))
+        .filter((r) => r.value != null)
+    : [];
+  const indTerbaik = [...activeIndikator].sort((a, b) => b.value - a.value).slice(0, 5);
+  const indLemah = activeIndikator.filter((r) => r.value < 80).sort((a, b) => a.value - b.value).slice(0, 5);
+
+  const aspekItems = activeMurid
+    ? aspek.map((a) => ({
+        label: a.aspek_label, icon: aspekIcon(a.aspek_label),
+        value: pct(activeMurid.skorByAspek[a.aspek_kode]),
+      }))
+    : [];
+
+  const quoteText = activeRefleksi ? extractPlainText(activeRefleksi.pernyataan) : "";
+  const showQuote = activeRefleksi && !isBlankEssay(activeRefleksi.pernyataan);
+  const quoteTags = activeRefleksi ? matchedCategoryTags(activeRefleksi.kategori_pernyataan) : [];
 
   return (
-    <div className={styles.page}>
-      <div className={styles.heroLabel}>
-        <p className={styles.eyebrow}>Rapor Karakter</p>
-        <h1 className={styles.heroPill}>{kelasList.join(", ")}</h1>
-      </div>
+    <div className={`${styles.page} ${styles.pageFullBleed}`}>
+      <AskMascot activeCategory={activeCategory} onSelect={setActiveCategory} />
 
-      <BriefingOrEmpty briefing={briefing} periode={periode} label="Rapor Karakter Kelas" />
+      {/* ── Kategori 1: Perkembangan Kualitas dan Mutu Layanan Pendidikan (scope: kelas) ── */}
+      {activeCategory === "kualitas" && (
+      <div className={styles.megaCategory}>
+        <div className={styles.megaCategoryHeader}>
+          <h2 className={styles.megaCategoryTitle}>Perkembangan Kualitas dan Mutu Layanan Pendidikan</h2>
+          <p className={styles.megaCategorySub}>
+            Bagaimana perkembangan karakter anak-anak di kelas {kelasList.join(", ")}: siapa yang sudah
+            baik, siapa yang butuh dukungan tambahan, dan langkah konkret yang mengikutinya.
+          </p>
+        </div>
 
-      <FollowupRibbon items={tl} onItemClick={(item) => setSelectedTindakLanjut(item._raw)} />
-
-      <div className={styles.tiles}>
-        <StatTile icon="👥" label="Siswa terpetakan" value={nSiswa} />
-        <StatTile
-          icon="📈" label="Rata-rata pencapaian" value={rataGuru ?? "—"} unit={rataGuru != null ? "%" : ""}
-          delta={rataGuru != null ? deltaVsPrevious(trendPoints) : null}
-        />
-        <StatTile icon="🌟" label="Aspek terkuat" value={aspekTerkuat} compact />
-        <StatTile
-          icon="🌱"
-          label="Perlu perhatian"
-          value={aspekPerhatian}
-          tone={aspekPerhatian !== "—" ? "perhatian" : "default"}
-          compact
-        />
-      </div>
-
-      {trendPoints.length >= 2 && (
         <section className={styles.section}>
           <SectionHeading
             icon={SECTION_ICON.tren}
-            eyebrow="Perjalanan kelas"
-            title="Perkembangan Kelas Antar Bulan"
-            subtitle="Rata-rata pencapaian kelas dari periode ke periode."
+            eyebrow="Perjalanan kelas · kenapa ini penting"
+            title="Rata-Rata Perkembangan dan Peta Siswa"
+            subtitle="Angka ini bukan rapor akhir, ini titik sekarang yang terus dipantau tiap bulan. Satu bulan turun bukan berarti mundur, yang penting arah beberapa bulan terakhir."
           />
-          <div className={styles.card}>
-            <TrendChart points={trendPoints} />
+          <div className={styles.statHeroRow}>
+            <StatCardMini
+              icon="📈" label="Rata-rata Perkembangan Karakter Kelas"
+              value={rataKelas != null ? rataKelas : "—"} unit={rataKelas != null ? "%" : ""}
+              sub={heroDelta
+                ? `${heroDelta.direction === "up" ? "↑" : heroDelta.direction === "down" ? "↓" : "→"} ${heroDelta.value > 0 ? "+" : ""}${heroDelta.value}pp dari bulan lalu`
+                : `Periode ${periodeLabel(periode) || "ini"}`}
+              subTone={heroDelta ? (heroDelta.direction === "up" ? "aman" : heroDelta.direction === "down" ? "perhatian" : "default") : "default"}
+            >
+              <TrendChart
+                points={trendPoints}
+                aspek={kelasList.length === 1 ? aspek : undefined}
+                aspekPrefix="input_guru_"
+              />
+            </StatCardMini>
+
+            <div className={styles.statHeroSide}>
+              <StatCardLandscape
+                icon="👥" label="Siswa Terpetakan" value={muridList.length}
+                sub={`${muridSplitAll.baik.length} sudah baik · ${muridSplitAll.perhatian.length} perlu perhatian`}
+                onClick={() => scrollToId("siswa-detail")}
+              />
+              <StatCardLandscape
+                icon="🏆" label="Siswa Terbaik" value={muridTerbaik?.nama ?? "—"}
+                sub={muridTerbaik?.rata != null ? `Perkembangan karakter ${muridTerbaik.rata}%` : "Belum ada data"}
+                onClick={muridTerbaik ? () => {
+                  setMuridTab("baik");
+                  setSelectedMuridId(muridTerbaik.murid_id);
+                  scrollToId("siswa-detail");
+                } : undefined}
+              />
+              <StatCardLandscape
+                icon="🌱" tone="perhatian" label="Perlu Perhatian"
+                value={muridPerhatianCount > 0 ? `${muridPerhatianCount} siswa` : "—"}
+                sub={muridPerhatianCount > 0 ? "Di bawah 80%, butuh dukungan sekarang" : "Semua siswa sudah baik"}
+                subTone="perhatian"
+                onClick={muridPerhatianCount > 0 ? () => {
+                  setMuridTab("perhatian");
+                  setSelectedMuridId(null);
+                  scrollToId("siswa-detail");
+                } : undefined}
+              />
+            </div>
           </div>
         </section>
-      )}
 
-      <section className={styles.section}>
-        <SectionHeading
-          icon={SECTION_ICON.profilKelas}
-          eyebrow="Gambaran kelas"
-          title="Profil Karakter Kelas"
-          subtitle="Rata-rata pencapaian per aspek, dari input guru periode ini."
-        />
-        <div className={styles.gridTwo}>
-          <AspekRadarCard
-            title="Profil rata-rata kelas"
-            subtitle="Index 0-100 per aspek karakter"
-            aspek={aspek}
-            ringkasan={ringkasan}
-          />
-          <div className={styles.stackTwo}>
-            <Top5List title="Top 5 pencapaian siswa" icon="🏆" pairs={top5Terbaik} onSelect={openByNama} />
-            <Top5List title="Top 5 perlu dukungan" icon="🌱" pairs={top5Perhatian} tone="perhatian" onSelect={openByNama} />
-          </div>
-        </div>
-      </section>
-
-      {compareEntities.length >= 2 && (
-        <section className={styles.section}>
+        <section className={styles.section} id="siswa-detail">
           <SectionHeading
-            icon={SECTION_ICON.perbandinganKelas}
-            eyebrow="Perbandingan"
-            title="Kelas Kamu vs Rata-rata Sekolah"
-            subtitle="Lihat posisi kelasmu dibanding rata-rata sekolah per aspek karakter."
+            icon={SECTION_ICON.skorSiswa}
+            eyebrow="Siswa mana yang perlu perhatian"
+            title="Siswa: Sudah Baik vs Perlu Perhatian"
+            subtitle="Siswa yang perlu perhatian bukan siswa yang lemah; butuh dukungan tambahan sekarang, bisa berubah periode berikutnya. Klik satu nama untuk melihat progres per anak."
           />
-          <CompareSection
-            title="Radar perbandingan"
-            aspek={aspek}
-            allEntities={compareEntities}
-            defaultActiveIds={compareEntities.map((e) => e.id)}
-          />
+          {muridSplit.allGood && <div style={{ marginBottom: 14 }}><AllGoodBanner subject="siswa" /></div>}
+          {muridFiltered.length === 0 ? (
+            <p className={styles.emptyNote}>Belum ada data siswa pada periode ini.</p>
+          ) : (
+            <div className={styles.masterDetail}>
+              <div className={styles.masterList}>
+                {kelasList.length > 1 && (
+                  <div className={styles.masterListFilter}>
+                    <span className={styles.filterActiveBadge}>Filter aktif ({filterKelas ? 1 : 0})</span>
+                    <select
+                      className={styles.filterSelect}
+                      value={filterKelas || ""}
+                      onChange={(e) => setFilterKelas(e.target.value || null)}
+                    >
+                      <option value="">Semua Kelas</option>
+                      {kelasList.map((k) => <option key={k} value={k}>{k}</option>)}
+                    </select>
+                  </div>
+                )}
+                <div className={styles.masterListTabs}>
+                  <button type="button" className={`${styles.masterListTab} ${muridTab === "semua" ? styles.masterListTabActive : ""}`} onClick={() => setMuridTab("semua")}>
+                    Semua ({muridFiltered.length})
+                  </button>
+                  <button type="button" className={`${styles.masterListTab} ${muridTab === "baik" ? styles.masterListTabActive : ""}`} onClick={() => setMuridTab("baik")}>
+                    Sudah Baik ({muridSplit.baik.length})
+                  </button>
+                  <button type="button" className={`${styles.masterListTab} ${muridTab === "perhatian" ? styles.masterListTabActive : ""}`} onClick={() => setMuridTab("perhatian")}>
+                    Perlu Perhatian ({muridSplit.perhatian.length})
+                  </button>
+                </div>
+                <div className={styles.masterListRows}>
+                  {muridTabRows.length === 0 ? (
+                    <p className={styles.emptyNote}>Tidak ada siswa di kategori ini.</p>
+                  ) : muridTabRows.map((m) => {
+                    const tone = classifyPencapaian(m.rata);
+                    const active = activeMurid?.murid_id === m.murid_id;
+                    return (
+                      <button
+                        type="button" key={m.murid_id}
+                        className={`${styles.masterListRow} ${active ? styles.masterListRowActive : ""}`}
+                        onClick={() => setSelectedMuridId(m.murid_id)}
+                      >
+                        <span className={styles.masterListAvatar}>{(m.nama || "?").charAt(0).toUpperCase()}</span>
+                        <span className={styles.masterListName}>{m.nama}</span>
+                        <span className={`${styles.masterListTone} ${tone === "baik" ? styles.tonePillAman : tone === "perlu_perhatian" ? styles.tonePillPerhatian : styles.tonePillDefault}`}>
+                          {tone === "baik" ? "Sudah Baik" : tone === "perlu_perhatian" ? "Perlu Perhatian" : "Belum ada data"}
+                        </span>
+                        <span className={styles.masterListScore}>{m.rata != null ? `${m.rata}%` : "—"}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              <div className={styles.masterDetailPanel}>
+                {activeMurid ? (
+                  <>
+                    <div className={styles.masterDetailHeader}>
+                      <span className={styles.eyebrow}>Progres per Anak</span>
+                      <h3 className={styles.masterDetailTitle}>{activeMurid.nama}</h3>
+                      <p className={styles.cardSub}>
+                        {activeMurid.kelas_id} · rata-rata perkembangan {activeMurid.rata != null ? `${activeMurid.rata}%` : "—"}
+                      </p>
+                    </div>
+
+                    <div className={styles.detailRows}>
+                      {/* Baris 1: progres anak antar bulan */}
+                      <section>
+                        <p className={styles.dialogSectionTitle}>📈 Progres antar bulan</p>
+                        <MuridTrendBlock sekolahId={session.school_id} muridId={activeMurid.murid_id} />
+                      </section>
+
+                      {/* Baris 2: skor per aspek, urut tertinggi */}
+                      <section>
+                        <p className={styles.dialogSectionTitle}>📊 Skor per aspek (urut tertinggi)</p>
+                        <ScoreBarList items={aspekItems} emptyText="Belum ada skor aspek untuk anak ini." />
+                      </section>
+
+                      {/* Baris 3: dua kolom indikator */}
+                      <div className={styles.detail2col}>
+                        <section>
+                          <p className={styles.dialogSectionTitle}>⭐ Top 5 indikator terbaik</p>
+                          <ScoreBarList items={indTerbaik} emptyText="Belum ada data indikator." />
+                        </section>
+                        <section>
+                          <p className={styles.dialogSectionTitle}>🔧 Top 5 indikator perlu penguatan</p>
+                          {indLemah.length > 0 ? (
+                            <ScoreBarList items={indLemah} />
+                          ) : (
+                            <GoodEmptyState
+                              title="Semua indikator sudah di atas 80%"
+                              text="Tidak ada indikator di bawah 80% untuk anak ini periode ini."
+                            />
+                          )}
+                        </section>
+                      </div>
+
+                      {/* Baris 4: suara orang tuanya sendiri */}
+                      <section>
+                        <p className={styles.dialogSectionTitle}>💬 Refleksi orang tua anak ini</p>
+                        {showQuote ? (
+                          <>
+                            {quoteTags.length > 0 && (
+                              <div className={styles.quoteTagsRow}>
+                                {quoteTags.map((t) => <span key={t.label} className={styles.quoteTagChip}>{t.icon} {t.label}</span>)}
+                              </div>
+                            )}
+                            <p className={styles.detailQuote}>“{quoteText}”</p>
+                          </>
+                        ) : (
+                          <p className={styles.emptyNote}>Orang tua anak ini belum menulis refleksi pada periode ini.</p>
+                        )}
+                      </section>
+                    </div>
+                  </>
+                ) : (
+                  <p className={styles.emptyNote}>Pilih siswa di daftar sebelah kiri.</p>
+                )}
+              </div>
+            </div>
+          )}
         </section>
+      </div>
       )}
 
-      {(indikatorTerbaik.length > 0 || indikatorTerendah.length > 0) && (
-        <section className={styles.section}>
-          <SectionHeading
-            icon={SECTION_ICON.indikator}
-            title="Indikator Menonjol"
-            subtitle="Indikator dengan pencapaian tertinggi dan terendah di kelas ini. Klik untuk lihat lengkap."
-          />
-          <div className={styles.gridTwo}>
-            <IndikatorList title="Paling kuat" items={indikatorTerbaik} onSelect={openIndikator} />
-            <IndikatorList title="Paling perlu latihan" items={indikatorTerendah} onSelect={openIndikator} />
-          </div>
-        </section>
-      )}
-
-      <section className={styles.section}>
-        <SectionHeading
-          icon={SECTION_ICON.skorSiswa}
-          eyebrow="Klik nama untuk detail"
-          title="Skor per Siswa"
-          subtitle="Skor tiap aspek karakter, per anak. Klik satu baris untuk lihat tren, indikator, dan refleksi orang tuanya."
-        />
-        <SiswaTable list={siswaList} aspek={aspek} onSelect={(s) => openMurid(s.murid_id)} />
-      </section>
-
-      <section className={styles.section}>
-        <SectionHeading icon={SECTION_ICON.suaraOrtu} title="Suara Orang Tua" subtitle="Ringkasan refleksi orang tua kelas ini." />
-        <SentimenCard ringkasan={ringkasan} pernyataan={pernyataan} />
-      </section>
-
-      <NextStepCTA tindakLanjut={tindakLanjut} />
-
-      {selectedMurid && (
-        <DetailDialog
-          icon={selectedMurid.nama.trim().charAt(0).toUpperCase()}
-          eyebrow="Perkembangan Karakter"
-          title={selectedMurid.nama}
-          subtitle={selectedMurid.kelas_id}
-          onClose={() => setSelectedMuridId(null)}
-        >
-          <MuridDialogBody
-            murid={selectedMurid}
-            aspek={aspek}
-            indikator={selectedIndikator}
-            pernyataan={selectedPernyataan}
-            sekolahId={session.school_id}
-          />
-        </DetailDialog>
-      )}
-
-      {selectedIndikatorItem && (
-        <DetailDialog
-          icon="⭐"
-          eyebrow="Indikator Karakter"
-          title={selectedIndikatorItem.label}
-          subtitle={`Pencapaian kelas: ${selectedIndikatorItem.nilai}`}
-          onClose={() => setSelectedIndikatorItem(null)}
-        >
-          <p className={styles.dialogParagraph}>
-            Indikator ini diambil dari input guru periode {periode}. Skor {selectedIndikatorItem.nilai} adalah rata-rata
-            pencapaian kelas {kelasList.join(", ")} untuk indikator tersebut.
+      {/* ── Kategori 2: Perkembangan Citra Sekolah di Mata Orang Tua (scope: orang tua kelas ini) ── */}
+      {activeCategory === "citra" && (
+      <div className={`${styles.megaCategory} ${styles.megaCategoryB}`}>
+        <div className={styles.megaCategoryHeader}>
+          <h2 className={styles.megaCategoryTitle}>Perkembangan Citra Sekolah di Mata Orang Tua</h2>
+          <p className={styles.megaCategorySub}>
+            Sinyal dari rumah tentang bagaimana karakter anak-anak kelas {kelasList.join(", ")} terlihat
+            di luar sekolah, langsung dari refleksi orang tuanya.
           </p>
-        </DetailDialog>
+        </div>
+
+        <section className={styles.section}>
+          <SectionHeading
+            icon={SECTION_ICON.suaraOrtu}
+            eyebrow="Sinyal dari luar sekolah"
+            title="Suara Orang Tua"
+            subtitle="Ini bukan testimoni, ini sinyal dari lingkungan rumah tentang bagaimana karakter anak terlihat di luar sekolah. Kalau banyak orang tua menyebut hal yang sama, itu sinyal kuat untuk kelas."
+          />
+          <ParentVoiceBento pernyataan={pernyataan} aspek={aspek} sekolahId={session.school_id} periodeId={periode} />
+        </section>
+      </div>
       )}
 
-      {selectedTindakLanjut && (
-        <DetailDialog
-          icon={SECTION_ICON.tindakLanjut}
-          eyebrow="Tindak Lanjut"
-          title={selectedTindakLanjut.action}
-          onClose={() => setSelectedTindakLanjut(null)}
-        >
-          <TindakLanjutDetailBody item={selectedTindakLanjut} />
-        </DetailDialog>
+      {/* ── Kategori 3: Tindak Lanjut Kelas di Periode Ini ── */}
+      {activeCategory === "tindaklanjut" && (
+      <div className={styles.megaCategory}>
+        <div className={styles.megaCategoryHeader}>
+          <h2 className={styles.megaCategoryTitle}>Tindak Lanjut Kelas di Periode Ini</h2>
+          <p className={styles.megaCategorySub}>
+            Dari Fammi berdasarkan data kelas periode ini, bukan keputusan final. Sebagian menyasar
+            mutu pembinaan di kelas, sebagian menyasar hubungan dengan orang tua; yang perlu perhatian
+            didahulukan. Tiap kartu bisa dibuka dan dibagikan ke WhatsApp.
+          </p>
+        </div>
+
+        <section className={styles.section}>
+          {kebijakanIsSample && (
+            <p className={styles.sampleNote}>
+              <SampleTag /> Isi rekomendasi masih contoh, menunggu perumusan otomatis. Strukturnya sudah final.
+            </p>
+          )}
+          <KebijakanGoals data={kebijakanData} who={WHO_WALIKELAS} />
+        </section>
+      </div>
       )}
     </div>
   );

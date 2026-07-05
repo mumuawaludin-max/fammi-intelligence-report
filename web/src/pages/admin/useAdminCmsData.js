@@ -39,7 +39,7 @@ export function useAdminCmsData(session) {
         supabase.from('karakter_summary').select('sekolah_id, periode_id').eq('scope', 'sekolah'),
         supabase.from('karakter_aspek_config').select('sekolah_id, aspek_kode, aspek_label, urutan').order('urutan', { ascending: true }),
         supabase.from('briefing').select('id, sekolah_id, modul, scope, scope_id, periode_id, teks, sumber, status, created_at').eq('status', 'menunggu_persetujuan'),
-        supabase.from('tindak_lanjut').select('id, sekolah_id, modul, scope, scope_id, periode_id, action, trigger_desc, priority, status, gambaran, opsi_kandidat, catatan_internal, langkah_terpilih, regenerate_dari, created_at').in('status', ['menunggu_persetujuan', 'disetujui']),
+        supabase.from('tindak_lanjut').select('id, sekolah_id, modul, scope, scope_id, periode_id, action, trigger_desc, priority, status, gambaran, opsi_kandidat, catatan_internal, langkah_terpilih, regenerate_dari, created_at, term, type, fokus, jenjang, icon, title, teaser, mengapa_data, mengapa_perspektif, dasar_teori, manfaat, konkret').in('status', ['menunggu_persetujuan', 'disetujui']),
         supabase.from('import_log').select('*').order('created_at', { ascending: false }).limit(50),
         supabase.from('profiles').select('id, username, nama, peran, school_id, cakupan, created_at'),
         // Dipakai buat hitung "kelas belum ada tindak lanjut" (Rekomendasi di layar Gemini).
@@ -132,6 +132,11 @@ export function useAdminCmsData(session) {
         pemicu: r.trigger_desc || '', teks: r.action || '', konteks: [],
         gambaran: r.gambaran || '', opsiKandidat: r.opsi_kandidat || [], catatanInternal: r.catatan_internal || '',
         langkahTerpilih: r.langkah_terpilih || null, regenerateDari: r.regenerate_dari || null,
+        // Skema baru kartu Rapor Karakter (satu baris = satu rekomendasi, bukan opsi jamak).
+        term: r.term || null, type: r.type || null, fokus: r.fokus || null, jenjang: r.jenjang || null,
+        icon: r.icon || null, title: r.title || null, teaser: r.teaser || null,
+        mengapaData: r.mengapa_data || null, mengapaPerspektif: r.mengapa_perspektif || null,
+        dasarTeori: r.dasar_teori || null, manfaat: r.manfaat || null, konkret: r.konkret || null,
       }));
       const antrianBriefing = (briefingRes.data || []).map((r) => ({
         id: r.id, tipe: 'briefing', modul: r.modul, sekolah: r.sekolah_id,

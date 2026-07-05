@@ -1,0 +1,407 @@
+/* Board Kebijakan Kepala Sekolah, layout meniru lampiran (Short/Long-Term Goals bento).
+   Warna: ungu Fammi untuk short, oranye hangat untuk long, plus satu kartu aksen tiap baris.
+   Font ikut Montserrat dari scope .page modul Karakter. */
+
+.goals {
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+}
+
+/* ── Satu baris term: label kiri + grid kartu kanan ── */
+.termRow {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 16px;
+}
+
+@media (min-width: 900px) {
+  .termRow {
+    grid-template-columns: 210px 1fr;
+    gap: 24px;
+    align-items: start;
+  }
+}
+
+.termLabel {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding-top: 4px;
+}
+
+.termTitle {
+  font-family: var(--font-display);
+  font-size: 30px;
+  font-weight: 800;
+  line-height: 1.05;
+  letter-spacing: -0.5px;
+  color: var(--ink);
+  margin: 0;
+}
+
+.termRange {
+  width: fit-content;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: #fff;
+  border-radius: 999px;
+  padding: 5px 14px;
+}
+
+.term_short .termRange { background: var(--purple-600); }
+.term_long .termRange { background: var(--ink); }
+
+.termWho {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--ink-3);
+}
+
+.termGrid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 14px;
+}
+
+@media (min-width: 560px) {
+  .termGrid { grid-template-columns: repeat(2, 1fr); }
+}
+
+@media (min-width: 900px) {
+  .termGrid { grid-template-columns: repeat(3, 1fr); }
+}
+
+/* ── Kartu goal: semua putih, warna tipe jadi penanda mencolok ── */
+.card {
+  display: flex;
+  flex-direction: column;
+  border-radius: 20px;
+  overflow: hidden;
+  box-shadow: var(--shadow-card);
+  transition: transform var(--transition-fast), box-shadow var(--transition-fast);
+}
+
+.card:hover {
+  transform: translateY(-3px);
+  box-shadow: var(--shadow-hero);
+}
+
+/* Bagian atas kartu: isi konten (portrait, lega). Tidak lagi tombol; aksi ada di bawah.
+   Konten di TENGAH kartu (bukan nempel bawah), ikon absolute di pojok kanan atas. */
+.cardMain {
+  position: relative;
+  flex: 1;
+  color: var(--ink);
+  padding: 54px 22px 20px;
+  min-height: 224px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  gap: 11px;
+}
+
+/* Ikon di pojok kanan atas, chip lembut, supaya tidak mengganggu pesan utama. */
+.cardIcon {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  width: 44px;
+  height: 44px;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.72);
+  box-shadow: 0 4px 14px rgba(33, 27, 46, 0.08);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 23px;
+  line-height: 1;
+}
+
+/* Satu tag gabungan (tipe + fokus), warna solid sesuai tipe. Beri ruang supaya tidak nabrak ikon. */
+.cardTag {
+  width: fit-content;
+  max-width: calc(100% - 52px);
+  font-size: 10.5px;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: #fff;
+  border-radius: 8px;
+  padding: 5px 11px;
+}
+
+/* Judul: pesan utama kartu, besar dan di tengah. */
+.cardTitle {
+  font-family: var(--font-display);
+  font-size: 22px;
+  font-weight: 800;
+  line-height: 1.25;
+  letter-spacing: -0.3px;
+  color: var(--ink);
+}
+
+/* Teaser: konteks singkat di bawah judul supaya penasaran buka detail. */
+.cardTeaser {
+  font-size: 12.5px;
+  font-weight: 500;
+  line-height: 1.5;
+  color: var(--ink-2);
+  max-width: 34ch;
+}
+
+/* Dua tombol berdampingan di bawah kartu: Lihat Detail + Share WhatsApp (hijau pastel). */
+.cardActions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1px;
+  background: rgba(33, 27, 46, 0.06);
+}
+
+.cardDetailBtn,
+.cardShare {
+  border: none;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 12.5px;
+  font-weight: 800;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 13px 10px;
+  transition: filter var(--transition-fast), background var(--transition-fast);
+}
+
+.cardDetailBtn {
+  background: rgba(255, 255, 255, 0.9);
+  color: var(--ink-2);
+}
+
+.cardDetailBtn:hover { background: #fff; color: var(--ink); }
+
+/* Hijau WhatsApp versi pastel, bukan hijau menyala. */
+.cardShare {
+  background: #C7EBD4;
+  color: #147244;
+}
+
+.cardShare:hover { background: #B7E4C7; }
+
+.cardBtnIcon { font-weight: 900; }
+
+/* Latar kartu lembut & elegan. Kuning = perlu perhatian, hijau = pertahankan. */
+.cardPerhatian .cardMain { background: linear-gradient(160deg, #FBEFCF 0%, #FEFBF3 100%); }
+.cardPerhatian .cardTag { background: #C8860F; }
+
+.cardPertahankan .cardMain { background: linear-gradient(160deg, #D8F0E2 0%, #F4FBF7 100%); }
+.cardPertahankan .cardTag { background: var(--status-ok); }
+
+/* ── Modal detail: membesar + berputar saat muncul ── */
+.overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  background: rgba(33, 27, 46, 0.55);
+  backdrop-filter: blur(3px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  animation: kbFade 0.2s ease;
+}
+
+.modal {
+  position: relative;
+  width: min(560px, 100%);
+  max-height: 88vh;
+  overflow-y: auto;
+  background: var(--surface);
+  border-radius: 26px;
+  box-shadow: var(--shadow-hero);
+  transform-origin: center;
+  animation: kbPop 0.42s cubic-bezier(0.2, 0.9, 0.2, 1.05);
+}
+
+@keyframes kbFade {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes kbPop {
+  0% { opacity: 0; transform: scale(0.72) rotate(-7deg); }
+  60% { opacity: 1; transform: scale(1.02) rotate(2deg); }
+  100% { opacity: 1; transform: scale(1) rotate(0); }
+}
+
+@keyframes kbSpin {
+  from { transform: rotate(0); }
+  to { transform: rotate(360deg); }
+}
+
+/* Kalau pengguna mematikan animasi, modal langsung tampil penuh (bukan tersangkut transparan). */
+@media (prefers-reduced-motion: reduce) {
+  .overlay, .modal, .modalIcon, .card { animation: none; }
+}
+
+.modalClose {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  width: 34px;
+  height: 34px;
+  border: none;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.85);
+  color: var(--ink-2);
+  font-size: 15px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2;
+}
+
+.modalHead {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 26px 26px 20px;
+  color: #fff;
+}
+
+.modalPerhatian .modalHead { background: linear-gradient(135deg, #D69219 0%, #B4790F 100%); }
+.modalPertahankan .modalHead { background: linear-gradient(135deg, #2E9E6B 0%, #217A50 100%); }
+
+.modalIcon {
+  width: 58px;
+  height: 58px;
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.18);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 30px;
+  animation: kbSpin 0.7s ease;
+}
+
+.modalEyebrow {
+  font-size: 10.5px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  opacity: 0.85;
+}
+
+.modalKicker {
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  opacity: 0.92;
+}
+
+.modalTitle {
+  font-family: var(--font-display);
+  font-size: 22px;
+  font-weight: 800;
+  line-height: 1.25;
+  letter-spacing: -0.3px;
+  margin: 0;
+}
+
+.modalBody {
+  padding: 22px 26px 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.modalSection {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.modalLabel {
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  margin: 0;
+}
+
+.modalPerhatian .modalLabel { color: #B4790F; }
+.modalPertahankan .modalLabel { color: var(--status-ok); }
+
+/* Dua sisi "mengapa": dari data + dari sisi perkembangan anak/kebijakan sekolah. */
+.modalWhyBlock {
+  background: var(--surface-soft);
+  border-radius: var(--radius-md);
+  padding: 12px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.modalWhyTag {
+  font-size: 11.5px;
+  font-weight: 800;
+  color: var(--ink);
+  margin: 0;
+}
+
+.modalText {
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 1.6;
+  color: var(--ink-2);
+  margin: 0;
+}
+
+.modalSteps {
+  margin: 0;
+  padding-left: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+
+.modalSteps li {
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 1.55;
+  color: var(--ink-2);
+}
+
+.shareBtn {
+  position: sticky;
+  bottom: 0;
+  margin: 8px 26px 22px;
+  width: calc(100% - 52px);
+  border: none;
+  border-radius: 14px;
+  padding: 13px 18px;
+  background: #C7EBD4;
+  color: #147244;
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 800;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  transition: background var(--transition-fast);
+}
+
+.shareBtn:hover { background: #B7E4C7; }
+
+.shareIcon {
+  font-size: 15px;
+  font-weight: 900;
+}

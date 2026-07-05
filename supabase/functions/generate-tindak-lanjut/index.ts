@@ -84,12 +84,17 @@ Deno.serve(async (req) => {
         { apiKey: GEMINI_API_KEY, model: GEMINI_MODEL }
       );
 
-      // Draf lama yang masih menunggu langsung ditolak (digantikan). Yang sudah disetujui
-      // dibiarkan tayang dulu, baru otomatis ditolak saat penggantinya di-approve (lihat
+      // Satu panggilan generate sekarang menghasilkan BEBERAPA baris rekomendasi sekaligus
+      // (satu per rekomendasi, bukan satu baris berisi beberapa opsi). Regenerate berarti
+      // mengganti seluruh batch lama untuk scope/periode ini, bukan cuma baris yang dibuka di
+      // drawer, jadi semua saudara-baris yang masih menunggu ikut ditolak di sini. Yang sudah
+      // disetujui dibiarkan tayang dulu, baru ditolak saat penggantinya di-approve (lihat
       // actApprovalAction di CMS) supaya laporan sekolah tidak pernah kosong di tengah proses.
-      if (lama.status === "menunggu_persetujuan") {
-        await db.from("tindak_lanjut").update({ status: "ditolak" }).eq("id", lama.id);
-      }
+      await db.from("tindak_lanjut")
+        .update({ status: "ditolak" })
+        .eq("sekolah_id", lama.sekolah_id).eq("modul", lama.modul)
+        .eq("scope", lama.scope).eq("scope_id", lama.scope_id).eq("periode_id", lama.periode_id)
+        .eq("status", "menunggu_persetujuan");
 
       return json({ ok: true, hasil });
     }
