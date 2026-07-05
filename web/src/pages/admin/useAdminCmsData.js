@@ -47,10 +47,12 @@ export function useAdminCmsData(session) {
         // kelas yang drafnya ditolak harus muncul lagi di sini supaya gampang di-generate ulang,
         // bukan malah hilang dari daftar rekomendasi selamanya.
         supabase.from('karakter_summary').select('sekolah_id, scope_id, periode_id').eq('scope', 'kelas'),
-        supabase.from('tindak_lanjut').select('sekolah_id, scope_id, periode_id').eq('scope', 'kelas').in('status', ['menunggu_persetujuan', 'disetujui']),
+        supabase.from('tindak_lanjut').select('sekolah_id, scope_id, periode_id').eq('modul', 'karakter').eq('scope', 'kelas').in('status', ['menunggu_persetujuan', 'disetujui']),
         // Sama, tapi buat level sekolah (Kepala Sekolah) dan lintas sekolah (Yayasan) --
-        // dua-duanya sama-sama scope='sekolah', dibedakan lewat target_role.
-        supabase.from('tindak_lanjut').select('sekolah_id, periode_id, target_role').eq('scope', 'sekolah').in('target_role', ['kepala_sekolah', 'yayasan']).in('status', ['menunggu_persetujuan', 'disetujui']),
+        // dua-duanya sama-sama scope='sekolah', dibedakan lewat target_role. Filter modul
+        // penting: tanpa itu, baris tindak lanjut modul lain (MI/Screening) ikut menandai
+        // sekolah sebagai "sudah ada" padahal belum ada draf karakternya.
+        supabase.from('tindak_lanjut').select('sekolah_id, periode_id, target_role').eq('modul', 'karakter').eq('scope', 'sekolah').in('target_role', ['kepala_sekolah', 'yayasan']).in('status', ['menunggu_persetujuan', 'disetujui']),
         supabase.from('gemini_schedule').select('*').eq('id', 'default').maybeSingle(),
       ]);
 

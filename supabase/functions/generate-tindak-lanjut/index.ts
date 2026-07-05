@@ -60,7 +60,7 @@ Deno.serve(async (req) => {
     if (body.regenerate_of) {
       const { data: lama, error: lamaErr } = await db
         .from("tindak_lanjut")
-        .select("id, sekolah_id, modul, scope, scope_id, periode_id, status")
+        .select("id, sekolah_id, modul, scope, scope_id, periode_id, status, target_role")
         .eq("id", body.regenerate_of)
         .maybeSingle();
       if (lamaErr) return json({ error: lamaErr.message }, 500);
@@ -74,7 +74,11 @@ Deno.serve(async (req) => {
         if (fbErr) return json({ error: `Gagal simpan catatan: ${fbErr.message}` }, 500);
       }
 
+      // Role penerus: prioritas body.role, lalu target_role baris lama (supaya regenerate
+      // draf Yayasan tetap jadi draf Yayasan, bukan berubah jadi Kepala Sekolah), baru
+      // fallback tebakan dari scope untuk baris lama yang belum punya target_role.
       const role = ROLE_VALID.includes(body.role) ? body.role
+        : ROLE_VALID.includes(lama.target_role) ? lama.target_role
         : (lama.scope === "kelas" || lama.scope === "murid") ? "wali_kelas" : "kepala_sekolah";
 
       const hasil = await generateAndInsertDraft(
@@ -90,10 +94,14 @@ Deno.serve(async (req) => {
       // drawer, jadi semua saudara-baris yang masih menunggu ikut ditolak di sini. Yang sudah
       // disetujui dibiarkan tayang dulu, baru ditolak saat penggantinya di-approve (lihat
       // actApprovalAction di CMS) supaya laporan sekolah tidak pernah kosong di tengah proses.
+      // Difilter target_role juga: Kepsek dan Yayasan sama-sama scope='sekolah' di sekolah
+      // yang sama, jadi tanpa filter ini regenerate draf satu peran ikut menolak draf
+      // peran lain yang masih menunggu.
       await db.from("tindak_lanjut")
         .update({ status: "ditolak" })
         .eq("sekolah_id", lama.sekolah_id).eq("modul", lama.modul)
         .eq("scope", lama.scope).eq("scope_id", lama.scope_id).eq("periode_id", lama.periode_id)
+        .eq("target_role", role)
         .eq("status", "menunggu_persetujuan");
 
       return json({ ok: true, hasil });

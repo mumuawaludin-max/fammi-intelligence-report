@@ -1012,6 +1012,11 @@ function siapkanRingkasanUntukGemini(
   const isPercentKey = (k: string) =>
     /^(input_guru_|input_orangtua_|rata_input_guru_|rata_input_orangtua_|pencapaian_|rata_pencapaian_|rata_rata_pencapaian_)/.test(k);
 
+  // Kolom pecahan 0..1 (mis. perasaan_positif 0.82 artinya 82%). Dikonversi ke persen
+  // bulat supaya Gemini tidak salah kutip "0.82 persen" -- konsisten dengan fracToPct
+  // di frontend yang juga mengalikan 100 saat menampilkan.
+  const isFractionKey = (k: string) => /^(perasaan_|dukungan_)/.test(k);
+
   const bersih: Record<string, any> = {};
   for (const [key, value] of Object.entries(ringkasan || {})) {
     // Buang total field yang mengandung nama murid -- tidak boleh sampai ke Gemini.
@@ -1019,6 +1024,9 @@ function siapkanRingkasanUntukGemini(
     if (isPercentKey(key)) {
       const r = roundPct(value);
       bersih[key] = r == null ? value : r;
+    } else if (isFractionKey(key)) {
+      const n = typeof value === "number" ? value : parseFloat(String(value));
+      bersih[key] = Number.isFinite(n) && n >= 0 && n <= 1 ? Math.round(n * 100) : value;
     } else {
       bersih[key] = value;
     }
@@ -1026,9 +1034,10 @@ function siapkanRingkasanUntukGemini(
 
   // Rata-rata per aspek dengan label yang benar dan angka bulat, PERSIS seperti yang
   // dihitung frontend (ringkasanAspekValue -> pct) untuk kartu/tooltip aspek. Prefix beda
-  // per scope: kelas pakai "input_guru_", sekolah pakai "rata_input_guru_". Ini yang WAJIB
+  // per scope: kelas/murid pakai "input_guru_", jenjang dan sekolah pakai
+  // "rata_input_guru_" (sama seperti pemakaian di KepsekView/YayasanView). Ini yang WAJIB
   // dipakai Gemini untuk angka, supaya tidak beda dengan yang dilihat sekolah.
-  const aspekPrefix = scope === "sekolah" ? "rata_input_guru_" : "input_guru_";
+  const aspekPrefix = scope === "sekolah" || scope === "jenjang" ? "rata_input_guru_" : "input_guru_";
   const rataPerAspek: Record<string, number> = {};
   for (const [kode, label] of Object.entries(aspekLabels)) {
     const key = Object.keys(ringkasan || {}).find((k) => k.startsWith(`${aspekPrefix}${kode}_`));

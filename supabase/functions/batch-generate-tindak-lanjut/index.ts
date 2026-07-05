@@ -95,9 +95,13 @@ async function hitungRekomendasi(db) {
     const periodeTerbaru = summaryRows.reduce((max, r) => (!max || r.periode_id > max ? r.periode_id : max), null);
     const kelasList = [...new Set(summaryRows.filter((r) => r.periode_id === periodeTerbaru).map((r) => r.scope_id))];
 
+    // Filter modul + status disamakan dengan panel Rekomendasi di CMS: baris modul lain
+    // tidak dihitung, dan kelas yang draf-nya ditolak boleh digenerate ulang oleh cron.
     const { data: tlRows } = await db
       .from("tindak_lanjut").select("scope_id")
-      .eq("sekolah_id", sekolahId).eq("scope", "kelas").eq("periode_id", periodeTerbaru);
+      .eq("sekolah_id", sekolahId).eq("modul", "karakter").eq("scope", "kelas")
+      .eq("periode_id", periodeTerbaru)
+      .in("status", ["menunggu_persetujuan", "disetujui"]);
     const kelasSudahAda = new Set((tlRows || []).map((r) => r.scope_id));
 
     for (const kelasId of kelasList) {
