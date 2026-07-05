@@ -43,8 +43,11 @@ export function useAdminCmsData(session) {
         supabase.from('import_log').select('*').order('created_at', { ascending: false }).limit(50),
         supabase.from('profiles').select('id, username, nama, peran, school_id, cakupan, created_at'),
         // Dipakai buat hitung "kelas belum ada tindak lanjut" (Rekomendasi di layar Gemini).
+        // Sengaja HANYA hitung status menunggu_persetujuan/disetujui sebagai "sudah ada" --
+        // kelas yang drafnya ditolak harus muncul lagi di sini supaya gampang di-generate ulang,
+        // bukan malah hilang dari daftar rekomendasi selamanya.
         supabase.from('karakter_summary').select('sekolah_id, scope_id, periode_id').eq('scope', 'kelas'),
-        supabase.from('tindak_lanjut').select('sekolah_id, scope_id, periode_id').eq('scope', 'kelas'),
+        supabase.from('tindak_lanjut').select('sekolah_id, scope_id, periode_id').eq('scope', 'kelas').in('status', ['menunggu_persetujuan', 'disetujui']),
         supabase.from('gemini_schedule').select('*').eq('id', 'default').maybeSingle(),
       ]);
 
