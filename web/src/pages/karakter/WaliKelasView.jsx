@@ -4,12 +4,12 @@ import SectionHeading from "../../components/SectionHeading";
 import FollowupRibbon from "../../components/FollowupRibbon";
 import {
   KarakterStateBox, BriefingOrEmpty, AspekRadarCard,
-  AspekBarList, IndikatorGrid, ReflectionBlock, TrendChart, useMuridTrend,
+  AspekBarList, IndikatorGrid, ReflectionBlock, TrendChart, useMuridTrend, useSummaryTrend,
   CompareSection, NextStepCTA, withEntityColor, TindakLanjutDetailBody,
 } from "./KarakterShared";
 import DetailDialog from "./DetailDialog";
 import { useKarakterWaliKelas } from "./useKarakterData";
-import { pct, fracToPct, parseTop5Pair, parseTop5Indikator, SECTION_ICON } from "./karakterMeta";
+import { pct, fracToPct, parseTop5Pair, parseTop5Indikator, deltaVsPrevious, SECTION_ICON } from "./karakterMeta";
 import styles from "./KarakterViews.module.css";
 
 function Top5List({ title, icon, tone, pairs, onSelect }) {
@@ -178,6 +178,9 @@ function MuridDialogBody({ murid, aspek, indikator, pernyataan, sekolahId }) {
 
 export default function WaliKelasView({ session }) {
   const { loading, error, data } = useKarakterWaliKelas(session);
+  const { points: trendPoints } = useSummaryTrend({
+    sekolahId: session.school_id, scope: "kelas", scopeId: data?.kelasList,
+  });
   const [selectedMuridId, setSelectedMuridId] = useState(null);
   const [selectedIndikatorItem, setSelectedIndikatorItem] = useState(null);
   const [selectedTindakLanjut, setSelectedTindakLanjut] = useState(null);
@@ -285,16 +288,34 @@ export default function WaliKelasView({ session }) {
       <FollowupRibbon items={tl} onItemClick={(item) => setSelectedTindakLanjut(item._raw)} />
 
       <div className={styles.tiles}>
-        <StatTile label="Siswa terpetakan" value={nSiswa} />
-        <StatTile label="Rata-rata pencapaian" value={rataGuru ?? "—"} unit={rataGuru != null ? "%" : ""} />
-        <StatTile label="Aspek terkuat" value={aspekTerkuat} compact />
+        <StatTile icon="👥" label="Siswa terpetakan" value={nSiswa} />
         <StatTile
+          icon="📈" label="Rata-rata pencapaian" value={rataGuru ?? "—"} unit={rataGuru != null ? "%" : ""}
+          delta={rataGuru != null ? deltaVsPrevious(trendPoints) : null}
+        />
+        <StatTile icon="🌟" label="Aspek terkuat" value={aspekTerkuat} compact />
+        <StatTile
+          icon="🌱"
           label="Perlu perhatian"
           value={aspekPerhatian}
           tone={aspekPerhatian !== "—" ? "perhatian" : "default"}
           compact
         />
       </div>
+
+      {trendPoints.length >= 2 && (
+        <section className={styles.section}>
+          <SectionHeading
+            icon={SECTION_ICON.tren}
+            eyebrow="Perjalanan kelas"
+            title="Perkembangan Kelas Antar Bulan"
+            subtitle="Rata-rata pencapaian kelas dari periode ke periode."
+          />
+          <div className={styles.card}>
+            <TrendChart points={trendPoints} />
+          </div>
+        </section>
+      )}
 
       <section className={styles.section}>
         <SectionHeading

@@ -14,6 +14,13 @@
   padding: 28px 24px 48px;
 }
 
+/* Varian penuh lebar (shell Kepsek/Wakil, lihat App.jsx .mainFull): parent <main> sudah
+   tanpa padding/max-width sendiri, jadi tidak perlu trik margin negatif di sini lagi. */
+.pageFullBleed {
+  margin: 0;
+  padding: 28px 32px 48px;
+}
+
 /* ── Hero label ── */
 .heroLabel {
   display: flex;
@@ -358,6 +365,23 @@
   overflow-x: auto;
 }
 
+@media (max-width: 640px) {
+  /* Nama tetap kelihatan saat geser horizontal ngelewatin kolom aspek. */
+  .table td.tdNama {
+    position: sticky;
+    left: 0;
+    background: var(--surface);
+    z-index: 1;
+  }
+
+  .table thead th:first-child {
+    position: sticky;
+    left: 0;
+    background: var(--surface-soft);
+    z-index: 1;
+  }
+}
+
 .table {
   width: 100%;
   border-collapse: collapse;
@@ -467,4 +491,610 @@
 
 .barRowClickable:hover {
   background: var(--surface-soft);
+}
+
+/* ── KepsekView: baris kartu statistik mandiri (ikon + angka + visual kecil per kartu) ── */
+.statCardsRow {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 14px;
+}
+
+@media (min-width: 640px) {
+  .statCardsRow {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (min-width: 1100px) {
+  .statCardsRow {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}
+
+.statCardMini {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  width: 100%;
+  border: none;
+  text-align: left;
+  font-family: inherit;
+  background: var(--surface);
+  border-radius: var(--radius-xl);
+  padding: 20px 22px;
+  box-shadow: var(--shadow-card);
+  position: relative;
+}
+
+.statCardMiniClickable {
+  cursor: pointer;
+  transition: transform var(--transition-fast), box-shadow var(--transition-fast);
+}
+
+.statCardMiniClickable:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-hero);
+}
+
+.statCardMiniArrow {
+  color: var(--purple-300);
+  font-weight: 800;
+  font-size: 15px;
+  opacity: 0;
+  transition: opacity var(--transition-fast);
+  flex-shrink: 0;
+}
+
+.statCardMiniClickable:hover .statCardMiniArrow {
+  opacity: 1;
+  color: var(--purple-600);
+}
+
+.statCardMiniPerhatian {
+  background: linear-gradient(150deg, var(--status-caution-bg) 0%, var(--surface) 65%);
+}
+
+.statCardMiniTop {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.statCardMiniLabel {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--ink-3);
+}
+
+.statCardMiniIcon {
+  width: 30px;
+  height: 30px;
+  border-radius: 10px;
+  background: var(--purple-050);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  flex-shrink: 0;
+}
+
+.statCardMiniValue {
+  font-family: var(--font-display);
+  font-size: 30px;
+  font-weight: 800;
+  color: var(--ink);
+  letter-spacing: -0.02em;
+  line-height: 1;
+}
+
+.statCardMiniUnit {
+  font-size: 16px;
+  font-weight: 700;
+  margin-left: 2px;
+  color: var(--ink-3);
+}
+
+.statCardMiniSub {
+  font-size: 12px;
+  color: var(--ink-3);
+  margin: -4px 0 0;
+}
+
+.statCardMiniSubAman { color: var(--status-ok); font-weight: 700; }
+.statCardMiniSubPerhatian { color: var(--status-caution); font-weight: 700; }
+
+.statCardMiniVisual {
+  margin-top: 2px;
+}
+
+.miniStackBar {
+  display: flex;
+  height: 8px;
+  border-radius: 99px;
+  overflow: hidden;
+  background: var(--surface-soft);
+}
+
+.miniStackBarBaik { background: var(--status-ok); }
+.miniStackBarPerhatian { background: var(--status-caution); }
+
+.miniProgressTrack {
+  height: 8px;
+  border-radius: 99px;
+  background: var(--surface-soft);
+  overflow: hidden;
+}
+
+.miniProgressFill {
+  height: 100%;
+  border-radius: 99px;
+  background: linear-gradient(90deg, var(--purple-300), var(--purple-600));
+}
+
+.miniChipRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.miniChip {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--status-caution);
+  background: var(--surface);
+  border-radius: 999px;
+  padding: 4px 10px;
+}
+
+/* ── KepsekView: filter jenjang + kelas (dropdown, bukan chip) ── */
+.filterBarRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+}
+
+.filterActiveBadge {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--purple-700);
+  background: var(--purple-050);
+  border-radius: 999px;
+  padding: 6px 14px;
+}
+
+.filterSelect {
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ink);
+  background: var(--surface);
+  border: none;
+  border-radius: var(--radius-md);
+  padding: 9px 14px;
+  box-shadow: var(--shadow-card);
+  cursor: pointer;
+}
+
+/* ── KepsekView: master-detail kelas (daftar kiri + panel detail kanan) ── */
+.masterDetail {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+@media (min-width: 900px) {
+  .masterDetail {
+    flex-direction: row;
+    align-items: flex-start;
+  }
+}
+
+.masterList {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  background: var(--surface);
+  border-radius: var(--radius-xl);
+  padding: 16px;
+  box-shadow: var(--shadow-card);
+  flex: 1;
+  min-width: 0;
+}
+
+@media (min-width: 900px) {
+  .masterList {
+    flex: 0 0 340px;
+  }
+}
+
+.masterListTabs {
+  display: flex;
+  gap: 4px;
+  background: var(--surface-soft);
+  border-radius: 999px;
+  padding: 4px;
+  width: fit-content;
+  max-width: 100%;
+  overflow-x: auto;
+}
+
+.masterListTab {
+  border: none;
+  background: transparent;
+  border-radius: 999px;
+  padding: 7px 13px;
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--ink-3);
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.masterListTabActive {
+  background: var(--purple-600);
+  color: #fff;
+}
+
+.masterListRows {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  max-height: 420px;
+  overflow-y: auto;
+}
+
+.masterListRow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  border: none;
+  background: transparent;
+  font-family: inherit;
+  text-align: left;
+  padding: 10px;
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: background var(--transition-fast);
+}
+
+.masterListRow:hover {
+  background: var(--surface-soft);
+}
+
+.masterListRowActive {
+  background: var(--purple-600);
+}
+
+.masterListRowActive .masterListName,
+.masterListRowActive .masterListScore {
+  color: #fff;
+}
+
+.masterListAvatar {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background: var(--purple-100);
+  color: var(--purple-700);
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 13px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.masterListRowActive .masterListAvatar {
+  background: var(--surface);
+}
+
+.masterListName {
+  flex: 1;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--ink);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.masterListTone {
+  font-size: 10.5px;
+  font-weight: 700;
+  border-radius: 999px;
+  padding: 3px 9px;
+  white-space: nowrap;
+}
+
+.tonePillAman { background: var(--status-ok-bg); color: var(--status-ok); }
+.tonePillPerhatian { background: var(--status-caution-bg); color: var(--status-caution); }
+.tonePillDefault { background: var(--surface-soft); color: var(--ink-3); }
+
+.masterListScore {
+  font-family: var(--font-display);
+  font-size: 13px;
+  font-weight: 800;
+  color: var(--ink);
+  min-width: 34px;
+  text-align: right;
+}
+
+.masterDetailPanel {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  background: var(--surface);
+  border-radius: var(--radius-xl);
+  padding: 22px 24px;
+  box-shadow: var(--shadow-card);
+}
+
+.masterDetailHeader {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.masterDetailTitle {
+  font-family: var(--font-display);
+  font-size: 19px;
+  font-weight: 800;
+  color: var(--ink);
+  margin: 0;
+}
+
+/* ── KepsekView: split baik/perlu perhatian (kelas & aspek) ── */
+.splitGrid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 16px;
+}
+
+@media (min-width: 768px) {
+  .splitGrid {
+    grid-template-columns: 1fr 1fr;
+    align-items: start;
+  }
+}
+
+.splitCol {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.splitColHeader {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.splitColIcon {
+  width: 26px;
+  height: 26px;
+  border-radius: 9px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  flex-shrink: 0;
+}
+
+.splitColTitle {
+  font-size: 13px;
+  font-weight: 800;
+  color: var(--ink);
+}
+
+.splitColBaik .splitColIcon { background: var(--status-ok-bg); color: var(--status-ok); }
+.splitColPerhatian .splitColIcon { background: var(--status-caution-bg); color: var(--status-caution); }
+
+/* ── KepsekView: banner "semua sudah bagus" ── */
+.allGoodBanner {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  background: linear-gradient(135deg, var(--status-ok-bg) 0%, var(--surface-soft) 100%);
+  border-radius: var(--radius-lg);
+  padding: 18px 20px;
+}
+
+.allGoodBannerIcon {
+  width: 36px;
+  height: 36px;
+  border-radius: 11px;
+  background: var(--surface);
+  color: var(--status-ok);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 17px;
+  font-weight: 800;
+  flex-shrink: 0;
+  box-shadow: var(--shadow-card);
+}
+
+.allGoodBannerTitle {
+  font-size: 13.5px;
+  font-weight: 800;
+  color: var(--ink);
+  margin: 0 0 4px;
+}
+
+.allGoodBannerText {
+  font-size: 12.5px;
+  color: var(--ink-3);
+  line-height: 1.55;
+  margin: 0;
+}
+
+/* ── KepsekView: tindak lanjut dikelompokkan 3 bucket ── */
+.tlGroupedWrap {
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+}
+
+.tlGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.tlGroupHeader {
+  border-radius: var(--radius-md);
+  padding: 12px 16px;
+  border-left: 4px solid transparent;
+}
+
+.tlGroupTitle {
+  font-size: 13.5px;
+  font-weight: 800;
+  margin: 0 0 3px;
+}
+
+.tlGroupWhy {
+  font-size: 12px;
+  line-height: 1.5;
+  margin: 0;
+  opacity: 0.85;
+}
+
+.groupTonePositif { background: var(--status-ok-bg); border-left-color: var(--status-ok); }
+.groupTonePositif .tlGroupTitle { color: var(--status-ok); }
+.groupTonePositif .tlGroupWhy { color: var(--ink-2); }
+
+.groupTonePerhatian { background: var(--status-caution-bg); border-left-color: var(--status-caution); }
+.groupTonePerhatian .tlGroupTitle { color: var(--status-caution); }
+.groupTonePerhatian .tlGroupWhy { color: var(--ink-2); }
+
+.groupToneNetral { background: var(--surface-soft); border-left-color: var(--ink-4); }
+.groupToneNetral .tlGroupTitle { color: var(--ink-2); }
+.groupToneNetral .tlGroupWhy { color: var(--ink-3); }
+
+.tlGroupGrid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 12px;
+}
+
+@media (min-width: 768px) {
+  .tlGroupGrid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (min-width: 1100px) {
+  .tlGroupGrid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+/* ── Section B: bagaimana citra sekolah di mata orang tua, dibedakan dari Section A.
+   Abu lebih gelap dari latar halaman (#EDEDF0), tetap di keluarga gray Montserrat,
+   bukan token warm --bg-2 supaya tidak bentrok dengan pengecualian font/warna modul ini. */
+.sectionB {
+  background: #E3E3E8;
+  border-radius: var(--radius-xl);
+  padding: 24px 26px;
+}
+
+/* ── KepsekView: 2 kategori besar, tiap kategori bungkus semua sub-section miliknya
+   supaya kelihatan jelas sebagai satu kelompok, bukan daftar section lepas-lepas. ── */
+.megaCategory {
+  display: flex;
+  flex-direction: column;
+  gap: 28px;
+  border-radius: var(--radius-xl);
+  padding: 6px 0 8px;
+}
+
+.megaCategoryB {
+  background: #E3E3E8;
+  padding: 24px 26px 28px;
+}
+
+.megaCategoryHeader {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.megaCategoryBadge {
+  display: inline-flex;
+  align-items: center;
+  width: fit-content;
+  font-size: 11.5px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: #fff;
+  background: var(--purple-600);
+  border-radius: 999px;
+  padding: 5px 14px;
+}
+
+.megaCategoryB .megaCategoryBadge {
+  background: var(--ink-2);
+}
+
+.megaCategoryTitle {
+  font-family: var(--font-display);
+  font-size: 24px;
+  font-weight: 800;
+  color: var(--ink);
+  margin: 0;
+  letter-spacing: -0.3px;
+}
+
+.megaCategorySub {
+  font-size: 13px;
+  color: var(--ink-3);
+  margin: 0;
+  max-width: 70ch;
+  line-height: 1.55;
+}
+
+/* ── KepsekView: sub-menu Kategori 1/2, supaya tidak harus scroll panjang untuk pindah topik ── */
+.categoryNav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  background: var(--surface-soft);
+  border-radius: 100px;
+  padding: 5px;
+  width: fit-content;
+  position: sticky;
+  top: 8px;
+  z-index: 5;
+}
+
+.categoryNavTab {
+  border: none;
+  background: transparent;
+  border-radius: 100px;
+  padding: 9px 18px;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--ink-3);
+  white-space: nowrap;
+  cursor: pointer;
+  transition: background var(--transition-fast), color var(--transition-fast);
+}
+
+.categoryNavTab:hover {
+  color: var(--ink);
+}
+
+.categoryNavTabActive {
+  background: var(--purple-600);
+  color: #fff;
 }

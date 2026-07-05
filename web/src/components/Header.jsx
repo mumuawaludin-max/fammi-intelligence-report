@@ -1,27 +1,42 @@
+import PeriodPicker from "./PeriodPicker";
 import styles from "./Header.module.css";
 
-export default function Header({ userName = "Demo User", role = "Kepala Sekolah", schoolName = "SMA Contoh", onLogout }) {
+export default function Header({
+  userName = "Demo User", role = "Kepala Sekolah", schoolName = "SMA Contoh", onLogout,
+  period, onPeriodChange, showPeriod = false, inlineNav = null, bulananOptions,
+}) {
   return (
     <header className={styles.header}>
-      <div className={styles.inner}>
+      <div className={`${styles.inner} ${inlineNav ? styles.innerInline : ""}`}>
         <div className={styles.logo}>
-          <span className={styles.logoMark}>F</span>
-          <span className={styles.logoText}>Fammi<em>IR</em></span>
+          <img className={styles.logoImage} src="/logo-purple.png" alt="Fammi" />
         </div>
 
-        <div className={styles.right}>
+        {inlineNav && <div className={styles.inlineNavSlot}>{inlineNav}</div>}
+
+        <div className={`${styles.right} ${showPeriod ? styles.rightKepsek : ""}`}>
+          {showPeriod && period && (
+            <PeriodPicker
+              selectedType={period.type}
+              selectedPeriod={period.period}
+              onSelect={onPeriodChange}
+              bulananOptions={bulananOptions}
+            />
+          )}
+          {showPeriod && <span className={styles.divider} aria-hidden="true" />}
           <span className={styles.schoolName}>{schoolName}</span>
           <div className={styles.userChip}>
             <span className={styles.avatar}>{userName.charAt(0)}</span>
-            <div className={styles.userInfo}>
-              <span className={styles.userName}>{userName}</span>
-              <span className={styles.rolePill}>{role}</span>
-            </div>
+            <span className={styles.userName}>{userName}</span>
+            <span className={styles.rolePill}>{role}</span>
           </div>
           {onLogout && (
-            <button className={styles.logoutBtn} onClick={onLogout} title="Keluar">
-              Keluar
-            </button>
+            <>
+              <span className={styles.divider} aria-hidden="true" />
+              <button className={styles.logoutBtn} onClick={onLogout} title="Keluar">
+                Keluar
+              </button>
+            </>
           )}
         </div>
       </div>

@@ -104,3 +104,23 @@
   flex-direction: column;
   gap: 22px;
 }
+
+/* Mobile: dialog jadi bottom-sheet penuh lebar, nempel di bawah viewport, radius cuma sudut atas. */
+@media (max-width: 640px) {
+  .overlay {
+    align-items: flex-end;
+    padding: 0;
+  }
+
+  .dialog {
+    max-width: none;
+    max-height: 92dvh;
+    border-radius: var(--radius-xl) var(--radius-xl) 0 0;
+    animation: slideUp 0.22s cubic-bezier(0.2, 0.8, 0.3, 1);
+  }
+}
+
+@keyframes slideUp {
+  from { transform: translateY(24px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}

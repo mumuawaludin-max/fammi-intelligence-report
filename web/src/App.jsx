@@ -1,6 +1,7 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { getSession, logoutSupabase } from "./lib/auth";
 import { useOverviewBriefing } from "./hooks/useOverviewBriefing";
+import { useAvailablePeriods } from "./hooks/useAvailablePeriods";
 import LoginPage from "./pages/LoginPage";
 import Header from "./components/Header";
 import NavBar from "./components/NavBar";
@@ -54,13 +55,33 @@ function OverviewTab({ overview, period }) {
   );
 }
 
+function isKepsekPeran(peran) {
+  return peran === "KepalaSekolah" || peran === "WakilKepalaSekolah";
+}
+
 export default function App() {
   const [session, setSession]     = useState(() => getSession());
-  const [activeTab, setActiveTab] = useState("overview");
+  const [activeTab, setActiveTab] = useState(() => (isKepsekPeran(getSession()?.peran) ? "karakter" : "overview"));
   const [period, setPeriod]       = useState({ type: "bulanan", period: "Juni 2026" });
   const overview = useOverviewBriefing(session);
+  const isKepsekShell = isKepsekPeran(session?.peran);
+  const availablePeriods = useAvailablePeriods(session);
 
-  function handleLogin(newSession) { setSession(newSession); }
+  // Begitu daftar periode asli sekolah ini dimuat, ganti default palsu ("Juni 2026") ke
+  // periode terbaru yang benar-benar punya data. Tidak menimpa pilihan manual user berikutnya.
+  useEffect(() => {
+    if (!isKepsekShell || availablePeriods.length === 0) return;
+    setPeriod((prev) => (
+      prev.type === "bulanan" && availablePeriods.includes(prev.period)
+        ? prev
+        : { type: "bulanan", period: availablePeriods[0] }
+    ));
+  }, [isKepsekShell, availablePeriods]);
+
+  function handleLogin(newSession) {
+    setSession(newSession);
+    setActiveTab(isKepsekPeran(newSession.peran) ? "karakter" : "overview");
+  }
   function handleLogout() {
     logoutSupabase();
     setSession(null);
@@ -76,6 +97,20 @@ export default function App() {
     return <AdminCmsPage session={session} onLogout={handleLogout} />;
   }
 
+  const bulananOptions = availablePeriods.map((id) => ({ id, label: periodeLabel(id) }));
+  const modules = isKepsekShell
+    ? (session.modules || []).filter((m) => m !== "overview")
+    : ["overview", ...(session.modules || [])];
+
+  const navBar = (
+    <NavBar
+      activeTab={activeTab}
+      onTabChange={setActiveTab}
+      modules={modules}
+      pillNav={isKepsekShell}
+    />
+  );
+
   return (
     <div className={styles.app}>
       <Header
@@ -83,25 +118,28 @@ export default function App() {
         role={session.peran}
         schoolName={overview.schoolName || ""}
         onLogout={handleLogout}
+        period={period}
+        onPeriodChange={setPeriod}
+        showPeriod={isKepsekShell}
+        bulananOptions={bulananOptions}
+        inlineNav={isKepsekShell ? navBar : null}
       />
-      <NavBar
-        activeTab={activeTab}
-        onTabChange={setActiveTab}
-        modules={["overview", ...(session.modules || [])]}
-      />
+      {!isKepsekShell && navBar}
 
-      <div className={styles.toolbar}>
-        <div className={styles.toolbarInner}>
-          <span className={styles.toolbarLabel}>Periode</span>
-          <PeriodPicker
-            selectedType={period.type}
-            selectedPeriod={period.period}
-            onSelect={setPeriod}
-          />
+      {!isKepsekShell && (
+        <div className={styles.toolbar}>
+          <div className={styles.toolbarInner}>
+            <span className={styles.toolbarLabel}>Periode</span>
+            <PeriodPicker
+              selectedType={period.type}
+              selectedPeriod={period.period}
+              onSelect={setPeriod}
+            />
+          </div>
         </div>
-      </div>
+      )}
 
-      <main className={styles.main}>
+      <main className={`${styles.main} ${isKepsekShell ? styles.mainFull : ""}`}>
         {activeTab === "overview" && (
           <OverviewTab overview={overview} period={period} />
         )}
@@ -111,7 +149,7 @@ export default function App() {
         )}
 
         {activeTab === "karakter" && (
-          <KarakterPage session={session} />
+          <KarakterPage session={session} periodeId={isKepsekShell ? period.period : null} />
         )}
 
         {activeTab === "screening" && (

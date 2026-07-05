@@ -59,3 +59,40 @@
 .tab.active::after {
   background: var(--purple-600);
 }
+
+/* ── Varian pill: khusus shell Kepala Sekolah/Wakil Kepala Sekolah, dirender
+   menyatu di dalam Header (lihat Header.jsx inlineNav), bukan bar terpisah lagi. */
+.navPill {
+  border-bottom: none;
+  background: transparent;
+}
+
+.navPill .inner {
+  max-width: none;
+  padding: 0;
+}
+
+.listPill {
+  align-items: center;
+  gap: 2px;
+  min-height: 0;
+  background: var(--purple-050);
+  border-radius: 100px;
+  padding: 4px;
+  width: fit-content;
+}
+
+.tabPill {
+  border-radius: 100px;
+  padding: 8px 18px;
+}
+
+.tabPill::after {
+  display: none;
+}
+
+.tabPill.activePill {
+  color: #fff;
+  background: var(--purple-600);
+  font-weight: 700;
+}

@@ -134,6 +134,11 @@
   padding: 8px 0 4px;
 }
 
+.radarWrap svg {
+  max-width: 100%;
+  height: auto;
+}
+
 .legend {
   display: flex;
   flex-wrap: wrap;
@@ -429,24 +434,367 @@
   gap: 12px;
 }
 
+/* "Gradient card" look (bg lembut per nada + hover lift), diterjemahkan ke token warna
+   proyek ini yang sudah terkunci -- bukan Tailwind/shadcn, lihat catatan di KarakterShared.jsx. */
 .quoteBentoCard {
+  background: var(--surface-soft);
+  border-radius: var(--radius-lg);
+  padding: 16px 18px;
+  transition: transform var(--transition-fast), box-shadow var(--transition-fast);
+}
+
+.quoteBentoCard:hover {
+  transform: translateY(-3px);
+  box-shadow: var(--shadow-hero);
+}
+
+.quoteCardApresiasi { background: linear-gradient(150deg, var(--status-ok-bg) 0%, var(--surface) 70%); }
+.quoteCardHarapan { background: linear-gradient(150deg, var(--purple-050) 0%, var(--surface) 70%); }
+.quoteCardMasukan { background: linear-gradient(150deg, var(--status-caution-bg) 0%, var(--surface) 70%); }
+.quoteCardKritik { background: linear-gradient(150deg, var(--status-alert-bg) 0%, var(--surface) 70%); }
+.quoteCardDefault { background: var(--surface-soft); }
+
+.quoteBentoText {
+  margin: 0 0 8px;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--ink);
+  line-height: 1.55;
+}
+
+.quoteBentoTags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 10px;
+}
+
+.quoteBentoTag {
+  font-size: 10.5px;
+  font-weight: 700;
+  color: var(--purple-700);
+  background: var(--purple-050);
+  border-radius: 999px;
+  padding: 3px 9px;
+  white-space: nowrap;
+}
+
+/* ── Suara orang tua: grafik hitungan + emosi (ParentVoiceBento) ── */
+.parentVoiceWrap {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.voiceTabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  background: var(--surface-soft);
+  border-radius: 100px;
+  padding: 5px;
+  width: fit-content;
+}
+
+.voiceTab {
+  border: none;
+  background: transparent;
+  border-radius: 100px;
+  padding: 8px 16px;
+  font-family: inherit;
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--ink-3);
+  white-space: nowrap;
+  cursor: pointer;
+  transition: background var(--transition-fast), color var(--transition-fast);
+}
+
+.voiceTab:hover {
+  color: var(--ink);
+}
+
+.voiceTabActive {
+  background: var(--purple-600);
+  color: #fff;
+}
+
+.pvChartCard {
   background: var(--surface-soft);
   border-radius: var(--radius-lg);
   padding: 16px 18px;
 }
 
-.quoteBentoText {
-  margin: 0 0 8px;
-  font-size: 13px;
-  font-style: italic;
+.pvChartTitle {
+  font-size: 12.5px;
+  font-weight: 800;
   color: var(--ink-2);
-  line-height: 1.55;
+  margin: 0 0 2px;
 }
 
-.quoteBentoMeta {
-  font-size: 11px;
+.pvBarList {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.pvBarRow {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr) auto;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  border: none;
+  background: none;
+  font-family: inherit;
+  text-align: left;
+  padding: 0;
+}
+
+.pvBarRowClickable {
+  cursor: pointer;
+  padding: 6px 8px;
+  margin: -6px -8px;
+  border-radius: var(--radius-sm);
+  transition: background var(--transition-fast);
+}
+
+.pvBarRowClickable:hover {
+  background: var(--surface);
+}
+
+.pvBarRowActive {
+  background: var(--purple-050) !important;
+}
+
+.pvBarRowActive .pvBarLabel {
+  color: var(--purple-700);
+  font-weight: 800;
+}
+
+.pvBarLabel {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--ink-2);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.pvBarTrack {
+  height: 8px;
+  background: var(--surface);
+  border-radius: 99px;
+  overflow: hidden;
+}
+
+.pvBarFill {
+  height: 100%;
+  border-radius: 99px;
+  background: linear-gradient(90deg, var(--purple-300), var(--purple-600));
+}
+
+.pvBarCount {
+  font-family: var(--font-display);
+  font-size: 12.5px;
+  font-weight: 800;
+  color: var(--ink);
+  min-width: 20px;
+  text-align: right;
+}
+
+.pvEmosiRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.pvEmosiLabel {
+  font-size: 12px;
   font-weight: 700;
-  color: var(--ink-4);
+  color: var(--ink-3);
+  margin-right: 2px;
+}
+
+.pvEmosiChip {
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 700;
+  border: none;
+  border-radius: 999px;
+  padding: 5px 12px;
+  cursor: pointer;
+  transition: box-shadow var(--transition-fast), transform var(--transition-fast);
+}
+
+.pvEmosiChip:hover {
+  transform: translateY(-1px);
+}
+
+.pvEmosiChipActive {
+  box-shadow: inset 0 0 0 2px currentColor;
+}
+
+.pvEmosiChip strong {
+  font-family: var(--font-display);
+  margin-left: 3px;
+}
+
+.pvEmosi_aman { background: var(--status-ok-bg); color: var(--status-ok); }
+.pvEmosi_perhatian { background: var(--status-caution-bg); color: var(--status-caution); }
+.pvEmosi_default { background: var(--surface-soft); color: var(--ink-3); }
+
+/* ── Kartu besar (featured) + grid pendukung, gaya testimoni ── */
+.voiceLayout {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+@media (min-width: 900px) {
+  .voiceLayout {
+    flex-direction: row;
+    align-items: stretch;
+  }
+}
+
+.voiceFeaturedCard {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  border-radius: var(--radius-xl);
+  padding: 24px 26px;
+  overflow: hidden;
+  min-height: 260px;
+}
+
+@media (min-width: 900px) {
+  .voiceFeaturedCard {
+    flex: 0 0 300px;
+  }
+}
+
+.voiceFeaturedBadge {
+  align-self: flex-start;
+  font-size: 12px;
+  font-weight: 800;
+  color: var(--purple-700);
+  background: var(--surface);
+  border-radius: 999px;
+  padding: 5px 14px;
+  box-shadow: var(--shadow-card);
+  position: relative;
+  z-index: 1;
+}
+
+.voiceFeaturedMark {
+  position: absolute;
+  right: 20px;
+  bottom: 54px;
+  font-family: var(--font-display);
+  font-size: 90px;
+  line-height: 1;
+  color: var(--purple-300);
+  opacity: 0.35;
+  pointer-events: none;
+}
+
+.voiceFeaturedText {
+  flex: 1;
+  margin: 18px 0 0;
+  font-size: 15.5px;
+  font-weight: 700;
+  line-height: 1.55;
+  color: var(--ink);
+  position: relative;
+  z-index: 1;
+}
+
+.voiceGridWrap {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.voiceCardFooter {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 14px;
+  position: relative;
+  z-index: 1;
+}
+
+.voiceAvatarSm {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background: var(--purple-100);
+  color: var(--purple-700);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 12.5px;
+  flex-shrink: 0;
+}
+
+.voiceAvatarLg {
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  background: var(--surface);
+  color: var(--purple-700);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 15px;
+  flex-shrink: 0;
+  box-shadow: var(--shadow-card);
+}
+
+.voiceCardNameSm {
+  margin: 0;
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--ink);
+}
+
+.voiceCardNameLg {
+  margin: 0;
+  font-size: 13.5px;
+  font-weight: 800;
+  color: var(--ink);
+}
+
+.voiceCardRole {
+  margin: 1px 0 0;
+  font-size: 11px;
+  color: var(--ink-3);
+}
+
+.quoteLoadMoreBtn {
+  align-self: center;
+  font-family: inherit;
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--purple-600);
+  background: var(--purple-050);
+  border: none;
+  border-radius: 100px;
+  padding: 9px 22px;
+  cursor: pointer;
+  transition: background var(--transition-fast);
+}
+
+.quoteLoadMoreBtn:hover {
+  background: var(--purple-100);
 }
 
 /* ── Trend chart ── */

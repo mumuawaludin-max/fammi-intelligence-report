@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { supabase } from "../../lib/supabase";
 import { withAspekColor, latestPeriode } from "./karakterMeta";
 
@@ -120,9 +120,14 @@ export function useKarakterWaliKelas(session) {
   return state;
 }
 
-/** Kepala Sekolah: seluruh sekolahnya, level sekolah + jenjang + kelas. */
-export function useKarakterKepsek(session) {
-  const [state, setState] = useState({ loading: true, error: null, data: null });
+/**
+ * Kepala Sekolah: seluruh sekolahnya, level sekolah + jenjang + kelas.
+ * periodeId (opsional): periode_id yang sedang dipilih di PeriodPicker header. Semua tabel
+ * di-fetch SEKALI penuh (semua periode), lalu diiris ulang di sisi klien tiap periodeId
+ * berubah — tidak perlu fetch ulang ke Supabase tiap ganti periode.
+ */
+export function useKarakterKepsek(session, periodeId) {
+  const [state, setState] = useState({ loading: true, error: null, raw: null });
 
   useEffect(() => {
     let alive = true;
@@ -148,36 +153,29 @@ export function useKarakterKepsek(session) {
           .eq("status", "disetujui"),
         supabase
           .from("tindak_lanjut")
-          .select("id, action, trigger_desc, priority, periode_id, gambaran, langkah_terpilih")
+          .select("id, scope, scope_id, action, trigger_desc, priority, periode_id, gambaran, langkah_terpilih")
           .eq("sekolah_id", sekolahId)
           .eq("modul", "karakter")
-          .eq("scope", "sekolah")
+          .in("scope", ["sekolah", "kelas"])
           .eq("status", "disetujui"),
         supabase
           .from("karakter_pernyataan_ortu")
-          .select("kelas_id, murid_id, nama_murid, periode_id, pernyataan")
+          .select("kelas_id, murid_id, nama_murid, periode_id, pernyataan, kategori_pernyataan, emosi_anak, alasan_emosi, dukungan_dibutuhkan, dukungan_lainnya, hal_disyukuri")
           .eq("sekolah_id", sekolahId),
       ]);
 
       if (!alive) return;
-      if (summaryRes.error) { setState({ loading: false, error: summaryRes.error.message, data: null }); return; }
-
-      const rows = summaryRes.data || [];
-      const periode = latestPeriode(rows);
-      const atPeriode = rows.filter((r) => r.periode_id === periode);
+      if (summaryRes.error) { setState({ loading: false, error: summaryRes.error.message, raw: null }); return; }
 
       setState({
         loading: false,
         error: null,
-        data: {
-          periode,
+        raw: {
           aspek,
-          sekolah: atPeriode.find((r) => r.scope === "sekolah") || null,
-          jenjang: atPeriode.filter((r) => r.scope === "jenjang"),
-          kelas: atPeriode.filter((r) => r.scope === "kelas"),
-          briefing: (briefingRes.data || [])[0] || null,
-          tindakLanjut: tlRes.data || [],
-          pernyataan: (ortuRes.data || []).filter((r) => r.periode_id === periode),
+          summaryRows: summaryRes.data || [],
+          briefingRows: briefingRes.data || [],
+          tlRows: tlRes.data || [],
+          ortuRows: ortuRes.data || [],
         },
       });
     }
@@ -186,7 +184,28 @@ export function useKarakterKepsek(session) {
     return () => { alive = false; };
   }, [session.school_id]);
 
-  return state;
+  const data = useMemo(() => {
+    if (!state.raw) return null;
+    const { aspek, summaryRows, briefingRows, tlRows, ortuRows } = state.raw;
+
+    const availablePeriods = Array.from(new Set(summaryRows.map((r) => r.periode_id))).sort((a, b) => (a > b ? -1 : 1));
+    const periode = periodeId && summaryRows.some((r) => r.periode_id === periodeId) ? periodeId : latestPeriode(summaryRows);
+    const atPeriode = summaryRows.filter((r) => r.periode_id === periode);
+
+    return {
+      periode,
+      availablePeriods,
+      aspek,
+      sekolah: atPeriode.find((r) => r.scope === "sekolah") || null,
+      jenjang: atPeriode.filter((r) => r.scope === "jenjang"),
+      kelas: atPeriode.filter((r) => r.scope === "kelas"),
+      briefing: briefingRows.find((r) => r.periode_id === periode) || null,
+      tindakLanjut: tlRows.filter((r) => r.periode_id === periode),
+      pernyataan: ortuRows.filter((r) => r.periode_id === periode),
+    };
+  }, [state.raw, periodeId]);
+
+  return { loading: state.loading, error: state.error, data };
 }
 
 /** Yayasan: banyak sekolah, dikelompokkan lewat schools.yayasan_id. */
@@ -246,7 +265,7 @@ export function useKarakterYayasan(session) {
           .order("urutan", { ascending: true }),
         supabase
           .from("karakter_pernyataan_ortu")
-          .select("sekolah_id, kelas_id, murid_id, nama_murid, periode_id, pernyataan")
+          .select("sekolah_id, kelas_id, murid_id, nama_murid, periode_id, pernyataan, kategori_pernyataan, emosi_anak, alasan_emosi, dukungan_dibutuhkan, dukungan_lainnya, hal_disyukuri")
           .in("sekolah_id", sekolahIds),
       ]);
 

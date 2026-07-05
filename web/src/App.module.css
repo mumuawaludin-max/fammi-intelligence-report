@@ -37,6 +37,13 @@
   padding: 32px 24px;
 }
 
+/* Varian penuh lebar, dipakai shell Kepsek/Wakil supaya tidak ada gutter kosong kanan-kiri
+   (dan latar --bg hangat milik .app tidak pernah terlihat lagi di sisi manapun). */
+.mainFull {
+  max-width: none;
+  padding: 0;
+}
+
 /* Placeholder sampai dashboard dibangun */
 .placeholder {
   display: flex;

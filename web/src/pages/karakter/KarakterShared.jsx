@@ -1,10 +1,14 @@
-import { useEffect, useState } from "react";
+import { useEffect, useId, useState } from "react";
 import BriefingHero from "../../components/BriefingHero";
 import RadarChart from "../../components/charts/RadarChart";
 import GroupedBarChart from "../../components/charts/GroupedBarChart";
 import { supabase } from "../../lib/supabase";
 import styles from "./KarakterShared.module.css";
-import { ringkasanAspekValue, aspekIcon, periodeLabel } from "./karakterMeta";
+import {
+  ringkasanAspekValue, aspekIcon, periodeLabel, pct, classifyPencapaian,
+  extractPlainText, isBlankEssay, KATEGORI_PERNYATAAN_OPTIONS, DUKUNGAN_OPTIONS, HAL_DISYUKURI_OPTIONS,
+  countMultiValue, matchedCategoryTags, matchedOptions, countEmosi,
+} from "./karakterMeta";
 
 const ENTITY_COLOR_VARS = ["--dv-1", "--dv-2", "--dv-3", "--dv-4", "--dv-5", "--dv-6", "--dv-7", "--dv-8"];
 
@@ -36,6 +40,9 @@ export function KarakterStateBox({ loading, error, onRetry, loadingLabel }) {
 /**
  * BriefingHero kalau ada baris briefing yang disetujui, kalau belum ada
  * tampilkan catatan tenang, BUKAN angka contoh yang seolah temuan nyata.
+ *
+ * Trigger Gemini SENGAJA tidak ada di sini -- itu wewenang AdminFammi lewat layar Gemini di
+ * Admin CMS (generate lalu masuk Antrian Persetujuan), bukan tombol yang bisa dipencet sekolah.
  */
 export function BriefingOrEmpty({ briefing, periode, tipePeriode = "Bulanan", label }) {
   if (briefing) {
@@ -48,6 +55,7 @@ export function BriefingOrEmpty({ briefing, periode, tipePeriode = "Bulanan", la
       />
     );
   }
+
   return (
     <div className={styles.briefingEmpty}>
       <span className={styles.briefingEmptyIcon}>💬</span>
@@ -394,39 +402,322 @@ export function TindakLanjutDetailBody({ item }) {
   );
 }
 
-/** Ringkasan kualitatif suara orang tua, gaya bento, dipakai di level Kepsek/Yayasan (agregat lintas kelas/sekolah). */
-export function ParentVoiceBento({ pernyataan }) {
-  if (!pernyataan || pernyataan.length === 0) {
-    return <p className={styles.briefingEmptyText}>Belum ada refleksi orang tua untuk periode ini.</p>;
-  }
-  const quotes = pernyataan.filter((p) => p.pernyataan).slice(0, 6);
-  if (quotes.length === 0) {
-    return <p className={styles.briefingEmptyText}>Belum ada refleksi orang tua untuk periode ini.</p>;
-  }
+/**
+ * Baris bar kecil untuk hitungan kategori (dipakai ParentVoiceBento). Bisa jadi tombol filter
+ * (onItemClick diisi) atau murni tampilan (dukungan_dibutuhkan, belum diminta jadi filter).
+ */
+function StatBarMiniList({ items, emptyText, onItemClick, activeLabel }) {
+  const filtered = items.filter((it) => it.count > 0).sort((a, b) => b.count - a.count);
+  if (filtered.length === 0) return <p className={styles.briefingEmptyText}>{emptyText || "Belum ada data."}</p>;
+  const max = Math.max(...filtered.map((it) => it.count), 1);
   return (
-    <div className={styles.quoteBentoGrid}>
-      {quotes.map((q, i) => (
-        <div key={i} className={styles.quoteBentoCard}>
-          <p className={styles.quoteBentoText}>“{q.pernyataan}”</p>
-          <p className={styles.quoteBentoMeta}>{q.nama_murid}{q.kelas_id ? ` · ${q.kelas_id}` : ""}</p>
-        </div>
-      ))}
+    <div className={styles.pvBarList}>
+      {filtered.map((it) => {
+        const active = activeLabel === it.label;
+        const Tag = onItemClick ? "button" : "div";
+        return (
+          <Tag
+            key={it.label}
+            type={onItemClick ? "button" : undefined}
+            className={`${styles.pvBarRow} ${onItemClick ? styles.pvBarRowClickable : ""} ${active ? styles.pvBarRowActive : ""}`}
+            onClick={onItemClick ? () => onItemClick(it.label) : undefined}
+          >
+            <span className={styles.pvBarLabel} title={it.label}>{it.icon ? `${it.icon} ` : ""}{it.label}</span>
+            <div className={styles.pvBarTrack}>
+              <div className={styles.pvBarFill} style={{ width: `${(it.count / max) * 100}%` }} />
+            </div>
+            <span className={styles.pvBarCount}>{it.count}</span>
+          </Tag>
+        );
+      })}
     </div>
   );
 }
 
-/** Baris bar per aspek (dipakai di dialog detail siswa/kelas/jenjang/sekolah). */
-export function AspekBarList({ aspek, skorByAspek }) {
+const QUOTE_LOAD_STEP = 10;
+const KATEGORI_MATCH_BY_LABEL = Object.fromEntries(KATEGORI_PERNYATAAN_OPTIONS.map((o) => [o.label, o.match]));
+const DUKUNGAN_MATCH_BY_LABEL = Object.fromEntries(DUKUNGAN_OPTIONS.map((o) => [o.label, o.match]));
+const HAL_DISYUKURI_MATCH_BY_LABEL = Object.fromEntries(HAL_DISYUKURI_OPTIONS.map((o) => [o.label, o.match]));
+const HAL_DISYUKURI_FULL_BY_LABEL = Object.fromEntries(HAL_DISYUKURI_OPTIONS.map((o) => [o.label, o.full]));
+const QUOTE_TONE_CLASS = {
+  "Apresiasi": "quoteCardApresiasi",
+  "Harapan": "quoteCardHarapan",
+  "Saran & Masukan": "quoteCardMasukan",
+  "Kritik": "quoteCardKritik",
+};
+const VOICE_TABS = [
+  { id: "testimoni", label: "Testimoni", icon: "💬" },
+  { id: "emosi", label: "Emosi Anak", icon: "🙂" },
+  { id: "dukungan", label: "Dukungan Dibutuhkan", icon: "🤲" },
+  { id: "halDisyukuri", label: "Hal Disyukuri", icon: "🙏" },
+];
+
+/** Kolom esai mentah per tab -- tiap dimensi punya sumber teksnya sendiri, bukan berbagi satu kolom. */
+function essayFieldForTab(tabId) {
+  if (tabId === "testimoni") return "pernyataan";
+  if (tabId === "emosi") return "alasan_emosi";
+  if (tabId === "dukungan") return "dukungan_lainnya";
+  return null; // halDisyukuri: tidak ada kolom esai bebas terpisah, teks diambil dari opsi yang cocok
+}
+
+function toneClassForQuote(q) {
+  const tags = matchedCategoryTags(q.kategori_pernyataan);
+  return styles[QUOTE_TONE_CLASS[tags[0]?.label]] || styles.quoteCardDefault;
+}
+
+/**
+ * Tag pada kartu HARUS ikut dimensi tab yang sedang aktif -- kalau sedang di tab Emosi/Dukungan,
+ * jangan tampilkan tag Testimoni (Apresiasi/Harapan/dll), itu dimensi lain dan bikin esai
+ * kelihatan "salah kategori". Tiap tab tampilkan tag dari field yang benar-benar jadi filter.
+ */
+function tagsForActiveTab(quote, activeTab, emosiItems) {
+  if (activeTab === "testimoni") return matchedCategoryTags(quote.kategori_pernyataan);
+  if (activeTab === "dukungan") return matchedOptions(quote.dukungan_dibutuhkan, DUKUNGAN_OPTIONS);
+  if (activeTab === "halDisyukuri") return matchedOptions(quote.hal_disyukuri, HAL_DISYUKURI_OPTIONS);
+  if (activeTab === "emosi") {
+    const match = emosiItems.find((e) => e.label === (quote.emosi_anak || "").trim());
+    return match ? [{ label: match.label, icon: match.icon }] : [];
+  }
+  return [];
+}
+
+function VoiceCardFooter({ quote, size }) {
+  const avatarClass = size === "lg" ? styles.voiceAvatarLg : styles.voiceAvatarSm;
+  const nameClass = size === "lg" ? styles.voiceCardNameLg : styles.voiceCardNameSm;
+  return (
+    <div className={styles.voiceCardFooter}>
+      <span className={avatarClass}>{(quote.nama_murid || "?").charAt(0).toUpperCase()}</span>
+      <div>
+        <p className={nameClass}>{quote.nama_murid || "Orang tua"}</p>
+        <p className={styles.voiceCardRole}>{quote.kelas_id || "—"}</p>
+      </div>
+    </div>
+  );
+}
+
+/** Kartu besar (paling menonjol), berisi kutipan terpanjang/paling substantif untuk pilihan yang aktif. */
+function FeaturedQuoteCard({ quote, badgeIcon, badgeLabel, activeTab, emosiItems }) {
+  const extraTags = tagsForActiveTab(quote, activeTab, emosiItems).filter((t) => t.label !== badgeLabel);
+  return (
+    <div className={`${styles.voiceFeaturedCard} ${toneClassForQuote(quote)}`}>
+      <span className={styles.voiceFeaturedBadge}>{badgeIcon} {badgeLabel}</span>
+      {extraTags.length > 0 && (
+        <div className={styles.quoteBentoTags} style={{ marginTop: 8 }}>
+          {extraTags.map((t) => <span key={t.label} className={styles.quoteBentoTag}>{t.icon} {t.label}</span>)}
+        </div>
+      )}
+      <span className={styles.voiceFeaturedMark} aria-hidden="true">”</span>
+      <p className={styles.voiceFeaturedText}>{quote.text}</p>
+      <VoiceCardFooter quote={quote} size="lg" />
+    </div>
+  );
+}
+
+/** Kartu grid pendukung, satu kutipan per kartu, tag mengikuti dimensi tab yang sedang aktif. */
+function VoiceGridCard({ quote, activeTab, emosiItems }) {
+  const tags = tagsForActiveTab(quote, activeTab, emosiItems);
+  return (
+    <div className={`${styles.quoteBentoCard} ${toneClassForQuote(quote)}`}>
+      {tags.length > 0 && (
+        <div className={styles.quoteBentoTags}>
+          {tags.map((t) => <span key={t.label} className={styles.quoteBentoTag}>{t.icon} {t.label}</span>)}
+        </div>
+      )}
+      <p className={styles.quoteBentoText}>“{quote.text}”</p>
+      <VoiceCardFooter quote={quote} size="sm" />
+    </div>
+  );
+}
+
+/**
+ * Ringkasan kualitatif suara orang tua, gaya bento, dipakai di level Kepsek/Yayasan (agregat
+ * lintas kelas/sekolah). Empat sub-menu terpisah, satu dimensi aktif dalam satu waktu, tiap
+ * dimensi punya kolom esai sendiri (bukan berbagi satu kolom `pernyataan` untuk semuanya):
+ * Testimoni (kategori_pernyataan, esai dari pernyataan), Emosi Anak (emosi_anak, esai dari
+ * alasan_emosi), Dukungan Dibutuhkan (dukungan_dibutuhkan, esai dari dukungan_lainnya -- baris
+ * tanpa esai nyata di kolom ini tidak ditampilkan), Hal Disyukuri (hal_disyukuri, esai berupa
+ * teks lengkap opsi yang dipilih karena tidak ada kolom esai bebas terpisah untuk dimensi ini).
+ * Pilih satu nilai di dalam sub-menu yang aktif untuk melihat esai aslinya -- kutipan terpanjang/
+ * paling substantif jadi kartu besar, sisanya jadi grid pendukung, tampil 10 dulu lalu bisa
+ * dimuat semua. Tidak pernah menampilkan baris kosong/placeholder seolah ada isinya.
+ */
+export function ParentVoiceBento({ pernyataan }) {
+  const [activeTab, setActiveTab] = useState("testimoni");
+  const [selectedValue, setSelectedValue] = useState(null);
+  const [showAllQuotes, setShowAllQuotes] = useState(false);
+
+  if (!pernyataan || pernyataan.length === 0) {
+    return <p className={styles.briefingEmptyText}>Belum ada refleksi orang tua untuk periode ini.</p>;
+  }
+
+  const emosi = countEmosi(pernyataan);
+  const dukungan = countMultiValue(pernyataan, "dukungan_dibutuhkan", DUKUNGAN_OPTIONS);
+  const testimoni = countMultiValue(pernyataan, "kategori_pernyataan", KATEGORI_PERNYATAAN_OPTIONS);
+  const halDisyukuri = countMultiValue(pernyataan, "hal_disyukuri", HAL_DISYUKURI_OPTIONS);
+
+  const hasAnyData = emosi.total > 0 || dukungan.totalWithAnswer > 0 || testimoni.totalWithAnswer > 0 || halDisyukuri.totalWithAnswer > 0;
+  if (!hasAnyData) {
+    return <p className={styles.briefingEmptyText}>Belum ada refleksi orang tua yang bisa ditampilkan untuk periode ini.</p>;
+  }
+
+  function selectTab(tabId) {
+    setActiveTab(tabId);
+    setSelectedValue(null);
+    setShowAllQuotes(false);
+  }
+  function toggleValue(label) {
+    setSelectedValue((prev) => (prev === label ? null : label));
+    setShowAllQuotes(false);
+  }
+
+  let filteredQuotes = [];
+  if (selectedValue) {
+    if (activeTab === "halDisyukuri") {
+      const match = HAL_DISYUKURI_MATCH_BY_LABEL[selectedValue];
+      const full = HAL_DISYUKURI_FULL_BY_LABEL[selectedValue];
+      filteredQuotes = pernyataan
+        .filter((p) => (p.hal_disyukuri || "").includes(match))
+        .map((p) => ({ ...p, text: full }));
+    } else {
+      const field = essayFieldForTab(activeTab);
+      let base = pernyataan
+        .map((p) => ({ ...p, text: extractPlainText(p[field]) }))
+        .filter((p) => !isBlankEssay(p[field]));
+      if (activeTab === "emosi") {
+        base = base.filter((q) => (q.emosi_anak || "").trim() === selectedValue);
+      } else if (activeTab === "dukungan") {
+        const match = DUKUNGAN_MATCH_BY_LABEL[selectedValue];
+        base = base.filter((q) => (q.dukungan_dibutuhkan || "").includes(match));
+      } else {
+        const match = KATEGORI_MATCH_BY_LABEL[selectedValue];
+        base = base.filter((q) => (q.kategori_pernyataan || "").includes(match));
+      }
+      filteredQuotes = base.sort((a, b) => b.text.length - a.text.length);
+    }
+  }
+
+  const [featured, ...rest] = filteredQuotes;
+  const visibleRest = showAllQuotes ? rest : rest.slice(0, QUOTE_LOAD_STEP - 1);
+  const remainingCount = rest.length - visibleRest.length;
+
+  const activeItems = activeTab === "emosi" ? emosi.items
+    : activeTab === "dukungan" ? dukungan.items
+    : activeTab === "halDisyukuri" ? halDisyukuri.items
+    : testimoni.items;
+  const badgeIcon = activeItems.find((it) => it.label === selectedValue)?.icon || "";
+
+  return (
+    <div className={styles.parentVoiceWrap}>
+      <div className={styles.voiceTabs}>
+        {VOICE_TABS.map((t) => (
+          <button
+            key={t.id} type="button"
+            className={`${styles.voiceTab} ${activeTab === t.id ? styles.voiceTabActive : ""}`}
+            onClick={() => selectTab(t.id)}
+          >
+            {t.icon} {t.label}
+          </button>
+        ))}
+      </div>
+
+      <div className={styles.pvChartCard}>
+        {activeTab === "emosi" && (
+          emosi.total > 0 ? (
+            <div className={styles.pvEmosiRow}>
+              {emosi.items.map((e) => {
+                const active = selectedValue === e.label;
+                return (
+                  <button
+                    type="button" key={e.label}
+                    className={`${styles.pvEmosiChip} ${styles[`pvEmosi_${e.tone}`]} ${active ? styles.pvEmosiChipActive : ""}`}
+                    onClick={() => toggleValue(e.label)}
+                  >
+                    {e.icon} {e.label} <strong>{e.count}</strong>
+                  </button>
+                );
+              })}
+            </div>
+          ) : <p className={styles.briefingEmptyText}>Belum ada data emosi anak untuk periode ini.</p>
+        )}
+
+        {activeTab === "dukungan" && (
+          <StatBarMiniList
+            items={dukungan.items}
+            emptyText="Belum ada data kebutuhan dukungan untuk periode ini."
+            onItemClick={toggleValue}
+            activeLabel={selectedValue}
+          />
+        )}
+
+        {activeTab === "testimoni" && (
+          <StatBarMiniList
+            items={testimoni.items}
+            emptyText="Belum ada refleksi berkategori untuk periode ini."
+            onItemClick={toggleValue}
+            activeLabel={selectedValue}
+          />
+        )}
+
+        {activeTab === "halDisyukuri" && (
+          <StatBarMiniList
+            items={halDisyukuri.items}
+            emptyText="Belum ada data hal yang disyukuri untuk periode ini."
+            onItemClick={toggleValue}
+            activeLabel={selectedValue}
+          />
+        )}
+      </div>
+
+      {selectedValue ? (
+        filteredQuotes.length > 0 ? (
+          <div className={styles.voiceLayout}>
+            <FeaturedQuoteCard quote={featured} badgeIcon={badgeIcon} badgeLabel={selectedValue} activeTab={activeTab} emosiItems={emosi.items} />
+            <div className={styles.voiceGridWrap}>
+              <div className={styles.quoteBentoGrid}>
+                {visibleRest.map((q, i) => <VoiceGridCard key={q.murid_id ? `${q.murid_id}-${i}` : i} quote={q} activeTab={activeTab} emosiItems={emosi.items} />)}
+              </div>
+              {remainingCount > 0 && (
+                <button type="button" className={styles.quoteLoadMoreBtn} onClick={() => setShowAllQuotes(true)}>
+                  Muat semua ({remainingCount} lagi)
+                </button>
+              )}
+              {showAllQuotes && rest.length > QUOTE_LOAD_STEP - 1 && (
+                <button type="button" className={styles.quoteLoadMoreBtn} onClick={() => setShowAllQuotes(false)}>
+                  Tampilkan lebih sedikit
+                </button>
+              )}
+            </div>
+          </div>
+        ) : (
+          <p className={styles.briefingEmptyText}>Belum ada esai tertulis untuk pilihan ini.</p>
+        )
+      ) : (
+        <p className={styles.briefingEmptyText}>Pilih salah satu di atas untuk lihat esainya.</p>
+      )}
+    </div>
+  );
+}
+
+const THRESHOLD_COLOR = { baik: "var(--status-ok)", perlu_perhatian: "var(--status-caution)" };
+
+/**
+ * Baris bar per aspek (dipakai di dialog detail siswa/kelas/jenjang/sekolah).
+ * colorByThreshold: kalau true, warna bar mengikuti klasifikasi 80% (classifyPencapaian)
+ * bukan warna spoke aspek — dipakai di split "aspek sudah baik / perlu perhatian" Kepsek.
+ */
+export function AspekBarList({ aspek, skorByAspek, colorByThreshold = false }) {
   return (
     <div className={styles.aspekBarList}>
       {aspek.map((a) => {
         const skor = skorByAspek[a.aspek_kode];
+        const tone = colorByThreshold ? classifyPencapaian(skor) : null;
+        const barColor = tone ? THRESHOLD_COLOR[tone] : a.color;
         return (
           <div className={styles.aspekBarRow} key={a.aspek_kode}>
             <span className={styles.aspekBarIcon}>{aspekIcon(a.aspek_label)}</span>
             <span className={styles.aspekBarLabel}>{a.aspek_label}</span>
             <div className={styles.aspekBarTrack}>
-              <div className={styles.aspekBarFill} style={{ width: `${skor ?? 0}%`, background: a.color }} />
+              <div className={styles.aspekBarFill} style={{ width: `${skor ?? 0}%`, background: barColor }} />
             </div>
             <span className={styles.aspekBarVal}>{skor != null ? `${skor}%` : "—"}</span>
           </div>
@@ -547,6 +838,8 @@ export function useMuridTrend(sekolahId, muridId) {
 }
 
 export function TrendChart({ points }) {
+  const gradientId = useId();
+
   if (points.length === 0) return <p className={styles.briefingEmptyText}>Memuat riwayat…</p>;
 
   if (points.length < 2) {
@@ -570,10 +863,27 @@ export function TrendChart({ points }) {
     ...p,
   }));
   const path = coords.map((c, i) => `${i === 0 ? "M" : "L"} ${c.x} ${c.y}`).join(" ");
+  const areaPath = `${path} L ${coords[coords.length - 1].x} ${h - pad} L ${coords[0].x} ${h - pad} Z`;
+  const gridLevels = [0.25, 0.5, 0.75];
 
   return (
     <div>
       <svg viewBox={`0 0 ${w} ${h}`} width="100%" height={h} style={{ overflow: "visible" }}>
+        <defs>
+          <linearGradient id={gradientId} x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stopColor="var(--purple-600)" stopOpacity="0.18" />
+            <stop offset="100%" stopColor="var(--purple-600)" stopOpacity="0" />
+          </linearGradient>
+        </defs>
+        {gridLevels.map((lvl) => (
+          <line
+            key={lvl}
+            x1={pad} x2={w - pad}
+            y1={pad + lvl * (h - pad * 2)} y2={pad + lvl * (h - pad * 2)}
+            stroke="var(--line)" strokeWidth={1} strokeDasharray="3 4"
+          />
+        ))}
+        <path d={areaPath} fill={`url(#${gradientId})`} stroke="none" />
         <path d={path} fill="none" stroke="var(--purple-600)" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" />
         {coords.map((c) => (
           <g key={c.periode}>
@@ -589,4 +899,50 @@ export function TrendChart({ points }) {
       </svg>
     </div>
   );
+}
+
+/**
+ * Tren pencapaian keseluruhan antar periode untuk satu scope ("sekolah" atau "kelas"),
+ * digeneralisasi dari useMuridTrend. scopeId boleh satu id atau array id (WaliKelas bisa
+ * punya beberapa kelas di cakupan). Baca angka ringkasan yang sudah dihitung (bukan
+ * hitung ulang dari karakter_skor) supaya konsisten dengan yang ditampilkan di stat tile.
+ */
+export function useSummaryTrend({ sekolahId, scope, scopeId, limit = 6 }) {
+  const [state, setState] = useState({ loading: true, points: [] });
+
+  useEffect(() => {
+    if (!sekolahId || !scope || !scopeId) return;
+    let alive = true;
+    setState({ loading: true, points: [] });
+
+    const scopeIds = Array.isArray(scopeId) ? scopeId : [scopeId];
+    const field = scope === "sekolah" ? "rata_pencapaian_guru" : "rata_rata_pencapaian_guru";
+
+    supabase
+      .from("karakter_summary")
+      .select("periode_id, ringkasan")
+      .eq("sekolah_id", sekolahId)
+      .eq("scope", scope)
+      .in("scope_id", scopeIds)
+      .then(({ data }) => {
+        if (!alive) return;
+        const byPeriode = {};
+        (data || []).forEach((r) => {
+          const v = pct(r.ringkasan?.[field]);
+          if (v === null) return;
+          if (!byPeriode[r.periode_id]) byPeriode[r.periode_id] = { sum: 0, n: 0 };
+          byPeriode[r.periode_id].sum += v;
+          byPeriode[r.periode_id].n += 1;
+        });
+        const points = Object.entries(byPeriode)
+          .map(([periode, v]) => ({ periode, rata: Math.round(v.sum / v.n) }))
+          .sort((a, b) => (a.periode > b.periode ? 1 : -1))
+          .slice(-limit);
+        setState({ loading: false, points });
+      });
+
+    return () => { alive = false; };
+  }, [sekolahId, scope, JSON.stringify(scopeId), limit]);
+
+  return state;
 }

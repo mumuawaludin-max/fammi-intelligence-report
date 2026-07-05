@@ -17,17 +17,18 @@ export default function NavBar({
   activeTab = "overview",
   onTabChange = () => {},
   modules = ["overview", "karakter", "screening", "mi"],
+  pillNav = false,
 }) {
   const visible = NAV_ITEMS.filter((item) => modules.includes(item.id));
 
   return (
-    <nav className={styles.nav} role="navigation" aria-label="Navigasi modul">
+    <nav className={`${styles.nav} ${pillNav ? styles.navPill : ""}`} role="navigation" aria-label="Navigasi modul">
       <div className={styles.inner}>
-        <ul className={styles.list} role="list">
+        <ul className={`${styles.list} ${pillNav ? styles.listPill : ""}`} role="list">
           {visible.map((item) => (
             <li key={item.id}>
               <button
-                className={`${styles.tab} ${activeTab === item.id ? styles.active : ""}`}
+                className={`${styles.tab} ${pillNav ? styles.tabPill : ""} ${activeTab === item.id ? (pillNav ? styles.activePill : styles.active) : ""}`}
                 onClick={() => onTabChange(item.id)}
                 aria-current={activeTab === item.id ? "page" : undefined}
               >
