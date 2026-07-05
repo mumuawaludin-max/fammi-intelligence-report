@@ -16,6 +16,8 @@ import {
 import styles from "./KarakterViews.module.css";
 
 const WHO_WALIKELAS = { short: "untuk Wali Kelas", long: "untuk Wali Kelas & Kepala Sekolah" };
+// Wali Kelas: short 1 bulan, long 2-3 bulan (rentang lebih pendek karena aksinya harian di kelas).
+const RANGES_WALIKELAS = { short: "1 Bulan ke Depan", long: "2–3 Bulan ke Depan" };
 
 /** Tren rata-rata satu anak antar periode; dipisah jadi komponen supaya hook-nya per murid terpilih. */
 function MuridTrendBlock({ sekolahId, muridId }) {
@@ -349,7 +351,7 @@ export default function WaliKelasView({ session, periodeId }) {
               <SampleTag /> Isi rekomendasi masih contoh, menunggu perumusan otomatis. Strukturnya sudah final.
             </p>
           )}
-          <KebijakanGoals data={kebijakanData} who={WHO_WALIKELAS} />
+          <KebijakanGoals data={kebijakanData} who={WHO_WALIKELAS} ranges={RANGES_WALIKELAS} />
         </section>
       </div>
       )}

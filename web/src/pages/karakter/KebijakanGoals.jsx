@@ -4,12 +4,17 @@ import styles from "./KebijakanGoals.module.css";
 import { KEBIJAKAN_KEPSEK } from "./dummyKebijakan";
 
 const TERM_META = {
-  short: { label: "Short-Term Goals", range: "1–3 Bulan ke Depan", who: "untuk Kepala Sekolah" },
-  long: { label: "Long-Term Goals", range: "6 Bulan ke Depan", who: "untuk Pimpinan Sekolah" },
+  short: { label: "Short-Term Goals" },
+  long: { label: "Long-Term Goals" },
 };
 
 // Label audiens default (Kepsek). View lain (Wali Kelas/Yayasan) bisa menimpanya lewat prop `who`.
-const DEFAULT_WHO = { short: TERM_META.short.who, long: TERM_META.long.who };
+const DEFAULT_WHO = { short: "untuk Kepala Sekolah", long: "untuk Pimpinan Sekolah" };
+
+// Rentang waktu default (Kepsek). Makna short/long beda per peran, jadi tiap view
+// mengoper prop `ranges` sendiri: Wali Kelas (1 bln / 2-3 bln), Kepsek (1-3 bln / 6 bln),
+// Yayasan (6 bln / 12 bln). Ini cuma label tampilan, nilai term di data tetap short/long.
+const DEFAULT_RANGES = { short: "1–3 Bulan ke Depan", long: "6 Bulan ke Depan" };
 
 const TYPE_META = {
   perlu_perhatian: { label: "Perlu Perhatian", cardCls: "cardPerhatian", modalCls: "modalPerhatian" },
@@ -71,10 +76,10 @@ function formatKonkretStep(s) {
 }
 
 /** Susun teks ringkas kartu untuk dibagikan ke WhatsApp lewat wa.me (jalan di desktop & HP). */
-function shareToWhatsApp(k) {
+function shareToWhatsApp(k, ranges = DEFAULT_RANGES) {
   const teks = [
     `*${k.title}*`,
-    `${comboLabel(k.type, k.fokus)} · ${TERM_META[k.term].range}`,
+    `${comboLabel(k.type, k.fokus)} · ${ranges[k.term]}`,
     ``,
     `*Mengapa ini perlu*`,
     `Dari data: ${k.mengapa_data}`,
@@ -97,7 +102,7 @@ function shareToWhatsApp(k) {
  * (mutu layanan / citra sekolah). Bagian atas diklik untuk membuka detail, tombol share WhatsApp
  * berdiri sendiri di bawah tiap kartu.
  */
-function GoalCard({ k, onOpen }) {
+function GoalCard({ k, onOpen, ranges }) {
   return (
     <div className={`${styles.card} ${styles[TYPE_META[k.type].cardCls]}`}>
       <div className={styles.cardMain}>
@@ -111,7 +116,7 @@ function GoalCard({ k, onOpen }) {
           <span className={styles.cardBtnIcon} aria-hidden="true">🔍</span>
           Lihat Detail
         </button>
-        <button type="button" className={styles.cardShare} onClick={() => shareToWhatsApp(k)}>
+        <button type="button" className={styles.cardShare} onClick={() => shareToWhatsApp(k, ranges)}>
           <span className={styles.cardBtnIcon} aria-hidden="true">↗</span>
           Share ke WhatsApp
         </button>
@@ -121,19 +126,19 @@ function GoalCard({ k, onOpen }) {
 }
 
 /** Satu baris term: label besar di kiri (ala lampiran) + grid kartu putih di kanan. */
-function TermRow({ term, items, who, onOpen }) {
+function TermRow({ term, items, who, range, ranges, onOpen }) {
   const meta = TERM_META[term];
   return (
     <div className={`${styles.termRow} ${styles[`term_${term}`]}`}>
       <div className={styles.termLabel}>
         <h3 className={styles.termTitle}>{meta.label}</h3>
-        <span className={styles.termRange}>{meta.range}</span>
+        <span className={styles.termRange}>{range}</span>
         <span className={styles.termWho}>{who}</span>
       </div>
       {items.length > 0 ? (
         <div className={styles.termGrid}>
           {items.map((k) => (
-            <GoalCard key={k.id} k={k} onOpen={onOpen} />
+            <GoalCard key={k.id} k={k} onOpen={onOpen} ranges={ranges} />
           ))}
         </div>
       ) : (
@@ -146,7 +151,7 @@ function TermRow({ term, items, who, onOpen }) {
 }
 
 /** Modal detail: membesar + berputar saat muncul, dengan tombol bagikan ke WhatsApp. */
-function KebijakanDialog({ k, onClose }) {
+function KebijakanDialog({ k, onClose, ranges = DEFAULT_RANGES }) {
   useEffect(() => {
     function onKey(e) { if (e.key === "Escape") onClose(); }
     window.addEventListener("keydown", onKey);
@@ -165,7 +170,7 @@ function KebijakanDialog({ k, onClose }) {
         <div className={styles.modalHead}>
           <span className={styles.modalIcon} aria-hidden="true">{k.icon}</span>
           <span className={styles.modalKicker}>
-            {comboLabel(k.type, k.fokus)} · {TERM_META[k.term].range}
+            {comboLabel(k.type, k.fokus)} · {ranges[k.term]}
           </span>
           <h3 className={styles.modalTitle}>{k.title}</h3>
         </div>
@@ -228,7 +233,7 @@ function KebijakanDialog({ k, onClose }) {
             </ol>
           </section>
         </div>
-        <button className={styles.shareBtn} onClick={() => shareToWhatsApp(k)}>
+        <button className={styles.shareBtn} onClick={() => shareToWhatsApp(k, ranges)}>
           <span className={styles.shareIcon} aria-hidden="true">↗</span>
           Bagikan ke WhatsApp
         </button>
@@ -237,16 +242,16 @@ function KebijakanDialog({ k, onClose }) {
   );
 }
 
-export default function KebijakanGoals({ data = KEBIJAKAN_KEPSEK, who = DEFAULT_WHO }) {
+export default function KebijakanGoals({ data = KEBIJAKAN_KEPSEK, who = DEFAULT_WHO, ranges = DEFAULT_RANGES }) {
   const [active, setActive] = useState(null);
   const byTerm = (t) =>
     data.filter((k) => k.term === t).sort((a, b) => TYPE_ORDER[a.type] - TYPE_ORDER[b.type]);
 
   return (
     <div className={styles.goals}>
-      <TermRow term="short" items={byTerm("short")} who={who.short} onOpen={setActive} />
-      <TermRow term="long" items={byTerm("long")} who={who.long} onOpen={setActive} />
-      {active && <KebijakanDialog k={active} onClose={() => setActive(null)} />}
+      <TermRow term="short" items={byTerm("short")} who={who.short} range={ranges.short} ranges={ranges} onOpen={setActive} />
+      <TermRow term="long" items={byTerm("long")} who={who.long} range={ranges.long} ranges={ranges} onOpen={setActive} />
+      {active && <KebijakanDialog k={active} onClose={() => setActive(null)} ranges={ranges} />}
     </div>
   );
 }

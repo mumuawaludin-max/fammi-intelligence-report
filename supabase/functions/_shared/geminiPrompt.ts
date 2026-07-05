@@ -241,10 +241,11 @@ rekomendasi kalau datanya sebenarnya menunjukkan beberapa masalah atau kekuatan 
 berbeda. Contoh nyata: kalau data kelas menunjukkan aspek kemandirian lemah DAN ada
 sinyal orang tua yang berulang minta wadah komunikasi, itu dua temuan berbeda, keluarkan
 dua rekomendasi terpisah, satu untuk tiap temuan, bukan satu rekomendasi yang mencoba
-menjawab keduanya sekaligus. Kalau datanya memang cuma menunjukkan satu temuan yang
-jelas dan kuat, satu rekomendasi saja sudah benar, jangan dipaksa jadi lebih dari satu
-hanya supaya kelihatan lengkap. Array berikut cuma menunjukkan bentuk SATU objek di
-dalamnya, bukan berarti hasilnya harus selalu satu objek:
+menjawab keduanya sekaligus. Jumlah TIDAK boleh cuma satu: minimal ada dua objek, yaitu
+satu "perlu_perhatian" (dari sisi paling lemah) dan satu "pertahankan" (dari sisi paling
+kuat), karena tiap data selalu punya kedua sisi itu. Kalau temuannya lebih banyak, keluarkan
+lebih banyak. Array berikut cuma menunjukkan bentuk SATU objek di dalamnya, bukan berarti
+hasilnya cukup satu objek:
 
 {
   "term": "short | long",
@@ -273,9 +274,20 @@ dalamnya, bukan berarti hasilnya harus selalu satu objek:
 }
 
 Keterangan nilai:
-- term: "short" untuk 1 sampai 3 bulan, "long" untuk 6 bulan.
+- term: "short" atau "long". MAKNA JANGKA WAKTUNYA BEDA PER ROLE (lihat "Role tujuan"),
+  dan langkah di "konkret" WAJIB muat di dalam jendela waktu itu:
+  - wali_kelas: short = sekitar 1 bulan, long = sekitar 2 sampai 3 bulan.
+  - kepala_sekolah: short = sekitar 1 sampai 3 bulan, long = sekitar 6 bulan.
+  - yayasan: short = sekitar 6 bulan, long = sekitar 12 bulan.
+  Contoh: untuk yayasan, aksi "short" sekalipun berjalan berbulan-bulan (rentang 6 bulan),
+  jadi jangan menulis "besok 5 menit" untuk yayasan; itu skala wali kelas. Sebaliknya untuk
+  wali kelas, "long" cukup 2 sampai 3 bulan, bukan 6 bulan.
 - type: "perlu_perhatian" untuk indikator lemah atau menurun, "pertahankan" untuk yang
-  kuat dan perlu dijaga.
+  kuat dan perlu dijaga. WAJIB: tiap kali generate, keluarkan MINIMAL SATU rekomendasi
+  type "perlu_perhatian" (dari indikator/aspek paling lemah di top5_indikator_terendah)
+  DAN MINIMAL SATU rekomendasi type "pertahankan" (dari yang paling kuat di
+  top5_indikator_terbaik). Data selalu punya sisi terkuat dan terlemah, jadi kedua jenis
+  ini selalu bisa dibuat, jangan pernah cuma keluarkan satu jenis saja.
 - fokus: "mutu" kalau menyentuh kualitas layanan pendidikan, "citra" kalau menyentuh
   persepsi sekolah di mata orang tua.
 - jenjang: isi sesuai data. "lintas_jenjang" hanya kalau data benar-benar tidak
@@ -727,19 +739,25 @@ konkret: [
 8. Hitung ulang: apakah jumlah rekomendasi di array sudah sesuai jumlah temuan berbeda
    yang tersisa di langkah 4? Kalau kamu cuma keluarkan 1 padahal ada 2 atau 3 temuan
    berbeda yang lolos, tambahkan yang kurang sebelum menjawab.
-9. Cek ulang tiap klaim "paling tinggi"/"paling rendah"/"terkuat"/"terlemah" yang kamu
+9. Cek WAJIB dua-duanya ada: minimal satu objek type "perlu_perhatian" DAN minimal satu
+   objek type "pertahankan". Kalau salah satunya belum ada, tambahkan (yang "pertahankan"
+   dari indikator paling kuat, yang "perlu_perhatian" dari yang paling lemah). Cek juga
+   idealnya ada isi di term "short" maupun "long" supaya kedua bagian laporan terisi.
+10. Cek ulang tiap klaim "paling tinggi"/"paling rendah"/"terkuat"/"terlemah" yang kamu
    tulis di mengapa_data: buka lagi baris datanya, pastikan field "predikat" di baris itu
    memang bilang begitu. Kalau kamu menyebut indikator atau aspek tertentu sebagai lemah,
    pastikan itu benar datang dari top5_indikator_terendah (bukan tertukar dari
    top5_indikator_terbaik), dan sebaliknya.
-10. Keluarkan JSON valid saja.
+11. Pastikan tiap langkah di "konkret" waktunya realistis untuk jendela term sesuai role
+   (wali_kelas short 1 bln/long 2-3 bln, kepala_sekolah short 1-3 bln/long 6 bln, yayasan
+   short 6 bln/long 12 bln), bukan skala role lain.
+12. Keluarkan JSON valid saja.
 
-Kalau data tidak cukup untuk rekomendasi yang jujur dan berdasar, keluarkan array lebih
-pendek, termasuk array kosong kalau memang tidak ada temuan yang lolos. Lebih baik
-sedikit tapi sahih daripada banyak tapi mengarang. Tapi juga jangan sebaliknya: kalau
-data mendukung 3 temuan berbeda yang sama-sama valid dan berdiri sendiri, keluarkan 3,
-jangan dipangkas jadi 1 demi keringkasan. Jumlah mengikuti apa yang didukung data, bukan
-target angka, dan bukan pula dipatok selalu satu.`;
+Kalau satu temuan benar-benar tidak bisa didukung data secara jujur, jangan mengarang.
+Tapi kewajiban minimal tetap: satu "perlu_perhatian" dan satu "pertahankan", karena data
+karakter selalu punya sisi terlemah dan sisi terkuat yang bisa dijadikan dasar. Kalau
+data mendukung lebih banyak temuan berbeda, keluarkan lebih banyak; jangan dipangkas demi
+keringkasan.`;
 
 export const SYSTEM_INSTRUCTION_BRIEFING = `# SYSTEM INSTRUCTION: PERUMUS TINDAK LANJUT RAPOR KARAKTER (FIR)
 Target model: gemini-3.5-flash
@@ -1030,9 +1048,20 @@ export function buildUserPrompt({ role, scope, scope_id, modul, periode_id, ring
     ? `seluruh sekolah`
     : `cakupan ${scope} "${scope_id}"`;
 
+  // Makna jangka waktu short/long beda per role. Langkah konkret harus muat di jendela ini.
+  const termWindow = role === "wali_kelas"
+    ? `short = sekitar 1 bulan, long = sekitar 2 sampai 3 bulan`
+    : role === "yayasan"
+    ? `short = sekitar 6 bulan, long = sekitar 12 bulan`
+    : `short = sekitar 1 sampai 3 bulan, long = sekitar 6 bulan`;
+
   return `${tugas}
 
 Role tujuan: ${role}.
+Makna jangka waktu untuk role ini: ${termWindow}. Aturan langkah di "konkret" harus muat
+dalam jendela waktu term yang kamu pilih. WAJIB keluarkan minimal satu rekomendasi
+"perlu_perhatian" dan minimal satu "pertahankan", dan usahakan mengisi baik term "short"
+maupun "long" supaya kedua bagian di laporan tidak kosong.
 
 ASAL DATA, WAJIB DIPAHAMI SEBELUM MENULIS APA PUN:
 - Semua angka di bawah adalah data AGREGAT untuk ${cakupanLabel}, pada periode ${periode_id} SAJA.

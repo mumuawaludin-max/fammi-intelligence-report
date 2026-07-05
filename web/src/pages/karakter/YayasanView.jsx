@@ -16,6 +16,8 @@ import {
 import styles from "./KarakterViews.module.css";
 
 const WHO_YAYASAN = { short: "untuk Pengurus Yayasan", long: "untuk Yayasan" };
+// Yayasan: short 6 bulan, long 12 bulan (skalanya kebijakan lintas sekolah, bukan aksi harian).
+const RANGES_YAYASAN = { short: "6 Bulan ke Depan", long: "12 Bulan ke Depan" };
 
 export default function YayasanView({ session, periodeId }) {
   const { loading, error, data } = useKarakterYayasan(session, periodeId);
@@ -304,7 +306,7 @@ export default function YayasanView({ session, periodeId }) {
               <SampleTag /> Isi rekomendasi masih contoh, menunggu perumusan otomatis. Strukturnya sudah final.
             </p>
           )}
-          <KebijakanGoals data={kebijakanData} who={WHO_YAYASAN} />
+          <KebijakanGoals data={kebijakanData} who={WHO_YAYASAN} ranges={RANGES_YAYASAN} />
         </section>
       </div>
       )}
