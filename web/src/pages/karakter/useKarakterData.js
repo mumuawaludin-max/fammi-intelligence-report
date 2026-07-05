@@ -86,6 +86,7 @@ export function useKarakterWaliKelas(session, periodeId) {
           .eq("modul", "karakter")
           .eq("scope", "kelas")
           .in("scope_id", kelasList)
+          .eq("target_role", "wali_kelas")
           .eq("status", "disetujui"),
       ]);
 
@@ -182,7 +183,8 @@ export function useKarakterKepsek(session, periodeId) {
           .select("id, scope, scope_id, action, trigger_desc, priority, periode_id, gambaran, langkah_terpilih, term, type, fokus, icon, title, teaser, mengapa_data, mengapa_perspektif, manfaat, konkret")
           .eq("sekolah_id", sekolahId)
           .eq("modul", "karakter")
-          .in("scope", ["sekolah", "kelas"])
+          .eq("scope", "sekolah")
+          .eq("target_role", "kepala_sekolah")
           .eq("status", "disetujui"),
         supabase
           .from("karakter_pernyataan_ortu")
@@ -287,6 +289,7 @@ export function useKarakterYayasan(session, periodeId) {
           .eq("modul", "karakter")
           .eq("scope", "sekolah")
           .in("sekolah_id", sekolahIds)
+          .eq("target_role", "yayasan")
           .eq("status", "disetujui"),
         supabase
           .from("karakter_aspek_config")

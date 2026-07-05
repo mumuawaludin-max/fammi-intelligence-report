@@ -954,6 +954,10 @@ export async function generateAndInsertDraft(
 
   const rows = valid.map((r) => ({
     sekolah_id, modul, scope, scope_id, periode_id,
+    // target_role memisahkan siapa yang berhak melihat baris ini -- Kepsek dan Yayasan
+    // sama-sama baca scope='sekolah' untuk sekolah yang sama, jadi tanpa kolom ini
+    // draf yang digenerate untuk satu POV akan ikut muncul di POV yang lain juga.
+    target_role: role,
     term: r.term, type: r.type, fokus: r.fokus, jenjang: r.jenjang || null,
     icon: r.icon || null, title: r.title, teaser: r.teaser || null,
     mengapa_data: r.mengapa_data || null, mengapa_perspektif: r.mengapa_perspektif || null,

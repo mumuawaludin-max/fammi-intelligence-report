@@ -43,6 +43,9 @@ function isKebijakanBaru(a) {
 
 const TERM_LABEL = { short: '1-3 bulan', long: '6 bulan' };
 const FOKUS_LABEL = { mutu: 'Mutu Layanan', citra: 'Citra Sekolah' };
+const TARGET_ROLE_LABEL = {
+  wali_kelas: 'Untuk Wali Kelas', kepala_sekolah: 'Untuk Kepala Sekolah', yayasan: 'Untuk Yayasan', orang_tua: 'Untuk Orang Tua',
+};
 
 function comboLabel(type, fokus) {
   const f = FOKUS_LABEL[fokus] || fokus;
@@ -59,6 +62,7 @@ function KebijakanBaruBody({ a }) {
         </span>
         {a.term && <span className="pill" style={{ background: 'var(--surface-soft)', color: 'var(--ink-3)' }}>{TERM_LABEL[a.term] || a.term}</span>}
         {a.jenjang && <span className="pill" style={{ background: 'var(--surface-soft)', color: 'var(--ink-3)' }}>{a.jenjang}</span>}
+        {a.targetRole && <span className="pill" style={{ background: 'var(--purple-600)', color: '#fff' }}>{TARGET_ROLE_LABEL[a.targetRole] || a.targetRole}</span>}
       </div>
 
       <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10, marginBottom: 4 }}>
