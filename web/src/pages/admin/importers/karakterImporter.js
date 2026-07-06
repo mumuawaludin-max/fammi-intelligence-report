@@ -69,14 +69,20 @@ function parseBulan(raw) {
   return null;
 }
 
-const ASPEK_COLS = [
-  ['karakter1', 'karakter1_berpikir_positif'],
-  ['karakter2', 'karakter2_bicara_baik'],
-  ['karakter3', 'karakter3_bertindak_bermanfaat'],
-  ['karakter4', 'karakter4_magic_word_maaf'],
-  ['karakter5', 'karakter5_magic_word_terima_kasih'],
-  ['karakter6', 'karakter6_fiqih_wudhu'],
-];
+const ASPEK_KODE = ['karakter1', 'karakter2', 'karakter3', 'karakter4', 'karakter5', 'karakter6'];
+
+/**
+ * Cari kolom skor aspek karakter di header lewat prefix "karakterN_", bebas apa pun akhirannya.
+ * Tiap sekolah bisa pakai istilah Indonesia berbeda untuk aspek yang sama (mis. sekolah A pakai
+ * "karakter1_berpikir_positif", sekolah B pakai "karakter1_optimis") -- akhiran itu cuma label,
+ * yang disimpan ke DB tetap kode pendeknya ("karakter1"). Kolom indikator ("karakterN_indikatorM_...")
+ * sengaja dikecualikan supaya tidak salah tertangkap sebagai skor aspek.
+ */
+function resolveAspekCol(headerRow, kode) {
+  const n = kode.replace('karakter', '');
+  const re = new RegExp(`^karakter${n}_(?!indikator)`, 'i');
+  return Object.keys(headerRow).find((k) => re.test(k.trim()));
+}
 
 const INDIKATOR_COLS = [
   ['karakter1', 'indikator2_percaya_diri'],
@@ -147,6 +153,33 @@ export async function parseKarakterWorkbook(file, { sekolahId }) {
     return { preview, ok: false, error: 'Sheet "detail_persentase_karakter" tidak ditemukan atau kosong.' };
   }
 
+  // Resolusi kolom aspek dilakukan sekali di sini lewat prefix "karakterN_" (lihat resolveAspekCol),
+  // bukan nama kolom tetap, supaya akhiran istilah beda-beda antar sekolah tidak perlu dipetakan
+  // manual tiap kali sekolah baru onboarding. Kalau tidak satu pun dari 6 aspek ketemu, kemungkinan
+  // sekolah ini malah tidak pakai konvensi "karakterN_..." sama sekali -- gagal cepat dan tunjukkan
+  // header asli file, daripada membanjiri pesan error per baris per murid.
+  const aspekColMap = {};
+  ASPEK_KODE.forEach((kode) => {
+    const col = resolveAspekCol(dk[0], kode);
+    if (col) aspekColMap[kode] = col;
+  });
+  if (Object.keys(aspekColMap).length === 0) {
+    return {
+      preview, ok: false,
+      error: `Tidak ada satu pun kolom skor karakter yang dikenali di sheet detail_persentase_karakter (dicari lewat prefix karakter1_ sampai karakter6_). Kolom yang benar-benar ada di file: ${Object.keys(dk[0]).join(', ')}. Kemungkinan file ini pakai konvensi nama kolom yang sama sekali berbeda, importer perlu disesuaikan dulu untuk sekolah ini.`,
+    };
+  }
+  if (di.length > 0) {
+    const indikatorCols = INDIKATOR_COLS.map(([aspek, kode]) => `${aspek}_${kode}`);
+    const indikatorTidakDitemukan = indikatorCols.filter((col) => getField(di[0], col) === undefined);
+    if (indikatorTidakDitemukan.length === indikatorCols.length) {
+      return {
+        preview, ok: false,
+        error: `Tidak ada satu pun kolom skor indikator yang dikenali di sheet detail_persentase_indikator. Kolom yang dicari importer: ${indikatorCols.join(', ')}. Kolom yang benar-benar ada di file: ${Object.keys(di[0]).join(', ')}. Kemungkinan file ini pakai template/nama kolom berbeda dari SDIP Al Madani, importer perlu disesuaikan dulu untuk nama kolom sekolah ini.`,
+      };
+    }
+  }
+
   const periodeCount = {};
   const badRows = [];
   function ownBulan(r) {
@@ -179,10 +212,13 @@ export async function parseKarakterWorkbook(file, { sekolahId }) {
     countPeriode(periode);
     if (nama) { namaPeriode[nama] = periode; namaKelas[nama] = kelas; }
     const mid = muridId(nama);
-    ASPEK_COLS.forEach(([aspek, col]) => {
+    ASPEK_KODE.forEach((aspek) => {
+      const col = aspekColMap[aspek];
+      const skor = col ? pct(r[col]) : null;
+      if (skor === null) { badRows.push(`detail_persentase_karakter baris ${i + 2} (kolom skor ${aspek}${col ? ` "${col}"` : ''} kosong/tidak ditemukan untuk ${nama || 'baris ini'})`); return; }
       skorRows.push({
         sekolah_id: sekolahId, kelas_id: kelas, murid_id: mid, nama_murid: nama,
-        periode_id: periode, aspek_kode: aspek, skor: pct(r[col]), sumber: 'guru', status: 'disetujui',
+        periode_id: periode, aspek_kode: aspek, skor, sumber: 'guru', status: 'disetujui',
       });
     });
   });
@@ -201,9 +237,11 @@ export async function parseKarakterWorkbook(file, { sekolahId }) {
     const mid = muridId(nama);
     INDIKATOR_COLS.forEach(([aspek, kode]) => {
       const col = `${aspek}_${kode}`;
+      const skor = pct(getField(r, col));
+      if (skor === null) { badRows.push(`detail_persentase_indikator baris ${i + 2} (kolom ${col} kosong/tidak terbaca untuk ${nama || 'baris ini'})`); return; }
       skorIndikatorRows.push({
         sekolah_id: sekolahId, kelas_id: kelas, murid_id: mid, nama_murid: nama,
-        periode_id: periode, aspek_kode: aspek, indikator_kode: kode, skor: pct(r[col]),
+        periode_id: periode, aspek_kode: aspek, indikator_kode: kode, skor,
         sumber: 'guru', status: 'disetujui',
       });
     });
@@ -265,7 +303,7 @@ export async function parseKarakterWorkbook(file, { sekolahId }) {
   if (badRows.length > 0) {
     return {
       preview, ok: false,
-      error: `Bulan/kelas tidak terbaca di: ${badRows.slice(0, 5).join(', ')}${badRows.length > 5 ? ` (+${badRows.length - 5} baris lain)` : ''}. Kolom "bulan" dan "kelas" di detail_persentase_karakter wajib terisi untuk tiap murid (bulan boleh format tanggal Excel, "2026-07", "07/2026", "Juli 2026", atau "October 2025"); sheet lain boleh kosong asal nama muridnya cocok persis dengan detail_persentase_karakter.`,
+      error: `Data tidak terbaca di: ${badRows.slice(0, 5).join(', ')}${badRows.length > 5 ? ` (+${badRows.length - 5} baris lain)` : ''}. Kolom "bulan" dan "kelas" di detail_persentase_karakter wajib terisi untuk tiap murid (bulan boleh format tanggal Excel, "2026-07", "07/2026", "Juli 2026", atau "October 2025"), dan tiap kolom skor karakter/indikator wajib berisi angka, bukan kosong; sheet lain boleh kosong asal nama muridnya cocok persis dengan detail_persentase_karakter.`,
     };
   }
 
