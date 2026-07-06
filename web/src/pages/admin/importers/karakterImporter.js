@@ -84,20 +84,23 @@ function resolveAspekCol(headerRow, kode) {
   return Object.keys(headerRow).find((k) => re.test(k.trim()));
 }
 
-const INDIKATOR_COLS = [
-  ['karakter1', 'indikator2_percaya_diri'],
-  ['karakter1', 'indikator2_melihat_sisi_baik'],
-  ['karakter2', 'indikator1_berkata_sopan'],
-  ['karakter2', 'indikator2_pendapat_jelas'],
-  ['karakter3', 'indikator1_menjaga_kedisiplinan'],
-  ['karakter3', 'indikator2_mendatangkan_kebaikan'],
-  ['karakter4', 'indikator1_terbiasa_minta_maaf'],
-  ['karakter4', 'indikator2_bersikap_tulus'],
-  ['karakter5', 'indikator1_sopan_berterima_kasih'],
-  ['karakter5', 'indikator2_menunjukkan_syukur'],
-  ['karakter6', 'indikator1_benar_gerakan_wudhu'],
-  ['karakter6', 'indikator2_niat_wudhu'],
-];
+/**
+ * Cari semua kolom skor indikator di header lewat pola "karakterN_indikatorM_...", apa pun
+ * teks setelah "indikatorM_". Beda dari aspek, teks itu justru DIPAKAI APA ADANYA sebagai
+ * bagian indikator_kode yang disimpan ke DB (bukan cuma label tampilan) -- karena tiap
+ * sekolah bisa punya indikator yang beda secara isi, bukan cuma beda istilah untuk hal yang
+ * sama. Kode yang disimpan otomatis konsisten dengan nama kolom sekolah itu sendiri, tidak
+ * dicocokkan ke daftar tetap SDIP Al Madani. Sekolah baru butuh baris karakter_indikator_config
+ * sendiri yang kode-nya cocok dengan hasil fungsi ini supaya labelnya tampil di FIR.
+ */
+function resolveIndikatorCols(headerRow) {
+  const out = [];
+  Object.keys(headerRow).forEach((k) => {
+    const m = k.trim().match(/^karakter([1-6])_(indikator[12]_.+)$/i);
+    if (m) out.push({ aspek: `karakter${m[1]}`, kode: m[2].toLowerCase(), col: k });
+  });
+  return out;
+}
 
 /** murid_id harus konsisten antar periode (bulan) supaya grafik tren per anak tidak putus. */
 async function loadExistingMuridIds(sekolahId) {
@@ -169,13 +172,13 @@ export async function parseKarakterWorkbook(file, { sekolahId }) {
       error: `Tidak ada satu pun kolom skor karakter yang dikenali di sheet detail_persentase_karakter (dicari lewat prefix karakter1_ sampai karakter6_). Kolom yang benar-benar ada di file: ${Object.keys(dk[0]).join(', ')}. Kemungkinan file ini pakai konvensi nama kolom yang sama sekali berbeda, importer perlu disesuaikan dulu untuk sekolah ini.`,
     };
   }
+  let indikatorCols = [];
   if (di.length > 0) {
-    const indikatorCols = INDIKATOR_COLS.map(([aspek, kode]) => `${aspek}_${kode}`);
-    const indikatorTidakDitemukan = indikatorCols.filter((col) => getField(di[0], col) === undefined);
-    if (indikatorTidakDitemukan.length === indikatorCols.length) {
+    indikatorCols = resolveIndikatorCols(di[0]);
+    if (indikatorCols.length === 0) {
       return {
         preview, ok: false,
-        error: `Tidak ada satu pun kolom skor indikator yang dikenali di sheet detail_persentase_indikator. Kolom yang dicari importer: ${indikatorCols.join(', ')}. Kolom yang benar-benar ada di file: ${Object.keys(di[0]).join(', ')}. Kemungkinan file ini pakai template/nama kolom berbeda dari SDIP Al Madani, importer perlu disesuaikan dulu untuk nama kolom sekolah ini.`,
+        error: `Tidak ada satu pun kolom skor indikator yang dikenali di sheet detail_persentase_indikator (dicari lewat pola karakterN_indikatorM_...). Kolom yang benar-benar ada di file: ${Object.keys(di[0]).join(', ')}. Kemungkinan file ini pakai konvensi nama kolom yang sama sekali berbeda, importer perlu disesuaikan dulu untuk sekolah ini.`,
       };
     }
   }
@@ -235,10 +238,9 @@ export async function parseKarakterWorkbook(file, { sekolahId }) {
     if (!kelas) { badRows.push(`detail_persentase_indikator baris ${i + 2} (kelas)`); return; }
     countPeriode(periode);
     const mid = muridId(nama);
-    INDIKATOR_COLS.forEach(([aspek, kode]) => {
-      const col = `${aspek}_${kode}`;
-      const skor = pct(getField(r, col));
-      if (skor === null) { badRows.push(`detail_persentase_indikator baris ${i + 2} (kolom ${col} kosong/tidak terbaca untuk ${nama || 'baris ini'})`); return; }
+    indikatorCols.forEach(({ aspek, kode, col }) => {
+      const skor = pct(r[col]);
+      if (skor === null) { badRows.push(`detail_persentase_indikator baris ${i + 2} (kolom "${col}" kosong/tidak terbaca untuk ${nama || 'baris ini'})`); return; }
       skorIndikatorRows.push({
         sekolah_id: sekolahId, kelas_id: kelas, murid_id: mid, nama_murid: nama,
         periode_id: periode, aspek_kode: aspek, indikator_kode: kode, skor,
