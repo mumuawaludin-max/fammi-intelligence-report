@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { supabase } from "../../lib/supabase";
+import { supabase, fetchAllRows } from "../../lib/supabase";
 import { MI_META, MI_BY_CODE, processOutputMI } from "./miMeta";
 import StatTile from "../../components/StatTile";
 import RadarChart from "../../components/charts/RadarChart";
@@ -154,17 +154,22 @@ function useMIData(session) {
   const [rows, setRows]       = useState(null);
   const [tl, setTl]           = useState(null);
   const [error, setError]     = useState(null);
+  const [tlError, setTlError] = useState(null);
 
   async function fetch_() {
     setLoading(true);
     setError(null);
+    setTlError(null);
 
+    // mi_hasil bisa lewat batas diam-diam 1000 baris Supabase untuk sekolah besar (belum lagi
+    // difilter periode, lihat catatan di komponen utama), jadi dipaginasi penuh.
     const [{ data, error: err }, { data: tlData, error: tlErr }] = await Promise.all([
-      supabase
+      fetchAllRows((from, to) => supabase
         .from("mi_hasil")
         .select("murid_id, kelas_id, skor_inter, skor_intra, skor_kines, skor_linguistik, skor_logmat, skor_musikal, skor_naturalis, skor_spasial")
         .eq("sekolah_id", session.school_id)
-        .eq("status", "disetujui"),
+        .eq("status", "disetujui")
+        .range(from, to)),
       supabase
         .from("tindak_lanjut")
         .select("id, action, trigger_desc, priority")
@@ -177,25 +182,28 @@ function useMIData(session) {
     if (err) setError(err.message);
     else setRows(data || []);
 
-    if (!tlErr) setTl(tlData || []);
+    if (tlErr) setTlError(tlErr.message);
+    else setTl(tlData || []);
 
     setLoading(false);
   }
 
   useEffect(() => { fetch_(); }, [session.school_id]);
 
-  return { loading, rows, tl, error, refetch: fetch_ };
+  return { loading, rows, tl, error, tlError, refetch: fetch_ };
 }
 
 // ── Komponen utama ───────────────────────────────────────────────────────────
 export default function MIPage({ session }) {
-  const { loading, rows, tl: tlRows, error, refetch } = useMIData(session);
+  const { loading, rows, tl: tlRows, error, tlError, refetch } = useMIData(session);
   const [expanded, setExpanded] = useState(false);
 
   const hasData  = Array.isArray(rows) && rows.length > 0;
   const isSample = !hasData;
 
   const hasTl = Array.isArray(tlRows) && tlRows.length > 0;
+  // Kalau query tindak lanjut gagal (bukan sekadar kosong), jangan tampilkan tindak lanjut
+  // CONTOH seolah itu data asli sekolah -- tampilkan pesan gagal di bagian itu saja.
   const tl = hasTl
     ? tlRows.map((r) => ({
         id: r.id,
@@ -204,8 +212,8 @@ export default function MIPage({ session }) {
         module: "mi",
         priority: r.priority,
       }))
-    : SAMPLE_TINDAK_LANJUT;
-  const tlIsSample = !hasTl;
+    : tlError ? [] : SAMPLE_TINDAK_LANJUT;
+  const tlIsSample = !hasTl && !tlError;
 
   // Hitung agregat
   let processed;
@@ -321,10 +329,14 @@ export default function MIPage({ session }) {
       </section>
 
       {/* ── Tindak lanjut ── */}
-      <FollowupRibbon
-        items={tl.filter((t) => t.module === "mi" || !t.module)}
-        isSample={tlIsSample}
-      />
+      {tlError ? (
+        <p className={styles.tlErrorNote}>Gagal memuat tindak lanjut: {tlError}</p>
+      ) : (
+        <FollowupRibbon
+          items={tl.filter((t) => t.module === "mi" || !t.module)}
+          isSample={tlIsSample}
+        />
+      )}
     </div>
   );
 }

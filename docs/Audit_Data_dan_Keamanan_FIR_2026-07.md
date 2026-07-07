@@ -4,6 +4,18 @@ Audit menyeluruh atas jalur data FIR: dari upload Excel di CMS Admin, penyimpana
 
 Audit dilakukan dari kode di repo. Database live tidak bisa diperiksa dari sesi ini, jadi semua yang bergantung pada isi policy RLS ditandai sebagai butuh verifikasi.
 
+## Status perbaikan (per commit setelah audit ini)
+
+Item 2, 3, 4 dari daftar prioritas (Bagian 4) sudah dikerjakan di kode:
+
+- **1.1 (batas 1000 baris)**: `fetchAllRows` (paginasi lewat `.range()`) ditambahkan di `web/src/lib/supabase.js` dan dipasang di semua query detail yang berisiko (skor karakter, skor indikator, pernyataan ortu di WaliKelas/Kepsek/Yayasan, dan `mi_hasil` di MIPage).
+- **1.2 (error query ditelan)**: semua hook Karakter (`useKarakterData.js`) dan `useOverviewBriefing.js` sekarang mengecek error SEMUA query paralel, bukan sebagian. `fetchAspekConfig`/`fetchIndikatorConfig` diubah supaya errornya tidak lagi dibuang diam-diam.
+- **Bug baru ditemukan saat mengerjakan ini (tidak ada di audit awal)**: `useOverviewBriefing.js` punya bug closure/TDZ -- `finalizeState` dideklarasikan sebagai nested function yang merujuk `briefingRes`/`tlRes` di scope terluar, bukan parameternya sendiri. Untuk peran Yayasan, fungsi ini dipanggil SEBELUM `const [schoolRes, briefingRes, tlRes]` versi non-Yayasan sempat dideklarasikan, jadi `finalizeState` melempar `ReferenceError` (temporal dead zone) tiap kali dipanggil dari cabang Yayasan. Efeknya nyata: `overview.schoolName` untuk peran Yayasan tidak pernah terisi (Header tampil tanpa nama sekolah) dan tab Ringkasan macet di "Memuat ringkasan..." selamanya untuk peran itu. Sudah diperbaiki dengan membuat `finalizeState` menerima objek respons penuh (`{data, error}`) sebagai parameter, bukan bergantung closure.
+- **2.1/2.2 (import tidak idempoten)**: `importKarakterWorkbook` diubah dari INSERT polos jadi UPSERT dengan `onConflict` untuk `karakter_skor`, `karakter_skor_indikator`, `karakter_pernyataan_ortu`. Ini BUTUH unique constraint yang belum tentu ada di database live -- lihat migration `supabase/migrations/20260707120000_karakter_unique_constraints.sql`. **Migration ini harus dijalankan manual oleh pemilik database** (lewat Supabase SQL Editor atau `supabase db push`) sebelum upload berikutnya, kalau tidak import akan gagal dengan error Postgres "no unique or exclusion constraint matching the ON CONFLICT specification". Migration juga menghapus baris duplikat yang mungkin sudah terlanjur ada -- baca komentar di berkas SQL-nya, backup dulu sebelum menjalankan.
+- **2.4 (kunci murid dari nama)**: pencocokan `nama_murid` di `karakterImporter.js` dinormalisasi (trim + collapse spasi + lowercase) supaya variasi ketikan antar bulan tidak dianggap murid baru, dan baris dengan nama kosong sekarang ditolak sebagai baris gagal (dulu: semua baris tanpa nama tergabung jadi satu "murid" bersama). Kunci murid tetap berbasis nama, bukan NIS/NISN -- sheet sumber saat ini tidak punya kolom id murid yang stabil, jadi perbaikan penuh (item ini di audit) menunggu keputusan produk untuk menambah kolom id di sheet sumber.
+
+Belum dikerjakan: item 1 (RLS), 5 (satukan sumber angka/hilangkan `|| 0`), 6 (samakan filter target_role Ringkasan vs modul), 7 (password generator, CORS, bersih-bersih GAS).
+
 ---
 
 ## Bagian 1. Kenapa data bisa TIDAK MUNCUL

@@ -39,6 +39,27 @@ export function useOverviewBriefing(session) {
   useEffect(() => {
     let alive = true;
 
+    // Ambil parameter { data, error } LANGSUNG dari respons Supabase (bukan cuma .data yang
+    // sudah diekstrak pemanggil), supaya error briefing/tindak_lanjut selalu ketahuan di sini,
+    // dari cabang Yayasan maupun cabang peran lain, tanpa bergantung pada closure luar.
+    function finalizeState(briefingRes, tlRes, schoolName) {
+      const err = briefingRes?.error || tlRes?.error;
+      if (err) { setState({ loading: false, error: err.message, schoolName, briefing: null, tindakLanjut: [] }); return; }
+
+      const briefingRows = briefingRes?.data || [];
+      const tlRows = tlRes?.data || [];
+      const periode = latestPeriode(briefingRows) || latestPeriode(tlRows);
+      const briefingAtPeriode = briefingRows.filter((r) => r.periode_id === periode);
+      const best = briefingAtPeriode.sort((a, b) => (a.created_at < b.created_at ? 1 : -1))[0] || null;
+
+      const priorityRank = { tinggi: 0, sedang: 1, rendah: 2 };
+      const tindakLanjut = tlRows
+        .filter((r) => r.periode_id === periode)
+        .sort((a, b) => (priorityRank[a.priority] ?? 3) - (priorityRank[b.priority] ?? 3));
+
+      setState({ loading: false, error: null, schoolName, briefing: best, tindakLanjut, periode });
+    }
+
     async function run() {
       if (!session || session.peran === "Siswa" || session.peran === "AdminFammi") {
         setState({ loading: false, error: null, schoolName: null, briefing: null, tindakLanjut: [] });
@@ -58,6 +79,9 @@ export function useOverviewBriefing(session) {
         if (schoolErr) { setState({ loading: false, error: schoolErr.message, schoolName: null, briefing: null, tindakLanjut: [] }); return; }
 
         const yayasanRes = await supabase.from("yayasan").select("nama").eq("id", yayasanId).maybeSingle();
+        if (!alive) return;
+        if (yayasanRes.error) { setState({ loading: false, error: yayasanRes.error.message, schoolName: null, briefing: null, tindakLanjut: [] }); return; }
+
         const sekolahIds = (schoolRows || []).map((s) => s.id);
         if (sekolahIds.length === 0) {
           setState({ loading: false, error: null, schoolName: yayasanRes.data?.nama || null, briefing: null, tindakLanjut: [] });
@@ -71,7 +95,7 @@ export function useOverviewBriefing(session) {
             .in("sekolah_id", sekolahIds).eq("scope", "sekolah").eq("status", "disetujui"),
         ]);
         if (!alive) return;
-        finalizeState(briefingRes.data, tlRes.data, yayasanRes.data?.nama || null);
+        finalizeState(briefingRes, tlRes, yayasanRes.data?.nama || null);
         return;
       }
 
@@ -83,6 +107,7 @@ export function useOverviewBriefing(session) {
       if (modules.length === 0) {
         const nameRes = await supabase.from("schools").select("nama").eq("id", session.school_id).maybeSingle();
         if (!alive) return;
+        if (nameRes.error) { setState({ loading: false, error: nameRes.error.message, schoolName: null, briefing: null, tindakLanjut: [] }); return; }
         setState({ loading: false, error: null, schoolName: nameRes.data?.nama || null, briefing: null, tindakLanjut: [] });
         return;
       }
@@ -97,23 +122,8 @@ export function useOverviewBriefing(session) {
           .in("modul", modules).eq("status", "disetujui"),
       ]);
       if (!alive) return;
-      finalizeState(briefingRes.data, tlRes.data, schoolRes.data?.nama || null);
-
-      function finalizeState(briefingRows, tlRows, schoolName) {
-        const err = briefingRes?.error || tlRes?.error;
-        if (err) { setState({ loading: false, error: err.message, schoolName, briefing: null, tindakLanjut: [] }); return; }
-
-        const periode = latestPeriode(briefingRows) || latestPeriode(tlRows);
-        const briefingAtPeriode = (briefingRows || []).filter((r) => r.periode_id === periode);
-        const best = briefingAtPeriode.sort((a, b) => (a.created_at < b.created_at ? 1 : -1))[0] || null;
-
-        const priorityRank = { tinggi: 0, sedang: 1, rendah: 2 };
-        const tindakLanjut = (tlRows || [])
-          .filter((r) => r.periode_id === periode)
-          .sort((a, b) => (priorityRank[a.priority] ?? 3) - (priorityRank[b.priority] ?? 3));
-
-        setState({ loading: false, error: null, schoolName, briefing: best, tindakLanjut, periode });
-      }
+      if (schoolRes.error) { setState({ loading: false, error: schoolRes.error.message, schoolName: null, briefing: null, tindakLanjut: [] }); return; }
+      finalizeState(briefingRes, tlRes, schoolRes.data?.nama || null);
     }
 
     run();

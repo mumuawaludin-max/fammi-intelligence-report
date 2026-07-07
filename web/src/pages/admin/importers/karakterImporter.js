@@ -102,6 +102,13 @@ function resolveIndikatorCols(headerRow) {
   return out;
 }
 
+/** Kunci pencocokan nama yang tidak peduli spasi berlebih atau besar/kecil huruf -- "Ahmad
+ * Fajri" dan "ahmad  fajri" (dua spasi, ketikan bulan lain) harus jadi murid yang sama, bukan
+ * dianggap murid baru. Nama ASLI (bukan versi ternormalisasi ini) tetap yang disimpan ke DB. */
+function normalizeNama(nama) {
+  return String(nama || '').trim().replace(/\s+/g, ' ').toLowerCase();
+}
+
 /** murid_id harus konsisten antar periode (bulan) supaya grafik tren per anak tidak putus. */
 async function loadExistingMuridIds(sekolahId) {
   const { data, error } = await supabase
@@ -113,7 +120,8 @@ async function loadExistingMuridIds(sekolahId) {
   const byNama = {};
   let maxNum = 0;
   (data || []).forEach((r) => {
-    if (!byNama[r.nama_murid]) byNama[r.nama_murid] = r.murid_id;
+    const key = normalizeNama(r.nama_murid);
+    if (key && !byNama[key]) byNama[key] = r.murid_id;
     const n = parseInt(String(r.murid_id).replace(/\D/g, ''), 10);
     if (Number.isFinite(n) && n > maxNum) maxNum = n;
   });
@@ -194,10 +202,14 @@ export async function parseKarakterWorkbook(file, { sekolahId }) {
 
   const { byNama, nextNum } = await loadExistingMuridIds(sekolahId);
   let seq = nextNum;
+  /** nama WAJIB sudah tervalidasi tidak kosong oleh pemanggil (lihat pengecekan sebelum tiap
+   * panggilan muridId() di bawah) -- nama kosong tidak boleh sampai sini karena semua baris
+   * tanpa nama akan tergabung jadi satu "murid" kalau dibiarkan. */
   function muridId(nama) {
-    if (byNama[nama]) return byNama[nama];
+    const key = normalizeNama(nama);
+    if (byNama[key]) return byNama[key];
     const id = 'M' + String(seq++).padStart(3, '0');
-    byNama[nama] = id;
+    byNama[key] = id;
     return id;
   }
 
@@ -210,10 +222,12 @@ export async function parseKarakterWorkbook(file, { sekolahId }) {
     const periode = ownBulan(r);
     if (!periode) { badRows.push(`detail_persentase_karakter baris ${i + 2} (bulan)`); return; }
     const nama = getField(r, 'nama');
+    if (!String(nama || '').trim()) { badRows.push(`detail_persentase_karakter baris ${i + 2} (nama kosong -- baris tanpa nama tidak bisa dipetakan ke murid mana pun)`); return; }
     const kelas = getField(r, 'kelas');
     if (!kelas) { badRows.push(`detail_persentase_karakter baris ${i + 2} (kelas)`); return; }
     countPeriode(periode);
-    if (nama) { namaPeriode[nama] = periode; namaKelas[nama] = kelas; }
+    const namaKey = normalizeNama(nama);
+    namaPeriode[namaKey] = periode; namaKelas[namaKey] = kelas;
     const mid = muridId(nama);
     ASPEK_KODE.forEach((aspek) => {
       const col = aspekColMap[aspek];
@@ -232,8 +246,10 @@ export async function parseKarakterWorkbook(file, { sekolahId }) {
   const skorIndikatorRows = [];
   di.forEach((r, i) => {
     const nama = getField(r, 'nama');
-    const kelas = getField(r, 'kelas') || namaKelas[nama];
-    const periode = ownBulan(r) || namaPeriode[nama];
+    if (!String(nama || '').trim()) { badRows.push(`detail_persentase_indikator baris ${i + 2} (nama kosong)`); return; }
+    const namaKey = normalizeNama(nama);
+    const kelas = getField(r, 'kelas') || namaKelas[namaKey];
+    const periode = ownBulan(r) || namaPeriode[namaKey];
     if (!periode) { badRows.push(`detail_persentase_indikator baris ${i + 2} (bulan)`); return; }
     if (!kelas) { badRows.push(`detail_persentase_indikator baris ${i + 2} (kelas)`); return; }
     countPeriode(periode);
@@ -252,8 +268,10 @@ export async function parseKarakterWorkbook(file, { sekolahId }) {
   const pernyataanRows = [];
   po.forEach((r, i) => {
     const nama = getField(r, 'nama');
-    const kelas = getField(r, 'kelas') || namaKelas[nama];
-    const periode = ownBulan(r) || namaPeriode[nama];
+    if (!String(nama || '').trim()) { badRows.push(`detail_pernyataan_orangtua baris ${i + 2} (nama kosong)`); return; }
+    const namaKey = normalizeNama(nama);
+    const kelas = getField(r, 'kelas') || namaKelas[namaKey];
+    const periode = ownBulan(r) || namaPeriode[namaKey];
     if (!periode) { badRows.push(`detail_pernyataan_orangtua baris ${i + 2} (bulan)`); return; }
     if (!kelas) { badRows.push(`detail_pernyataan_orangtua baris ${i + 2} (kelas)`); return; }
     countPeriode(periode);
@@ -326,13 +344,14 @@ export async function importKarakterWorkbook(parsed) {
   const { skorRows, skorIndikatorRows, pernyataanRows, summaryRows } = parsed.rows;
   let totalRows = 0;
 
-  // karakter_summary punya unique constraint (sekolah_id, scope, scope_id, periode_id):
-  // upsert supaya re-import periode yang sama (atau sisa data dari upload gagal sebelumnya)
-  // menimpa baris lama, bukan gagal dengan error duplicate key.
+  // Keempat tabel punya unique constraint (lihat migration
+  // supabase/migrations/20260707120000_karakter_unique_constraints.sql): upsert supaya
+  // re-import periode yang sama (atau sisa data dari upload gagal di tengah sebelumnya)
+  // MENIMPA baris lama, bukan menggandakannya atau gagal dengan error duplicate key.
   for (const [table, rows, upsertOn] of [
-    ['karakter_skor', skorRows, null],
-    ['karakter_skor_indikator', skorIndikatorRows, null],
-    ['karakter_pernyataan_ortu', pernyataanRows, null],
+    ['karakter_skor', skorRows, 'sekolah_id,murid_id,periode_id,aspek_kode'],
+    ['karakter_skor_indikator', skorIndikatorRows, 'sekolah_id,murid_id,periode_id,aspek_kode,indikator_kode'],
+    ['karakter_pernyataan_ortu', pernyataanRows, 'sekolah_id,murid_id,periode_id'],
     ['karakter_summary', summaryRows, 'sekolah_id,scope,scope_id,periode_id'],
   ]) {
     if (rows.length === 0) continue;

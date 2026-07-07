@@ -276,6 +276,15 @@
   line-height: 1.5;
 }
 
+.tlErrorNote {
+  font-size: 13px;
+  color: var(--status-alert);
+  background: var(--status-alert-bg);
+  border-radius: var(--radius-sm);
+  padding: 12px 16px;
+  line-height: 1.6;
+}
+
 .setupHint {
   font-size: 13px;
   color: var(--ink-3);
