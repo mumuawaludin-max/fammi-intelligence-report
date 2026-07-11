@@ -19,9 +19,18 @@
 //   "update-schedule"          { patch }
 //
 // Deploy: supabase functions deploy admin-actions
+//
+// corsHeaders ditulis LANGSUNG di sini (bukan impor dari ../_shared/cors.ts seperti fungsi
+// lain) supaya berkas ini berdiri sendiri satu file penuh -- deploy lewat Supabase Dashboard
+// (tempel kode langsung, tanpa upload folder _shared/) gagal bundling kalau ada impor relatif
+// ke luar folder fungsi ini sendiri.
 
 import { createClient } from "jsr:@supabase/supabase-js@2";
-import { corsHeaders } from "../_shared/cors.ts";
+
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+};
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
