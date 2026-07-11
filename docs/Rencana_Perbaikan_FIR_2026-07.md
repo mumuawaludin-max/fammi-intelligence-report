@@ -16,6 +16,17 @@ Urutan fase disusun berdasar dampak dan dependensi. Fase A menopang semuanya; B 
 
 Seluruh keamanan data sekolah dan murid bergantung pada policy RLS yang saat ini hanya hidup di dashboard Supabase, tidak berversi, tidak bisa direview. Sebelum fase ini selesai, tidak ada temuan keamanan lain yang benar-benar tertutup.
 
+**Status A1-A3: selesai dan terverifikasi (2026-07-11).** Policy live ditarik lewat query SQL Editor (bukan `supabase db pull`, karena CLI tidak tersedia di sesi ini -- hasilnya setara). Review menemukan dua celah nyata, keduanya sudah ditutup lewat migration dan dibuktikan lulus lewat `supabase/tests/rls_verify.sql` (4/4 skenario hijau, angka nyata dari database live):
+
+- **Temuan A** (`supabase/migrations/20260711100000_rls_scope_hardening.sql`): policy baca `karakter_skor`, `karakter_skor_indikator`, `karakter_pernyataan_ortu`, `mi_hasil` cuma memfilter `sekolah_id` -- siapa pun yang login di satu sekolah (Wali Kelas kelas lain, akun Orang Tua/Siswa) bisa membaca nama dan skor SEMUA murid sekolah itu lewat REST langsung. Sekarang dibatasi ke `kelas_id` (Wali Kelas, dari `cakupan`) dan `murid_id` (Orang Tua/Siswa). Kepala Sekolah/Wakil tetap sekolah-wide (memang begitu desainnya). Sekalian: fungsi yatim `handle_new_user()` (tidak terikat trigger apa pun, sisa desain lama) dihapus, beberapa policy duplikat di `schools`/`school_modules` diringkas.
+- **Temuan B** (`supabase/migrations/20260711113000_rls_tindak_lanjut_scope.sql`): policy baca `tindak_lanjut`/`briefing` cuma memfilter `sekolah_id` + `status` -- Wali Kelas bisa membaca tindak lanjut level Kepala Sekolah dan tindak lanjut kelas lain lewat REST langsung. Sekarang dibatasi ke `scope`/`scope_id`/`target_role` yang relevan per peran. Ditulis setelah verifikasi data live (tidak ada baris `target_role` kosong, `briefing` kosong sama sekali) supaya tidak berisiko menyembunyikan data yang sudah tayang.
+
+Helper baru: `my_peran()`, `my_cakupan()`, `my_murid_id()` (pola sama dengan `my_school_id()` yang sudah ada).
+
+**Keputusan yang diambil, dicatat supaya tidak perlu ditinjau ulang tanpa alasan baru:** policy `_baca_yayasan` (semua tabel) sengaja TIDAK dipersempit di kedua migration di atas -- Yayasan sudah dirancang punya akses lebih luas lintas sekolah untuk data mentahnya (termasuk nama murid di `karakter_pernyataan_ortu`), jadi tidak konsisten kalau tindak lanjutnya dibatasi sementara data sumbernya tidak. `mi_input` juga sengaja tidak disentuh -- struktur kolomnya belum diverifikasi dan tidak ada kode React yang memakainya.
+
+A4 (pindahkan mutasi admin ke Edge Function) belum dikerjakan.
+
 ### A1. Tarik skema dan policy ke repo `[manual]` lalu `[kode]`
 
 1. Di mesin yang punya akses proyek Supabase: `supabase login`, `supabase link --project-ref hypzmczwpigkyomzgjdb`.
