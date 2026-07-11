@@ -13,6 +13,7 @@ import {
   pct, deltaVsPrevious, classifyPencapaian, periodeLabel, aspekIcon,
   avgAspek, ringkasanAspekValue, isKebijakanReady, SECTION_ICON,
 } from "./karakterMeta";
+import { KARAKTER_BAR_TONE_CUTOFF } from "../../lib/cutoffs";
 import styles from "./KarakterViews.module.css";
 
 const WHO_YAYASAN = { short: "untuk Pengurus Yayasan", long: "untuk Yayasan" };
@@ -81,7 +82,7 @@ export default function YayasanView({ session, periodeId }) {
   const activeIndikator = activeSekolah ? (indikatorBySekolah[activeSekolah.id] || []) : [];
   const adaIndikator = activeIndikator.length > 0;
   const indTerbaik = [...activeIndikator].sort((a, b) => b.value - a.value).slice(0, 5);
-  const indLemah = activeIndikator.filter((it) => it.value < 80).sort((a, b) => a.value - b.value).slice(0, 5);
+  const indLemah = activeIndikator.filter((it) => it.value < KARAKTER_BAR_TONE_CUTOFF.aman).sort((a, b) => a.value - b.value).slice(0, 5);
 
   return (
     <div className={`${styles.page} ${styles.pageFullBleed}`}>

@@ -5,6 +5,8 @@
  *   transformSupabaseMI  — dari Supabase mi_hasil (kolom skor_* dan pred_*)
  */
 
+import { MI_LEVEL_CUTOFF } from "../../lib/cutoffs";
+
 const NAME_TO_CODE = {
   "musikal":       "Mu",
   "spasial":       "Sp",
@@ -259,8 +261,8 @@ function normLevel(raw) {
 }
 
 function computeLevel(score) {
-  if (score >= 75) return "Kuat";
-  if (score >= 50) return "Sedang";
+  if (score >= MI_LEVEL_CUTOFF.kuat) return "Kuat";
+  if (score >= MI_LEVEL_CUTOFF.sedang) return "Sedang";
   return "Berkembang";
 }
 

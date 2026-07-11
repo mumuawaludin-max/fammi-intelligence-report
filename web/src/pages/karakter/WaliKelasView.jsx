@@ -13,6 +13,7 @@ import {
   pct, deltaVsPrevious, classifyPencapaian, periodeLabel, aspekIcon,
   extractPlainText, isBlankEssay, matchedCategoryTags, isKebijakanReady, SECTION_ICON,
 } from "./karakterMeta";
+import { KARAKTER_BAR_TONE_CUTOFF } from "../../lib/cutoffs";
 import styles from "./KarakterViews.module.css";
 
 const WHO_WALIKELAS = { short: "untuk Wali Kelas", long: "untuk Wali Kelas & Kepala Sekolah" };
@@ -97,7 +98,7 @@ export default function WaliKelasView({ session, periodeId }) {
         .filter((r) => r.value != null)
     : [];
   const indTerbaik = [...activeIndikator].sort((a, b) => b.value - a.value).slice(0, 5);
-  const indLemah = activeIndikator.filter((r) => r.value < 80).sort((a, b) => a.value - b.value).slice(0, 5);
+  const indLemah = activeIndikator.filter((r) => r.value < KARAKTER_BAR_TONE_CUTOFF.aman).sort((a, b) => a.value - b.value).slice(0, 5);
 
   const aspekItems = activeMurid
     ? aspek.map((a) => ({

@@ -1,3 +1,5 @@
+import { KARAKTER_PENCAPAIAN_BAIK, KARAKTER_BAR_TONE_CUTOFF } from "../../lib/cutoffs";
+
 // Warna spoke aspek karakter, dipetakan dari token --dv-1..--dv-6 (tokens.css).
 // Aspek sendiri (label, urutan) datang dari tabel karakter_aspek_config, bukan hardcode di sini,
 // karena aspek Karakter custom per sekolah.
@@ -110,27 +112,26 @@ export function aspekIcon(label = "") {
 }
 
 /**
- * Klasifikasi 80%: kelas/aspek dengan pencapaian >= 80% dianggap "baik" (sudah bagus),
- * di bawahnya "perlu_perhatian". Null (tidak ada data) BUKAN "perlu_perhatian" — beda kasus.
+ * Klasifikasi kelas/aspek jadi "baik" (sudah bagus) atau "perlu_perhatian". Null (tidak ada
+ * data) BUKAN "perlu_perhatian" — beda kasus. Cutoff-nya masih sementara, lihat cutoffs.js.
  */
 export const CLASSIFY_TONE = { baik: "aman", perlu_perhatian: "perhatian" };
 export function classifyPencapaian(value) {
   const v = pct(value);
   if (v === null) return null;
-  return v >= 80 ? "baik" : "perlu_perhatian";
+  return v >= KARAKTER_PENCAPAIAN_BAIK ? "baik" : "perlu_perhatian";
 }
 
 /**
  * Tiga tingkat warna untuk bar skor, sesuai palet status Fammi: hijau (bagus),
  * kuning (perlu perhatian), merah (waspada, hanya untuk skor sungguh rendah supaya
- * merah tetap berarti peringatan, bukan hiasan). Cutoff 80/60 masih sementara,
- * salah satu parameter yang menunggu penetapan pemilik produk (lihat CLAUDE.md).
+ * merah tetap berarti peringatan, bukan hiasan). Cutoff-nya masih sementara, lihat cutoffs.js.
  */
 export function classifyBarTone(value) {
   const v = pct(value);
   if (v === null) return null;
-  if (v >= 80) return "aman";
-  if (v >= 60) return "perhatian";
+  if (v >= KARAKTER_BAR_TONE_CUTOFF.aman) return "aman";
+  if (v >= KARAKTER_BAR_TONE_CUTOFF.perhatian) return "perhatian";
   return "waspada";
 }
 

@@ -14,6 +14,7 @@ import {
   pct, ringkasanAspekValue, parseTop5Pair, parseTop5Indikator, deltaVsPrevious,
   classifyPencapaian, periodeLabel, aspekIcon, avgAspek, persen, isKebijakanReady, SECTION_ICON,
 } from "./karakterMeta";
+import { KARAKTER_BAR_TONE_CUTOFF } from "../../lib/cutoffs";
 import styles from "./KarakterViews.module.css";
 
 /** Satu pie/donut per jenjang: berapa persen dinilai + rata-rata karakter, dari guru & orang tua. */
@@ -302,12 +303,12 @@ export default function KepsekView({ session, periodeId }) {
                       .map((p) => ({ label: p.nama, value: pct(p.nilai) }));
                     const siswaLemah = parseTop5Pair(rk?.top5_siswa_terendah, rk?.top5_nilai_siswa_terendah)
                       .map((p) => ({ label: p.nama, value: pct(p.nilai) }))
-                      .filter((p) => p.value != null && p.value < 80);
+                      .filter((p) => p.value != null && p.value < KARAKTER_BAR_TONE_CUTOFF.aman);
                     const indTerbaik = parseTop5Indikator(rk?.top5_indikator_terbaik)
                       .map((it) => ({ label: it.label, value: pct(it.nilai) }));
                     const indLemah = parseTop5Indikator(rk?.top5_indikator_terendah)
                       .map((it) => ({ label: it.label, value: pct(it.nilai) }))
-                      .filter((it) => it.value != null && it.value < 80);
+                      .filter((it) => it.value != null && it.value < KARAKTER_BAR_TONE_CUTOFF.aman);
                     return (
                       <div className={styles.detailRows}>
                         {/* Baris 1: skor per aspek, diurutkan dari tertinggi, semua tampil */}
