@@ -219,42 +219,30 @@ export function useAdminCmsData(session) {
 // ── Actions (dipanggil dari CmsStore, tiap fungsi refetch sendiri lewat pemanggilnya) ──
 
 export async function actApprovalAction(item, action, langkahTerpilih) {
-  const table = item.tipe === 'briefing' ? 'briefing' : 'tindak_lanjut';
-  const status = action === 'setuju' ? 'disetujui' : 'ditolak';
-  const patch = { status };
-  if (item.tipe === 'briefing') patch.teks = item.teks;
-  else {
-    patch.action = item.teks;
-    if (langkahTerpilih) patch.langkah_terpilih = langkahTerpilih; // array opsi terpilih (bisa semua)
-  }
-  const { error } = await supabase.from(table).update(patch).eq('id', item.id);
-  if (error) throw new Error(error.message);
-
-  // Penggantian mulus: begitu draf hasil regenerate disetujui, baris lama yang digantikannya
-  // otomatis ditolak supaya tidak tayang ganda di laporan sekolah.
-  if (action === 'setuju' && item.tipe !== 'briefing' && item.regenerateDari) {
-    await supabase.from('tindak_lanjut').update({ status: 'ditolak' }).eq('id', item.regenerateDari);
-  }
+  const { error } = await supabase.functions.invoke('admin-actions', {
+    body: {
+      action: action === 'setuju' ? 'approve' : 'reject',
+      id: item.id, tipe: item.tipe, teks: item.teks,
+      langkahTerpilih: langkahTerpilih || undefined,
+      regenerateDari: item.regenerateDari || undefined,
+    },
+  });
+  if (error) throw new Error(await edgeErrorDetail(error, 'Edge Function admin-actions gagal dipanggil.'));
 }
 
 export async function toggleModuleAction(schoolId, modul, nextOn) {
-  const { error } = await supabase
-    .from('school_modules')
-    .upsert({ school_id: schoolId, modul, aktif: nextOn }, { onConflict: 'school_id,modul' });
-  if (error) throw new Error(error.message);
+  const { error } = await supabase.functions.invoke('admin-actions', {
+    body: { action: 'toggle-module', schoolId, modul, aktif: nextOn },
+  });
+  if (error) throw new Error(await edgeErrorDetail(error, 'Edge Function admin-actions gagal dipanggil.'));
 }
 
 export async function addSchoolAction({ nama, jenjang, yayasanId, modules }) {
-  const id = nama.toUpperCase().replace(/[^A-Z0-9]+/g, '-').replace(/(^-|-$)/g, '').slice(0, 40);
-  const { error: schoolErr } = await supabase.from('schools').insert({ id, nama, yayasan_id: yayasanId || null, aktif: true });
-  if (schoolErr) throw new Error(schoolErr.message);
-  if (modules.length > 0) {
-    const { error: modErr } = await supabase.from('school_modules').insert(
-      modules.map((m) => ({ school_id: id, modul: m, aktif: true }))
-    );
-    if (modErr) throw new Error(modErr.message);
-  }
-  return id;
+  const { data, error } = await supabase.functions.invoke('admin-actions', {
+    body: { action: 'add-school', nama, yayasanId, modules },
+  });
+  if (error) throw new Error(await edgeErrorDetail(error, 'Edge Function admin-actions gagal dipanggil.'));
+  return data.id;
 }
 
 export async function runImportAction({ sekolahId, modul, fileName, parsed }) {
@@ -313,8 +301,10 @@ export async function regenerateDraftAction({ id, catatan }) {
 }
 
 export async function updateGeminiScheduleAction(patch) {
-  const { error } = await supabase.from('gemini_schedule').update(patch).eq('id', 'default');
-  if (error) throw new Error(error.message);
+  const { error } = await supabase.functions.invoke('admin-actions', {
+    body: { action: 'update-schedule', patch },
+  });
+  if (error) throw new Error(await edgeErrorDetail(error, 'Edge Function admin-actions gagal dipanggil.'));
 }
 
 export async function createUserAction({ nama, username, peran, schoolId, cakupan }) {
@@ -328,11 +318,10 @@ export async function createUserAction({ nama, username, peran, schoolId, cakupa
 
 export async function updateUserAction(userId, { nama, peran, schoolId, cakupan }) {
   const cakupanArr = cakupan ? cakupan.split(',').map((s) => s.trim()).filter(Boolean) : [];
-  const { error } = await supabase.from('profiles').update({
-    nama, peran, school_id: schoolId || null,
-    cakupan: cakupanArr.length > 0 ? cakupanArr : null,
-  }).eq('id', userId);
-  if (error) throw new Error(error.message);
+  const { error } = await supabase.functions.invoke('admin-actions', {
+    body: { action: 'update-profile', userId, nama, peran, schoolId, cakupan: cakupanArr },
+  });
+  if (error) throw new Error(await edgeErrorDetail(error, 'Edge Function admin-actions gagal dipanggil.'));
 }
 
 export async function resetPasswordAction({ userId, username }) {
