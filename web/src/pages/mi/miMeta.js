@@ -35,12 +35,23 @@ const R_KEYS = {
   Sp: ["r_spasial"],
 };
 
+/**
+ * Cari skor mentah untuk satu kecerdasan lewat daftar kemungkinan nama kolom (alias header
+ * antar versi sheet). Kembalikan null kalau TIDAK SATU PUN kolom itu terisi sama sekali --
+ * beda dari kolom yang terisi tapi nilainya 0 (itu tetap dikembalikan apa adanya, bukan
+ * ditebak; validitas skor 0 untuk Interpersonal masih parameter terbuka, lihat CLAUDE.md).
+ * Null di sini murni soal "datanya belum ada", bukan soal "0 itu valid atau tidak".
+ */
 function readScore_(row, keys) {
+  let found = false;
   for (let i = 0; i < keys.length; i++) {
-    const v = Number(row[keys[i]]);
+    const raw = row[keys[i]];
+    if (raw === null || raw === undefined || raw === "") continue;
+    found = true;
+    const v = Number(raw);
     if (!isNaN(v) && v > 0) return v;
   }
-  return 0;
+  return found ? 0 : null;
 }
 
 /**
@@ -55,7 +66,8 @@ export function processOutputMI(rows = []) {
   const nSiswa = rows.length;
   const topCounts = {};
   const scoreAccum = {};
-  MI_META.forEach((m) => { scoreAccum[m.code] = 0; });
+  const scoreCount = {};
+  MI_META.forEach((m) => { scoreAccum[m.code] = 0; scoreCount[m.code] = 0; });
   const kelasMap = {};
 
   rows.forEach((row) => {
@@ -63,7 +75,10 @@ export function processOutputMI(rows = []) {
     if (top1Code) topCounts[top1Code] = (topCounts[top1Code] || 0) + 1;
 
     MI_META.forEach((m) => {
-      scoreAccum[m.code] += readScore_(row, R_KEYS[m.code]);
+      const s = readScore_(row, R_KEYS[m.code]);
+      // Murid yang belum punya skor kecerdasan ini SAMA SEKALI tidak ikut dihitung di
+      // rata-rata (miAvg), bukan dianggap 0 -- lihat readScore_.
+      if (s != null) { scoreAccum[m.code] += s; scoreCount[m.code] += 1; }
     });
 
     const kelasId = row.kelas_id ? String(row.kelas_id).trim() : "";
@@ -82,7 +97,7 @@ export function processOutputMI(rows = []) {
 
   const miAvg = {};
   MI_META.forEach((m) => {
-    miAvg[m.code] = Math.round(scoreAccum[m.code] / nSiswa);
+    miAvg[m.code] = scoreCount[m.code] > 0 ? Math.round(scoreAccum[m.code] / scoreCount[m.code]) : null;
   });
 
   const kelasList = Object.entries(kelasMap)

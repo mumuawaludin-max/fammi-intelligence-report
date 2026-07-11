@@ -241,7 +241,9 @@ export default function MIPage({ session }) {
   const radarAxes = MI_META.map((m) => ({
     label: m.name,
     short: m.code,
-    value: miAvg[m.code] || 0,
+    // Biarkan null (bukan 0) kalau belum ada satu murid pun bernilai di kecerdasan ini --
+    // RadarChart sudah aman menerima null, jangan bohongi jadi skor 0.
+    value: miAvg[m.code],
     max: 100,
     color: m.color,
   }));

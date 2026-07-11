@@ -148,8 +148,12 @@ export function groupTindakLanjut(tindakLanjut = [], kelas = []) {
     if (r.scope === "kelas" && kelasByScopeId.has(r.scope_id)) {
       const k = kelasByScopeId.get(r.scope_id);
       const kelasTone = classifyPencapaian(k.ringkasan?.rata_rata_pencapaian_guru);
+      // classifyPencapaian mengembalikan null kalau kelas itu belum ada data pencapaian --
+      // itu BUKAN "perlu_perhatian" (lihat catatan di classifyPencapaian sendiri), jadi jangan
+      // ikut ditumpuk ke bucket itu, biar tidak dikira kelas bermasalah padahal cuma kosong.
       if (kelasTone === "baik") buckets.baik.push(r);
-      else buckets.perlu_perhatian.push(r);
+      else if (kelasTone === "perlu_perhatian") buckets.perlu_perhatian.push(r);
+      else buckets.lainnya.push(r);
     } else {
       buckets.lainnya.push(r);
     }
