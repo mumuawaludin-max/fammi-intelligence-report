@@ -3,8 +3,9 @@
 --
 -- Cara pakai: tempel seluruh berkas ini ke Supabase SQL Editor, jalankan. Hasilnya satu tabel
 -- dengan kolom "lulus" (true/false) per skenario -- kalau ada yang false, migration RLS
--- (lihat supabase/migrations/20260711100000_rls_scope_hardening.sql) sedang tidak bekerja
--- atau ada regresi. Jalankan ulang kapan saja setelah mengubah policy RLS tabel-tabel ini.
+-- (lihat supabase/migrations/20260711100000_rls_scope_hardening.sql dan
+-- supabase/migrations/20260711113000_rls_tindak_lanjut_scope.sql) sedang tidak bekerja atau
+-- ada regresi. Jalankan ulang kapan saja setelah mengubah policy RLS tabel-tabel ini.
 --
 -- Murni baca (dibungkus begin/rollback), tidak mengubah data. Otomatis memilih satu akun
 -- contoh per peran yang ada di database saat ini -- tidak perlu UUID manual. Kalau peran
@@ -40,6 +41,9 @@ select set_config('rlstest.wk_expect', (select count(*)::text from public.karakt
     and kelas_id = current_setting('rlstest.wk_kelas', true)), true);
 select set_config('rlstest.sw_total', (select count(*)::text from public.mi_hasil
   where sekolah_id = current_setting('rlstest.sw_school', true)), true);
+select set_config('rlstest.wk_tl_expect', (select count(*)::text from public.tindak_lanjut
+  where sekolah_id = current_setting('rlstest.wk_school', true) and status = 'disetujui'
+    and scope = 'kelas' and scope_id = current_setting('rlstest.wk_kelas', true)), true);
 
 -- ── Uji 1: Wali Kelas hanya boleh lihat kelas cakupannya di karakter_skor ──────────────────
 set local role authenticated;
@@ -47,6 +51,10 @@ select set_config('request.jwt.claims',
   json_build_object('sub', current_setting('rlstest.wk_id', true), 'role', 'authenticated')::text, true);
 select set_config('rlstest.wk_actual', (select count(*)::text from public.karakter_skor), true);
 select set_config('rlstest.wk_kelas_unik', (select count(distinct kelas_id)::text from public.karakter_skor), true);
+-- Bukti Temuan B: pastikan tidak ada satu pun tindak_lanjut scope='sekolah' (level Kepala
+-- Sekolah) yang bocor ke Wali Kelas, dan yang scope='kelas' cuma kelas cakupannya sendiri.
+select set_config('rlstest.wk_tl_actual', (select count(*)::text from public.tindak_lanjut), true);
+select set_config('rlstest.wk_tl_scope_sekolah_bocor', (select count(*)::text from public.tindak_lanjut where scope = 'sekolah'), true);
 reset role;
 
 -- ── Uji 2: Kepala Sekolah (kontrol) harus TETAP lihat seluruh sekolah, tidak berubah ───────
@@ -93,6 +101,15 @@ select
     and current_setting('rlstest.sw_actual', true)::int < current_setting('rlstest.sw_total', true)::int,
   format('akun=%s actual=%s murid_unik=%s dari_total=%s',
     current_setting('rlstest.sw_id', true), current_setting('rlstest.sw_actual', true),
-    current_setting('rlstest.sw_murid_unik', true), current_setting('rlstest.sw_total', true));
+    current_setting('rlstest.sw_murid_unik', true), current_setting('rlstest.sw_total', true))
+union all
+select
+  'WaliKelas tidak lihat tindak_lanjut scope sekolah/kelas lain (Temuan B)',
+  (current_setting('rlstest.wk_id', true) is not null)
+    and current_setting('rlstest.wk_tl_expect', true)::int = current_setting('rlstest.wk_tl_actual', true)::int
+    and current_setting('rlstest.wk_tl_scope_sekolah_bocor', true)::int = 0,
+  format('akun=%s seharusnya=%s actual=%s scope_sekolah_bocor=%s',
+    current_setting('rlstest.wk_id', true), current_setting('rlstest.wk_tl_expect', true),
+    current_setting('rlstest.wk_tl_actual', true), current_setting('rlstest.wk_tl_scope_sekolah_bocor', true));
 
 rollback;
