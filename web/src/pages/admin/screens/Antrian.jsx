@@ -4,7 +4,8 @@ import { LoadingCards } from '../components/LoadingCards';
 import { EmptyState } from '../components/EmptyState';
 import { ErrorState } from '../components/ErrorState';
 import { ChipRow } from '../components/ChipRow';
-import { moduleColor, moduleShort, prioritasColor, statusColor } from '../data/helpers';
+import { SekolahPeriodeFilter } from '../components/SekolahPeriodeFilter';
+import { moduleColor, moduleShort, prioritasColor, statusColor, periodeMatch } from '../data/helpers';
 
 export function Antrian() {
   const { data, loading, error, state, setScreen, setApprovalFilter, setSelectedApproval, actApproval, refetch } = useCms();
@@ -18,26 +19,26 @@ export function Antrian() {
 
   const source = tab === 'menunggu' ? data.antrian : data.riwayatDisetujui;
   const f = state.approvalFilter;
-  // Yayasan difilter dulu (kalau dipilih), sisanya (sekolah) dihitung dari hasil itu supaya
-  // opsi sekolah yang ditampilkan cuma sekolah di bawah yayasan yang sedang difilter.
+  // Yayasan lalu sekolah difilter dulu berjenjang -- opsi/checkbox di tingkat berikutnya
+  // (sekolah, lalu periode) cuma menawarkan pilihan yang relevan untuk tingkat sebelumnya.
   const sourceByYayasan = f.yayasan === 'all' ? source : source.filter(a => a.yayasan === f.yayasan);
-  const items = sourceByYayasan.filter(a =>
+  const sourceBySekolah = f.sekolah === 'all' ? sourceByYayasan : sourceByYayasan.filter(a => a.sekolah === f.sekolah);
+  const items = sourceBySekolah.filter(a =>
     (f.modul === 'all' || a.modul === f.modul) &&
     (f.prioritas === 'all' || a.prioritas === f.prioritas) &&
-    (f.sekolah === 'all' || a.sekolah === f.sekolah) &&
-    (f.periode === 'all' || a.periode === f.periode)
+    periodeMatch(a.periode, f.periode)
   );
 
-  const modulCount = { all: sourceByYayasan.length, karakter: 0, mi: 0, screening: 0 };
-  sourceByYayasan.forEach(a => { modulCount[a.modul] = (modulCount[a.modul] || 0) + 1; });
+  const modulCount = { all: sourceBySekolah.length, karakter: 0, mi: 0, screening: 0 };
+  sourceBySekolah.forEach(a => { modulCount[a.modul] = (modulCount[a.modul] || 0) + 1; });
 
-  const prioritasCount = { all: sourceByYayasan.length, tinggi: 0, sedang: 0, rendah: 0 };
-  sourceByYayasan.forEach(a => { prioritasCount[a.prioritas] = (prioritasCount[a.prioritas] || 0) + 1; });
+  const prioritasCount = { all: sourceBySekolah.length, tinggi: 0, sedang: 0, rendah: 0 };
+  sourceBySekolah.forEach(a => { prioritasCount[a.prioritas] = (prioritasCount[a.prioritas] || 0) + 1; });
 
   const sekolahCount = {};
   sourceByYayasan.forEach(a => { sekolahCount[a.sekolah] = (sekolahCount[a.sekolah] || 0) + 1; });
   const sekolahOptions = [
-    { key: 'all', label: `Semua (${sourceByYayasan.length})` },
+    { key: 'all', label: `Semua sekolah (${sourceByYayasan.length})` },
     ...data.sekolah
       .filter(s => sekolahCount[s.id])
       .map(s => ({ key: s.id, label: `${s.nama} (${sekolahCount[s.id]})` })),
@@ -46,19 +47,16 @@ export function Antrian() {
   const yayasanCount = {};
   source.forEach(a => { if (a.yayasan) yayasanCount[a.yayasan] = (yayasanCount[a.yayasan] || 0) + 1; });
   const yayasanOptions = [
-    { key: 'all', label: `Semua (${source.length})` },
+    { key: 'all', label: `Semua yayasan (${source.length})` },
     ...data.yayasan
       .filter(y => yayasanCount[y.id])
       .map(y => ({ key: y.id, label: `${y.nama} (${yayasanCount[y.id]})` })),
   ];
 
   const periodeCount = {};
-  sourceByYayasan.forEach(a => { if (a.periode) periodeCount[a.periode] = (periodeCount[a.periode] || 0) + 1; });
-  const periodeOptions = [
-    { key: 'all', label: `Semua (${sourceByYayasan.length})` },
-    ...Object.keys(periodeCount).sort((a, b) => (a < b ? 1 : -1))
-      .map(p => ({ key: p, label: `${p} (${periodeCount[p]})` })),
-  ];
+  sourceBySekolah.forEach(a => { if (a.periode) periodeCount[a.periode] = (periodeCount[a.periode] || 0) + 1; });
+  const periodeOptions = Object.keys(periodeCount).sort((a, b) => (a < b ? 1 : -1))
+    .map(p => ({ key: p, label: `${p} (${periodeCount[p]})` }));
 
   async function handleSetujuiSemua() {
     if (items.length === 0) return;
@@ -101,32 +99,18 @@ export function Antrian() {
         )}
       </div>
 
-      <div className="card" style={{ padding: '14px 18px', marginBottom: 16, display: 'flex', flexWrap: 'wrap', gap: 16, alignItems: 'center' }}>
-        {data.yayasan.length > 0 && (
-          <>
-            <ChipRow
-              label="Yayasan"
-              current={f.yayasan}
-              onChange={(k) => setApprovalFilter({ yayasan: k, sekolah: 'all' })}
-              options={yayasanOptions}
-            />
-            <div style={{ width: 1, height: 22, background: 'var(--line)' }} />
-          </>
-        )}
-        <ChipRow
-          label="Sekolah"
-          current={f.sekolah}
-          onChange={(k) => setApprovalFilter({ sekolah: k })}
-          options={sekolahOptions}
-        />
-        <div style={{ width: 1, height: 22, background: 'var(--line)' }} />
-        <ChipRow
-          label="Periode"
-          current={f.periode}
-          onChange={(k) => setApprovalFilter({ periode: k })}
-          options={periodeOptions}
-        />
-        <div style={{ width: 1, height: 22, background: 'var(--line)' }} />
+      <SekolahPeriodeFilter
+        showYayasan={data.yayasan.length > 0}
+        yayasanOptions={yayasanOptions}
+        sekolahOptions={sekolahOptions}
+        periodeOptions={periodeOptions}
+        filter={f}
+        onYayasanChange={(k) => setApprovalFilter({ yayasan: k, sekolah: 'all', periode: 'all' })}
+        onSekolahChange={(k) => setApprovalFilter({ sekolah: k, periode: 'all' })}
+        onPeriodeChange={(p) => setApprovalFilter({ periode: p })}
+      />
+
+      <div className="card" style={{ padding: '14px 18px', marginTop: 12, marginBottom: 16, display: 'flex', flexWrap: 'wrap', gap: 16, alignItems: 'center' }}>
         <ChipRow
           label="Modul"
           current={f.modul}
