@@ -38,6 +38,13 @@ export function prioritasColor(p) {
   }[p] || { ink: '#4A4458', bg: '#F0F0F4' };
 }
 
+/** Cocokkan periode satu baris terhadap filter periode multi-pilih: 'all' (sentinel, semua
+ * lolos) atau array periode_id yang dicentang. */
+export function periodeMatch(itemPeriode, filterPeriode) {
+  if (filterPeriode === 'all') return true;
+  return Array.isArray(filterPeriode) && filterPeriode.includes(itemPeriode);
+}
+
 /** Trigger download file CSV dari array of object di browser. Tidak menyimpan apa pun ke server. */
 export function downloadCsv(filename, rows) {
   if (rows.length === 0) return;

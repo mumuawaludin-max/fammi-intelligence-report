@@ -3,8 +3,8 @@ import { useCms } from '../store/CmsStore';
 import { LoadingCards } from '../components/LoadingCards';
 import { EmptyState } from '../components/EmptyState';
 import { ErrorState } from '../components/ErrorState';
-import { ChipRow } from '../components/ChipRow';
-import { moduleColor, moduleShort } from '../data/helpers';
+import { SekolahPeriodeFilter } from '../components/SekolahPeriodeFilter';
+import { moduleColor, moduleShort, periodeMatch } from '../data/helpers';
 import { IconZap } from '../components/icons';
 
 const SCOPES = ['sekolah', 'kelas', 'jenjang', 'murid', 'yayasan'];
@@ -29,9 +29,12 @@ export function Gemini() {
   }
 
   const gf = state.geminiFilter;
-  // Yayasan difilter dulu, supaya opsi sekolah yang ditawarkan cuma sekolah di bawahnya.
+  // Yayasan lalu sekolah difilter dulu berjenjang -- checkbox periode baru relevan begitu
+  // sekolah spesifik terpilih (lihat SekolahPeriodeFilter), jadi baris yang lolos byYayasan+
+  // bySekolah itu yang jadi basis penghitungan opsi periode di bawahnya.
   const byYayasan = (r) => gf.yayasan === 'all' || r.yayasanId === gf.yayasan;
-  const byFilter = (r) => byYayasan(r) && (gf.sekolah === 'all' || r.sekolahId === gf.sekolah) && (gf.periode === 'all' || r.periodeId === gf.periode);
+  const bySekolah = (r) => byYayasan(r) && (gf.sekolah === 'all' || r.sekolahId === gf.sekolah);
+  const byFilter = (r) => bySekolah(r) && periodeMatch(r.periodeId, gf.periode);
 
   const rekomendasi = data.rekomendasi.filter(byFilter);
   const rekomendasiSekolah = data.rekomendasiSekolah.filter(byFilter);
@@ -39,7 +42,7 @@ export function Gemini() {
   const recentAll = data.antrian.filter((a) =>
     (gf.yayasan === 'all' || a.yayasan === gf.yayasan) &&
     (gf.sekolah === 'all' || a.sekolah === gf.sekolah) &&
-    (gf.periode === 'all' || a.periode === gf.periode)
+    periodeMatch(a.periode, gf.periode)
   );
   const recent = recentAll.slice(0, 8);
 
@@ -47,26 +50,23 @@ export function Gemini() {
   // yayasan/sekolah/periode yang relevan di layar ini kepilih, bukan cuma satu panel saja.
   const semuaBaris = [...data.rekomendasi, ...data.rekomendasiSekolah, ...data.rekomendasiYayasan];
   const semuaBarisByYayasan = semuaBaris.filter(byYayasan);
+  const semuaBarisBySekolah = semuaBaris.filter(bySekolah);
   const yayasanCount = {};
   semuaBaris.forEach((r) => { if (r.yayasanId) yayasanCount[r.yayasanId] = (yayasanCount[r.yayasanId] || 0) + 1; });
   const yayasanOptions = [
-    { key: 'all', label: `Semua (${semuaBaris.length})` },
+    { key: 'all', label: `Semua yayasan (${semuaBaris.length})` },
     ...data.yayasan.filter((y) => yayasanCount[y.id]).map((y) => ({ key: y.id, label: `${y.nama} (${yayasanCount[y.id]})` })),
   ];
   const sekolahCount = {};
   semuaBarisByYayasan.forEach((r) => { sekolahCount[r.sekolahId] = (sekolahCount[r.sekolahId] || 0) + 1; });
   const sekolahOptionsFilter = [
-    { key: 'all', label: `Semua (${semuaBarisByYayasan.length})` },
+    { key: 'all', label: `Semua sekolah (${semuaBarisByYayasan.length})` },
     ...data.sekolah.filter((s) => sekolahCount[s.id]).map((s) => ({ key: s.id, label: `${s.nama} (${sekolahCount[s.id]})` })),
   ];
   const periodeCount = {};
-  semuaBarisByYayasan
-    .filter((r) => gf.sekolah === 'all' || r.sekolahId === gf.sekolah)
-    .forEach((r) => { if (r.periodeId) periodeCount[r.periodeId] = (periodeCount[r.periodeId] || 0) + 1; });
-  const periodeOptionsFilter = [
-    { key: 'all', label: `Semua (${Object.values(periodeCount).reduce((a, b) => a + b, 0)})` },
-    ...Object.keys(periodeCount).sort((a, b) => (a < b ? 1 : -1)).map((p) => ({ key: p, label: `${p} (${periodeCount[p]})` })),
-  ];
+  semuaBarisBySekolah.forEach((r) => { if (r.periodeId) periodeCount[r.periodeId] = (periodeCount[r.periodeId] || 0) + 1; });
+  const periodeOptionsFilter = Object.keys(periodeCount).sort((a, b) => (a < b ? 1 : -1))
+    .map((p) => ({ key: p, label: `${p} (${periodeCount[p]})` }));
 
   async function generateRekomendasi(r) {
     const key = `${r.sekolahId}|${r.kelasId}|${r.periodeId}`;
@@ -142,32 +142,16 @@ export function Gemini() {
 
   return (
     <div style={{ padding: '22px 26px 40px', display: 'flex', flexDirection: 'column', gap: 16 }}>
-      <div className="card" style={{ padding: '14px 18px', display: 'flex', flexWrap: 'wrap', gap: 16, alignItems: 'center' }}>
-        {data.yayasan.length > 0 && (
-          <>
-            <ChipRow
-              label="Yayasan"
-              current={gf.yayasan}
-              onChange={(k) => setGeminiFilter({ yayasan: k, sekolah: 'all' })}
-              options={yayasanOptions}
-            />
-            <div style={{ width: 1, height: 22, background: 'var(--line)' }} />
-          </>
-        )}
-        <ChipRow
-          label="Sekolah"
-          current={gf.sekolah}
-          onChange={(k) => setGeminiFilter({ sekolah: k })}
-          options={sekolahOptionsFilter}
-        />
-        <div style={{ width: 1, height: 22, background: 'var(--line)' }} />
-        <ChipRow
-          label="Periode"
-          current={gf.periode}
-          onChange={(k) => setGeminiFilter({ periode: k })}
-          options={periodeOptionsFilter}
-        />
-      </div>
+      <SekolahPeriodeFilter
+        showYayasan={data.yayasan.length > 0}
+        yayasanOptions={yayasanOptions}
+        sekolahOptions={sekolahOptionsFilter}
+        periodeOptions={periodeOptionsFilter}
+        filter={gf}
+        onYayasanChange={(k) => setGeminiFilter({ yayasan: k, sekolah: 'all', periode: 'all' })}
+        onSekolahChange={(k) => setGeminiFilter({ sekolah: k, periode: 'all' })}
+        onPeriodeChange={(p) => setGeminiFilter({ periode: p })}
+      />
 
       <RekomendasiPanel rekomendasi={rekomendasi} busyKey={busyKey} batchProgress={batchProgress} onGenerate={generateRekomendasi} onGenerateSemua={generateSemuaSekolah} />
       <RekomendasiSederhanaPanel
