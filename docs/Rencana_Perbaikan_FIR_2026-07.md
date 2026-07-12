@@ -182,6 +182,18 @@ reset password akun lama untuk D1). D3 dan D4 murni kode, tidak ada langkah manu
 
 ## Fase E. Ketahanan import lanjutan (sisa item 3)
 
+**Status: E1 dan E2 selesai dan terverifikasi di produksi (2026-07-12, diuji lewat upload
+sungguhan SDIP Al Madani, 4 periode, 28.546 baris, sukses). E3 dan E4 belum dikerjakan --
+keduanya `[keputusan]`, menunggu konfirmasi pemilik produk, konsisten dengan aturan
+"parameter terbuka" di CLAUDE.md.**
+**Catatan implementasi E1 (beda dari rencana awal di poin 1 di bawah): RPC `SECURITY DEFINER`
+ternyata TIDAK melewati RLS di project ini (dua kali diverifikasi lewat kegagalan produksi
+sungguhan) -- writes di dalam function tetap dievaluasi terhadap policy tabel, dan
+`auth.uid()`/`is_admin_fammi()` di dalamnya kosong kalau dipanggil lewat `service_role`. RPC
+akhirnya dipanggil dari Edge Function `admin-actions` (action `import-karakter`) pakai
+`service_role`, bukan langsung dari browser dengan `supabase.rpc()` seperti draf awal --
+itu satu-satunya cara yang benar-benar melewati RLS di project ini.**
+
 ### E1. Import satu transaksi di server `[kode]` + `[manual]`
 
 1. Buat RPC Postgres `import_karakter(payload jsonb)` (migration) yang menerima empat kelompok baris, menjalankan delete-then-insert per (sekolah, periode) DALAM SATU TRANSAKSI, dan mengembalikan ringkasan jumlah baris. Security definer dengan pemeriksaan peran caller AdminFammi di dalamnya, atau dibungkus Edge Function `admin-actions` (Fase A4).
