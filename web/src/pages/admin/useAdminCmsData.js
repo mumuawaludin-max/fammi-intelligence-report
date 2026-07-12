@@ -110,6 +110,7 @@ export function useAdminCmsData(session) {
       });
 
       const schoolNameById = Object.fromEntries(sekolah.map((s) => [s.id, s.nama]));
+      const sekolahInfoById = Object.fromEntries(sekolah.map((s) => [s.id, s]));
 
       // Rekomendasi PER PERIODE: setiap (sekolah, kelas, periode) yang punya karakter_summary
       // tapi belum ada tindak_lanjut untuk periode itu. Sengaja SEMUA periode (bukan cuma
@@ -122,7 +123,11 @@ export function useAdminCmsData(session) {
       (kelasSummaryRes.data || []).forEach((r) => {
         const key = `${r.sekolah_id}|${r.scope_id}|${r.periode_id}`;
         if (!tlKelasKeySet.has(key)) {
-          rekomendasi.push({ sekolahId: r.sekolah_id, sekolahNama: schoolNameById[r.sekolah_id] || r.sekolah_id, kelasId: r.scope_id, periodeId: r.periode_id });
+          rekomendasi.push({
+            sekolahId: r.sekolah_id, sekolahNama: schoolNameById[r.sekolah_id] || r.sekolah_id,
+            yayasanId: sekolahInfoById[r.sekolah_id]?.yay || null,
+            kelasId: r.scope_id, periodeId: r.periode_id,
+          });
         }
       });
       // Urut per sekolah, lalu periode terbaru dulu, lalu kelas, supaya panel gampang dibaca.
@@ -138,14 +143,13 @@ export function useAdminCmsData(session) {
         (tlSekolahYayasanRes.data || []).map((r) => `${r.sekolah_id}|${r.periode_id}|${r.target_role}`)
       );
       const yayasanNameById = Object.fromEntries((yayasanRes.data || []).map((y) => [y.id, y.nama]));
-      const sekolahInfoById = Object.fromEntries(sekolah.map((s) => [s.id, s]));
       const rekomendasiSekolah = [];
       const rekomendasiYayasan = [];
       (summaryRes.data || []).forEach((r) => {
         const info = sekolahInfoById[r.sekolah_id];
         if (!info || !info.modules.includes('karakter')) return;
         if (!tlSekolahKeySet.has(`${r.sekolah_id}|${r.periode_id}|kepala_sekolah`)) {
-          rekomendasiSekolah.push({ sekolahId: r.sekolah_id, sekolahNama: info.nama, periodeId: r.periode_id });
+          rekomendasiSekolah.push({ sekolahId: r.sekolah_id, sekolahNama: info.nama, yayasanId: info.yay || null, periodeId: r.periode_id });
         }
         if (info.yay && !tlSekolahKeySet.has(`${r.sekolah_id}|${r.periode_id}|yayasan`)) {
           rekomendasiYayasan.push({
@@ -159,7 +163,8 @@ export function useAdminCmsData(session) {
       rekomendasiYayasan.sort(byNamaPeriodeDesc);
 
       const antrianTlAll = (tlRes.data || []).map((r) => ({
-        id: r.id, tipe: 'tindak_lanjut', modul: r.modul, sekolah: r.sekolah_id,
+        id: r.id, tipe: 'tindak_lanjut', modul: r.modul, sekolah: r.sekolah_id, periode: r.periode_id,
+        yayasan: sekolahInfoById[r.sekolah_id]?.yay || null,
         kelas: r.scope === 'kelas' ? r.scope_id : null, scope: r.scope,
         prioritas: r.priority || 'sedang', status: r.status,
         dibuat: (r.created_at || '').replace('T', ' ').slice(0, 16),
@@ -174,7 +179,8 @@ export function useAdminCmsData(session) {
         targetRole: r.target_role || null,
       }));
       const antrianBriefing = (briefingRes.data || []).map((r) => ({
-        id: r.id, tipe: 'briefing', modul: r.modul, sekolah: r.sekolah_id,
+        id: r.id, tipe: 'briefing', modul: r.modul, sekolah: r.sekolah_id, periode: r.periode_id,
+        yayasan: sekolahInfoById[r.sekolah_id]?.yay || null,
         kelas: r.scope === 'kelas' ? r.scope_id : null, scope: r.scope,
         prioritas: 'sedang', status: r.status,
         dibuat: (r.created_at || '').replace('T', ' ').slice(0, 16),

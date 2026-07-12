@@ -8,7 +8,8 @@ const CmsContext = createContext(null);
 const initialState = {
   screen: 'dashboard',
   selectedApproval: null,
-  approvalFilter: { modul: 'all', prioritas: 'all', sekolah: 'all' },
+  approvalFilter: { modul: 'all', prioritas: 'all', sekolah: 'all', yayasan: 'all', periode: 'all' },
+  geminiFilter: { yayasan: 'all', sekolah: 'all', periode: 'all' },
   sekolahFilter: 'all',
   userFilter: 'all',
   approvalEditText: {},
@@ -227,6 +228,7 @@ export function CmsProvider({ session, children }) {
     setScreen: (screen) => setState((s) => ({ ...s, screen, selectedApproval: null })),
     setSelectedApproval: (selectedApproval) => setState((s) => ({ ...s, selectedApproval })),
     setApprovalFilter: (f) => setState((s) => ({ ...s, approvalFilter: { ...s.approvalFilter, ...f } })),
+    setGeminiFilter: (f) => setState((s) => ({ ...s, geminiFilter: { ...s.geminiFilter, ...f } })),
     setSekolahFilter: (sekolahFilter) => setState((s) => ({ ...s, sekolahFilter })),
     setUserFilter: (userFilter) => setState((s) => ({ ...s, userFilter })),
     setAddUserOpen: (addUserOpen) => setState((s) => ({ ...s, addUserOpen })),
