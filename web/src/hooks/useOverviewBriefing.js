@@ -7,6 +7,24 @@ function latestPeriode(rows) {
 }
 
 /**
+ * target_role tindak_lanjut untuk tiap peran -- tanpa ini, tab Ringkasan membaca SEMUA
+ * tindak_lanjut disetujui di scope-nya tanpa peduli untuk peran siapa baris itu ditulis
+ * (mis. Wali Kelas ikut melihat kartu level Kepala Sekolah kelasnya sendiri), beda dengan
+ * halaman modul (useKarakterData.js) yang sudah memfilter ini. briefing TIDAK punya kolom
+ * target_role (dicek dari skema), jadi cuma dipakai untuk query tindak_lanjut.
+ */
+function targetRoleForPeran(peran) {
+  switch (peran) {
+    case "WaliKelas": return "wali_kelas";
+    case "KepalaSekolah":
+    case "WakilKepalaSekolah": return "kepala_sekolah";
+    case "OrangTua": return "orang_tua";
+    case "Yayasan": return "yayasan";
+    default: return null;
+  }
+}
+
+/**
  * Bikin filter { scope, scope_id[] } sesuai peran, dipakai untuk query briefing/tindak_lanjut.
  * Siswa dan AdminFammi tidak lewat hook ini (early-return di App.jsx sebelum sampai sini).
  */
@@ -92,7 +110,8 @@ export function useOverviewBriefing(session) {
           supabase.from("briefing").select("sekolah_id, modul, teks, sumber, periode_id, created_at")
             .in("sekolah_id", sekolahIds).eq("scope", "sekolah").eq("status", "disetujui"),
           supabase.from("tindak_lanjut").select("id, sekolah_id, modul, action, trigger_desc, priority, periode_id, created_at")
-            .in("sekolah_id", sekolahIds).eq("scope", "sekolah").eq("status", "disetujui"),
+            .in("sekolah_id", sekolahIds).eq("scope", "sekolah").eq("status", "disetujui")
+            .eq("target_role", targetRoleForPeran(session.peran)),
         ]);
         if (!alive) return;
         finalizeState(briefingRes, tlRes, yayasanRes.data?.nama || null);
@@ -119,7 +138,8 @@ export function useOverviewBriefing(session) {
           .in("modul", modules).eq("status", "disetujui"),
         supabase.from("tindak_lanjut").select("id, modul, action, trigger_desc, priority, periode_id, created_at")
           .eq("sekolah_id", session.school_id).eq("scope", scoped.scope).in("scope_id", scoped.scopeIds)
-          .in("modul", modules).eq("status", "disetujui"),
+          .in("modul", modules).eq("status", "disetujui")
+          .eq("target_role", targetRoleForPeran(session.peran)),
       ]);
       if (!alive) return;
       if (schoolRes.error) { setState({ loading: false, error: schoolRes.error.message, schoolName: null, briefing: null, tindakLanjut: [] }); return; }
