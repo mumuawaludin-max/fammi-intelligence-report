@@ -12,8 +12,8 @@
 // publik (auth.signUp) sempat menolaknya di awal proyek.
 //
 // Password: kalau tidak dikirim di body, digenerate otomatis dari email — kata pertama
-// bagian lokal email (huruf kecil saja, tanpa huruf besar biar minim salah ketik) + 3 digit
-// acak. Contoh: "wiwifarida80@admin.sd.belajar.id" -> "wiwifarida482".
+// bagian lokal email (huruf kecil saja, tanpa huruf besar biar minim salah ketik) + 6 digit
+// acak kriptografis. Contoh: "wiwifarida80@admin.sd.belajar.id" -> "wiwifarida482917".
 //
 // Mode: body `{ nama, username, peran, school_id, cakupan, password? }` (satu akun), atau
 // `{ users: [ {...sama seperti di atas}, ... ] }` (bulk, dipakai upload CSV guru/wali kelas),
@@ -173,10 +173,22 @@ async function deleteOne(admin, userId) {
   return { ok: true, id: userId };
 }
 
-/** Kata pertama bagian lokal email, huruf kecil semua (tanpa huruf besar biar minim salah ketik) + 3 digit acak. */
+/**
+ * Kata pertama bagian lokal email, huruf kecil semua (tanpa huruf besar biar minim salah
+ * ketik) + 6 digit acak kriptografis. Dulu 3 digit (Math.random, 100-999) -- cuma 900
+ * kemungkinan, gampang ditebak lewat brute force kalau username-nya sudah diketahui (pola
+ * username@fammi.internal ada di kode publik). 6 digit dari crypto.getRandomValues menaikkan
+ * ruang tebakan ke sejuta kombinasi sekaligus tidak bisa diprediksi seperti Math.random.
+ */
 function generatePassword(usernameOrEmail) {
   const local = usernameOrEmail.split("@")[0] || "fammi";
   const word = (local.replace(/[^a-zA-Z]/g, "") || "fammi").slice(0, 12).toLowerCase();
-  const digits = String(Math.floor(100 + Math.random() * 900));
-  return word + digits;
+  return word + randomDigits(6);
+}
+
+/** n digit acak kriptografis, dipading nol di depan supaya selalu genap n digit. */
+function randomDigits(n) {
+  const arr = new Uint32Array(1);
+  crypto.getRandomValues(arr);
+  return String(arr[0] % 10 ** n).padStart(n, "0");
 }
