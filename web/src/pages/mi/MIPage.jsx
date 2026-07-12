@@ -9,17 +9,6 @@ import SampleTag from "../../components/SampleTag";
 import styles from "./MIPage.module.css";
 
 // ── Data contoh untuk preview sebelum Sheets terhubung ──────────────────────
-const SAMPLE_FAKTA = [
-  ...["Ie","Sp","Ve","Ki","Na","Lo","Ia","Mu"].flatMap((kode, ki) =>
-    Array.from({ length: 28 }, (_, si) => ({
-      murid_id: `M${si + 1}`,
-      kelas_id: si < 14 ? "X-A" : "X-B",
-      aspek_kode: kode,
-      skor: 40 + Math.round(Math.random() * 50),
-      dominan_flag: ki === [0,1,2,3,4,5,6,7][si % 8],
-    }))
-  ),
-];
 // nilai dominan yang lebih deterministik
 const SAMPLE_DIST_OVERRIDE = { Ie: 7, Sp: 6, Ve: 5, Ki: 4, Na: 3, Lo: 2, Ia: 1, Mu: 1 };
 const SAMPLE_AVG_OVERRIDE  = { Ie: 74, Sp: 69, Ve: 66, Ki: 62, Na: 58, Lo: 56, Ia: 53, Mu: 49 };
@@ -208,7 +197,6 @@ function useMIData(session) {
 // ── Komponen utama ───────────────────────────────────────────────────────────
 export default function MIPage({ session }) {
   const { loading, rows, tl: tlRows, error, tlError, refetch } = useMIData(session);
-  const [expanded, setExpanded] = useState(false);
 
   const hasData  = Array.isArray(rows) && rows.length > 0;
   const hasTl = Array.isArray(tlRows) && tlRows.length > 0;

@@ -56,7 +56,7 @@ export function useAdminCmsData(session) {
         supabase.from('gemini_schedule').select('*').eq('id', 'default').maybeSingle(),
       ]);
 
-      const firstError = [yayasanRes, schoolsRes, modulesRes, summaryRes, aspekRes, briefingRes, tlRes, importLogRes, profilesRes, kelasSummaryRes, tlKelasAllRes, tlSekolahYayasanRes]
+      const firstError = [yayasanRes, schoolsRes, modulesRes, summaryRes, aspekRes, briefingRes, tlRes, importLogRes, profilesRes, kelasSummaryRes, tlKelasAllRes, tlSekolahYayasanRes, scheduleRes]
         .find((r) => r.error);
       if (firstError) throw new Error(firstError.error.message);
 

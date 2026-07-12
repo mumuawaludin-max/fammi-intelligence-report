@@ -55,9 +55,9 @@ function parseBulan(raw) {
     return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, '0')}`;
   }
   const s = String(raw).trim();
-  let m = s.match(/^(\d{4})[-\/](\d{1,2})/);
+  let m = s.match(/^(\d{4})[-/](\d{1,2})/);
   if (m) return `${m[1]}-${String(parseInt(m[2], 10)).padStart(2, '0')}`;
-  m = s.match(/^(\d{1,2})[-\/](\d{4})$/);
+  m = s.match(/^(\d{1,2})[-/](\d{4})$/);
   if (m) return `${m[2]}-${String(parseInt(m[1], 10)).padStart(2, '0')}`;
   const parts = s.toLowerCase().replace(/[^a-z0-9 ]/g, ' ').trim().split(/\s+/).filter(Boolean);
   if (parts.length >= 2) {
@@ -314,7 +314,7 @@ export async function parseKarakterWorkbook(file, { sekolahId }) {
     if (!kelas) return;
     const periode = resolvePeriodeSummary(r);
     if (!periode) { badRows.push(`summary_kelas baris ${i + 2}${multiPeriode ? bulanWajibNote : ' (bulan)'}`); return; }
-    const { bulan, Kelas, kelas: kelasLower, ...rest } = r;
+    const { bulan: _bulan, Kelas: _Kelas, kelas: _kelasLower, ...rest } = r;
     pushSummary('kelas', kelas, periode, rest);
   });
   sj.forEach((r, i) => {
@@ -322,11 +322,11 @@ export async function parseKarakterWorkbook(file, { sekolahId }) {
     if (!jenjang) return;
     const periode = resolvePeriodeSummary(r);
     if (!periode) { badRows.push(`summary_jenjang baris ${i + 2}${multiPeriode ? bulanWajibNote : ' (bulan)'}`); return; }
-    const { bulan, jenjang: jenjangLower, Jenjang, ...rest } = r;
+    const { bulan: _bulan, jenjang: _jenjangLower, Jenjang: _Jenjang, ...rest } = r;
     pushSummary('jenjang', jenjang, periode, rest);
   });
   ss.forEach((r, i) => {
-    const { bulan, ...rest } = r;
+    const { bulan: _bulan, ...rest } = r;
     if (Object.values(rest).every((v) => v === '')) return;
     const periode = resolvePeriodeSummary(r);
     if (!periode) { badRows.push(`summary_sekolah baris ${i + 2}${multiPeriode ? bulanWajibNote : ' (bulan)'}`); return; }
