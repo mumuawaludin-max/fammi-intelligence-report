@@ -1,5 +1,5 @@
 import * as XLSX from 'xlsx';
-import { supabase } from '../../../lib/supabase';
+import { supabase, edgeErrorDetail } from '../../../lib/supabase';
 
 function pct(v) {
   if (v === '' || v === null || v === undefined) return null;
@@ -354,14 +354,24 @@ export async function parseKarakterWorkbook(file, { sekolahId }) {
 }
 
 /**
- * Tulis hasil parse ke Supabase lewat RPC `import_karakter_periode` (lihat migration
- * 20260712100000_import_karakter_rpc.sql): satu panggilan RPC per periode, tiap panggilan
- * DELETE lalu INSERT keempat tabel dalam satu transaksi Postgres. Dulu ini chunked
- * upsert langsung dari browser (500 baris per batch, empat tabel terpisah) -- kalau gagal
- * di tengah, tabel-tabel yang sudah sempat ditulis tetap tersimpan, tidak ada rollback.
- * Sekarang satu periode selalu semua-atau-tidak-sama-sekali; kalau file punya beberapa
- * periode dan salah satu gagal, periode lain yang sudah sempat commit tetap tersimpan
- * (itu batas atomik yang wajar -- lihat catatan Fase E1 di Rencana_Perbaikan_FIR_2026-07.md).
+ * Tulis hasil parse ke Supabase lewat Edge Function admin-actions (action "import-karakter"),
+ * yang di dalamnya memanggil RPC Postgres `import_karakter_periode` (migration
+ * 20260712100000_import_karakter_rpc.sql) pakai service_role: satu panggilan RPC per periode,
+ * tiap panggilan DELETE lalu INSERT keempat tabel dalam satu transaksi Postgres.
+ *
+ * Awalnya RPC ini dipanggil langsung dari browser lewat supabase.rpc() (anon key + JWT admin),
+ * dengan asumsi SECURITY DEFINER otomatis melewati RLS -- ternyata TIDAK di project ini,
+ * writes di dalam function tetap dievaluasi terhadap policy tabel. Begitu policy tulis
+ * langsung disempitkan (Fase E1 lanjutan), import gagal dengan "new row violates row-level
+ * security policy". Dipindah lewat Edge Function (service_role, benar-benar melewati RLS)
+ * supaya policy tabel bisa disempitkan jadi baca-saja tanpa mematahkan import.
+ *
+ * Sebelum RPC ini ada, penulisan lewat chunked upsert langsung dari browser (500 baris per
+ * batch, empat tabel terpisah) -- kalau gagal di tengah, tabel-tabel yang sudah sempat
+ * ditulis tetap tersimpan, tidak ada rollback. Sekarang satu periode selalu
+ * semua-atau-tidak-sama-sekali; kalau file punya beberapa periode dan salah satu gagal,
+ * periode lain yang sudah sempat commit tetap tersimpan (itu batas atomik yang wajar --
+ * lihat catatan Fase E1 di Rencana_Perbaikan_FIR_2026-07.md).
  */
 export async function importKarakterWorkbook(parsed) {
   const { skorRows, skorIndikatorRows, pernyataanRows, summaryRows } = parsed.rows;
@@ -385,8 +395,16 @@ export async function importKarakterWorkbook(parsed) {
       pernyataan_rows: pernyataanRows.filter((r) => r.periode_id === periodeId),
       summary_rows: summaryRows.filter((r) => r.periode_id === periodeId),
     };
-    const { data, error } = await supabase.rpc('import_karakter_periode', { payload });
-    if (error) return { ok: false, rowsWritten: totalRows, error: `Periode ${periodeId}: ${error.message}` };
+    const { data, error } = await supabase.functions.invoke('admin-actions', {
+      body: { action: 'import-karakter', payload },
+    });
+    if (error) {
+      const detail = await edgeErrorDetail(error, 'Edge Function admin-actions gagal dipanggil.');
+      return { ok: false, rowsWritten: totalRows, error: `Periode ${periodeId}: ${detail}` };
+    }
+    if (!data?.ok) {
+      return { ok: false, rowsWritten: totalRows, error: `Periode ${periodeId}: ${data?.error || 'Import gagal tanpa keterangan.'}` };
+    }
     totalRows += (data?.skor || 0) + (data?.skor_indikator || 0) + (data?.pernyataan || 0) + (data?.summary || 0);
   }
   return { ok: true, rowsWritten: totalRows };

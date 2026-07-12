@@ -30,3 +30,24 @@ export async function fetchAllRows(builderFn, pageSize = PAGE_SIZE) {
   }
   return { data: all, error: null };
 }
+
+/**
+ * Ambil pesan error ASLI dari body respons Edge Function. supabase.functions.invoke cuma
+ * kasih pesan generik "non-2xx status code"; error sebenarnya (mis. kolom belum ada,
+ * Gemini balas JSON tak valid) ada di body JSON {error: "..."} yang tersimpan di
+ * error.context (sebuah Response). Baca itu supaya toast/pesan gagal menampilkan penyebab
+ * nyata, bukan cuma "non-2xx status code".
+ */
+export async function edgeErrorDetail(error, fallback) {
+  try {
+    const ctx = error?.context;
+    if (ctx && typeof ctx.json === 'function') {
+      const body = await ctx.json();
+      if (body?.error) return body.error;
+    } else if (ctx && typeof ctx.text === 'function') {
+      const t = await ctx.text();
+      if (t) return t;
+    }
+  } catch { /* body tidak bisa dibaca, pakai fallback */ }
+  return error?.message || fallback;
+}

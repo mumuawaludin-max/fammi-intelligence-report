@@ -7,9 +7,16 @@
 // mutasi sungguhan. Tujuannya supaya policy RLS tulis tabel-tabel ini bisa dilepas (sisakan
 // SELECT saja) -- permukaan yang harus selalu benar di RLS mengecil jadi satu pintu di sini.
 //
-// Import Karakter (karakter_skor dkk) SENGAJA belum dipindah ke sini -- itu tulisan
-// multi-tabel besar yang butuh transaksi sungguhan di server (rencana Fase E1), bukan sekadar
-// pemindahan gerbang seperti lima aksi di bawah ini.
+// Import Karakter (karakter_skor dkk) lewat action "import-karakter": panggil RPC Postgres
+// import_karakter_periode (migration 20260712100000) pakai service_role, satu panggilan per
+// periode. RPC-nya sendiri SECURITY DEFINER tapi TERNYATA TIDAK melewati RLS di project ini
+// (writes di dalamnya tetap dievaluasi terhadap policy tabel) -- kalau dipanggil langsung
+// dari browser lewat anon key (supabase.rpc()), tetap butuh policy RLS tulis yang longgar,
+// menggagalkan tujuan Fase E1. Dipanggil lewat service_role di sini, RLS-nya benar-benar
+// dilewati, sehingga policy tabel karakter_skor dkk bisa disempitkan jadi SELECT saja.
+// RPC tetap dipakai (bukan insert/delete langsung dari sini) supaya empat tabel tertulis
+// dalam satu transaksi Postgres yang sesungguhnya -- panggilan admin.from(...) terpisah dari
+// Edge Function TIDAK atomik lintas panggilan, beda dengan satu panggilan function.
 //
 // Body: { action, ...payload }, action salah satu dari:
 //   "approve" | "reject"      { id, tipe: "tindak_lanjut"|"briefing", teks?, langkahTerpilih?, regenerateDari? }
@@ -17,6 +24,7 @@
 //   "add-school"               { nama, yayasanId?, modules? }
 //   "toggle-module"            { schoolId, modul, aktif }
 //   "update-schedule"          { patch }
+//   "import-karakter"          { payload: { sekolah_id, periode_id, skor_rows, skor_indikator_rows, pernyataan_rows, summary_rows } }
 //
 // Deploy: supabase functions deploy admin-actions
 //
@@ -95,6 +103,9 @@ Deno.serve(async (req) => {
         break;
       case "update-schedule":
         result = await handleUpdateSchedule(admin, body);
+        break;
+      case "import-karakter":
+        result = await handleImportKarakter(admin, body);
         break;
       default:
         return json({ error: `action tidak dikenal: ${body.action}` }, 400);
@@ -192,4 +203,13 @@ async function handleUpdateSchedule(admin, body) {
   const { error } = await admin.from("gemini_schedule").update(patch).eq("id", "default");
   if (error) return { ok: false, error: error.message };
   return { ok: true };
+}
+
+async function handleImportKarakter(admin, body) {
+  const { payload } = body;
+  if (!payload || typeof payload !== "object") return { ok: false, error: "Field wajib: payload (objek)." };
+
+  const { data, error } = await admin.rpc("import_karakter_periode", { payload });
+  if (error) return { ok: false, error: error.message };
+  return { ok: true, ...data };
 }
