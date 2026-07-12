@@ -18,25 +18,46 @@ export function Antrian() {
 
   const source = tab === 'menunggu' ? data.antrian : data.riwayatDisetujui;
   const f = state.approvalFilter;
-  const items = source.filter(a =>
+  // Yayasan difilter dulu (kalau dipilih), sisanya (sekolah) dihitung dari hasil itu supaya
+  // opsi sekolah yang ditampilkan cuma sekolah di bawah yayasan yang sedang difilter.
+  const sourceByYayasan = f.yayasan === 'all' ? source : source.filter(a => a.yayasan === f.yayasan);
+  const items = sourceByYayasan.filter(a =>
     (f.modul === 'all' || a.modul === f.modul) &&
     (f.prioritas === 'all' || a.prioritas === f.prioritas) &&
-    (f.sekolah === 'all' || a.sekolah === f.sekolah)
+    (f.sekolah === 'all' || a.sekolah === f.sekolah) &&
+    (f.periode === 'all' || a.periode === f.periode)
   );
 
-  const modulCount = { all: source.length, karakter: 0, mi: 0, screening: 0 };
-  source.forEach(a => { modulCount[a.modul] = (modulCount[a.modul] || 0) + 1; });
+  const modulCount = { all: sourceByYayasan.length, karakter: 0, mi: 0, screening: 0 };
+  sourceByYayasan.forEach(a => { modulCount[a.modul] = (modulCount[a.modul] || 0) + 1; });
 
-  const prioritasCount = { all: source.length, tinggi: 0, sedang: 0, rendah: 0 };
-  source.forEach(a => { prioritasCount[a.prioritas] = (prioritasCount[a.prioritas] || 0) + 1; });
+  const prioritasCount = { all: sourceByYayasan.length, tinggi: 0, sedang: 0, rendah: 0 };
+  sourceByYayasan.forEach(a => { prioritasCount[a.prioritas] = (prioritasCount[a.prioritas] || 0) + 1; });
 
   const sekolahCount = {};
-  source.forEach(a => { sekolahCount[a.sekolah] = (sekolahCount[a.sekolah] || 0) + 1; });
+  sourceByYayasan.forEach(a => { sekolahCount[a.sekolah] = (sekolahCount[a.sekolah] || 0) + 1; });
   const sekolahOptions = [
-    { key: 'all', label: `Semua (${source.length})` },
+    { key: 'all', label: `Semua (${sourceByYayasan.length})` },
     ...data.sekolah
       .filter(s => sekolahCount[s.id])
       .map(s => ({ key: s.id, label: `${s.nama} (${sekolahCount[s.id]})` })),
+  ];
+
+  const yayasanCount = {};
+  source.forEach(a => { if (a.yayasan) yayasanCount[a.yayasan] = (yayasanCount[a.yayasan] || 0) + 1; });
+  const yayasanOptions = [
+    { key: 'all', label: `Semua (${source.length})` },
+    ...data.yayasan
+      .filter(y => yayasanCount[y.id])
+      .map(y => ({ key: y.id, label: `${y.nama} (${yayasanCount[y.id]})` })),
+  ];
+
+  const periodeCount = {};
+  sourceByYayasan.forEach(a => { if (a.periode) periodeCount[a.periode] = (periodeCount[a.periode] || 0) + 1; });
+  const periodeOptions = [
+    { key: 'all', label: `Semua (${sourceByYayasan.length})` },
+    ...Object.keys(periodeCount).sort((a, b) => (a < b ? 1 : -1))
+      .map(p => ({ key: p, label: `${p} (${periodeCount[p]})` })),
   ];
 
   async function handleSetujuiSemua() {
@@ -81,11 +102,29 @@ export function Antrian() {
       </div>
 
       <div className="card" style={{ padding: '14px 18px', marginBottom: 16, display: 'flex', flexWrap: 'wrap', gap: 16, alignItems: 'center' }}>
+        {data.yayasan.length > 0 && (
+          <>
+            <ChipRow
+              label="Yayasan"
+              current={f.yayasan}
+              onChange={(k) => setApprovalFilter({ yayasan: k, sekolah: 'all' })}
+              options={yayasanOptions}
+            />
+            <div style={{ width: 1, height: 22, background: 'var(--line)' }} />
+          </>
+        )}
         <ChipRow
           label="Sekolah"
           current={f.sekolah}
           onChange={(k) => setApprovalFilter({ sekolah: k })}
           options={sekolahOptions}
+        />
+        <div style={{ width: 1, height: 22, background: 'var(--line)' }} />
+        <ChipRow
+          label="Periode"
+          current={f.periode}
+          onChange={(k) => setApprovalFilter({ periode: k })}
+          options={periodeOptions}
         />
         <div style={{ width: 1, height: 22, background: 'var(--line)' }} />
         <ChipRow
