@@ -25,7 +25,7 @@ Helper baru: `my_peran()`, `my_cakupan()`, `my_murid_id()` (pola sama dengan `my
 
 **Keputusan yang diambil, dicatat supaya tidak perlu ditinjau ulang tanpa alasan baru:** policy `_baca_yayasan` (semua tabel) sengaja TIDAK dipersempit di kedua migration di atas -- Yayasan sudah dirancang punya akses lebih luas lintas sekolah untuk data mentahnya (termasuk nama murid di `karakter_pernyataan_ortu`), jadi tidak konsisten kalau tindak lanjutnya dibatasi sementara data sumbernya tidak. `mi_input` juga sengaja tidak disentuh -- struktur kolomnya belum diverifikasi dan tidak ada kode React yang memakainya.
 
-A4 (pindahkan mutasi admin ke Edge Function) belum dikerjakan.
+**Status A4: selesai (2026-07-11).** Edge Function `supabase/functions/admin-actions/index.ts` menangani lima aksi (approve/reject, update-profile, add-school, toggle-module, update-schedule) meniru pola `create-user`. Sudah dites lewat aplikasi sungguhan (toggle modul berhasil), lalu migration `20260711140000_narrow_admin_write_rls.sql` mempersempit policy `*_admin_all` untuk enam tabel jadi SELECT-only. Fase A tuntas seluruhnya.
 
 ### A1. Tarik skema dan policy ke repo `[manual]` lalu `[kode]`
 
@@ -72,6 +72,15 @@ Fase A4 boleh digeser setelah B/C kalau kapasitas terbatas, asal A1 sampai A3 su
 ## Fase B. Satukan sumber angka (item 5 audit)
 
 Tujuan: tidak ada lagi dua angka berbeda untuk hal yang sama antara kartu, detail, dan teks tindak lanjut, dan nilai kosong tidak lagi menyamar jadi nol.
+
+**Status: selesai seluruhnya (2026-07-11).**
+
+- **B1**: bug nyata dan live ditemukan di radar MI (`readScore_` di `miMeta.js`) -- skor kecerdasan yang belum tercatat diperlakukan sama seperti skor 0, menyeret rata-rata sekolah turun tanpa alasan. Diperbaiki dengan membedakan "kolom kosong sama sekali" dari "kolom terisi (termasuk 0)", tanpa menyentuh pertanyaan terbuka soal validitas skor 0 Interpersonal. Komponen radar/compare Karakter (`KarakterShared.jsx`) dan `groupTindakLanjut` juga diperbaiki pola sama, tapi ternyata kode mati (tidak diimpor di mana pun) -- tetap diperbaiki untuk jaga-jaga.
+- **B2**: semua cutoff sementara (80, 80/60, 75/50) dipusatkan ke `web/src/lib/cutoffs.js`, termasuk label legenda MI di `SiswaPage.jsx` yang sebelumnya berisiko tidak sinkron.
+- **B3**: ternyata `mi_hasil.detail` (jsonb, terisi 100% di semua baris live) menyimpan `top_1/2/3` final dari hulu, plus `pred_musikal/naturalis/spasial` yang tadinya dikira tidak ada sama sekali. `SiswaPage.jsx` sudah benar memakainya (lewat `transformMIData`) -- tidak ada bug di laporan individu murid. `MIPage.jsx` (agregat sekolah) diperbaiki supaya membaca `detail->>top_1` alih-alih menghitung ulang dari argmax skor, plus filter periode ditambahkan. Ditemukan dan ditutup sekaligus: hulu menulis "Logika-Matematika" sementara kode lama mengharap persis "Logis-Matematis" (exact-match) -- diganti pencocokan substring yang sudah ada di `miTransform.js` (`nameToCode`/`norm`, sekarang di-export dan dipakai bersama).
+- **B4**: agregat indikator Yayasan pindah dari klien ke view `karakter_indikator_sekolah_avg` (migration `20260711150000`). `security_invoker = true` dipasang eksplisit -- tanpa itu view buatan migration akan bypass RLS untuk semua pemakainya, membatalkan Fase A.
+
+Migration `20260711150000_karakter_indikator_sekolah_view.sql` perlu dijalankan manual oleh pemilik database.
 
 ### B1. Nilai kosong tampil sebagai "tidak ada data", bukan 0 `[kode]`
 
