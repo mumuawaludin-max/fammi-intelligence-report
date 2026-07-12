@@ -1,18 +1,25 @@
 # Implementation Guide FIR untuk Claude Code
 
+**Berkas ini sudah usang.** Ia ditulis untuk arsitektur lama berbasis Google Apps Script (GAS)
+dan Google Sheets, yang sudah digantikan Supabase + Row Level Security (RLS) sejak migrasi
+2026-07. Section 1 di bawah sudah diperbarui supaya mencerminkan arsitektur aktif; Section 2
+sampai 9 (prasyarat, struktur repo, Clasp, deploy GAS/Sheets) masih menjelaskan langkah era lama
+dan dibiarkan sebagai catatan sejarah, bukan panduan yang berlaku. Untuk arsitektur, kontrak
+gerbang baca, dan aturan yang berlaku sekarang, rujuk CLAUDE.md di root repo, bukan berkas ini.
+
 Panduan ini membawa FIR dari desain ke kode. Bacalah CLAUDE.md lebih dulu, karena berkas itu memuat keputusan yang mengikat. Panduan ini fokus pada langkah eksekusi.
 
 ## 1. Arsitektur ringkas
 
-Tiga lapisan yang terpisah jelas.
+React di Vercel sebagai tampilan. Ia tidak pernah menghitung skor, status, atau agregat, hanya membaca yang sudah final.
 
-React di Vercel sebagai tampilan. Ia tidak pernah menyentuh data mentah, hanya memanggil gerbang.
+Supabase sebagai backend data dan autentikasi: Postgres, Supabase Auth, dan Row Level Security (RLS) sebagai satu-satunya gerbang akses. React memanggil Supabase langsung lewat `@supabase/supabase-js` dengan anon key; RLS di tiap tabel yang menyaring baris mana yang boleh dibaca user yang sedang login, bukan kode di sisi server.
 
-Google Apps Script sebagai gerbang dan logika baca. Ia di-deploy sebagai web app, menerima permintaan dari React, memvalidasi sesi, menyaring data per peran, lalu mengembalikan potongan yang diizinkan.
+Beberapa mutasi tulis yang sensitif (approve/tolak draf, buat/hapus akun, ubah profil, tambah sekolah, toggle modul, ubah jadwal) lewat Supabase Edge Function (`supabase/functions/`), yang memverifikasi peran caller lewat JWT-nya sendiri lalu memakai service_role di sisi server. service_role tidak pernah ada di kode React/browser.
 
-Google Sheets sebagai penyimpanan, dua lapisan, yaitu satu workbook kontrol terpusat dan satu workbook data per sekolah, dipetakan lewat Registry.
+Gemini API merumuskan tindak lanjut lewat dua jalur, keduanya di luar jalur baca FIR: pipeline hulu batch di luar repo ini, dan trigger on-demand dari FIR yang memanggil Edge Function (`generate-tindak-lanjut`/`batch-generate-tindak-lanjut`). Kedua jalur menulis draf berstatus `menunggu_persetujuan`, bukan `disetujui`. Jalur baca FIR sendiri tidak pernah memanggil Gemini dan tidak pernah menampilkan baris yang belum `disetujui`.
 
-Gemini bekerja di pipeline hulu yang terpisah, merumuskan tindak lanjut sebelum disetujui manusia. Pipeline ini bukan bagian dari jalur baca FIR.
+Google Sheets dan Google Apps Script (GAS), yang dijelaskan di Section 2 sampai 9 di bawah, tidak lagi dipakai.
 
 ## 2. Prasyarat
 

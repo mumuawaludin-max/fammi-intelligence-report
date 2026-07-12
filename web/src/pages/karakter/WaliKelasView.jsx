@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 import SectionHeading from "../../components/SectionHeading";
 import SampleTag from "../../components/SampleTag";
+import FollowupRibbon from "../../components/FollowupRibbon";
 import {
   KarakterStateBox, AskMascot, ScoreBarList, GoodEmptyState,
   ParentVoiceBento, TrendChart, useSummaryTrend, useMuridTrend,
@@ -13,6 +14,7 @@ import {
   pct, deltaVsPrevious, classifyPencapaian, periodeLabel, aspekIcon,
   extractPlainText, isBlankEssay, matchedCategoryTags, isKebijakanReady, SECTION_ICON,
 } from "./karakterMeta";
+import { KARAKTER_BAR_TONE_CUTOFF } from "../../lib/cutoffs";
 import styles from "./KarakterViews.module.css";
 
 const WHO_WALIKELAS = { short: "untuk Wali Kelas", long: "untuk Wali Kelas & Kepala Sekolah" };
@@ -57,9 +59,13 @@ export default function WaliKelasView({ session, periodeId }) {
   const { periode, aspek, indikator, summary, skorIndikator, pernyataan, tindakLanjut } = data;
 
   // Baris nyata (sudah disetujui) kalau ada, fallback ke contoh sampai Gemini mengisi tabelnya.
+  // kebijakanLegacy: sudah disetujui tapi berskema lama (belum lolos isKebijakanReady) --
+  // dulu hilang sama sekali (tertimpa sample), sekarang tetap tampil sebagai kartu sederhana.
   const kebijakanReal = (tindakLanjut || []).filter(isKebijakanReady);
+  const kebijakanLegacy = (tindakLanjut || []).filter((r) => !isKebijakanReady(r));
   const kebijakanData = kebijakanReal.length > 0 ? kebijakanReal : KEBIJAKAN_WALIKELAS;
-  const kebijakanIsSample = kebijakanReal.length === 0;
+  const kebijakanIsSample = kebijakanReal.length === 0 && kebijakanLegacy.length === 0;
+  const showKebijakanGoals = kebijakanReal.length > 0 || kebijakanIsSample;
 
   const indikatorLabel = Object.fromEntries(
     indikator.map((it) => [`${it.aspek_kode}_${it.indikator_kode}`, it.indikator_label])
@@ -97,7 +103,7 @@ export default function WaliKelasView({ session, periodeId }) {
         .filter((r) => r.value != null)
     : [];
   const indTerbaik = [...activeIndikator].sort((a, b) => b.value - a.value).slice(0, 5);
-  const indLemah = activeIndikator.filter((r) => r.value < 80).sort((a, b) => a.value - b.value).slice(0, 5);
+  const indLemah = activeIndikator.filter((r) => r.value < KARAKTER_BAR_TONE_CUTOFF.aman).sort((a, b) => a.value - b.value).slice(0, 5);
 
   const aspekItems = activeMurid
     ? aspek.map((a) => ({
@@ -351,7 +357,12 @@ export default function WaliKelasView({ session, periodeId }) {
               <SampleTag /> Isi rekomendasi masih contoh, menunggu perumusan otomatis. Strukturnya sudah final.
             </p>
           )}
-          <KebijakanGoals data={kebijakanData} who={WHO_WALIKELAS} ranges={RANGES_WALIKELAS} />
+          {showKebijakanGoals && <KebijakanGoals data={kebijakanData} who={WHO_WALIKELAS} ranges={RANGES_WALIKELAS} />}
+          {kebijakanLegacy.length > 0 && (
+            <FollowupRibbon
+              items={kebijakanLegacy.map((r) => ({ id: r.id, action: r.action, trigger: r.trigger_desc, module: "karakter", priority: r.priority }))}
+            />
+          )}
         </section>
       </div>
       )}

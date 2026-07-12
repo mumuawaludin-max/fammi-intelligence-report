@@ -20,7 +20,7 @@
 // Secret: supabase secrets set CRON_SECRET=xxxxx (juga dipakai di SQL cron.schedule)
 
 import { createClient } from "jsr:@supabase/supabase-js@2";
-import { corsHeaders } from "../_shared/cors.ts";
+import { buildCorsHeaders } from "../_shared/cors.ts";
 import { generateAndInsertDraft } from "../_shared/geminiPrompt.ts";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
@@ -30,6 +30,14 @@ const GEMINI_MODEL = Deno.env.get("GEMINI_MODEL") || "gemini-3.5-flash";
 const CRON_SECRET = Deno.env.get("CRON_SECRET")!;
 
 Deno.serve(async (req) => {
+  const corsHeaders = buildCorsHeaders(req);
+  function json(body, status = 200) {
+    return new Response(JSON.stringify(body), {
+      status,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  }
+
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
 
   try {
@@ -111,11 +119,4 @@ async function hitungRekomendasi(db) {
     }
   }
   return rekomendasi;
-}
-
-function json(body, status = 200) {
-  return new Response(JSON.stringify(body), {
-    status,
-    headers: { ...corsHeaders, "Content-Type": "application/json" },
-  });
 }

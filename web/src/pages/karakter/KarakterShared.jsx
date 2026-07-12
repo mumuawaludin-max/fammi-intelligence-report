@@ -124,7 +124,9 @@ export function AspekRadarCard({ title, subtitle, aspek, ringkasan, prefix = "in
   const axes = aspek.map((a) => ({
     label: a.aspek_label,
     short: a.aspek_label.split(" ")[0],
-    value: ringkasanAspekValue(ringkasan, a.aspek_kode, prefix) || 0,
+    // Biarkan null apa adanya (bukan 0) kalau aspek ini belum ada datanya -- RadarChart sendiri
+    // sudah aman menerima null (lihat fractionsFor di dalamnya), jangan bohongi jadi skor 0.
+    value: ringkasanAspekValue(ringkasan, a.aspek_kode, prefix),
     max: 100,
     color: a.color,
   }));
@@ -174,7 +176,7 @@ export function CompareRadarCard({ title, subtitle, aspek, entities, size = 280 
     axes: aspek.map((a) => ({
       label: a.aspek_label,
       short: a.aspek_label.split(" ")[0],
-      value: ringkasanAspekValue(e.ringkasan, a.aspek_kode, e.prefix) || 0,
+      value: ringkasanAspekValue(e.ringkasan, a.aspek_kode, e.prefix),
       max: 100,
     })),
   }));
@@ -209,7 +211,7 @@ export function CompareBarSection({ title, subtitle, aspek, entities }) {
   const series = entities.map((e) => ({
     name: e.nama,
     color: e.color,
-    values: Object.fromEntries(aspek.map((a) => [a.aspek_kode, ringkasanAspekValue(e.ringkasan, a.aspek_kode, e.prefix) || 0])),
+    values: Object.fromEntries(aspek.map((a) => [a.aspek_kode, ringkasanAspekValue(e.ringkasan, a.aspek_kode, e.prefix)])),
   }));
 
   return (
@@ -266,9 +268,14 @@ export function CompareSection({ title, subtitle, aspek, allEntities, defaultAct
       <div className={styles.entityChipRow}>
         {allEntities.map((e) => {
           const active = activeIds.has(e.id);
-          const skorRata = Math.round(
-            aspek.reduce((sum, a) => sum + (ringkasanAspekValue(e.ringkasan, a.aspek_kode, e.prefix) || 0), 0) / aspek.length
-          );
+          // Rata-rata HANYA dari aspek yang benar-benar punya angka -- aspek yang belum ada
+          // datanya tidak ikut menyeret skor turun seolah nilainya 0.
+          const aspekVals = aspek
+            .map((a) => ringkasanAspekValue(e.ringkasan, a.aspek_kode, e.prefix))
+            .filter((v) => v != null);
+          const skorRata = aspekVals.length > 0
+            ? Math.round(aspekVals.reduce((sum, v) => sum + v, 0) / aspekVals.length)
+            : null;
           return (
             <button
               key={e.id}
@@ -278,7 +285,7 @@ export function CompareSection({ title, subtitle, aspek, allEntities, defaultAct
             >
               <span className={styles.entityChipDot} style={{ background: e.color }} />
               {e.nama}
-              <span className={styles.entityChipVal}>{skorRata}%</span>
+              <span className={styles.entityChipVal}>{skorRata != null ? `${skorRata}%` : "—"}</span>
             </button>
           );
         })}
@@ -297,7 +304,7 @@ export function CompareSection({ title, subtitle, aspek, allEntities, defaultAct
             series={activeEntities.map((e) => ({
               name: e.nama,
               color: e.color,
-              values: Object.fromEntries(aspek.map((a) => [a.aspek_kode, ringkasanAspekValue(e.ringkasan, a.aspek_kode, e.prefix) || 0])),
+              values: Object.fromEntries(aspek.map((a) => [a.aspek_kode, ringkasanAspekValue(e.ringkasan, a.aspek_kode, e.prefix)])),
             }))}
           />
         </div>
@@ -315,7 +322,7 @@ function CompareRadarCardInner({ aspek, entities }) {
     axes: aspek.map((a) => ({
       label: a.aspek_label,
       short: a.aspek_label.split(" ")[0],
-      value: ringkasanAspekValue(e.ringkasan, a.aspek_kode, e.prefix) || 0,
+      value: ringkasanAspekValue(e.ringkasan, a.aspek_kode, e.prefix),
       max: 100,
     })),
   }));

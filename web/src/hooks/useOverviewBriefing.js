@@ -7,6 +7,24 @@ function latestPeriode(rows) {
 }
 
 /**
+ * target_role tindak_lanjut untuk tiap peran -- tanpa ini, tab Ringkasan membaca SEMUA
+ * tindak_lanjut disetujui di scope-nya tanpa peduli untuk peran siapa baris itu ditulis
+ * (mis. Wali Kelas ikut melihat kartu level Kepala Sekolah kelasnya sendiri), beda dengan
+ * halaman modul (useKarakterData.js) yang sudah memfilter ini. briefing TIDAK punya kolom
+ * target_role (dicek dari skema), jadi cuma dipakai untuk query tindak_lanjut.
+ */
+function targetRoleForPeran(peran) {
+  switch (peran) {
+    case "WaliKelas": return "wali_kelas";
+    case "KepalaSekolah":
+    case "WakilKepalaSekolah": return "kepala_sekolah";
+    case "OrangTua": return "orang_tua";
+    case "Yayasan": return "yayasan";
+    default: return null;
+  }
+}
+
+/**
  * Bikin filter { scope, scope_id[] } sesuai peran, dipakai untuk query briefing/tindak_lanjut.
  * Siswa dan AdminFammi tidak lewat hook ini (early-return di App.jsx sebelum sampai sini).
  */
@@ -39,6 +57,33 @@ export function useOverviewBriefing(session) {
   useEffect(() => {
     let alive = true;
 
+    // Ambil parameter { data, error } LANGSUNG dari respons Supabase (bukan cuma .data yang
+    // sudah diekstrak pemanggil), supaya error briefing/tindak_lanjut selalu ketahuan di sini,
+    // dari cabang Yayasan maupun cabang peran lain, tanpa bergantung pada closure luar.
+    function finalizeState(briefingRes, tlRes, schoolName) {
+      const err = briefingRes?.error || tlRes?.error;
+      if (err) { setState({ loading: false, error: err.message, schoolName, briefing: null, tindakLanjut: [] }); return; }
+
+      const briefingRows = briefingRes?.data || [];
+      const tlRows = tlRes?.data || [];
+      // Periode TERBARU SESUNGGUHNYA di antara keduanya -- dulu "||" berarti briefing yang
+      // punya baris apa pun (walau untuk periode lama) selalu menang, tindak_lanjut baru tidak
+      // pernah dicek kalau briefing kebetulan tidak kosong, jadi tindak lanjut yang lebih baru
+      // bisa hilang total dari tab Ringkasan.
+      const periode = [latestPeriode(briefingRows), latestPeriode(tlRows)]
+        .filter(Boolean)
+        .sort((a, b) => (a > b ? -1 : 1))[0] || null;
+      const briefingAtPeriode = briefingRows.filter((r) => r.periode_id === periode);
+      const best = briefingAtPeriode.sort((a, b) => (a.created_at < b.created_at ? 1 : -1))[0] || null;
+
+      const priorityRank = { tinggi: 0, sedang: 1, rendah: 2 };
+      const tindakLanjut = tlRows
+        .filter((r) => r.periode_id === periode)
+        .sort((a, b) => (priorityRank[a.priority] ?? 3) - (priorityRank[b.priority] ?? 3));
+
+      setState({ loading: false, error: null, schoolName, briefing: best, tindakLanjut, periode });
+    }
+
     async function run() {
       if (!session || session.peran === "Siswa" || session.peran === "AdminFammi") {
         setState({ loading: false, error: null, schoolName: null, briefing: null, tindakLanjut: [] });
@@ -58,6 +103,9 @@ export function useOverviewBriefing(session) {
         if (schoolErr) { setState({ loading: false, error: schoolErr.message, schoolName: null, briefing: null, tindakLanjut: [] }); return; }
 
         const yayasanRes = await supabase.from("yayasan").select("nama").eq("id", yayasanId).maybeSingle();
+        if (!alive) return;
+        if (yayasanRes.error) { setState({ loading: false, error: yayasanRes.error.message, schoolName: null, briefing: null, tindakLanjut: [] }); return; }
+
         const sekolahIds = (schoolRows || []).map((s) => s.id);
         if (sekolahIds.length === 0) {
           setState({ loading: false, error: null, schoolName: yayasanRes.data?.nama || null, briefing: null, tindakLanjut: [] });
@@ -68,10 +116,11 @@ export function useOverviewBriefing(session) {
           supabase.from("briefing").select("sekolah_id, modul, teks, sumber, periode_id, created_at")
             .in("sekolah_id", sekolahIds).eq("scope", "sekolah").eq("status", "disetujui"),
           supabase.from("tindak_lanjut").select("id, sekolah_id, modul, action, trigger_desc, priority, periode_id, created_at")
-            .in("sekolah_id", sekolahIds).eq("scope", "sekolah").eq("status", "disetujui"),
+            .in("sekolah_id", sekolahIds).eq("scope", "sekolah").eq("status", "disetujui")
+            .eq("target_role", targetRoleForPeran(session.peran)),
         ]);
         if (!alive) return;
-        finalizeState(briefingRes.data, tlRes.data, yayasanRes.data?.nama || null);
+        finalizeState(briefingRes, tlRes, yayasanRes.data?.nama || null);
         return;
       }
 
@@ -83,6 +132,7 @@ export function useOverviewBriefing(session) {
       if (modules.length === 0) {
         const nameRes = await supabase.from("schools").select("nama").eq("id", session.school_id).maybeSingle();
         if (!alive) return;
+        if (nameRes.error) { setState({ loading: false, error: nameRes.error.message, schoolName: null, briefing: null, tindakLanjut: [] }); return; }
         setState({ loading: false, error: null, schoolName: nameRes.data?.nama || null, briefing: null, tindakLanjut: [] });
         return;
       }
@@ -94,26 +144,12 @@ export function useOverviewBriefing(session) {
           .in("modul", modules).eq("status", "disetujui"),
         supabase.from("tindak_lanjut").select("id, modul, action, trigger_desc, priority, periode_id, created_at")
           .eq("sekolah_id", session.school_id).eq("scope", scoped.scope).in("scope_id", scoped.scopeIds)
-          .in("modul", modules).eq("status", "disetujui"),
+          .in("modul", modules).eq("status", "disetujui")
+          .eq("target_role", targetRoleForPeran(session.peran)),
       ]);
       if (!alive) return;
-      finalizeState(briefingRes.data, tlRes.data, schoolRes.data?.nama || null);
-
-      function finalizeState(briefingRows, tlRows, schoolName) {
-        const err = briefingRes?.error || tlRes?.error;
-        if (err) { setState({ loading: false, error: err.message, schoolName, briefing: null, tindakLanjut: [] }); return; }
-
-        const periode = latestPeriode(briefingRows) || latestPeriode(tlRows);
-        const briefingAtPeriode = (briefingRows || []).filter((r) => r.periode_id === periode);
-        const best = briefingAtPeriode.sort((a, b) => (a.created_at < b.created_at ? 1 : -1))[0] || null;
-
-        const priorityRank = { tinggi: 0, sedang: 1, rendah: 2 };
-        const tindakLanjut = (tlRows || [])
-          .filter((r) => r.periode_id === periode)
-          .sort((a, b) => (priorityRank[a.priority] ?? 3) - (priorityRank[b.priority] ?? 3));
-
-        setState({ loading: false, error: null, schoolName, briefing: best, tindakLanjut, periode });
-      }
+      if (schoolRes.error) { setState({ loading: false, error: schoolRes.error.message, schoolName: null, briefing: null, tindakLanjut: [] }); return; }
+      finalizeState(briefingRes, tlRes, schoolRes.data?.nama || null);
     }
 
     run();

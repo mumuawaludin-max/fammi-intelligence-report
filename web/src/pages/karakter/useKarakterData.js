@@ -1,23 +1,23 @@
 import { useEffect, useMemo, useState } from "react";
-import { supabase } from "../../lib/supabase";
+import { supabase, fetchAllRows } from "../../lib/supabase";
 import { withAspekColor, latestPeriode } from "./karakterMeta";
 
-async function fetchAspekConfig(sekolahId) {
-  const { data } = await supabase
+/** Kembalikan { data, error } mentah (bukan array yang errornya sudah dibuang) supaya
+ * pemanggil bisa ikut mengecek error-nya, bukan diam-diam dapat daftar aspek kosong. */
+function queryAspekConfig(sekolahId) {
+  return supabase
     .from("karakter_aspek_config")
     .select("aspek_kode, aspek_label, urutan")
     .eq("sekolah_id", sekolahId)
     .order("urutan", { ascending: true });
-  return withAspekColor(data || []);
 }
 
-async function fetchIndikatorConfig(sekolahId) {
-  const { data } = await supabase
+function queryIndikatorConfig(sekolahId) {
+  return supabase
     .from("karakter_indikator_config")
     .select("aspek_kode, indikator_kode, indikator_label, urutan")
     .eq("sekolah_id", sekolahId)
     .order("urutan", { ascending: true });
-  return data || [];
 }
 
 /**
@@ -41,9 +41,9 @@ export function useKarakterWaliKelas(session, periodeId) {
       }
       setState((s) => ({ ...s, loading: true, error: null }));
 
-      const [aspek, indikator, summaryRes, sekolahSummaryRes, skorRes, skorIndRes, ortuRes, briefingRes, tlRes] = await Promise.all([
-        fetchAspekConfig(session.school_id),
-        fetchIndikatorConfig(session.school_id),
+      const [aspekRes, indikatorRes, summaryRes, sekolahSummaryRes, skorRes, skorIndRes, ortuRes, briefingRes, tlRes] = await Promise.all([
+        queryAspekConfig(session.school_id),
+        queryIndikatorConfig(session.school_id),
         supabase
           .from("karakter_summary")
           .select("scope_id, periode_id, ringkasan")
@@ -56,21 +56,27 @@ export function useKarakterWaliKelas(session, periodeId) {
           .eq("sekolah_id", session.school_id)
           .eq("scope", "sekolah")
           .eq("scope_id", session.school_id),
-        supabase
+        // Detail per murid per aspek/indikator/pernyataan bisa lewat 1000 baris (batas diam-diam
+        // Supabase) untuk sekolah menengah-besar, apalagi diambil semua periode sekaligus di
+        // sini -- pakai fetchAllRows supaya tidak ada murid/baris yang hilang tanpa error.
+        fetchAllRows((from, to) => supabase
           .from("karakter_skor")
           .select("kelas_id, murid_id, nama_murid, periode_id, aspek_kode, skor")
           .eq("sekolah_id", session.school_id)
-          .in("kelas_id", kelasList),
-        supabase
+          .in("kelas_id", kelasList)
+          .range(from, to)),
+        fetchAllRows((from, to) => supabase
           .from("karakter_skor_indikator")
           .select("kelas_id, murid_id, nama_murid, periode_id, aspek_kode, indikator_kode, skor")
           .eq("sekolah_id", session.school_id)
-          .in("kelas_id", kelasList),
-        supabase
+          .in("kelas_id", kelasList)
+          .range(from, to)),
+        fetchAllRows((from, to) => supabase
           .from("karakter_pernyataan_ortu")
           .select("kelas_id, murid_id, nama_murid, periode_id, pernyataan, kategori_pernyataan, emosi_anak, alasan_emosi, dukungan_dibutuhkan, dukungan_lainnya, hal_disyukuri")
           .eq("sekolah_id", session.school_id)
-          .in("kelas_id", kelasList),
+          .in("kelas_id", kelasList)
+          .range(from, to)),
         supabase
           .from("briefing")
           .select("teks, sumber, periode_id")
@@ -92,7 +98,8 @@ export function useKarakterWaliKelas(session, periodeId) {
 
       if (!alive) return;
 
-      const err = summaryRes.error || skorRes.error || skorIndRes.error || ortuRes.error;
+      const err = aspekRes.error || indikatorRes.error || summaryRes.error || sekolahSummaryRes.error
+        || skorRes.error || skorIndRes.error || ortuRes.error || briefingRes.error || tlRes.error;
       if (err) { setState({ loading: false, error: err.message, raw: null }); return; }
 
       setState({
@@ -100,8 +107,8 @@ export function useKarakterWaliKelas(session, periodeId) {
         error: null,
         raw: {
           kelasList,
-          aspek,
-          indikator,
+          aspek: withAspekColor(aspekRes.data || []),
+          indikator: indikatorRes.data || [],
           summaryRows: summaryRes.data || [],
           sekolahSummaryRows: sekolahSummaryRes.data || [],
           skorRows: skorRes.data || [],
@@ -122,10 +129,19 @@ export function useKarakterWaliKelas(session, periodeId) {
     if (!state.raw) return null;
     const { kelasList: kl, aspek, indikator, summaryRows, sekolahSummaryRows, skorRows, skorIndRows, ortuRows, briefingRows, tlRows } = state.raw;
 
-    const availablePeriods = Array.from(new Set(summaryRows.map((r) => r.periode_id))).sort((a, b) => (a > b ? -1 : 1));
-    const periode = periodeId && summaryRows.some((r) => r.periode_id === periodeId)
+    // availablePeriods dan validasi periodeId TIDAK cuma dari summaryRows -- briefing/tindak
+    // lanjut bisa saja sudah disetujui untuk periode yang summary-nya kebetulan belum lengkap
+    // (atau sebaliknya), jangan sampai salah satu bikin konten "hilang" karena periode-nya
+    // disubstitusi diam-diam ke periode lain.
+    const periodeSet = new Set([
+      ...summaryRows.map((r) => r.periode_id),
+      ...briefingRows.map((r) => r.periode_id),
+      ...tlRows.map((r) => r.periode_id),
+    ]);
+    const availablePeriods = Array.from(periodeSet).sort((a, b) => (a > b ? -1 : 1));
+    const periode = periodeId && periodeSet.has(periodeId)
       ? periodeId
-      : (latestPeriode(summaryRows) || latestPeriode(skorRows));
+      : (latestPeriode(summaryRows) || latestPeriode(briefingRows) || latestPeriode(tlRows) || latestPeriode(skorRows));
     const sekolahSummary = sekolahSummaryRows.find((r) => r.periode_id === periode) || sekolahSummaryRows[0] || null;
 
     return {
@@ -163,8 +179,8 @@ export function useKarakterKepsek(session, periodeId) {
     async function run() {
       setState((s) => ({ ...s, loading: true, error: null }));
 
-      const [aspek, summaryRes, briefingRes, tlRes, ortuRes] = await Promise.all([
-        fetchAspekConfig(sekolahId),
+      const [aspekRes, summaryRes, briefingRes, tlRes, ortuRes] = await Promise.all([
+        queryAspekConfig(sekolahId),
         supabase
           .from("karakter_summary")
           .select("scope, scope_id, periode_id, ringkasan")
@@ -186,20 +202,24 @@ export function useKarakterKepsek(session, periodeId) {
           .eq("scope", "sekolah")
           .eq("target_role", "kepala_sekolah")
           .eq("status", "disetujui"),
-        supabase
+        // Seluruh sekolah, semua periode, tanpa filter kelas -- kandidat kuat lewat batas 1000
+        // baris diam-diam Supabase untuk sekolah menengah-besar, jadi dipaginasi penuh.
+        fetchAllRows((from, to) => supabase
           .from("karakter_pernyataan_ortu")
           .select("kelas_id, murid_id, nama_murid, periode_id, pernyataan, kategori_pernyataan, emosi_anak, alasan_emosi, dukungan_dibutuhkan, dukungan_lainnya, hal_disyukuri")
-          .eq("sekolah_id", sekolahId),
+          .eq("sekolah_id", sekolahId)
+          .range(from, to)),
       ]);
 
       if (!alive) return;
-      if (summaryRes.error) { setState({ loading: false, error: summaryRes.error.message, raw: null }); return; }
+      const err = aspekRes.error || summaryRes.error || briefingRes.error || tlRes.error || ortuRes.error;
+      if (err) { setState({ loading: false, error: err.message, raw: null }); return; }
 
       setState({
         loading: false,
         error: null,
         raw: {
-          aspek,
+          aspek: withAspekColor(aspekRes.data || []),
           summaryRows: summaryRes.data || [],
           briefingRows: briefingRes.data || [],
           tlRows: tlRes.data || [],
@@ -216,8 +236,17 @@ export function useKarakterKepsek(session, periodeId) {
     if (!state.raw) return null;
     const { aspek, summaryRows, briefingRows, tlRows, ortuRows } = state.raw;
 
-    const availablePeriods = Array.from(new Set(summaryRows.map((r) => r.periode_id))).sort((a, b) => (a > b ? -1 : 1));
-    const periode = periodeId && summaryRows.some((r) => r.periode_id === periodeId) ? periodeId : latestPeriode(summaryRows);
+    // Lihat catatan di useKarakterWaliKelas: periode digabung dari summary + briefing +
+    // tindak lanjut, bukan cuma summary.
+    const periodeSet = new Set([
+      ...summaryRows.map((r) => r.periode_id),
+      ...briefingRows.map((r) => r.periode_id),
+      ...tlRows.map((r) => r.periode_id),
+    ]);
+    const availablePeriods = Array.from(periodeSet).sort((a, b) => (a > b ? -1 : 1));
+    const periode = periodeId && periodeSet.has(periodeId)
+      ? periodeId
+      : (latestPeriode(summaryRows) || latestPeriode(briefingRows) || latestPeriode(tlRows));
     const atPeriode = summaryRows.filter((r) => r.periode_id === periode);
 
     return {
@@ -266,11 +295,11 @@ export function useKarakterYayasan(session, periodeId) {
 
       const sekolahIds = (sekolahRows || []).map((s) => s.id);
       if (sekolahIds.length === 0) {
-        setState({ loading: false, error: null, raw: { sekolahRows: [], summaryRows: [], briefingRows: [], tlRows: [], aspekBySekolah: {}, ortuRows: [], skorIndRows: [], indikatorConfigRows: [] } });
+        setState({ loading: false, error: null, raw: { sekolahRows: [], summaryRows: [], briefingRows: [], tlRows: [], aspekBySekolah: {}, ortuRows: [], indikatorAvgRows: [], indikatorConfigRows: [] } });
         return;
       }
 
-      const [summaryRes, briefingRes, tlRes, aspekRes, ortuRes, skorIndRes, indikatorRes] = await Promise.all([
+      const [summaryRes, briefingRes, tlRes, aspekRes, ortuRes, indikatorAvgRes, indikatorRes] = await Promise.all([
         supabase
           .from("karakter_summary")
           .select("sekolah_id, periode_id, ringkasan")
@@ -296,15 +325,22 @@ export function useKarakterYayasan(session, periodeId) {
           .select("sekolah_id, aspek_kode, aspek_label, urutan")
           .in("sekolah_id", sekolahIds)
           .order("urutan", { ascending: true }),
-        supabase
+        // Lintas SEMUA sekolah yayasan, semua periode -- risiko terbesar melewati batas diam-diam
+        // 1000 baris Supabase, jadi dipaginasi penuh lewat fetchAllRows.
+        fetchAllRows((from, to) => supabase
           .from("karakter_pernyataan_ortu")
           .select("sekolah_id, kelas_id, murid_id, nama_murid, periode_id, pernyataan, kategori_pernyataan, emosi_anak, alasan_emosi, dukungan_dibutuhkan, dukungan_lainnya, hal_disyukuri")
-          .in("sekolah_id", sekolahIds),
-        // Indikator per sekolah diagregat dari skor murid (summary sekolah tidak menyimpan top5 indikator).
-        supabase
-          .from("karakter_skor_indikator")
+          .in("sekolah_id", sekolahIds)
+          .range(from, to)),
+        // Indikator per sekolah, sudah dirata-rata di database lewat view
+        // karakter_indikator_sekolah_avg (lihat migration 20260711150000) -- bukan lagi
+        // mengambil tiap baris skor murid mentah lintas sekolah lalu diagregat di klien.
+        // Tetap dipaginasi untuk jaga-jaga yayasan dengan sangat banyak sekolah/periode.
+        fetchAllRows((from, to) => supabase
+          .from("karakter_indikator_sekolah_avg")
           .select("sekolah_id, periode_id, aspek_kode, indikator_kode, skor")
-          .in("sekolah_id", sekolahIds),
+          .in("sekolah_id", sekolahIds)
+          .range(from, to)),
         supabase
           .from("karakter_indikator_config")
           .select("sekolah_id, aspek_kode, indikator_kode, indikator_label")
@@ -312,7 +348,9 @@ export function useKarakterYayasan(session, periodeId) {
       ]);
 
       if (!alive) return;
-      if (summaryRes.error) { setState({ loading: false, error: summaryRes.error.message, raw: null }); return; }
+      const err = summaryRes.error || briefingRes.error || tlRes.error || aspekRes.error
+        || ortuRes.error || indikatorAvgRes.error || indikatorRes.error;
+      if (err) { setState({ loading: false, error: err.message, raw: null }); return; }
 
       const aspekBySekolah = {};
       (aspekRes.data || []).forEach((a) => {
@@ -332,7 +370,7 @@ export function useKarakterYayasan(session, periodeId) {
           tlRows: tlRes.data || [],
           aspekBySekolah,
           ortuRows: ortuRes.data || [],
-          skorIndRows: skorIndRes.data || [],
+          indikatorAvgRows: indikatorAvgRes.data || [],
           indikatorConfigRows: indikatorRes.data || [],
         },
       });
@@ -344,10 +382,19 @@ export function useKarakterYayasan(session, periodeId) {
 
   const data = useMemo(() => {
     if (!state.raw) return null;
-    const { sekolahRows, summaryRows, briefingRows, tlRows, aspekBySekolah, ortuRows, skorIndRows, indikatorConfigRows } = state.raw;
+    const { sekolahRows, summaryRows, briefingRows, tlRows, aspekBySekolah, ortuRows, indikatorAvgRows, indikatorConfigRows } = state.raw;
 
-    const availablePeriods = Array.from(new Set(summaryRows.map((r) => r.periode_id))).sort((a, b) => (a > b ? -1 : 1));
-    const periode = periodeId && summaryRows.some((r) => r.periode_id === periodeId) ? periodeId : latestPeriode(summaryRows);
+    // Lihat catatan di useKarakterWaliKelas: periode digabung dari summary + briefing +
+    // tindak lanjut, bukan cuma summary.
+    const periodeSet = new Set([
+      ...summaryRows.map((r) => r.periode_id),
+      ...briefingRows.map((r) => r.periode_id),
+      ...tlRows.map((r) => r.periode_id),
+    ]);
+    const availablePeriods = Array.from(periodeSet).sort((a, b) => (a > b ? -1 : 1));
+    const periode = periodeId && periodeSet.has(periodeId)
+      ? periodeId
+      : (latestPeriode(summaryRows) || latestPeriode(briefingRows) || latestPeriode(tlRows));
 
     // Label indikator per sekolah, dari config custom tiap sekolah.
     const indikatorLabelBySekolah = {};
@@ -355,23 +402,14 @@ export function useKarakterYayasan(session, periodeId) {
       (indikatorLabelBySekolah[it.sekolah_id] ||= {})[`${it.aspek_kode}_${it.indikator_kode}`] = it.indikator_label;
     });
 
-    // Rata-rata ketercapaian tiap indikator per sekolah (agregat dari skor murid periode berjalan).
-    // Bentuk: { [sekolah_id]: [{ label, value }] }, sudah dirata-ratakan lintas murid sekolah itu.
+    // Rata-rata ketercapaian tiap indikator per sekolah -- sudah dihitung di database lewat
+    // view karakter_indikator_sekolah_avg, tinggal disaring ke periode aktif dan diberi label.
     const indikatorBySekolah = {};
-    const acc = {}; // sekolah_id -> key -> {sum, n}
-    (skorIndRows || []).forEach((r) => {
+    (indikatorAvgRows || []).forEach((r) => {
       if (r.periode_id !== periode || r.skor == null) return;
+      const labels = indikatorLabelBySekolah[r.sekolah_id] || {};
       const key = `${r.aspek_kode}_${r.indikator_kode}`;
-      const bucket = (acc[r.sekolah_id] ||= {});
-      const cell = (bucket[key] ||= { sum: 0, n: 0 });
-      cell.sum += r.skor; cell.n += 1;
-    });
-    Object.entries(acc).forEach(([sid, bucket]) => {
-      const labels = indikatorLabelBySekolah[sid] || {};
-      indikatorBySekolah[sid] = Object.entries(bucket).map(([key, v]) => ({
-        label: labels[key] || key,
-        value: Math.round(v.sum / v.n),
-      }));
+      (indikatorBySekolah[r.sekolah_id] ||= []).push({ label: labels[key] || key, value: r.skor });
     });
 
     return {

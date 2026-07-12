@@ -2,6 +2,7 @@ import { useState, useRef, useEffect, useCallback } from "react";
 import SampleTag from "../../components/SampleTag";
 import { supabase } from "../../lib/supabase";
 import { transformMIData, transformSupabaseMI } from "./miTransform";
+import { MI_LEVEL_CUTOFF } from "../../lib/cutoffs";
 import styles from "./SiswaPage.module.css";
 
 // ════════════════════════════════════════════════════════════════════════════
@@ -1526,9 +1527,9 @@ function BakatView({ student, intel, topDetails, mi, isSample, onLogout, modules
               </div>
               <PetalChart items={chart} />
               <div style={{ display: "flex", justifyContent: "center", gap: 14, padding: "2px 0 6px", flexWrap: "wrap" }}>
-                <Legend color="#16A34A" label="Kuat" range="75-100" />
-                <Legend color="#D97706" label="Sedang" range="50-74" />
-                <Legend color="#94A3B8" label="Berkembang" range="<50" />
+                <Legend color="#16A34A" label="Kuat" range={`${MI_LEVEL_CUTOFF.kuat}-100`} />
+                <Legend color="#D97706" label="Sedang" range={`${MI_LEVEL_CUTOFF.sedang}-${MI_LEVEL_CUTOFF.kuat - 1}`} />
+                <Legend color="#94A3B8" label="Berkembang" range={`<${MI_LEVEL_CUTOFF.sedang}`} />
               </div>
             </div>
             <div style={{ marginTop: 14 }}>
@@ -1718,9 +1719,9 @@ function BakatView({ student, intel, topDetails, mi, isSample, onLogout, modules
         <LCard>
           <PetalChart items={chart} />
           <div style={{ display: "flex", justifyContent: "center", gap: 14, padding: "6px 0 13px", flexWrap: "wrap" }}>
-            <Legend color="#16A34A" label="Kuat" range="75-100" />
-            <Legend color="#D97706" label="Sedang" range="50-74" />
-            <Legend color="#94A3B8" label="Berkembang" range="<50" />
+            <Legend color="#16A34A" label="Kuat" range={`${MI_LEVEL_CUTOFF.kuat}-100`} />
+            <Legend color="#D97706" label="Sedang" range={`${MI_LEVEL_CUTOFF.sedang}-${MI_LEVEL_CUTOFF.kuat - 1}`} />
+            <Legend color="#94A3B8" label="Berkembang" range={`<${MI_LEVEL_CUTOFF.sedang}`} />
           </div>
           <div style={{ height: 1, background: T.divider }} />
           <div style={{ marginTop: 10 }}>
