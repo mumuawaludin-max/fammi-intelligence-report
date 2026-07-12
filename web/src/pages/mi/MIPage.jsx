@@ -94,27 +94,17 @@ function KelasTable({ kelasList }) {
 }
 
 function ErrorState({ message, onRetry }) {
-  const isToken  = message?.includes("Token") || message?.includes("kedaluwarsa") || message?.includes("tidak valid");
-  const isSetup  = !isToken && (message?.includes("Sheet") || message?.includes("Cakupan") || message?.includes("langganan") || message?.includes("Workbook") || message?.includes("dikonfigurasi"));
+  const isToken = message?.includes("JWT") || message?.toLowerCase().includes("token");
 
   return (
     <div className={styles.stateBox}>
       <div className={styles.stateIcon}>!</div>
-      <h3 className={styles.stateTitle}>
-        {isToken ? "Sesi berakhir" : isSetup ? "Sheets belum terhubung" : "Gagal memuat data"}
-      </h3>
+      <h3 className={styles.stateTitle}>{isToken ? "Sesi berakhir" : "Gagal memuat data"}</h3>
       <p className={styles.stateMsg}>
         {isToken
           ? "Sesi login sudah berakhir. Klik Keluar di kanan atas lalu masuk kembali."
           : message}
       </p>
-      {isSetup && (
-        <p className={styles.setupHint}>
-          Pastikan spreadsheet kontrol sudah punya sheet: <code>Akses_Kapabilitas</code>,{" "}
-          <code>Akses_Cakupan</code>, <code>Langganan</code>, <code>Registry</code>, dan
-          workbook data sekolah punya sheet <code>Fakta_Aspek</code>.
-        </p>
-      )}
       {!isToken && <button className={styles.retryBtn} onClick={onRetry}>Coba lagi</button>}
     </div>
   );
