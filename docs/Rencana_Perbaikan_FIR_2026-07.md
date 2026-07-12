@@ -150,6 +150,11 @@ Masalah: periode aktif ditentukan dari satu tabel (summary, atau briefing di Rin
 
 ## Fase D. Keamanan operasional (item 7 audit)
 
+**Status: kode selesai seluruhnya (2026-07-12). D1 dan D2 masih menunggu langkah `[manual]`
+di bawah masing-masing (redeploy 4 Edge Function: create-user, generate-tindak-lanjut,
+batch-generate-tindak-lanjut, admin-actions; plus set secret `ALLOWED_ORIGIN` untuk D2, dan
+reset password akun lama untuk D1). D3 dan D4 murni kode, tidak ada langkah manual susulan.**
+
 ### D1. Password generate-an lebih kuat `[kode]` + `[manual]` deploy
 
 1. `supabase/functions/create-user/index.ts` `generatePassword()`: ganti pola "kata + 3 digit" (900 kemungkinan) menjadi kata + 6 digit acak dari `crypto.getRandomValues` (bukan `Math.random`), contoh "wiwifarida304857". Tetap huruf kecil semua sesuai kebutuhan minim salah ketik.
