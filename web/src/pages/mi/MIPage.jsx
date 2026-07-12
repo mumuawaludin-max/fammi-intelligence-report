@@ -221,9 +221,13 @@ export default function MIPage({ session }) {
   const [expanded, setExpanded] = useState(false);
 
   const hasData  = Array.isArray(rows) && rows.length > 0;
-  const isSample = !hasData;
-
   const hasTl = Array.isArray(tlRows) && tlRows.length > 0;
+  // Statistik sample HANYA tampil kalau benar-benar tidak ada data apa pun (MI maupun tindak
+  // lanjut). Kalau tindak lanjut asli sudah ada tapi mi_hasil belum, statistik contoh
+  // disembunyikan sama sekali (angka pemicu di kartu tindak lanjut, mis. "48% siswa", tidak
+  // akan pernah cocok dengan statistik contoh yang acak) -- diganti pesan kosong yang jujur.
+  const isSample = !hasData && !hasTl;
+  const showStatsEmpty = !hasData && hasTl;
   // Kalau query tindak lanjut gagal (bukan sekadar kosong), jangan tampilkan tindak lanjut
   // CONTOH seolah itu data asli sekolah -- tampilkan pesan gagal di bagian itu saja.
   const tl = hasTl
@@ -292,65 +296,76 @@ export default function MIPage({ session }) {
         {isSample && <SampleTag />}
       </div>
 
-      {/* ── Stat tiles ── */}
-      <div className={styles.tiles}>
-        <StatTile label="Siswa terpetakan" value={nSiswa} sub={`${nKelas} kelas`} />
-        <StatTile
-          label="Kecerdasan terbanyak"
-          value={topPct}
-          unit="%"
-          sub={`${topMI.name} · ${topMI.n} siswa`}
-        />
-        <StatTile label="Kelas dipetakan" value={nKelas} />
-        <StatTile
-          label="Tindak lanjut aktif"
-          value={tl.length}
-          tone={tl.some((t) => t.priority === "tinggi") ? "perhatian" : "default"}
-        />
-      </div>
-
-      {/* ── Sebaran kecerdasan ── */}
-      <section className={styles.section}>
-        <SectionHeading
-          title="Sebaran Kecerdasan Dominan"
-          subtitle="Jumlah siswa per kecerdasan terkuat. Kanan: rata-rata index seluruh kelas."
-        />
-        <div className={styles.sebaranGrid}>
-          {/* Bar list */}
-          <div className={styles.card}>
-            <p className={styles.cardTitle}>Distribusi kecerdasan dominan</p>
-            <p className={styles.cardSub}>n = {nSiswa} siswa · satu kecerdasan terkuat per siswa</p>
-            <MIBarList items={miDist} total={nSiswa} />
-          </div>
-
-          {/* Radar */}
-          <div className={styles.card}>
-            <p className={styles.cardTitle}>Profil rata-rata sekolah</p>
-            <p className={styles.cardSub}>Index 0–100 per kecerdasan</p>
-            <div className={styles.radarWrap}>
-              <RadarChart axes={radarAxes} size={260} />
-            </div>
-            <div className={styles.insightBox}>
-              <span className={styles.insightLabel}>Ringkasan</span>
-              <p className={styles.insightText}>
-                Kecerdasan paling umum adalah <strong>{topMI.name}</strong> ({topMI.n} siswa · {topPct}%).
-                Metode {topMI.tagline.toLowerCase()} akan menjangkau paling banyak siswa di sekolah ini.
-              </p>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* ── Per kelas ── */}
-      <section className={styles.section}>
-        <SectionHeading
-          title="Breakdown per Kelas"
-          subtitle="Kecerdasan dominan terbanyak di tiap kelas."
-        />
+      {showStatsEmpty ? (
         <div className={styles.card}>
-          <KelasTable kelasList={kelasList} />
+          <p className={styles.statsEmptyNote}>
+            Data hasil Multiple Intelligence belum diunggah untuk sekolah ini. Tindak lanjut di
+            bawah tetap ditampilkan karena sudah disetujui.
+          </p>
         </div>
-      </section>
+      ) : (
+        <>
+          {/* ── Stat tiles ── */}
+          <div className={styles.tiles}>
+            <StatTile label="Siswa terpetakan" value={nSiswa} sub={`${nKelas} kelas`} />
+            <StatTile
+              label="Kecerdasan terbanyak"
+              value={topPct}
+              unit="%"
+              sub={`${topMI.name} · ${topMI.n} siswa`}
+            />
+            <StatTile label="Kelas dipetakan" value={nKelas} />
+            <StatTile
+              label="Tindak lanjut aktif"
+              value={tl.length}
+              tone={tl.some((t) => t.priority === "tinggi") ? "perhatian" : "default"}
+            />
+          </div>
+
+          {/* ── Sebaran kecerdasan ── */}
+          <section className={styles.section}>
+            <SectionHeading
+              title="Sebaran Kecerdasan Dominan"
+              subtitle="Jumlah siswa per kecerdasan terkuat. Kanan: rata-rata index seluruh kelas."
+            />
+            <div className={styles.sebaranGrid}>
+              {/* Bar list */}
+              <div className={styles.card}>
+                <p className={styles.cardTitle}>Distribusi kecerdasan dominan</p>
+                <p className={styles.cardSub}>n = {nSiswa} siswa · satu kecerdasan terkuat per siswa</p>
+                <MIBarList items={miDist} total={nSiswa} />
+              </div>
+
+              {/* Radar */}
+              <div className={styles.card}>
+                <p className={styles.cardTitle}>Profil rata-rata sekolah</p>
+                <p className={styles.cardSub}>Index 0–100 per kecerdasan</p>
+                <div className={styles.radarWrap}>
+                  <RadarChart axes={radarAxes} size={260} />
+                </div>
+                <div className={styles.insightBox}>
+                  <span className={styles.insightLabel}>Ringkasan</span>
+                  <p className={styles.insightText}>
+                    Kecerdasan paling umum adalah <strong>{topMI.name}</strong> ({topMI.n} siswa · {topPct}%).
+                    Metode {topMI.tagline.toLowerCase()} akan menjangkau paling banyak siswa di sekolah ini.
+                  </p>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          {/* ── Per kelas ── */}
+          <section className={styles.section}>
+            <SectionHeading
+              title="Breakdown per Kelas"
+              subtitle="Kecerdasan dominan terbanyak di tiap kelas."
+            />
+            <div className={styles.card}>
+              <KelasTable kelasList={kelasList} />
+            </div>
+          </section>
+        </>
+      )}
 
       {/* ── Tindak lanjut ── */}
       {tlError ? (

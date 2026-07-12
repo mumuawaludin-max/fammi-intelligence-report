@@ -60,6 +60,14 @@
   margin: 0 0 16px;
 }
 
+.statsEmptyNote {
+  font-size: 13px;
+  color: var(--ink-3);
+  text-align: center;
+  padding: 12px 4px;
+  margin: 0;
+}
+
 /* ── Sebaran grid ── */
 .sebaranGrid {
   display: grid;
