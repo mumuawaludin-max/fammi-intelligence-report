@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { getSession, logoutSupabase } from "./lib/auth";
+import { getSession, logoutSupabase, refreshSession, saveSession, clearSession } from "./lib/auth";
 import { useOverviewBriefing } from "./hooks/useOverviewBriefing";
 import { useAvailablePeriods } from "./hooks/useAvailablePeriods";
 import LoginPage from "./pages/LoginPage";
@@ -65,9 +65,30 @@ export default function App() {
   const [session, setSession]     = useState(() => getSession());
   const [activeTab, setActiveTab] = useState(() => (isKarakterShellPeran(getSession()?.peran) ? "karakter" : "overview"));
   const [period, setPeriod]       = useState({ type: "bulanan", period: "Juni 2026" });
+  const [loginNotice, setLoginNotice] = useState("");
   const overview = useOverviewBriefing(session);
   const isKepsekShell = isKarakterShellPeran(session?.peran);
   const availablePeriods = useAvailablePeriods(session);
+
+  // Sesi di sessionStorage bisa sudah basi (token dicabut/kedaluwarsa di server, atau peran
+  // /sekolah/cakupan user ini sudah diubah admin sejak login terakhir) tanpa browser tahu --
+  // cek ke server begitu App dimuat, bukan cuma percaya isi sessionStorage begitu saja.
+  useEffect(() => {
+    if (!getSession()) return;
+    let alive = true;
+    refreshSession().then((fresh) => {
+      if (!alive) return;
+      if (!fresh) {
+        clearSession();
+        setSession(null);
+        setLoginNotice("Sesi login sudah berakhir. Silakan masuk kembali.");
+        return;
+      }
+      saveSession(fresh);
+      setSession(fresh);
+    });
+    return () => { alive = false; };
+  }, []);
 
   // Begitu daftar periode asli sekolah ini dimuat, ganti default palsu ("Juni 2026") ke
   // periode terbaru yang benar-benar punya data. Tidak menimpa pilihan manual user berikutnya.
@@ -81,6 +102,7 @@ export default function App() {
   }, [isKepsekShell, availablePeriods]);
 
   function handleLogin(newSession) {
+    setLoginNotice("");
     setSession(newSession);
     setActiveTab(isKarakterShellPeran(newSession.peran) ? "karakter" : "overview");
   }
@@ -89,7 +111,7 @@ export default function App() {
     setSession(null);
   }
 
-  if (!session) return <LoginPage onLogin={handleLogin} />;
+  if (!session) return <LoginPage onLogin={handleLogin} notice={loginNotice} />;
 
   if (session.peran === "Siswa") {
     return <SiswaPage session={session} onLogout={handleLogout} />;
