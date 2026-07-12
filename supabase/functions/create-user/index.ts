@@ -28,7 +28,7 @@
 // Secret: SUPABASE_SERVICE_ROLE_KEY sudah otomatis tersedia sebagai env bawaan Supabase Functions.
 
 import { createClient } from "jsr:@supabase/supabase-js@2";
-import { corsHeaders } from "../_shared/cors.ts";
+import { buildCorsHeaders } from "../_shared/cors.ts";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
@@ -36,6 +36,14 @@ const ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY")!;
 const PERAN_VALID = ["AdminFammi", "Yayasan", "KepalaSekolah", "WakilKepalaSekolah", "WaliKelas", "OrangTua", "Siswa"];
 
 Deno.serve(async (req) => {
+  const corsHeaders = buildCorsHeaders(req);
+  function json(body, status = 200) {
+    return new Response(JSON.stringify(body), {
+      status,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  }
+
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
 
   try {
@@ -171,11 +179,4 @@ function generatePassword(usernameOrEmail) {
   const word = (local.replace(/[^a-zA-Z]/g, "") || "fammi").slice(0, 12).toLowerCase();
   const digits = String(Math.floor(100 + Math.random() * 900));
   return word + digits;
-}
-
-function json(body, status = 200) {
-  return new Response(JSON.stringify(body), {
-    status,
-    headers: { ...corsHeaders, "Content-Type": "application/json" },
-  });
 }

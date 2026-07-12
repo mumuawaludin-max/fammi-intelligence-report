@@ -23,14 +23,22 @@
 // corsHeaders ditulis LANGSUNG di sini (bukan impor dari ../_shared/cors.ts seperti fungsi
 // lain) supaya berkas ini berdiri sendiri satu file penuh -- deploy lewat Supabase Dashboard
 // (tempel kode langsung, tanpa upload folder _shared/) gagal bundling kalau ada impor relatif
-// ke luar folder fungsi ini sendiri.
+// ke luar folder fungsi ini sendiri. Origin dibatasi ke domain FIR sendiri (bukan "*"), sama
+// seperti fungsi lain -- lihat komentar di _shared/cors.ts untuk alasannya.
 
 import { createClient } from "jsr:@supabase/supabase-js@2";
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-};
+const PROD_ORIGIN = Deno.env.get("ALLOWED_ORIGIN") || "https://fammi-intelligence-report.vercel.app";
+const ALLOWED_ORIGINS = [PROD_ORIGIN, "http://localhost:5173"];
+
+function buildCorsHeaders(req) {
+  const origin = req.headers.get("origin") || req.headers.get("Origin");
+  const allowOrigin = origin && ALLOWED_ORIGINS.includes(origin) ? origin : PROD_ORIGIN;
+  return {
+    "Access-Control-Allow-Origin": allowOrigin,
+    "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  };
+}
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
@@ -38,6 +46,14 @@ const ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY")!;
 const PERAN_VALID = ["AdminFammi", "Yayasan", "KepalaSekolah", "WakilKepalaSekolah", "WaliKelas", "OrangTua", "Siswa"];
 
 Deno.serve(async (req) => {
+  const corsHeaders = buildCorsHeaders(req);
+  function json(body, status = 200) {
+    return new Response(JSON.stringify(body), {
+      status,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  }
+
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
 
   try {
@@ -176,11 +192,4 @@ async function handleUpdateSchedule(admin, body) {
   const { error } = await admin.from("gemini_schedule").update(patch).eq("id", "default");
   if (error) return { ok: false, error: error.message };
   return { ok: true };
-}
-
-function json(body, status = 200) {
-  return new Response(JSON.stringify(body), {
-    status,
-    headers: { ...corsHeaders, "Content-Type": "application/json" },
-  });
 }
