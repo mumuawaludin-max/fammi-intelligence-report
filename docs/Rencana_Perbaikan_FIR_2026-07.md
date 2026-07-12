@@ -114,6 +114,13 @@ Migration `20260711150000_karakter_indikator_sekolah_view.sql` perlu dijalankan 
 
 ## Fase C. Konsistensi filter dan periode (item 6 audit)
 
+**Status: selesai seluruhnya (2026-07-11), murni kode, tidak ada migration.**
+
+- **C1**: tab Ringkasan (`useOverviewBriefing.js`) sekarang memfilter `target_role` sesuai peran, sama seperti halaman modul Karakter -- sebelumnya Wali Kelas ikut melihat kartu level Kepala Sekolah di tab Ringkasan.
+- **C2**: periode digabung dari `karakter_summary` + `briefing` + `tindak_lanjut` di tiga tempat (`useAvailablePeriods.js`, tiga hook `useKarakterData.js`, dan `useOverviewBriefing.js` -- yang terakhir diperbaiki jadi benar-benar memilih periode TERBARU di antara briefing/tindak_lanjut, bukan "briefing menang kalau punya baris apa pun"). Pemisahan periode PER MODUL di tab Ringkasan (rencana awal) SENGAJA tidak dikerjakan -- itu mengubah desain BriefingHero tunggal yang eksplisit di CLAUDE.md, keputusan produk.
+- **C3**: baris `tindak_lanjut` Karakter yang disetujui tapi berskema lama (tidak lolos `isKebijakanReady`, sebelumnya tertimpa data contoh) sekarang tetap tampil sebagai kartu sederhana lewat `FollowupRibbon`, di KepsekView/WaliKelasView/YayasanView.
+- **C4**: `MIPage.jsx` tidak lagi menampilkan statistik contoh berdampingan dengan tindak lanjut MI asli -- kalau `mi_hasil` kosong tapi tindak lanjut asli ada, statistik diganti pesan kosong yang jujur.
+
 ### C1. Ringkasan memfilter target_role seperti halaman modul `[kode]`
 
 1. Di `useOverviewBriefing.js`, tambah pemetaan peran ke `target_role`: WaliKelas ke `wali_kelas`, Kepsek/Wakasek ke `kepala_sekolah`, Yayasan ke `yayasan`, OrangTua ke `orang_tua`.
