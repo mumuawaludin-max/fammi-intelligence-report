@@ -286,36 +286,50 @@ export async function parseKarakterWorkbook(file, { sekolahId }) {
   });
 
   // Ringkasan per kelas/jenjang/sekolah tidak punya nama murid untuk dicocokkan; kalau
-  // barisnya sendiri tidak punya bulan, pakai periode dominan dari detail_persentase_karakter
-  // (aman selama file itu memang cuma cakup satu bulan dominan, yang jadi kasus umum).
-  const periodeDominan = Object.entries(periodeCount).sort((a, b) => b[1] - a[1])[0]?.[0] || null;
+  // barisnya sendiri tidak punya bulan, dulu selalu pakai periode dominan dari
+  // detail_persentase_karakter. Itu aman kalau file cuma cakup satu bulan, tapi kalau file
+  // memuat lebih dari satu periode (mis. gabungan dua bulan dalam satu upload) dan baris
+  // summary-nya tidak punya kolom bulan sendiri, menebak periode dominan bisa salah tempatkan
+  // ringkasan bulan lain ke bulan yang salah tanpa ketahuan -- jadi begitu file punya lebih
+  // dari satu periode, fallback ini dimatikan dan baris tanpa bulan sendiri ditolak dengan
+  // pesan jelas, bukan ditebak.
+  const periodeList = Object.keys(periodeCount);
+  const multiPeriode = periodeList.length > 1;
+  const periodeDominan = multiPeriode ? null : (periodeList[0] || null);
   const summaryByKey = new Map();
   function pushSummary(scope, scopeId, periode, ringkasan) {
     // Kalau ada tabrakan periode+scope (mis. periode dominan salah tebak karena bulan sheet
     // ringkasan tidak terbaca), baris terakhir menang, bukan error duplikat ke Supabase.
     summaryByKey.set(`${scope}|${scopeId}|${periode}`, { sekolah_id: sekolahId, scope, scope_id: scopeId, periode_id: periode, ringkasan, status: 'disetujui' });
   }
+  function resolvePeriodeSummary(r) {
+    const own = ownBulan(r);
+    if (own) return own;
+    if (multiPeriode) return null;
+    return periodeDominan;
+  }
+  const bulanWajibNote = ' (kolom bulan wajib diisi di baris ini karena file ini memuat lebih dari satu periode -- tidak bisa ditebak)';
   sk.forEach((r, i) => {
     const kelas = getField(r, 'kelas');
     if (!kelas) return;
-    const periode = ownBulan(r) || periodeDominan;
-    if (!periode) { badRows.push(`summary_kelas baris ${i + 2}`); return; }
+    const periode = resolvePeriodeSummary(r);
+    if (!periode) { badRows.push(`summary_kelas baris ${i + 2}${multiPeriode ? bulanWajibNote : ' (bulan)'}`); return; }
     const { bulan, Kelas, kelas: kelasLower, ...rest } = r;
     pushSummary('kelas', kelas, periode, rest);
   });
   sj.forEach((r, i) => {
     const jenjang = getField(r, 'jenjang');
     if (!jenjang) return;
-    const periode = ownBulan(r) || periodeDominan;
-    if (!periode) { badRows.push(`summary_jenjang baris ${i + 2}`); return; }
+    const periode = resolvePeriodeSummary(r);
+    if (!periode) { badRows.push(`summary_jenjang baris ${i + 2}${multiPeriode ? bulanWajibNote : ' (bulan)'}`); return; }
     const { bulan, jenjang: jenjangLower, Jenjang, ...rest } = r;
     pushSummary('jenjang', jenjang, periode, rest);
   });
   ss.forEach((r, i) => {
     const { bulan, ...rest } = r;
     if (Object.values(rest).every((v) => v === '')) return;
-    const periode = ownBulan(r) || periodeDominan;
-    if (!periode) { badRows.push(`summary_sekolah baris ${i + 2}`); return; }
+    const periode = resolvePeriodeSummary(r);
+    if (!periode) { badRows.push(`summary_sekolah baris ${i + 2}${multiPeriode ? bulanWajibNote : ' (bulan)'}`); return; }
     pushSummary('sekolah', sekolahId, periode, rest);
   });
   const summaryRows = [...summaryByKey.values()];
@@ -339,31 +353,41 @@ export async function parseKarakterWorkbook(file, { sekolahId }) {
   };
 }
 
-/** Tulis hasil parse ke Supabase, kembalikan jumlah baris + error kalau ada. */
+/**
+ * Tulis hasil parse ke Supabase lewat RPC `import_karakter_periode` (lihat migration
+ * 20260712100000_import_karakter_rpc.sql): satu panggilan RPC per periode, tiap panggilan
+ * DELETE lalu INSERT keempat tabel dalam satu transaksi Postgres. Dulu ini chunked
+ * upsert langsung dari browser (500 baris per batch, empat tabel terpisah) -- kalau gagal
+ * di tengah, tabel-tabel yang sudah sempat ditulis tetap tersimpan, tidak ada rollback.
+ * Sekarang satu periode selalu semua-atau-tidak-sama-sekali; kalau file punya beberapa
+ * periode dan salah satu gagal, periode lain yang sudah sempat commit tetap tersimpan
+ * (itu batas atomik yang wajar -- lihat catatan Fase E1 di Rencana_Perbaikan_FIR_2026-07.md).
+ */
 export async function importKarakterWorkbook(parsed) {
   const { skorRows, skorIndikatorRows, pernyataanRows, summaryRows } = parsed.rows;
-  let totalRows = 0;
+  const sekolahId = skorRows[0]?.sekolah_id || summaryRows[0]?.sekolah_id;
+  if (!sekolahId) return { ok: true, rowsWritten: 0 };
 
-  // Keempat tabel punya unique constraint (lihat migration
-  // supabase/migrations/20260707120000_karakter_unique_constraints.sql): upsert supaya
-  // re-import periode yang sama (atau sisa data dari upload gagal di tengah sebelumnya)
-  // MENIMPA baris lama, bukan menggandakannya atau gagal dengan error duplicate key.
-  for (const [table, rows, upsertOn] of [
-    ['karakter_skor', skorRows, 'sekolah_id,murid_id,periode_id,aspek_kode'],
-    ['karakter_skor_indikator', skorIndikatorRows, 'sekolah_id,murid_id,periode_id,aspek_kode,indikator_kode'],
-    ['karakter_pernyataan_ortu', pernyataanRows, 'sekolah_id,murid_id,periode_id'],
-    ['karakter_summary', summaryRows, 'sekolah_id,scope,scope_id,periode_id'],
-  ]) {
-    if (rows.length === 0) continue;
-    for (let i = 0; i < rows.length; i += 500) {
-      const chunk = rows.slice(i, i + 500);
-      const query = upsertOn
-        ? supabase.from(table).upsert(chunk, { onConflict: upsertOn })
-        : supabase.from(table).insert(chunk);
-      const { error } = await query;
-      if (error) return { ok: false, rowsWritten: totalRows, error: `${table}: ${error.message}` };
-      totalRows += chunk.length;
-    }
+  const periodeIds = [...new Set([
+    ...skorRows.map((r) => r.periode_id),
+    ...skorIndikatorRows.map((r) => r.periode_id),
+    ...pernyataanRows.map((r) => r.periode_id),
+    ...summaryRows.map((r) => r.periode_id),
+  ])].sort();
+
+  let totalRows = 0;
+  for (const periodeId of periodeIds) {
+    const payload = {
+      sekolah_id: sekolahId,
+      periode_id: periodeId,
+      skor_rows: skorRows.filter((r) => r.periode_id === periodeId),
+      skor_indikator_rows: skorIndikatorRows.filter((r) => r.periode_id === periodeId),
+      pernyataan_rows: pernyataanRows.filter((r) => r.periode_id === periodeId),
+      summary_rows: summaryRows.filter((r) => r.periode_id === periodeId),
+    };
+    const { data, error } = await supabase.rpc('import_karakter_periode', { payload });
+    if (error) return { ok: false, rowsWritten: totalRows, error: `Periode ${periodeId}: ${error.message}` };
+    totalRows += (data?.skor || 0) + (data?.skor_indikator || 0) + (data?.pernyataan || 0) + (data?.summary || 0);
   }
   return { ok: true, rowsWritten: totalRows };
 }
