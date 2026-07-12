@@ -277,11 +277,11 @@ export function useKarakterYayasan(session, periodeId) {
 
       const sekolahIds = (sekolahRows || []).map((s) => s.id);
       if (sekolahIds.length === 0) {
-        setState({ loading: false, error: null, raw: { sekolahRows: [], summaryRows: [], briefingRows: [], tlRows: [], aspekBySekolah: {}, ortuRows: [], skorIndRows: [], indikatorConfigRows: [] } });
+        setState({ loading: false, error: null, raw: { sekolahRows: [], summaryRows: [], briefingRows: [], tlRows: [], aspekBySekolah: {}, ortuRows: [], indikatorAvgRows: [], indikatorConfigRows: [] } });
         return;
       }
 
-      const [summaryRes, briefingRes, tlRes, aspekRes, ortuRes, skorIndRes, indikatorRes] = await Promise.all([
+      const [summaryRes, briefingRes, tlRes, aspekRes, ortuRes, indikatorAvgRes, indikatorRes] = await Promise.all([
         supabase
           .from("karakter_summary")
           .select("sekolah_id, periode_id, ringkasan")
@@ -314,10 +314,12 @@ export function useKarakterYayasan(session, periodeId) {
           .select("sekolah_id, kelas_id, murid_id, nama_murid, periode_id, pernyataan, kategori_pernyataan, emosi_anak, alasan_emosi, dukungan_dibutuhkan, dukungan_lainnya, hal_disyukuri")
           .in("sekolah_id", sekolahIds)
           .range(from, to)),
-        // Indikator per sekolah diagregat dari skor murid (summary sekolah tidak menyimpan top5 indikator).
-        // Sama-sama lintas sekolah, sama-sama dipaginasi.
+        // Indikator per sekolah, sudah dirata-rata di database lewat view
+        // karakter_indikator_sekolah_avg (lihat migration 20260711150000) -- bukan lagi
+        // mengambil tiap baris skor murid mentah lintas sekolah lalu diagregat di klien.
+        // Tetap dipaginasi untuk jaga-jaga yayasan dengan sangat banyak sekolah/periode.
         fetchAllRows((from, to) => supabase
-          .from("karakter_skor_indikator")
+          .from("karakter_indikator_sekolah_avg")
           .select("sekolah_id, periode_id, aspek_kode, indikator_kode, skor")
           .in("sekolah_id", sekolahIds)
           .range(from, to)),
@@ -329,7 +331,7 @@ export function useKarakterYayasan(session, periodeId) {
 
       if (!alive) return;
       const err = summaryRes.error || briefingRes.error || tlRes.error || aspekRes.error
-        || ortuRes.error || skorIndRes.error || indikatorRes.error;
+        || ortuRes.error || indikatorAvgRes.error || indikatorRes.error;
       if (err) { setState({ loading: false, error: err.message, raw: null }); return; }
 
       const aspekBySekolah = {};
@@ -350,7 +352,7 @@ export function useKarakterYayasan(session, periodeId) {
           tlRows: tlRes.data || [],
           aspekBySekolah,
           ortuRows: ortuRes.data || [],
-          skorIndRows: skorIndRes.data || [],
+          indikatorAvgRows: indikatorAvgRes.data || [],
           indikatorConfigRows: indikatorRes.data || [],
         },
       });
@@ -362,7 +364,7 @@ export function useKarakterYayasan(session, periodeId) {
 
   const data = useMemo(() => {
     if (!state.raw) return null;
-    const { sekolahRows, summaryRows, briefingRows, tlRows, aspekBySekolah, ortuRows, skorIndRows, indikatorConfigRows } = state.raw;
+    const { sekolahRows, summaryRows, briefingRows, tlRows, aspekBySekolah, ortuRows, indikatorAvgRows, indikatorConfigRows } = state.raw;
 
     const availablePeriods = Array.from(new Set(summaryRows.map((r) => r.periode_id))).sort((a, b) => (a > b ? -1 : 1));
     const periode = periodeId && summaryRows.some((r) => r.periode_id === periodeId) ? periodeId : latestPeriode(summaryRows);
@@ -373,23 +375,14 @@ export function useKarakterYayasan(session, periodeId) {
       (indikatorLabelBySekolah[it.sekolah_id] ||= {})[`${it.aspek_kode}_${it.indikator_kode}`] = it.indikator_label;
     });
 
-    // Rata-rata ketercapaian tiap indikator per sekolah (agregat dari skor murid periode berjalan).
-    // Bentuk: { [sekolah_id]: [{ label, value }] }, sudah dirata-ratakan lintas murid sekolah itu.
+    // Rata-rata ketercapaian tiap indikator per sekolah -- sudah dihitung di database lewat
+    // view karakter_indikator_sekolah_avg, tinggal disaring ke periode aktif dan diberi label.
     const indikatorBySekolah = {};
-    const acc = {}; // sekolah_id -> key -> {sum, n}
-    (skorIndRows || []).forEach((r) => {
+    (indikatorAvgRows || []).forEach((r) => {
       if (r.periode_id !== periode || r.skor == null) return;
+      const labels = indikatorLabelBySekolah[r.sekolah_id] || {};
       const key = `${r.aspek_kode}_${r.indikator_kode}`;
-      const bucket = (acc[r.sekolah_id] ||= {});
-      const cell = (bucket[key] ||= { sum: 0, n: 0 });
-      cell.sum += r.skor; cell.n += 1;
-    });
-    Object.entries(acc).forEach(([sid, bucket]) => {
-      const labels = indikatorLabelBySekolah[sid] || {};
-      indikatorBySekolah[sid] = Object.entries(bucket).map(([key, v]) => ({
-        label: labels[key] || key,
-        value: Math.round(v.sum / v.n),
-      }));
+      (indikatorBySekolah[r.sekolah_id] ||= []).push({ label: labels[key] || key, value: r.skor });
     });
 
     return {
