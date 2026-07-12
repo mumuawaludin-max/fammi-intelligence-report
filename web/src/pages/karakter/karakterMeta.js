@@ -52,9 +52,20 @@ export function persen(v) {
 
 /** top5_siswa_tertinggi ("Nama1\nNama2\n...") + top5_nilai_siswa_tertinggi ("100%\n98%\n...") → pasangan. */
 export function parseTop5Pair(namaStr, nilaiStr) {
-  const namaList = String(namaStr || "").split("\n").map((s) => s.trim()).filter(Boolean);
-  const nilaiList = String(nilaiStr || "").split("\n").map((s) => s.trim()).filter(Boolean);
-  return namaList.map((nama, i) => ({ nama, nilai: nilaiList[i] || "" }));
+  // Pasangkan per indeks baris DULU, baru buang pasangan yang dua-duanya kosong -- kalau
+  // masing-masing sisi difilter kosong secara terpisah sebelum dipasangkan, satu baris kosong
+  // di tengah salah satu sisi (mis. nama urutan ke-3 tidak tercatat) menggeser semua pasangan
+  // setelahnya, memasangkan nama yang salah dengan nilai yang salah.
+  const namaList = String(namaStr || "").split("\n").map((s) => s.trim());
+  const nilaiList = String(nilaiStr || "").split("\n").map((s) => s.trim());
+  const len = Math.max(namaList.length, nilaiList.length);
+  const pairs = [];
+  for (let i = 0; i < len; i++) {
+    const nama = namaList[i] || "";
+    const nilai = nilaiList[i] || "";
+    if (nama || nilai) pairs.push({ nama, nilai });
+  }
+  return pairs;
 }
 
 /** top5_indikator_terbaik/terendah tersimpan sebagai string JSON. Parse dengan aman. */
@@ -251,15 +262,33 @@ export function isBlankEssay(raw) {
   return BLANK_ESSAY_TOKENS.has(normalized);
 }
 
+/** Normalisasi teks pilihan mentah dari form (spasi berlebih, jenis kutip beda) supaya
+ * pencocokan .includes() tidak gagal cuma karena beda spasi/kutip, bukan beda makna. */
+function normalizeChoiceText(s) {
+  return String(s || "")
+    .replace(/[“”]/g, '"')
+    .replace(/[‘’]/g, "'")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
 /** Hitung berapa baris yang menyebut tiap opsi (satu baris bisa kena banyak opsi sekaligus). */
 export function countMultiValue(rows, field, options) {
+  const normOptions = options.map((o) => ({ ...o, matchNorm: normalizeChoiceText(o.match) }));
   const counts = Object.fromEntries(options.map((o) => [o.label, 0]));
   let totalWithAnswer = 0;
   rows.forEach((r) => {
     const raw = r[field];
     if (isNoAnswer(raw)) return;
     totalWithAnswer++;
-    options.forEach((o) => { if (raw.includes(o.match)) counts[o.label]++; });
+    const rawNorm = normalizeChoiceText(raw);
+    let matched = false;
+    normOptions.forEach((o) => {
+      if (rawNorm.includes(o.matchNorm)) { counts[o.label]++; matched = true; }
+    });
+    if (!matched && import.meta.env.DEV) {
+      console.warn(`[karakterMeta] Opsi "${field}" tidak dikenali salah satu daftar option: "${raw}"`);
+    }
   });
   const items = options.map((o) => ({ label: o.label, icon: o.icon, count: counts[o.label] }));
   return { items, totalWithAnswer };
@@ -268,7 +297,8 @@ export function countMultiValue(rows, field, options) {
 /** Opsi (dari daftar options manapun) yang cocok untuk satu nilai field multi-pilih mentah. */
 export function matchedOptions(raw, options) {
   if (isNoAnswer(raw)) return [];
-  return options.filter((o) => raw.includes(o.match));
+  const rawNorm = normalizeChoiceText(raw);
+  return options.filter((o) => rawNorm.includes(normalizeChoiceText(o.match)));
 }
 
 /** Opsi kategori_pernyataan yang cocok untuk satu baris, dipakai jadi tag pada kartu kutipan. */
