@@ -66,7 +66,13 @@ export function useOverviewBriefing(session) {
 
       const briefingRows = briefingRes?.data || [];
       const tlRows = tlRes?.data || [];
-      const periode = latestPeriode(briefingRows) || latestPeriode(tlRows);
+      // Periode TERBARU SESUNGGUHNYA di antara keduanya -- dulu "||" berarti briefing yang
+      // punya baris apa pun (walau untuk periode lama) selalu menang, tindak_lanjut baru tidak
+      // pernah dicek kalau briefing kebetulan tidak kosong, jadi tindak lanjut yang lebih baru
+      // bisa hilang total dari tab Ringkasan.
+      const periode = [latestPeriode(briefingRows), latestPeriode(tlRows)]
+        .filter(Boolean)
+        .sort((a, b) => (a > b ? -1 : 1))[0] || null;
       const briefingAtPeriode = briefingRows.filter((r) => r.periode_id === periode);
       const best = briefingAtPeriode.sort((a, b) => (a.created_at < b.created_at ? 1 : -1))[0] || null;
 

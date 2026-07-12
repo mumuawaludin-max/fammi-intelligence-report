@@ -129,10 +129,19 @@ export function useKarakterWaliKelas(session, periodeId) {
     if (!state.raw) return null;
     const { kelasList: kl, aspek, indikator, summaryRows, sekolahSummaryRows, skorRows, skorIndRows, ortuRows, briefingRows, tlRows } = state.raw;
 
-    const availablePeriods = Array.from(new Set(summaryRows.map((r) => r.periode_id))).sort((a, b) => (a > b ? -1 : 1));
-    const periode = periodeId && summaryRows.some((r) => r.periode_id === periodeId)
+    // availablePeriods dan validasi periodeId TIDAK cuma dari summaryRows -- briefing/tindak
+    // lanjut bisa saja sudah disetujui untuk periode yang summary-nya kebetulan belum lengkap
+    // (atau sebaliknya), jangan sampai salah satu bikin konten "hilang" karena periode-nya
+    // disubstitusi diam-diam ke periode lain.
+    const periodeSet = new Set([
+      ...summaryRows.map((r) => r.periode_id),
+      ...briefingRows.map((r) => r.periode_id),
+      ...tlRows.map((r) => r.periode_id),
+    ]);
+    const availablePeriods = Array.from(periodeSet).sort((a, b) => (a > b ? -1 : 1));
+    const periode = periodeId && periodeSet.has(periodeId)
       ? periodeId
-      : (latestPeriode(summaryRows) || latestPeriode(skorRows));
+      : (latestPeriode(summaryRows) || latestPeriode(briefingRows) || latestPeriode(tlRows) || latestPeriode(skorRows));
     const sekolahSummary = sekolahSummaryRows.find((r) => r.periode_id === periode) || sekolahSummaryRows[0] || null;
 
     return {
@@ -227,8 +236,17 @@ export function useKarakterKepsek(session, periodeId) {
     if (!state.raw) return null;
     const { aspek, summaryRows, briefingRows, tlRows, ortuRows } = state.raw;
 
-    const availablePeriods = Array.from(new Set(summaryRows.map((r) => r.periode_id))).sort((a, b) => (a > b ? -1 : 1));
-    const periode = periodeId && summaryRows.some((r) => r.periode_id === periodeId) ? periodeId : latestPeriode(summaryRows);
+    // Lihat catatan di useKarakterWaliKelas: periode digabung dari summary + briefing +
+    // tindak lanjut, bukan cuma summary.
+    const periodeSet = new Set([
+      ...summaryRows.map((r) => r.periode_id),
+      ...briefingRows.map((r) => r.periode_id),
+      ...tlRows.map((r) => r.periode_id),
+    ]);
+    const availablePeriods = Array.from(periodeSet).sort((a, b) => (a > b ? -1 : 1));
+    const periode = periodeId && periodeSet.has(periodeId)
+      ? periodeId
+      : (latestPeriode(summaryRows) || latestPeriode(briefingRows) || latestPeriode(tlRows));
     const atPeriode = summaryRows.filter((r) => r.periode_id === periode);
 
     return {
@@ -366,8 +384,17 @@ export function useKarakterYayasan(session, periodeId) {
     if (!state.raw) return null;
     const { sekolahRows, summaryRows, briefingRows, tlRows, aspekBySekolah, ortuRows, indikatorAvgRows, indikatorConfigRows } = state.raw;
 
-    const availablePeriods = Array.from(new Set(summaryRows.map((r) => r.periode_id))).sort((a, b) => (a > b ? -1 : 1));
-    const periode = periodeId && summaryRows.some((r) => r.periode_id === periodeId) ? periodeId : latestPeriode(summaryRows);
+    // Lihat catatan di useKarakterWaliKelas: periode digabung dari summary + briefing +
+    // tindak lanjut, bukan cuma summary.
+    const periodeSet = new Set([
+      ...summaryRows.map((r) => r.periode_id),
+      ...briefingRows.map((r) => r.periode_id),
+      ...tlRows.map((r) => r.periode_id),
+    ]);
+    const availablePeriods = Array.from(periodeSet).sort((a, b) => (a > b ? -1 : 1));
+    const periode = periodeId && periodeSet.has(periodeId)
+      ? periodeId
+      : (latestPeriode(summaryRows) || latestPeriode(briefingRows) || latestPeriode(tlRows));
 
     // Label indikator per sekolah, dari config custom tiap sekolah.
     const indikatorLabelBySekolah = {};
