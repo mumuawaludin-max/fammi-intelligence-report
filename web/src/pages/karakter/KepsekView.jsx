@@ -9,6 +9,7 @@ import KebijakanGoals from "./KebijakanGoals";
 import { KEBIJAKAN_KEPSEK } from "./dummyKebijakan";
 import DetailDialog from "./DetailDialog";
 import SampleTag from "../../components/SampleTag";
+import FollowupRibbon from "../../components/FollowupRibbon";
 import { useKarakterKepsek } from "./useKarakterData";
 import {
   pct, ringkasanAspekValue, parseTop5Pair, parseTop5Indikator, deltaVsPrevious,
@@ -92,10 +93,15 @@ export default function KepsekView({ session, periodeId }) {
   const ringkasan = sekolah?.ringkasan || null;
 
   // Rekomendasi sekolah-wide Kepsek: baris nyata (scope='sekolah', sudah disetujui) kalau ada,
-  // fallback ke contoh sampai Gemini mengisi tabelnya.
+  // fallback ke contoh sampai Gemini mengisi tabelnya. kebijakanLegacy menampung baris yang
+  // sudah disetujui tapi berskema lama (tidak lolos isKebijakanReady, mis. belum punya
+  // title/konkret) -- dulu baris ini hilang sama sekali (tertimpa sample), sekarang tetap
+  // ditampilkan sebagai kartu sederhana lewat FollowupRibbon.
   const kebijakanReal = (tindakLanjut || []).filter((r) => r.scope === "sekolah" && isKebijakanReady(r));
+  const kebijakanLegacy = (tindakLanjut || []).filter((r) => r.scope === "sekolah" && !isKebijakanReady(r));
   const kebijakanData = kebijakanReal.length > 0 ? kebijakanReal : KEBIJAKAN_KEPSEK;
-  const kebijakanIsSample = kebijakanReal.length === 0;
+  const kebijakanIsSample = kebijakanReal.length === 0 && kebijakanLegacy.length === 0;
+  const showKebijakanGoals = kebijakanReal.length > 0 || kebijakanIsSample;
 
   const kelasSorted = [...kelas].sort(
     (a, b) => (pct(b.ringkasan?.rata_rata_pencapaian_guru) ?? 0) - (pct(a.ringkasan?.rata_rata_pencapaian_guru) ?? 0)
@@ -411,7 +417,12 @@ export default function KepsekView({ session, periodeId }) {
               <SampleTag /> Isi rekomendasi masih contoh, menunggu perumusan otomatis. Strukturnya sudah final.
             </p>
           )}
-          <KebijakanGoals data={kebijakanData} />
+          {showKebijakanGoals && <KebijakanGoals data={kebijakanData} />}
+          {kebijakanLegacy.length > 0 && (
+            <FollowupRibbon
+              items={kebijakanLegacy.map((r) => ({ id: r.id, action: r.action, trigger: r.trigger_desc, module: "karakter", priority: r.priority }))}
+            />
+          )}
         </section>
       </div>
       )}

@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 import SectionHeading from "../../components/SectionHeading";
 import SampleTag from "../../components/SampleTag";
+import FollowupRibbon from "../../components/FollowupRibbon";
 import {
   KarakterStateBox, AskMascot, ScoreBarList, GoodEmptyState,
   ParentVoiceBento, TrendChart, useSummaryTrend, useMuridTrend,
@@ -58,9 +59,13 @@ export default function WaliKelasView({ session, periodeId }) {
   const { periode, aspek, indikator, summary, skorIndikator, pernyataan, tindakLanjut } = data;
 
   // Baris nyata (sudah disetujui) kalau ada, fallback ke contoh sampai Gemini mengisi tabelnya.
+  // kebijakanLegacy: sudah disetujui tapi berskema lama (belum lolos isKebijakanReady) --
+  // dulu hilang sama sekali (tertimpa sample), sekarang tetap tampil sebagai kartu sederhana.
   const kebijakanReal = (tindakLanjut || []).filter(isKebijakanReady);
+  const kebijakanLegacy = (tindakLanjut || []).filter((r) => !isKebijakanReady(r));
   const kebijakanData = kebijakanReal.length > 0 ? kebijakanReal : KEBIJAKAN_WALIKELAS;
-  const kebijakanIsSample = kebijakanReal.length === 0;
+  const kebijakanIsSample = kebijakanReal.length === 0 && kebijakanLegacy.length === 0;
+  const showKebijakanGoals = kebijakanReal.length > 0 || kebijakanIsSample;
 
   const indikatorLabel = Object.fromEntries(
     indikator.map((it) => [`${it.aspek_kode}_${it.indikator_kode}`, it.indikator_label])
@@ -352,7 +357,12 @@ export default function WaliKelasView({ session, periodeId }) {
               <SampleTag /> Isi rekomendasi masih contoh, menunggu perumusan otomatis. Strukturnya sudah final.
             </p>
           )}
-          <KebijakanGoals data={kebijakanData} who={WHO_WALIKELAS} ranges={RANGES_WALIKELAS} />
+          {showKebijakanGoals && <KebijakanGoals data={kebijakanData} who={WHO_WALIKELAS} ranges={RANGES_WALIKELAS} />}
+          {kebijakanLegacy.length > 0 && (
+            <FollowupRibbon
+              items={kebijakanLegacy.map((r) => ({ id: r.id, action: r.action, trigger: r.trigger_desc, module: "karakter", priority: r.priority }))}
+            />
+          )}
         </section>
       </div>
       )}
