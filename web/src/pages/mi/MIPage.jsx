@@ -120,7 +120,10 @@ function ErrorState({ message, onRetry }) {
   );
 }
 
-// Tentukan kecerdasan dominan dari skor kolom mi_hasil
+// Fallback kalau mi_hasil.detail belum ada isinya: tebak dominan dari skor mentah (argmax).
+// Dipakai HANYA kalau top_1_final (dari detail->>top_1, nilai final hulu) tidak tersedia --
+// argmax lokal ini tidak tahu aturan pemutus seri yang mungkin dipakai hulu, jadi bukan
+// sumber utama.
 function deriveTop1(row) {
   const entries = [
     ["Ie", row.skor_inter], ["Ia", row.skor_intra], ["Ki", row.skor_kines],
@@ -137,7 +140,10 @@ function deriveTop1(row) {
 function toProcessable(row) {
   return {
     kelas_id:     row.kelas_id,
-    top_1:        deriveTop1(row),
+    // top_1_final dibaca langsung dari mi_hasil.detail->>top_1 (nilai final pipeline hulu,
+    // sama dengan yang dilihat murid di laporan individunya sendiri -- lihat SiswaPage.jsx).
+    // deriveTop1 cuma fallback kalau baris itu belum ada detail-nya.
+    top_1:        row.top_1_final || deriveTop1(row),
     r_inter:      row.skor_inter,
     r_intra:      row.skor_intra,
     r_kines:      row.skor_kines,
@@ -161,15 +167,31 @@ function useMIData(session) {
     setError(null);
     setTlError(null);
 
-    // mi_hasil bisa lewat batas diam-diam 1000 baris Supabase untuk sekolah besar (belum lagi
-    // difilter periode, lihat catatan di komponen utama), jadi dipaginasi penuh.
+    // Periode terbaru dulu -- tanpa ini, murid yang dites di lebih dari satu bulan terhitung
+    // dobel di semua statistik sekolah (Siswa terpetakan, distribusi dominan, dst).
+    const { data: periodeRows } = await supabase
+      .from("mi_hasil")
+      .select("periode_id")
+      .eq("sekolah_id", session.school_id)
+      .eq("status", "disetujui")
+      .not("periode_id", "is", null)
+      .order("periode_id", { ascending: false })
+      .limit(1);
+    const latestPeriode = periodeRows?.[0]?.periode_id || null;
+
+    // mi_hasil bisa lewat batas diam-diam 1000 baris Supabase untuk sekolah besar, jadi
+    // dipaginasi penuh. top_1_final diambil langsung dari detail->>top_1 (nilai final hulu,
+    // sama dengan yang dilihat murid di laporannya sendiri), bukan dihitung ulang dari skor.
     const [{ data, error: err }, { data: tlData, error: tlErr }] = await Promise.all([
-      fetchAllRows((from, to) => supabase
-        .from("mi_hasil")
-        .select("murid_id, kelas_id, skor_inter, skor_intra, skor_kines, skor_linguistik, skor_logmat, skor_musikal, skor_naturalis, skor_spasial")
-        .eq("sekolah_id", session.school_id)
-        .eq("status", "disetujui")
-        .range(from, to)),
+      fetchAllRows((from, to) => {
+        let q = supabase
+          .from("mi_hasil")
+          .select("murid_id, kelas_id, skor_inter, skor_intra, skor_kines, skor_linguistik, skor_logmat, skor_musikal, skor_naturalis, skor_spasial, top_1_final:detail->>top_1")
+          .eq("sekolah_id", session.school_id)
+          .eq("status", "disetujui");
+        if (latestPeriode) q = q.eq("periode_id", latestPeriode);
+        return q.range(from, to);
+      }),
       supabase
         .from("tindak_lanjut")
         .select("id, action, trigger_desc, priority")

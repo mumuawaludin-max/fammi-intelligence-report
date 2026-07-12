@@ -238,11 +238,18 @@ function str(val) {
   return s === "undefined" || s === "null" ? "" : s;
 }
 
-function norm(val) {
+export function norm(val) {
   return str(val).toLowerCase().replace(/\s+/g, " ");
 }
 
-function nameToCode(nameLower) {
+/**
+ * Cocokkan nama kecerdasan (mis. dari mi_hasil.detail->>top_1) ke kode internal lewat
+ * substring, bukan exact-match -- hulu tidak selalu konsisten menulis nama kecerdasan yang
+ * sama (contoh nyata: "Logika-Matematika" vs "Logis-Matematis"). Dipakai juga oleh
+ * processOutputMI (miMeta.js) untuk tally distribusi dominan sekolah, supaya dua tempat itu
+ * tidak punya aturan pencocokan yang beda-beda dan diam-diam salah hitung.
+ */
+export function nameToCode(nameLower) {
   if (nameLower.includes("intrapersonal")) return "Ia";
   if (nameLower.includes("interpersonal")) return "Ie";
   for (const [k, v] of Object.entries(NAME_TO_CODE)) {

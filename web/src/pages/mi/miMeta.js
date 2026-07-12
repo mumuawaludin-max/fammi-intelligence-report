@@ -1,3 +1,8 @@
+// nameToCode/norm dipakai bersama miTransform.js supaya pencocokan nama kecerdasan dari
+// mi_hasil.detail->>top_1 (nilai bebas dari hulu, mis. "Logika-Matematika") konsisten dengan
+// yang dipakai laporan individu murid -- bukan exact-match yang gampang meleset.
+import { nameToCode, norm } from "../siswa/miTransform";
+
 export const MI_META = [
   { code: "Ie", name: "Interpersonal",   tagline: "Paham lewat diskusi & belajar bersama",  color: "#1E94A6" },
   { code: "Sp", name: "Spasial",         tagline: "Paham lewat gambar, diagram & ruang",     color: "#6E3AD1" },
@@ -10,18 +15,6 @@ export const MI_META = [
 ];
 
 export const MI_BY_CODE = Object.fromEntries(MI_META.map((m) => [m.code, m]));
-
-// Nama kecerdasan dalam CSV (TOP 1/2/3) → kode internal
-export const MI_NAME_TO_CODE = {
-  "Interpersonal":   "Ie",
-  "Intrapersonal":   "Ia",
-  "Kinestetik":      "Ki",
-  "Linguistik":      "Ve",
-  "Logis-Matematis": "Lo",
-  "Musikal":         "Mu",
-  "Naturalis":       "Na",
-  "Spasial":         "Sp",
-};
 
 // Kunci skor mentah per kode (hasil normalisasi header GAS)
 const R_KEYS = {
@@ -71,7 +64,7 @@ export function processOutputMI(rows = []) {
   const kelasMap = {};
 
   rows.forEach((row) => {
-    const top1Code = MI_NAME_TO_CODE[String(row.top_1 || "").trim()];
+    const top1Code = nameToCode(norm(row.top_1));
     if (top1Code) topCounts[top1Code] = (topCounts[top1Code] || 0) + 1;
 
     MI_META.forEach((m) => {
