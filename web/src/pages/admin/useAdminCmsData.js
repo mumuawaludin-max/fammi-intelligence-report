@@ -279,6 +279,21 @@ export async function runMiGenerateAction(rows, onProgress) {
   return results;
 }
 
+/** Ambil daftar laporan MI menunggu persetujuan lewat admin-actions (service_role, supaya RLS
+ * mi_hasil tidak perlu membuka baris menunggu ke AdminFammi). */
+export async function loadMiPendingAction() {
+  const { data, error } = await supabase.functions.invoke('admin-actions', { body: { action: 'list-mi-pending' } });
+  if (error) throw new Error(await edgeErrorDetail(error, 'Gagal memuat antrian MI.'));
+  return data?.rows || [];
+}
+
+export async function actMiApproval(id, action) {
+  const { error } = await supabase.functions.invoke('admin-actions', {
+    body: { action: action === 'setuju' ? 'approve-mi' : 'reject-mi', id },
+  });
+  if (error) throw new Error(await edgeErrorDetail(error, 'Edge Function admin-actions gagal dipanggil.'));
+}
+
 export async function runImportAction({ sekolahId, modul, fileName, parsed }) {
   const periodeId = parsed?.preview?.periodeDetected?.map((p) => p.periode).join(',') || null;
   if (modul !== 'karakter') {

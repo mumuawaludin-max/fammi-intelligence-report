@@ -9,6 +9,7 @@ import { AddUserDialog } from './components/AddUserDialog';
 import { EditUserDialog } from './components/EditUserDialog';
 import { Dashboard } from './screens/Dashboard';
 import { Antrian } from './screens/Antrian';
+import { PersetujuanMi } from './screens/PersetujuanMi';
 import { Upload } from './screens/Upload';
 import { Gemini } from './screens/Gemini';
 import { Sekolah } from './screens/Sekolah';
@@ -19,6 +20,7 @@ function ScreenSwitch() {
   switch (state.screen) {
     case 'dashboard': return <Dashboard />;
     case 'antrian': return <Antrian />;
+    case 'persetujuan-mi': return <PersetujuanMi />;
     case 'upload': return <Upload />;
     case 'gemini': return <Gemini />;
     case 'sekolah': return <Sekolah />;
