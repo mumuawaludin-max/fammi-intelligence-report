@@ -228,6 +228,28 @@ Migration `20260707120000` memasang unique (sekolah, murid, periode) untuk `kara
 
 ---
 
+## Fase MI. Importer + generator MI di CMS (permintaan pemilik produk)
+
+Bawa pipeline MI era GAS (yang membuat data mi_hasil yang sudah tayang) ke halaman Admin
+Fammi: upload Excel mentah, Gemini olah, gerbang persetujuan manusia, sama pola dengan Karakter.
+Pipeline lama masih utuh di `gas/Pipeline.js` + `gas/MasterMI.js` (jadi referensi, bukan
+tebakan). Gemini di pipeline itu cuma mengisi konten naratif; skor->level, TOP 1/2/3, dan narasi
+per kecerdasan deterministik dari lookup MASTER_MI.
+
+- **MI-1 `[kode]` selesai.** Port mesin pipeline ke `supabase/functions/_shared/miPipeline.ts`
+  (`buildOutputRow_`). Diverifikasi: 9/9 field deterministik cocok data mi_hasil nyata (Bryan M027).
+- **MI-2 `[kode]` selesai.** Edge Function `generate-mi`: satu siswa per panggilan (5 panggilan
+  Gemini/siswa ~15-30 detik, jadi tidak bisa sekelas sekaligus), tulis mi_hasil (flat + detail)
+  status menunggu_persetujuan lewat service_role. `[manual]` deploy lewat CLI (impor _shared).
+- **MI-3 `[kode]` selesai.** `web/src/pages/admin/importers/miImporter.js`: parse Excel MI,
+  resolve sekolah per baris dengan cocokkan nama ke schools terdaftar (mi_hasil.sekolah_id = UUID
+  yang memang ada di schools.id; profiles.school_id siswa MI juga UUID itu, jadi konsisten),
+  resolve murid_id dari mi_hasil yang sudah ada.
+- **MI-4 `[kode]` BELUM.** Wiring CMS: layar Upload untuk modul MI (parse pakai daftar schools,
+  file boleh multi-sekolah), tombol Generate yang me-loop generate-mi per siswa dengan progress,
+  dan layar persetujuan mi_hasil menunggu_persetujuan -> disetujui (lewat admin-actions
+  service_role, supaya RLS mi_hasil tidak perlu diubah dan jalur baca FIR aman).
+
 ## Ringkasan keputusan yang ditunggu dari pemilik produk
 
 1. Empat parameter terbuka CLAUDE.md + semua cutoff sementara (Fase B2, B3): nilai final ambang status.
