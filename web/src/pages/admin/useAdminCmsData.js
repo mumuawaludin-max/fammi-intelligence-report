@@ -251,6 +251,49 @@ export async function addSchoolAction({ nama, jenjang, yayasanId, modules }) {
   return data.id;
 }
 
+/**
+ * Generate laporan MI: satu panggilan Edge Function generate-mi PER SISWA (5 panggilan Gemini
+ * per siswa, ~15-30 detik, jadi tidak bisa sekelas sekaligus dalam satu request). onProgress
+ * dipanggil tiap siswa selesai supaya UI bisa menampilkan bilah kemajuan. Tidak berhenti di
+ * siswa yang gagal -- kumpulkan hasil per siswa, lapor ringkasannya di akhir. Tiap panggilan
+ * menulis satu baris mi_hasil berstatus menunggu_persetujuan (lihat generate-mi).
+ */
+export async function runMiGenerateAction(rows, onProgress) {
+  const results = [];
+  for (let i = 0; i < rows.length; i++) {
+    const row = rows[i];
+    try {
+      const { data, error } = await supabase.functions.invoke('generate-mi', { body: { row } });
+      if (error) {
+        results.push({ ok: false, nama: row.nama_siswa, error: await edgeErrorDetail(error, 'generate-mi gagal dipanggil.') });
+      } else if (!data?.ok) {
+        results.push({ ok: false, nama: row.nama_siswa, error: data?.error || 'Gagal tanpa keterangan.' });
+      } else {
+        results.push({ ok: true, nama: row.nama_siswa, top_1: data.top_1 });
+      }
+    } catch (e) {
+      results.push({ ok: false, nama: row.nama_siswa, error: String(e?.message || e) });
+    }
+    onProgress?.(i + 1, rows.length);
+  }
+  return results;
+}
+
+/** Ambil daftar laporan MI menunggu persetujuan lewat admin-actions (service_role, supaya RLS
+ * mi_hasil tidak perlu membuka baris menunggu ke AdminFammi). */
+export async function loadMiPendingAction() {
+  const { data, error } = await supabase.functions.invoke('admin-actions', { body: { action: 'list-mi-pending' } });
+  if (error) throw new Error(await edgeErrorDetail(error, 'Gagal memuat antrian MI.'));
+  return data?.rows || [];
+}
+
+export async function actMiApproval(id, action) {
+  const { error } = await supabase.functions.invoke('admin-actions', {
+    body: { action: action === 'setuju' ? 'approve-mi' : 'reject-mi', id },
+  });
+  if (error) throw new Error(await edgeErrorDetail(error, 'Edge Function admin-actions gagal dipanggil.'));
+}
+
 export async function runImportAction({ sekolahId, modul, fileName, parsed }) {
   const periodeId = parsed?.preview?.periodeDetected?.map((p) => p.periode).join(',') || null;
   if (modul !== 'karakter') {

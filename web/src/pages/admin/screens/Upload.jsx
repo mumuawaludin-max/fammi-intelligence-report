@@ -4,12 +4,16 @@ import { LoadingCards } from '../components/LoadingCards';
 import { ErrorState } from '../components/ErrorState';
 import { moduleColor, moduleShort, statusColor } from '../data/helpers';
 import { parseKarakterWorkbook } from '../importers/karakterImporter';
+import { parseMiWorkbook } from '../importers/miImporter';
 import { periodeLabel } from '../../karakter/karakterMeta';
 
+// Modul MI dibaca per-baris dari file (multi-sekolah), jadi tidak pakai langkah "pilih sekolah".
+// Sentinel ini dipakai di dropdown langkah 1 untuk masuk ke mode MI.
+const SEKOLAH_MI = '__mi__';
 const STEPS = ['Sekolah', 'Modul', 'Upload file', 'Cek & konfirmasi'];
 
 export function Upload() {
-  const { data, loading, error, runImport, refetch } = useCms();
+  const { data, loading, error, runImport, runMiGenerate, refetch } = useCms();
   const [step, setStep] = useState(1);
   const [sekolahId, setSekolahId] = useState('');
   const [modul, setModul] = useState('karakter');
@@ -17,29 +21,39 @@ export function Upload() {
   const [parsed, setParsed] = useState(null);
   const [parseError, setParseError] = useState(null);
   const [busy, setBusy] = useState(false);
+  const [miProgress, setMiProgress] = useState(null); // { done, total }
+  const [miResults, setMiResults] = useState(null); // ringkasan hasil generate
 
   if (loading) return <LoadingCards rows={3} />;
   if (error) {
     return <ErrorState title="Gagal memuat riwayat upload" desc={error} cta="Muat ulang" onCta={refetch} />;
   }
 
+  const isMi = modul === 'mi';
   const sekolah = data.sekolah.find((s) => s.id === sekolahId);
+
+  function resetFlow() {
+    setStep(1); setSekolahId(''); setModul('karakter'); setFile(null);
+    setParsed(null); setParseError(null); setMiProgress(null); setMiResults(null);
+  }
 
   async function handleFile(f) {
     if (!f) return;
     setFile(f);
     setParseError(null);
     setParsed(null);
-    if (modul !== 'karakter') {
-      setParseError('Importer untuk modul ini belum tersedia, baru modul Karakter yang didukung.');
-      return;
-    }
+    setMiResults(null);
     try {
-      const result = await parseKarakterWorkbook(f, { sekolahId });
-      if (!result.ok) {
-        setParseError(result.error);
+      let result;
+      if (modul === 'karakter') {
+        result = await parseKarakterWorkbook(f, { sekolahId });
+      } else if (modul === 'mi') {
+        result = await parseMiWorkbook(f, { schools: data.sekolah });
+      } else {
+        setParseError('Importer untuk modul ini belum tersedia (baru Karakter dan MI).');
         return;
       }
+      if (!result.ok) { setParseError(result.error); return; }
       setParsed(result);
       setStep(4);
     } catch (e) {
@@ -50,11 +64,16 @@ export function Upload() {
   async function handleConfirm() {
     setBusy(true);
     try {
-      await runImport({ sekolahId, modul, fileName: file?.name, parsed });
-      setStep(1);
-      setSekolahId('');
-      setFile(null);
-      setParsed(null);
+      if (isMi) {
+        setMiProgress({ done: 0, total: parsed.rows.length });
+        const results = await runMiGenerate(parsed.rows, (done, total) => setMiProgress({ done, total }));
+        setMiProgress(null);
+        setMiResults(results);
+        // Tetap di langkah 4 supaya admin lihat ringkasan berhasil/gagal per siswa.
+      } else {
+        await runImport({ sekolahId, modul, fileName: file?.name, parsed });
+        resetFlow();
+      }
     } finally {
       setBusy(false);
     }
@@ -90,10 +109,22 @@ export function Upload() {
       {step === 1 && (
         <div className="card" style={{ padding: 24 }}>
           <div className="disp" style={{ fontSize: 16, fontWeight: 700, color: 'var(--ink)', marginBottom: 10 }}>Pilih sekolah tujuan</div>
-          <select className="fld" value={sekolahId} onChange={(e) => setSekolahId(e.target.value)}>
+          <select
+            className="fld"
+            value={sekolahId}
+            onChange={(e) => {
+              const v = e.target.value;
+              setSekolahId(v);
+              // Mode MI: sekolah dibaca dari file, jadi modul otomatis MI dan dikunci di langkah 2.
+              if (v === SEKOLAH_MI) setModul('mi');
+              else if (modul === 'mi') setModul('karakter');
+            }}
+          >
             <option value="">— Pilih sekolah —</option>
+            <option value={SEKOLAH_MI}>— Modul MI: banyak sekolah, dibaca dari file —</option>
             {data.sekolah.map((s) => <option key={s.id} value={s.id}>{s.nama} ({s.id})</option>)}
           </select>
+          <div style={{ fontSize: 11.5, color: 'var(--ink-3)', marginTop: 8 }}>Untuk modul MI, pilih baris paling atas: satu file bisa memuat banyak sekolah dan tiap baris dicocokkan otomatis ke sekolah terdaftar lewat namanya.</div>
           <button className="btn-primary" style={{ marginTop: 16 }} disabled={!sekolahId} onClick={() => setStep(2)}>Lanjut ke langkah 2</button>
         </div>
       )}
@@ -105,14 +136,21 @@ export function Upload() {
             {['karakter', 'mi', 'screening'].map((m) => {
               const mc = moduleColor(m);
               const active = m === modul;
+              // Kalau masuk lewat mode MI (sekolah dibaca dari file), modul dikunci ke MI, dan
+              // sebaliknya modul MI cuma boleh lewat mode itu.
+              const locked = (sekolahId === SEKOLAH_MI && m !== 'mi') || (sekolahId !== SEKOLAH_MI && m === 'mi');
               return (
-                <button key={m} className="clk" onClick={() => setModul(m)} style={{ padding: '10px 14px', borderRadius: 11, fontSize: 12.5, fontWeight: 700, background: active ? mc.bg : 'var(--surface-soft)', color: active ? mc.ink : 'var(--ink-2)', boxShadow: active ? 'none' : 'inset 0 0 0 1px var(--line)' }}>
+                <button key={m} className="clk" disabled={locked} onClick={() => setModul(m)} style={{ padding: '10px 14px', borderRadius: 11, fontSize: 12.5, fontWeight: 700, opacity: locked ? 0.4 : 1, cursor: locked ? 'not-allowed' : 'pointer', background: active ? mc.bg : 'var(--surface-soft)', color: active ? mc.ink : 'var(--ink-2)', boxShadow: active ? 'none' : 'inset 0 0 0 1px var(--line)' }}>
                   {moduleShort(m)}
                 </button>
               );
             })}
           </div>
-          <div style={{ fontSize: 11.5, color: 'var(--ink-3)', marginBottom: 14 }}>Periode tidak perlu diketik manual — sistem membaca kolom "bulan" langsung dari tiap baris file, jadi satu file boleh memuat beberapa bulan sekaligus.</div>
+          <div style={{ fontSize: 11.5, color: 'var(--ink-3)', marginBottom: 14 }}>
+            {isMi
+              ? 'MI: tiap baris file = satu siswa. Gemini merumuskan seluruh laporan (dominan, narasi, profesi, rencana) lalu masuk antrian persetujuan. Periode dan sekolah dibaca dari file.'
+              : 'Periode tidak perlu diketik manual — sistem membaca kolom "bulan" langsung dari tiap baris file, jadi satu file boleh memuat beberapa bulan sekaligus.'}
+          </div>
           <button className="btn-primary" onClick={() => setStep(3)}>Lanjut ke langkah 3</button>
         </div>
       )}
@@ -122,7 +160,7 @@ export function Upload() {
           <div className="card" style={{ padding: '14px 20px', marginBottom: 14, display: 'flex', gap: 20, alignItems: 'center' }}>
             <div>
               <div style={{ fontSize: 10.5, fontWeight: 800, letterSpacing: '0.06em', textTransform: 'uppercase', color: 'var(--ink-3)' }}>Sekolah</div>
-              <div style={{ fontSize: 13.5, fontWeight: 700, marginTop: 2 }}>{sekolah?.nama} ({sekolahId})</div>
+              <div style={{ fontSize: 13.5, fontWeight: 700, marginTop: 2 }}>{isMi ? 'Banyak sekolah (dari file)' : `${sekolah?.nama} (${sekolahId})`}</div>
             </div>
             <div style={{ width: 1, height: 32, background: 'var(--line)' }} />
             <div>
@@ -134,7 +172,7 @@ export function Upload() {
           <div className="card" style={{ padding: 40, border: '2px dashed var(--purple-300)', borderRadius: 16, textAlign: 'center', background: 'var(--purple-050)' }}>
             <div style={{ fontSize: 44, marginBottom: 12 }}>📄</div>
             <div className="disp" style={{ fontSize: 18, fontWeight: 700, color: 'var(--ink)', marginBottom: 6 }}>Pilih file Excel</div>
-            <div style={{ fontSize: 13, color: 'var(--ink-3)', marginBottom: 16 }}>.xlsx / .xls · sheet detail_persentase_karakter dkk (format sama seperti data awal)</div>
+            <div style={{ fontSize: 13, color: 'var(--ink-3)', marginBottom: 16 }}>{isMi ? '.xlsx / .xls · satu sheet, satu baris per siswa (kolom nama_siswa, kelas_id, sekolah_id, periode, r_inter..r_spasial, essay_*)' : '.xlsx / .xls · sheet detail_persentase_karakter dkk (format sama seperti data awal)'}</div>
             <label className="btn-primary" style={{ display: 'inline-flex', cursor: 'pointer' }}>
               Pilih file
               <input type="file" accept=".xlsx,.xls" style={{ display: 'none' }} onChange={(e) => handleFile(e.target.files?.[0])} />
@@ -144,7 +182,68 @@ export function Upload() {
         </div>
       )}
 
-      {step === 4 && parsed && (
+      {step === 4 && parsed && isMi && (
+        <div>
+          <div className="card" style={{ padding: '18px 22px', marginBottom: 14 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 12 }}>
+              <div>
+                <div className="disp" style={{ fontSize: 16, fontWeight: 700, color: 'var(--ink)' }}>Preview MI: {file?.name}</div>
+                <div style={{ fontSize: 12, color: 'var(--ink-3)', marginTop: 3 }}>
+                  {parsed.rows.length} siswa · {parsed.preview.sekolahCount} sekolah terdeteksi
+                </div>
+              </div>
+              <span className="pill" style={{ background: 'var(--status-safe-bg)', color: 'var(--status-safe)' }}><span className="dot" style={{ background: 'var(--status-safe)' }} />Siap generate</span>
+            </div>
+            {parsed.preview.periodeDetected?.length > 0 && (
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, alignItems: 'center' }}>
+                <span style={{ fontSize: 11, fontWeight: 800, letterSpacing: '0.06em', textTransform: 'uppercase', color: 'var(--ink-3)' }}>Periode ·</span>
+                {parsed.preview.periodeDetected.map((p) => (
+                  <span key={p.periode} className="pill" style={{ background: 'var(--purple-050)', color: 'var(--purple-700)' }}>
+                    {periodeLabel(p.periode)} ({p.rows} siswa)
+                  </span>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {miResults ? (
+            <div className="card" style={{ padding: '16px 22px' }}>
+              <div className="disp" style={{ fontSize: 15, fontWeight: 700, color: 'var(--ink)', marginBottom: 8 }}>
+                Hasil generate: {miResults.filter((r) => r.ok).length}/{miResults.length} berhasil
+              </div>
+              {miResults.filter((r) => !r.ok).length > 0 && (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 4, marginBottom: 12 }}>
+                  {miResults.filter((r) => !r.ok).map((r, i) => (
+                    <div key={i} style={{ fontSize: 12, color: 'var(--status-alert)' }}>⚠ {r.nama}: {r.error}</div>
+                  ))}
+                </div>
+              )}
+              <div style={{ fontSize: 12.5, color: 'var(--ink-2)', marginBottom: 12 }}>Laporan yang berhasil masuk Antrian Persetujuan berstatus menunggu. Setujui di sana supaya tayang ke siswa/orang tua.</div>
+              <button className="btn-primary" onClick={resetFlow}>Selesai</button>
+            </div>
+          ) : (
+            <div className="card" style={{ padding: '16px 22px' }}>
+              <div style={{ fontSize: 12.5, color: 'var(--ink-2)', lineHeight: 1.6, marginBottom: 12 }}>
+                Tiap siswa dirumuskan Gemini (dominan, narasi, profesi, rencana) lalu masuk Antrian Persetujuan berstatus menunggu. Prosesnya ~15-30 detik per siswa, jadi {parsed.rows.length} siswa bisa memakan beberapa menit. Jangan tutup halaman ini selama proses berjalan.
+              </div>
+              {miProgress && (
+                <div style={{ marginBottom: 12 }}>
+                  <div style={{ height: 8, background: 'var(--surface-soft)', borderRadius: 99, overflow: 'hidden' }}>
+                    <div style={{ height: '100%', width: `${Math.round((miProgress.done / miProgress.total) * 100)}%`, background: 'var(--purple-600)', transition: '.3s' }} />
+                  </div>
+                  <div style={{ fontSize: 12, color: 'var(--ink-3)', marginTop: 6 }}>Memproses {miProgress.done}/{miProgress.total} siswa…</div>
+                </div>
+              )}
+              <div style={{ display: 'flex', gap: 8 }}>
+                <button className="btn-secondary" onClick={() => setStep(3)} disabled={busy}>Batal</button>
+                <button className="btn-primary" onClick={handleConfirm} disabled={busy}>{busy ? 'Menggenerate…' : `Generate ${parsed.rows.length} laporan MI`}</button>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {step === 4 && parsed && !isMi && (
         <div>
           <div className="card" style={{ padding: '18px 22px', marginBottom: 14 }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 12 }}>

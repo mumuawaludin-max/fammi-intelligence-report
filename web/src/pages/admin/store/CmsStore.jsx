@@ -1,5 +1,5 @@
 import { createContext, useCallback, useContext, useMemo, useRef, useState } from 'react';
-import { useAdminCmsData, actApprovalAction, toggleModuleAction, addSchoolAction, runImportAction, triggerGeminiJobAction, createUserAction, updateUserAction, resetPasswordAction, bulkResetPasswordAction, deleteUserAction, bulkDeleteUsersAction, updateGeminiScheduleAction, regenerateDraftAction } from '../useAdminCmsData';
+import { useAdminCmsData, actApprovalAction, toggleModuleAction, addSchoolAction, runImportAction, runMiGenerateAction, triggerGeminiJobAction, createUserAction, updateUserAction, resetPasswordAction, bulkResetPasswordAction, deleteUserAction, bulkDeleteUsersAction, updateGeminiScheduleAction, regenerateDraftAction } from '../useAdminCmsData';
 import { bulkCreateUsers as bulkCreateUsersAction } from '../importers/guruImporter';
 import { downloadCsv } from '../data/helpers';
 
@@ -80,6 +80,20 @@ export function CmsProvider({ session, children }) {
       showToast('Import gagal: ' + e.message, 'alert');
       refetch();
     }
+  }, [showToast, refetch]);
+
+  const runMiGenerate = useCallback(async (rows, onProgress) => {
+    const results = await runMiGenerateAction(rows, onProgress);
+    const ok = results.filter((r) => r.ok);
+    const failed = results.filter((r) => !r.ok);
+    showToast(
+      failed.length === 0
+        ? `${ok.length} laporan MI digenerate, menunggu persetujuan di Antrian.`
+        : `${ok.length} berhasil, ${failed.length} gagal (lihat detail di layar).`,
+      failed.length === 0 ? 'safe' : 'warn', 8000,
+    );
+    refetch();
+    return results;
   }, [showToast, refetch]);
 
   const triggerGeminiJob = useCallback(async (payload) => {
@@ -240,6 +254,7 @@ export function CmsProvider({ session, children }) {
     isModuleOn,
     addSchool,
     runImport,
+    runMiGenerate,
     triggerGeminiJob,
     createUser,
     updateUser,
@@ -256,7 +271,7 @@ export function CmsProvider({ session, children }) {
       delete n[id];
       return { ...s, approvalEditText: n };
     }),
-  }), [session, data, loading, error, refetch, state, showToast, actApproval, toggleModule, isModuleOn, addSchool, runImport, triggerGeminiJob, createUser, updateUser, bulkCreateUsers, resetPassword, bulkResetAndExport, deleteUser, bulkDeleteUsers, updateGeminiSchedule, regenerateDraft]);
+  }), [session, data, loading, error, refetch, state, showToast, actApproval, toggleModule, isModuleOn, addSchool, runImport, runMiGenerate, triggerGeminiJob, createUser, updateUser, bulkCreateUsers, resetPassword, bulkResetAndExport, deleteUser, bulkDeleteUsers, updateGeminiSchedule, regenerateDraft]);
 
   return <CmsContext.Provider value={value}>{children}</CmsContext.Provider>;
 }

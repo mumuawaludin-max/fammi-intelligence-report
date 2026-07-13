@@ -25,6 +25,8 @@
 //   "toggle-module"            { schoolId, modul, aktif }
 //   "update-schedule"          { patch }
 //   "import-karakter"          { payload: { sekolah_id, periode_id, skor_rows, skor_indikator_rows, pernyataan_rows, summary_rows } }
+//   "list-mi-pending"          {}  -> { rows: [...] } daftar laporan MI menunggu persetujuan
+//   "approve-mi" | "reject-mi" { id }  setujui/tolak satu baris mi_hasil
 //
 // Deploy: supabase functions deploy admin-actions
 //
@@ -106,6 +108,13 @@ Deno.serve(async (req) => {
         break;
       case "import-karakter":
         result = await handleImportKarakter(admin, body);
+        break;
+      case "list-mi-pending":
+        result = await handleListMiPending(admin);
+        break;
+      case "approve-mi":
+      case "reject-mi":
+        result = await handleMiApproval(admin, body);
         break;
       default:
         return json({ error: `action tidak dikenal: ${body.action}` }, 400);
@@ -212,4 +221,40 @@ async function handleImportKarakter(admin, body) {
   const { data, error } = await admin.rpc("import_karakter_periode", { payload });
   if (error) return { ok: false, error: error.message };
   return { ok: true, ...data };
+}
+
+// Daftar laporan MI yang menunggu persetujuan, lewat service_role -- supaya RLS mi_hasil tidak
+// perlu membuka baris menunggu ke AdminFammi (jalur baca FIR tetap cuma lihat 'disetujui').
+async function handleListMiPending(admin) {
+  const { data, error } = await admin
+    .from("mi_hasil")
+    .select("id, murid_id, sekolah_id, kelas_id, periode_id, generated_at, nama_siswa:detail->>nama_siswa, top_1:detail->>top_1")
+    .eq("status", "menunggu_persetujuan")
+    .order("generated_at", { ascending: false });
+  if (error) return { ok: false, error: error.message };
+  return { ok: true, rows: data || [] };
+}
+
+async function handleMiApproval(admin, body) {
+  const { id, action } = body;
+  if (!id) return { ok: false, error: "Field wajib: id." };
+  const status = action === "approve-mi" ? "disetujui" : "ditolak";
+
+  if (status === "disetujui") {
+    // Penggantian mulus: laporan MI disetujui LAMA untuk (sekolah, murid, periode) yang sama
+    // ditolak dulu, supaya siswa tidak punya dua laporan tayang untuk periode itu. Ambil kunci
+    // baris yang disetujui ini dulu.
+    const { data: row, error: getErr } = await admin
+      .from("mi_hasil").select("sekolah_id, murid_id, periode_id").eq("id", id).maybeSingle();
+    if (getErr) return { ok: false, error: getErr.message };
+    if (row) {
+      await admin.from("mi_hasil").update({ status: "ditolak" })
+        .eq("sekolah_id", row.sekolah_id).eq("murid_id", row.murid_id)
+        .eq("periode_id", row.periode_id).eq("status", "disetujui").neq("id", id);
+    }
+  }
+
+  const { error } = await admin.from("mi_hasil").update({ status }).eq("id", id);
+  if (error) return { ok: false, error: error.message };
+  return { ok: true };
 }

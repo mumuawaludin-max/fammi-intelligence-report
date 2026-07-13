@@ -28,8 +28,9 @@ function bulanIndex(word) {
   return NAMA_BULAN.findIndex((names) => names.includes(word));
 }
 
-/** Cari kolom di baris tanpa peduli besar/kecil huruf, karena header sumber tidak konsisten. */
-function getField(row, ...names) {
+/** Cari kolom di baris tanpa peduli besar/kecil huruf, karena header sumber tidak konsisten.
+ * Diekspor supaya importer lain (mis. MI) memakai logika pencarian kolom yang sama. */
+export function getField(row, ...names) {
   const wanted = names.map((n) => n.toLowerCase());
   const key = Object.keys(row).find((k) => wanted.includes(k.toLowerCase().trim()));
   return key ? row[key] : undefined;
@@ -45,7 +46,7 @@ function excelSerialToDate(n) {
  * Dukung: Date/serial Excel, "2026-07", "07/2026", nama bulan Indonesia atau Inggris
  * lengkap/singkatan dalam urutan apa pun ("Juli 2026", "October, 2025", "Oct 2025", "2025 October").
  */
-function parseBulan(raw) {
+export function parseBulan(raw) {
   if (raw === '' || raw === null || raw === undefined) return null;
   if (raw instanceof Date) {
     return `${raw.getFullYear()}-${String(raw.getMonth() + 1).padStart(2, '0')}`;
@@ -105,7 +106,7 @@ function resolveIndikatorCols(headerRow) {
 /** Kunci pencocokan nama yang tidak peduli spasi berlebih atau besar/kecil huruf -- "Ahmad
  * Fajri" dan "ahmad  fajri" (dua spasi, ketikan bulan lain) harus jadi murid yang sama, bukan
  * dianggap murid baru. Nama ASLI (bukan versi ternormalisasi ini) tetap yang disimpan ke DB. */
-function normalizeNama(nama) {
+export function normalizeNama(nama) {
   return String(nama || '').trim().replace(/\s+/g, ' ').toLowerCase();
 }
 
