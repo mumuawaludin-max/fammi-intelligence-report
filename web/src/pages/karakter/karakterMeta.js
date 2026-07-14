@@ -105,6 +105,24 @@ export function periodeLabel(periodeId) {
 }
 
 /**
+ * Fallback label indikator kalau sekolah itu belum punya baris karakter_indikator_config
+ * (belum ada label manual dari admin). Tanpa ini, layar Wali Kelas/Yayasan menampilkan kode
+ * mentah kolom Excel apa adanya ("karakter1_indikator2_melihat_sisi_baik") -- kode itu memang
+ * sengaja dipakai APA ADANYA sebagai indikator_kode di DB (lihat komentar resolveIndikatorCols
+ * di karakterImporter.js), tapi tidak pernah dimaksudkan untuk tampil ke pengguna. Buang
+ * prefix "karakterN_" dan "indikatorM_", sisanya jadi "Melihat Sisi Baik".
+ */
+export function indikatorFallbackLabel(aspekKode, indikatorKode) {
+  const gabung = `${aspekKode || ""}_${indikatorKode || ""}`;
+  const bersih = gabung.replace(/^karakter\d+_/i, "").replace(/^indikator\d+_/i, "");
+  return bersih
+    .split("_")
+    .filter(Boolean)
+    .map((w) => w[0].toUpperCase() + w.slice(1))
+    .join(" ") || gabung;
+}
+
+/**
  * Emoji ikon per aspek karakter, dicocokkan lewat kata kunci di labelnya supaya tetap
  * jalan untuk aspek custom sekolah lain di masa depan (bukan hardcode per sekolah).
  */
