@@ -113,7 +113,13 @@ export default function App() {
 
   if (!session) return <LoginPage onLogin={handleLogin} notice={loginNotice} />;
 
-  if (session.peran === "Siswa") {
+  // Siswa dan OrangTua sama-sama peran yang di-scope ke satu murid_id (lihat CLAUDE.md:
+  // mobile-first untuk keduanya) -- SiswaPage/BakatView cuma bergantung pada session.murid_id,
+  // tidak pernah mengecek peran (lihat SiswaPage.jsx), jadi aman dipakai untuk keduanya. Akun
+  // OrangTua yang dibuat otomatis saat approve MI (admin-actions ensureOrangTuaAccount) sempat
+  // salah jatuh ke shell desktop generik (tab "mi" -> MIPage agregat sekolah, bukan laporan
+  // individu anaknya) karena kondisi ini dulu cuma mengecek "Siswa".
+  if (session.peran === "Siswa" || session.peran === "OrangTua") {
     return <SiswaPage session={session} onLogout={handleLogout} />;
   }
 

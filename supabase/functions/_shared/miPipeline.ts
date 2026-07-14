@@ -18,26 +18,93 @@ export function setMiModel(model) {
 
 const MI_CODES = ["Mu", "Sp", "Ve", "Lo", "Ki", "Ie", "Ia", "Na"];
 
+// Anggaran waktu total untuk SATU pemanggilan buildOutputRow_ (5 panggilan Gemini). Diset
+// ulang tiap invocation (lihat awal buildOutputRow_).
+//
+// PENTING, ditemukan lewat log produksi (bukan dokumentasi resmi): batas nyata yang membunuh
+// koneksi BUKAN wall-clock eksekusi function (~150 detik, itu batas isolate Deno), melainkan
+// timeout gateway/proxy di depannya yang jauh lebih pendek -- dua eksekusi berbeda (satu
+// SEBELUM ada budget sama sekali, satu SESUDAH budget 110 detik dipasang) sama-sama berhenti
+// persis di 75.019 detik, angka yang sama sampai milidetik, jelas bukan kebetulan dari waktu
+// respons Gemini yang bervariasi. Budget 60 detik di sini menyisakan margin ~15 detik dari
+// tembok 75 detik itu untuk boot, query DB sebelum/sesudah, dan overhead lain, supaya kalau
+// Gemini macet/lambat, callGemini_ melempar error jelas yang tertangkap try/catch di index.ts
+// (klien terima pesan gagal yang rapi) SEBELUM gateway keburu memutus koneksi tanpa respons.
+let callDeadline_ = 0;
+
 function sleep(ms) { return new Promise((r) => setTimeout(r, ms)); }
 
-/** Panggil Gemini (Deno fetch), retry pada 429/503, kupas thinking + code fence. */
+/** Panggil Gemini (Deno fetch) dengan timeout per percobaan, retry pada 429/503, kupas
+ * thinking + code fence. Berhenti lebih awal dengan error jelas kalau anggaran waktu total
+ * (callDeadline_) sudah habis, supaya tidak menggantung sampai dibunuh paksa oleh platform.
+ *
+ * Timeout dipaksa lewat Promise.race + setTimeout, BUKAN cuma AbortController -- terbukti dari
+ * log produksi AbortController SENDIRIAN tidak cukup di runtime Edge Function ini: dua eksekusi
+ * berbeda (dengan attemptTimeout 15 detik terpasang) tetap berhenti PERSIS di 75.02 detik, angka
+ * timeout gateway eksternal, bukan di batas 15/60 detik yang diminta -- tandanya sinyal abort
+ * diabaikan fetch dan koneksinya tetap menggantung di belakang layar. setTimeout dijamin tetap
+ * menembak tepat waktu oleh event loop apa pun yang terjadi pada fetch-nya, jadi Promise.race
+ * memaksa kode ini lanjut (retry atau lempar error) walau fetch aslinya tidak pernah selesai. */
+// Model cadangan saat model utama menjawab 503 "high demand" berulang -- kejadian nyata di
+// produksi (gemini-3.5-flash padat berkepanjangan, SEMUA retry ke model yang sama ikut 503,
+// generate 0/3 berhasil). Mengetuk model lain jauh lebih mungkin berhasil daripada mengetuk
+// ulang pintu yang jelas sedang penuh. Keduanya mendukung generationConfig yang sama
+// (termasuk thinkingConfig), kualitas narasi sedikit di bawah 3.5 tapi laporan tetap lewat
+// gerbang persetujuan manusia sebelum tayang, jadi hasil kurang baik bisa ditolak admin.
+const FALLBACK_MODELS = ["gemini-2.5-flash", "gemini-2.5-flash-lite"];
+
 async function callGemini_(prompt, apiKey) {
-  const url = "https://generativelanguage.googleapis.com/v1beta/models/" +
-              PIPELINE_CONFIG.geminiModel + ":generateContent?key=" + apiKey;
   const payload = JSON.stringify({
     contents: [{ parts: [{ text: prompt }] }],
     generationConfig: { temperature: 0.7, maxOutputTokens: 2048, thinkingConfig: { thinkingBudget: 0 } },
   });
+  const PER_ATTEMPT_TIMEOUT_MS = 15000;
   let data;
-  const delays = [3000, 8000, 20000];
+  // Error Gemini terakhir yang terlihat, dibawa ke pesan "anggaran habis" -- tanpa ini pesan
+  // ke admin cuma "Gemini lambat/tidak merespons" padahal penyebab aslinya bisa spesifik
+  // (mis. kuota API habis / rate limit), dan itu tidak bisa didiagnosis dari log Boot/Shutdown.
+  let lastErr = null;
+  // Urutan percobaan: model utama dulu, lalu pindah model cadangan (bukan retry model yang
+  // sama terus). Jeda antar percobaan pendek karena tiap percobaan sudah makan waktu tunggu
+  // respons sendiri.
+  const models = [PIPELINE_CONFIG.geminiModel, ...FALLBACK_MODELS, PIPELINE_CONFIG.geminiModel];
+  const delays = [1500, 2500, 4000];
   for (let attempt = 0; attempt <= delays.length; attempt++) {
-    const resp = await fetch(url, { method: "POST", headers: { "Content-Type": "application/json" }, body: payload });
-    data = await resp.json();
+    if (callDeadline_ && Date.now() >= callDeadline_) {
+      throw new Error("Gemini timeout: anggaran waktu total habis. Error Gemini terakhir: " +
+        (lastErr ? "[" + lastErr.code + "] " + lastErr.message : "(tidak ada, panggilan pertama belum selesai)"));
+    }
+    const model = models[Math.min(attempt, models.length - 1)];
+    const url = "https://generativelanguage.googleapis.com/v1beta/models/" +
+                model + ":generateContent?key=" + apiKey;
+    const remaining = callDeadline_ ? Math.max(1000, callDeadline_ - Date.now()) : PER_ATTEMPT_TIMEOUT_MS;
+    const attemptTimeout = Math.min(PER_ATTEMPT_TIMEOUT_MS, remaining);
+    const controller = new AbortController();
+    let timer;
+    try {
+      data = await Promise.race([
+        fetch(url, {
+          method: "POST", headers: { "Content-Type": "application/json" }, body: payload,
+          signal: controller.signal,
+        }).then((resp) => resp.json()),
+        new Promise((_, reject) => {
+          timer = setTimeout(() => { controller.abort(); reject(new Error("Gemini tidak merespons dalam " + attemptTimeout + "ms")); }, attemptTimeout);
+        }),
+      ]);
+    } catch (e) {
+      data = { error: { code: 503, message: String(e?.message || e) } };
+    } finally {
+      clearTimeout(timer);
+    }
     if (!data.error) break;
+    lastErr = { ...data.error, message: "(" + model + ") " + data.error.message };
     const isRetryable = data.error.code === 429 || data.error.code === 503 ||
       (data.error.message && data.error.message.indexOf("high demand") !== -1);
-    if (!isRetryable || attempt === delays.length) throw new Error("Gemini error: " + data.error.message);
-    console.log("Gemini overload, retry " + (attempt + 1) + " dalam " + delays[attempt] + "ms...");
+    if (!isRetryable || attempt === delays.length) throw new Error("Gemini error: [" + data.error.code + "] " + lastErr.message);
+    // Sertakan error asli + model berikutnya di log -- 429 kuota, 503 server sibuk, dan fetch
+    // macet itu tiga masalah berbeda, dan log ini satu-satunya tempat membedakannya.
+    console.log("Gemini error [" + data.error.code + "] (" + model + ") " + String(data.error.message).slice(0, 300) +
+      " -- coba model " + models[Math.min(attempt + 1, models.length - 1)] + " dalam " + delays[attempt] + "ms...");
     await sleep(delays[attempt]);
   }
   if (data.error) throw new Error("Gemini error: " + data.error.message);
@@ -1413,6 +1480,9 @@ async function generateLaporanBagian4_(inp, scores, levels, top, masterData, gem
 
 
 async function buildOutputRow_(inp, geminiKey) {
+  // Reset anggaran waktu total (lihat callDeadline_ di atas) untuk invocation ini.
+  callDeadline_ = Date.now() + 60000;
+
   // 1. Skor dan level per kecerdasan
   var scores = {};
   var levels = {};
@@ -1473,24 +1543,25 @@ async function buildOutputRow_(inp, geminiKey) {
     topKolom["top_" + n + "_terlihat"]= arrayToLines_(md.terlihat);
   });
 
-  // 6. Panggil Gemini untuk narasi sintetis
-  var narasi = await generateNarasi_(inp, scores, levels, top, masterData, geminiKey);
-
-  await sleep(800);
-  // 7. Konten BakatView bagian 1: narasi cover, cara belajar, gaya komunikasi, ciri khas
-  var laporan1 = await generateLaporanBagian1_(inp, scores, levels, top, masterData, geminiKey);
-
-  await sleep(800);
-  // 8. Konten BakatView bagian 2: SMART goals, 7 hari, sinyal ortu, refleksi, diskusi
-  var laporan2 = await generateLaporanBagian2_(inp, scores, levels, top, masterData, geminiKey);
-
-  await sleep(800);
-  // 9. Konten BakatView bagian 3: jurusan, parenttip, profesi sorot per top intel
-  var laporan3 = await generateLaporanBagian3_(inp, scores, levels, top, masterData, geminiKey);
-
-  await sleep(800);
-  // 10. Konten BakatView bagian 4: detail semua profesi per top intel (pipe-delimited)
-  var laporan4 = await generateLaporanBagian4_(inp, scores, levels, top, masterData, geminiKey);
+  // 6-10. Lima panggilan Gemini (narasi sintetis + BakatView bagian 1-4) dijalankan PARALEL.
+  // Dulu berurutan dengan sleep(800) antar panggilan (warisan pipeline GAS yang tidak dibatasi
+  // waktu) -- total waktunya penjumlahan kelimanya dan gampang menabrak anggaran 60 detik
+  // (gateway Supabase memutus koneksi ~75 detik) begitu Gemini melambat. Kelimanya independen:
+  // input sama, hasil dirakit belakangan, tidak ada yang membaca hasil panggilan lain. Paralel
+  // berarti total waktu = panggilan terlambat saja, dan tiap panggilan bisa memakai hampir
+  // seluruh anggaran untuk retry + fallback model tanpa berebut sisa waktu.
+  var geminiResults = await Promise.all([
+    generateNarasi_(inp, scores, levels, top, masterData, geminiKey),
+    generateLaporanBagian1_(inp, scores, levels, top, masterData, geminiKey),
+    generateLaporanBagian2_(inp, scores, levels, top, masterData, geminiKey),
+    generateLaporanBagian3_(inp, scores, levels, top, masterData, geminiKey),
+    generateLaporanBagian4_(inp, scores, levels, top, masterData, geminiKey),
+  ]);
+  var narasi   = geminiResults[0];
+  var laporan1 = geminiResults[1];
+  var laporan2 = geminiResults[2];
+  var laporan3 = geminiResults[3];
+  var laporan4 = geminiResults[4];
 
   // 11. aha_persen deterministik berdasarkan jumlah kecerdasan Kuat di top 3
   var ahaPersen = computeAhaPersen_(levels, top);

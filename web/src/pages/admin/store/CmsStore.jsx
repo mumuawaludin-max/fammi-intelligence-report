@@ -1,7 +1,7 @@
 import { createContext, useCallback, useContext, useMemo, useRef, useState } from 'react';
 import { useAdminCmsData, actApprovalAction, toggleModuleAction, addSchoolAction, runImportAction, runMiGenerateAction, triggerGeminiJobAction, createUserAction, updateUserAction, resetPasswordAction, bulkResetPasswordAction, deleteUserAction, bulkDeleteUsersAction, updateGeminiScheduleAction, regenerateDraftAction } from '../useAdminCmsData';
 import { bulkCreateUsers as bulkCreateUsersAction } from '../importers/guruImporter';
-import { downloadCsv } from '../data/helpers';
+import { downloadXlsx } from '../data/helpers';
 
 const CmsContext = createContext(null);
 
@@ -214,14 +214,14 @@ export function CmsProvider({ session, children }) {
       const ok = results.filter((r) => r.ok);
       const failed = results.filter((r) => !r.ok);
       const byUsername = Object.fromEntries(ok.map((r) => [r.username, r.password]));
-      downloadCsv('kode-khusus-fammi.csv', users.map((u) => ({
+      downloadXlsx('kode-khusus-fammi.xlsx', users.map((u) => ({
         nama: u.nama, username: u.username, peran: u.peran, sekolah: u.sekolah || '',
         kode_khusus: byUsername[u.username] || 'GAGAL',
       })));
       showToast(
         failed.length === 0
-          ? `${ok.length} kode direset & file CSV terunduh. Kode lama langsung tidak berlaku.`
-          : `${ok.length} berhasil, ${failed.length} gagal. File CSV terunduh untuk yang berhasil.`,
+          ? `${ok.length} kode direset & file Excel terunduh. Kode lama langsung tidak berlaku.`
+          : `${ok.length} berhasil, ${failed.length} gagal. File Excel terunduh untuk yang berhasil.`,
         failed.length === 0 ? 'safe' : 'warn', 8000,
       );
       refetch();

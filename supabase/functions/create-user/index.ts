@@ -33,12 +33,14 @@
 
 import { createClient } from "jsr:@supabase/supabase-js@2";
 
+// localhost diizinkan di port berapa pun (Vite autoPort bisa geser dari 5173) -- lihat
+// komentar lengkap di _shared/cors.ts, salinan inline supaya berkas ini tetap satu file.
 const PROD_ORIGIN = Deno.env.get("ALLOWED_ORIGIN") || "https://fammi-intelligence-report.vercel.app";
-const ALLOWED_ORIGINS = [PROD_ORIGIN, "http://localhost:5173"];
 
 function buildCorsHeaders(req: Request) {
   const origin = req.headers.get("origin") || req.headers.get("Origin");
-  const allowOrigin = origin && ALLOWED_ORIGINS.includes(origin) ? origin : PROD_ORIGIN;
+  const allowed = origin && (origin === PROD_ORIGIN || /^http:\/\/localhost:\d+$/.test(origin));
+  const allowOrigin = allowed ? origin : PROD_ORIGIN;
   return {
     "Access-Control-Allow-Origin": allowOrigin,
     "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
@@ -84,7 +86,7 @@ Deno.serve(async (req) => {
     const body = await req.json();
 
     if (body.reset_user_id) {
-      const password = generatePassword(body.reset_username || "fammi");
+      const password = generatePassword();
       const { error: resetErr } = await admin.auth.admin.updateUserById(body.reset_user_id, { password });
       if (resetErr) return json({ error: `Gagal reset password: ${resetErr.message}` }, 500);
       return json({ ok: true, username: body.reset_username, password });
@@ -93,7 +95,7 @@ Deno.serve(async (req) => {
     if (Array.isArray(body.reset_users)) {
       const results = [];
       for (const row of body.reset_users) {
-        const password = generatePassword(row.username || "fammi");
+        const password = generatePassword();
         const { error: resetErr } = await admin.auth.admin.updateUserById(row.user_id, { password });
         results.push(resetErr
           ? { ok: false, username: row.username, error: resetErr.message }
@@ -148,7 +150,7 @@ async function createOne(admin, row) {
 
   const usernameTrim = username.trim();
   const email = usernameTrim.includes("@") ? usernameTrim : `${usernameTrim}@fammi.internal`;
-  const password = givenPassword || generatePassword(usernameTrim);
+  const password = givenPassword || generatePassword();
 
   const { data: created, error: createErr } = await admin.auth.admin.createUser({
     email,
@@ -189,16 +191,15 @@ async function deleteOne(admin, userId) {
 }
 
 /**
- * Kata pertama bagian lokal email, huruf kecil semua (tanpa huruf besar biar minim salah
- * ketik) + 6 digit acak kriptografis. Dulu 3 digit (Math.random, 100-999) -- cuma 900
- * kemungkinan, gampang ditebak lewat brute force kalau username-nya sudah diketahui (pola
- * username@fammi.internal ada di kode publik). 6 digit dari crypto.getRandomValues menaikkan
- * ruang tebakan ke sejuta kombinasi sekaligus tidak bisa diprediksi seperti Math.random.
+ * PIN 6 digit acak kriptografis (crypto.getRandomValues, bukan Math.random -- Math.random
+ * bisa diprediksi, tidak cocok untuk apa pun yang menjaga akses). Dulu "kata dari email +
+ * 6 digit"; bagian kata itu dihapus -- siapa pun yang tahu username otomatis bisa menebak
+ * bagian kata itu, jadi tidak menambah keamanan sama sekali, cuma bikin kode lebih panjang
+ * dan lebih rentan salah ketik. PIN murni 6 digit (sejuta kemungkinan) lebih gampang
+ * dibaca/diketik dan sesuai label "Kode khusus" di layar login.
  */
-function generatePassword(usernameOrEmail) {
-  const local = usernameOrEmail.split("@")[0] || "fammi";
-  const word = (local.replace(/[^a-zA-Z]/g, "") || "fammi").slice(0, 12).toLowerCase();
-  return word + randomDigits(6);
+function generatePassword() {
+  return randomDigits(6);
 }
 
 /** n digit acak kriptografis, dipading nol di depan supaya selalu genap n digit. */
