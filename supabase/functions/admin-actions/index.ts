@@ -22,6 +22,9 @@
 //   "approve" | "reject"      { id, tipe: "tindak_lanjut"|"briefing", teks?, langkahTerpilih?, regenerateDari? }
 //   "update-profile"          { userId, nama?, peran?, schoolId?, cakupan? }
 //   "add-school"               { nama, yayasanId?, modules? }
+//   "add-yayasan"              { nama } -> { id, nama }. id dibiarkan default dari database
+//                              (bukan slug manual seperti schools.id), sengaja tidak ditebak
+//                              tipenya di sini.
 //   "toggle-module"            { schoolId, modul, aktif }
 //   "update-schedule"          { patch }
 //   "import-karakter"          { payload: { sekolah_id, periode_id, skor_rows, skor_indikator_rows, pernyataan_rows, summary_rows } }
@@ -105,6 +108,9 @@ Deno.serve(async (req) => {
         break;
       case "add-school":
         result = await handleAddSchool(admin, body);
+        break;
+      case "add-yayasan":
+        result = await handleAddYayasan(admin, body);
         break;
       case "toggle-module":
         result = await handleToggleModule(admin, body);
@@ -198,6 +204,20 @@ async function handleAddSchool(admin, body) {
   }
 
   return { ok: true, id };
+}
+
+/** Beda dari handleAddSchool: id TIDAK dibuat manual dari slug nama -- schools.id memang
+ * text slug buatan sendiri (lihat handleAddSchool), tapi tipe kolom id di yayasan tidak
+ * diverifikasi dari sini (bisa uuid default, bisa serial). Biarkan Postgres yang isi
+ * defaultnya sendiri lewat .select() setelah insert, supaya tidak salah tebak tipe. */
+async function handleAddYayasan(admin, body) {
+  const { nama } = body;
+  if (!nama) return { ok: false, error: "Field wajib: nama." };
+
+  const { data, error } = await admin.from("yayasan").insert({ nama }).select("id, nama").single();
+  if (error) return { ok: false, error: error.message };
+
+  return { ok: true, id: data.id, nama: data.nama };
 }
 
 async function handleToggleModule(admin, body) {

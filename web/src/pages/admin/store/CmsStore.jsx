@@ -1,5 +1,5 @@
 import { createContext, useCallback, useContext, useMemo, useRef, useState } from 'react';
-import { useAdminCmsData, actApprovalAction, toggleModuleAction, addSchoolAction, runImportAction, runMiGenerateAction, triggerGeminiJobAction, createUserAction, updateUserAction, resetPasswordAction, bulkResetPasswordAction, deleteUserAction, bulkDeleteUsersAction, updateGeminiScheduleAction, regenerateDraftAction } from '../useAdminCmsData';
+import { useAdminCmsData, actApprovalAction, toggleModuleAction, addSchoolAction, addYayasanAction, runImportAction, runMiGenerateAction, triggerGeminiJobAction, createUserAction, updateUserAction, resetPasswordAction, bulkResetPasswordAction, deleteUserAction, bulkDeleteUsersAction, updateGeminiScheduleAction, regenerateDraftAction } from '../useAdminCmsData';
 import { bulkCreateUsers as bulkCreateUsersAction } from '../importers/guruImporter';
 import { downloadXlsx } from '../data/helpers';
 
@@ -16,6 +16,7 @@ const initialState = {
   toast: null,
   addUserOpen: false,
   addSchoolOpen: false,
+  addYayasanOpen: false,
   editUserTarget: null,
 };
 
@@ -68,6 +69,18 @@ export function CmsProvider({ session, children }) {
       refetch();
     } catch (e) {
       showToast('Gagal tambah sekolah: ' + e.message, 'alert');
+    }
+  }, [showToast, refetch]);
+
+  const addYayasan = useCallback(async (payload) => {
+    try {
+      const result = await addYayasanAction(payload);
+      showToast(`Yayasan ${result.nama} terdaftar`, 'safe');
+      refetch();
+      return true;
+    } catch (e) {
+      showToast('Gagal tambah yayasan: ' + e.message, 'alert');
+      return false;
     }
   }, [showToast, refetch]);
 
@@ -247,12 +260,14 @@ export function CmsProvider({ session, children }) {
     setUserFilter: (userFilter) => setState((s) => ({ ...s, userFilter })),
     setAddUserOpen: (addUserOpen) => setState((s) => ({ ...s, addUserOpen })),
     setAddSchoolOpen: (addSchoolOpen) => setState((s) => ({ ...s, addSchoolOpen })),
+    setAddYayasanOpen: (addYayasanOpen) => setState((s) => ({ ...s, addYayasanOpen })),
     setEditUserTarget: (editUserTarget) => setState((s) => ({ ...s, editUserTarget })),
     showToast,
     actApproval,
     toggleModule,
     isModuleOn,
     addSchool,
+    addYayasan,
     runImport,
     runMiGenerate,
     triggerGeminiJob,
@@ -271,7 +286,7 @@ export function CmsProvider({ session, children }) {
       delete n[id];
       return { ...s, approvalEditText: n };
     }),
-  }), [session, data, loading, error, refetch, state, showToast, actApproval, toggleModule, isModuleOn, addSchool, runImport, runMiGenerate, triggerGeminiJob, createUser, updateUser, bulkCreateUsers, resetPassword, bulkResetAndExport, deleteUser, bulkDeleteUsers, updateGeminiSchedule, regenerateDraft]);
+  }), [session, data, loading, error, refetch, state, showToast, actApproval, toggleModule, isModuleOn, addSchool, addYayasan, runImport, runMiGenerate, triggerGeminiJob, createUser, updateUser, bulkCreateUsers, resetPassword, bulkResetAndExport, deleteUser, bulkDeleteUsers, updateGeminiSchedule, regenerateDraft]);
 
   return <CmsContext.Provider value={value}>{children}</CmsContext.Provider>;
 }

@@ -9,7 +9,7 @@ import { IconMoreVertical } from '../components/icons';
 const MODULES = ['karakter', 'mi', 'screening'];
 
 export function Sekolah() {
-  const { data, loading, error, setAddSchoolOpen, showToast, isModuleOn, toggleModule, refetch } = useCms();
+  const { data, loading, error, setAddSchoolOpen, setAddYayasanOpen, showToast, isModuleOn, toggleModule, refetch } = useCms();
   const [expanded, setExpanded] = useState(null);
 
   if (loading) return <LoadingCards rows={4} />;
@@ -27,6 +27,7 @@ export function Sekolah() {
       <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', marginBottom: 16 }}>
         <div style={{ display: 'flex', gap: 8 }}>
           <button className="btn-secondary" onClick={() => showToast('Ekspor belum tersedia di v1', 'info')}>Ekspor</button>
+          <button className="btn-secondary" onClick={() => setAddYayasanOpen(true)}>+ Tambah yayasan</button>
           <button className="btn-primary" onClick={() => setAddSchoolOpen(true)}>+ Tambah sekolah</button>
         </div>
       </div>
