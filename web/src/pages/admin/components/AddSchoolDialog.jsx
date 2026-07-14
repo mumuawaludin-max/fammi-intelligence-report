@@ -49,7 +49,7 @@ export function AddSchoolDialog() {
             <div>
               <label style={{ fontSize: 10.5, fontWeight: 800, letterSpacing: '0.06em', textTransform: 'uppercase', color: 'var(--ink-3)', marginBottom: 5, display: 'block' }}>Jenjang</label>
               <select ref={jenjangRef} className="fld">
-                {['SD', 'SMP', 'SMA', 'SMK'].map(j => <option key={j} value={j}>{j}</option>)}
+                {['Daycare', 'TK', 'SD', 'SMP', 'SMA', 'SMK'].map(j => <option key={j} value={j}>{j}</option>)}
               </select>
             </div>
             <div>
