@@ -13,6 +13,7 @@ import { useKarakterWaliKelas } from "./useKarakterData";
 import {
   pct, deltaVsPrevious, classifyPencapaian, periodeLabel, aspekIcon,
   extractPlainText, isBlankEssay, matchedCategoryTags, isKebijakanReady, SECTION_ICON,
+  indikatorFallbackLabel,
 } from "./karakterMeta";
 import { KARAKTER_BAR_TONE_CUTOFF } from "../../lib/cutoffs";
 import styles from "./KarakterViews.module.css";
@@ -97,7 +98,7 @@ export default function WaliKelasView({ session, periodeId }) {
     ? skorIndikator
         .filter((r) => r.murid_id === activeMurid.murid_id)
         .map((r) => ({
-          label: indikatorLabel[`${r.aspek_kode}_${r.indikator_kode}`] || r.indikator_kode,
+          label: indikatorLabel[`${r.aspek_kode}_${r.indikator_kode}`] || indikatorFallbackLabel(r.aspek_kode, r.indikator_kode),
           value: pct(r.skor),
         }))
         .filter((r) => r.value != null)

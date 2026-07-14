@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { supabase, fetchAllRows } from "../../lib/supabase";
-import { withAspekColor, latestPeriode } from "./karakterMeta";
+import { withAspekColor, latestPeriode, indikatorFallbackLabel } from "./karakterMeta";
 
 /** Kembalikan { data, error } mentah (bukan array yang errornya sudah dibuang) supaya
  * pemanggil bisa ikut mengecek error-nya, bukan diam-diam dapat daftar aspek kosong. */
@@ -409,7 +409,10 @@ export function useKarakterYayasan(session, periodeId) {
       if (r.periode_id !== periode || r.skor == null) return;
       const labels = indikatorLabelBySekolah[r.sekolah_id] || {};
       const key = `${r.aspek_kode}_${r.indikator_kode}`;
-      (indikatorBySekolah[r.sekolah_id] ||= []).push({ label: labels[key] || key, value: r.skor });
+      (indikatorBySekolah[r.sekolah_id] ||= []).push({
+        label: labels[key] || indikatorFallbackLabel(r.aspek_kode, r.indikator_kode),
+        value: r.skor,
+      });
     });
 
     return {
