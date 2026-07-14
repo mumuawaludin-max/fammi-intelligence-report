@@ -1,3 +1,5 @@
+import * as XLSX from 'xlsx';
+
 export function moduleLabel(m) {
   return { karakter: 'Karakter', mi: 'Multiple Intelligence', screening: 'Screening' }[m] || m;
 }
@@ -45,19 +47,15 @@ export function periodeMatch(itemPeriode, filterPeriode) {
   return Array.isArray(filterPeriode) && filterPeriode.includes(itemPeriode);
 }
 
-/** Trigger download file CSV dari array of object di browser. Tidak menyimpan apa pun ke server. */
-export function downloadCsv(filename, rows) {
+/** Trigger download file Excel (.xlsx) dari array of object di browser. Tidak menyimpan apa
+ * pun ke server. Pakai library `xlsx` yang sudah jadi dependency (dipakai juga oleh importer
+ * Karakter/MI/guru) supaya tidak nambah dependency baru cuma untuk export. */
+export function downloadXlsx(filename, rows) {
   if (rows.length === 0) return;
-  const headers = Object.keys(rows[0]);
-  const escape = (v) => `"${String(v ?? '').replace(/"/g, '""')}"`;
-  const csv = [headers.join(','), ...rows.map((r) => headers.map((h) => escape(r[h])).join(','))].join('\n');
-  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = filename;
-  a.click();
-  URL.revokeObjectURL(url);
+  const ws = XLSX.utils.json_to_sheet(rows);
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'Kode Akun');
+  XLSX.writeFile(wb, filename.replace(/\.csv$/i, '.xlsx'));
 }
 
 export function peranColor(p) {

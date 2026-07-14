@@ -287,11 +287,15 @@ export async function loadMiPendingAction() {
   return data?.rows || [];
 }
 
+/** Setuju/tolak satu laporan MI. Kalau disetujui, admin-actions otomatis buat akun OrangTua
+ * untuk murid itu (kalau belum ada) -- hasilnya dikembalikan di sini supaya kodenya bisa
+ * ditampilkan sekali ke admin (password tidak bisa diambil ulang setelah ini). */
 export async function actMiApproval(id, action) {
-  const { error } = await supabase.functions.invoke('admin-actions', {
+  const { data, error } = await supabase.functions.invoke('admin-actions', {
     body: { action: action === 'setuju' ? 'approve-mi' : 'reject-mi', id },
   });
   if (error) throw new Error(await edgeErrorDetail(error, 'Edge Function admin-actions gagal dipanggil.'));
+  return data?.akun || null;
 }
 
 export async function runImportAction({ sekolahId, modul, fileName, parsed }) {
