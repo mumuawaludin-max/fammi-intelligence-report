@@ -6,6 +6,7 @@ import { Topbar } from './components/Topbar';
 import { ToastHost } from './components/ToastHost';
 import { ApprovalDrawer } from './components/ApprovalDrawer';
 import { AddSchoolDialog } from './components/AddSchoolDialog';
+import { AddYayasanDialog } from './components/AddYayasanDialog';
 import { AddUserDialog } from './components/AddUserDialog';
 import { EditUserDialog } from './components/EditUserDialog';
 import { Dashboard } from './screens/Dashboard';
@@ -80,6 +81,7 @@ function Shell({ session, onLogout }) {
       </div>
       <ApprovalDrawer />
       <AddSchoolDialog />
+      <AddYayasanDialog />
       <AddUserDialog />
       <EditUserDialog />
       <ToastHost />

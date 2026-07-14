@@ -251,6 +251,14 @@ export async function addSchoolAction({ nama, jenjang, yayasanId, modules }) {
   return data.id;
 }
 
+export async function addYayasanAction({ nama }) {
+  const { data, error } = await supabase.functions.invoke('admin-actions', {
+    body: { action: 'add-yayasan', nama },
+  });
+  if (error) throw new Error(await edgeErrorDetail(error, 'Edge Function admin-actions gagal dipanggil.'));
+  return data;
+}
+
 /**
  * Generate laporan MI: satu panggilan Edge Function generate-mi PER SISWA (5 panggilan Gemini
  * per siswa, ~15-30 detik, jadi tidak bisa sekelas sekaligus dalam satu request). onProgress
