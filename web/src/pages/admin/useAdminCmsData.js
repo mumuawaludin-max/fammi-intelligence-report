@@ -361,7 +361,7 @@ export async function resetPasswordAction({ userId, username }) {
   const { data, error } = await supabase.functions.invoke('create-user', {
     body: { reset_user_id: userId, reset_username: username },
   });
-  if (error) throw new Error(error.message || 'Edge Function create-user (reset) gagal dipanggil.');
+  if (error) throw new Error(await edgeErrorDetail(error, 'Edge Function create-user (reset) gagal dipanggil.'));
   return data;
 }
 
@@ -369,7 +369,7 @@ export async function bulkResetPasswordAction(users) {
   const { data, error } = await supabase.functions.invoke('create-user', {
     body: { reset_users: users.map((u) => ({ user_id: u.id, username: u.username })) },
   });
-  if (error) throw new Error(error.message || 'Edge Function create-user (bulk reset) gagal dipanggil.');
+  if (error) throw new Error(await edgeErrorDetail(error, 'Edge Function create-user (bulk reset) gagal dipanggil.'));
   return data.results;
 }
 

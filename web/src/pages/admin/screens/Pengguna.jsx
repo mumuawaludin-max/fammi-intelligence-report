@@ -41,7 +41,7 @@ export function Pengguna() {
   const doExport = async () => {
     if (selectedUsers.length === 0) return;
     if (!window.confirm(
-      `Reset kode khusus untuk ${selectedUsers.length} akun terpilih dan unduh CSV berisi kode barunya?\n\n` +
+      `Reset kode khusus untuk ${selectedUsers.length} akun terpilih dan unduh file Excel berisi kode barunya?\n\n` +
       `Kode lama masing-masing akun langsung tidak berlaku setelah ini.`
     )) return;
     setBusy(true);
@@ -110,7 +110,7 @@ export function Pengguna() {
       </div>
 
       <div style={{ padding: '10px 14px', background: 'var(--info-soft)', borderRadius: 8, fontSize: 11.5, color: 'var(--info)', marginBottom: 14, lineHeight: 1.4 }}>
-        💡 Password lama tidak bisa diambil ulang (Supabase cuma simpan hash) — "Reset & Export" akan generate kode BARU untuk akun terpilih lalu unduh CSV-nya. Kode lama langsung tidak berlaku.
+        💡 Password lama tidak bisa diambil ulang (Supabase cuma simpan hash) — "Reset & Export" akan generate kode BARU untuk akun terpilih lalu unduh file Excel-nya. Kode lama langsung tidak berlaku.
       </div>
 
       <div className="card">
