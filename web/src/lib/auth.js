@@ -11,14 +11,35 @@ import { supabase } from "./supabase";
 
 const SESSION_KEY = "fir_session";
 
-/** Baca daftar modul yang aktif (school_modules.aktif = true) untuk satu sekolah. */
-async function fetchActiveModules(schoolId) {
-  const { data } = await supabase
+/** Baca profiles + school_modules aktif untuk satu user_id. Dipakai bareng oleh login dan
+ * refreshSession supaya keduanya selalu membangun bentuk sesi yang sama persis. */
+async function fetchProfileSession(userId) {
+  const { data: profile, error: profileError } = await supabase
+    .from("profiles")
+    .select("username, nama, peran, school_id, cakupan, murid_id")
+    .eq("id", userId)
+    .single();
+
+  if (profileError || !profile) throw new Error("Profil pengguna tidak ditemukan.");
+
+  const { data: modulRows } = await supabase
     .from("school_modules")
     .select("modul")
-    .eq("school_id", schoolId)
+    .eq("school_id", profile.school_id)
     .eq("aktif", true);
-  return (data || []).map((r) => r.modul);
+
+  const modules = (modulRows || []).map((r) => r.modul);
+
+  return {
+    user_id: userId,
+    username: profile.username,
+    nama: profile.nama || profile.username,
+    peran: profile.peran,
+    school_id: profile.school_id,
+    cakupan: profile.cakupan,
+    murid_id: profile.murid_id,
+    modules,
+  };
 }
 
 /**
@@ -39,55 +60,29 @@ export async function loginSupabase(username, kode) {
 
   if (authError) throw new Error("Username atau kode salah.");
 
-  const userId = authData.user.id;
-
-  const { data: profile, error: profileError } = await supabase
-    .from("profiles")
-    .select("username, nama, peran, school_id, cakupan, murid_id")
-    .eq("id", userId)
-    .single();
-
-  if (profileError || !profile) throw new Error("Profil pengguna tidak ditemukan.");
-
-  // Baca modul yang aktif untuk sekolah ini
-  const modules = await fetchActiveModules(profile.school_id);
-
-  return {
-    user_id: userId,
-    username: profile.username,
-    nama: profile.nama || profile.username,
-    peran: profile.peran,
-    school_id: profile.school_id,
-    cakupan: profile.cakupan,
-    murid_id: profile.murid_id,
-    modules,
-    token: authData.session.access_token,
-  };
+  const profileSession = await fetchProfileSession(authData.user.id);
+  return { ...profileSession, token: authData.session.access_token };
 }
 
 /**
- * Ambil ulang daftar modul aktif dari Supabase dan timpa session.modules kalau berubah.
- * session.modules cuma diisi sekali waktu login lalu disimpan di sessionStorage -- kalau
- * AdminFammi meng-ON/OFF-kan modul sekolah SETELAH user login, sesi yang sudah tersimpan di
- * browser tidak pernah tahu perubahan itu (bahkan refresh halaman biasa pun cuma baca ulang
- * sessionStorage, bukan Supabase). Dipanggil tiap App dimuat (lihat App.jsx) supaya modul yang
- * baru diaktifkan Admin langsung kelihatan tanpa harus logout-login manual.
- * Kembalikan session baru (objek baru kalau modul berubah, objek sama kalau tidak).
+ * Dipanggil saat App dimuat kalau ada sesi lokal tersimpan (sessionStorage). Sesi lokal bisa
+ * sudah basi tanpa sepengetahuan browser -- token Supabase Auth-nya dicabut/kedaluwarsa di
+ * server, atau admin sudah ubah peran/sekolah/cakupan user ini sejak login terakhir. Cek dulu
+ * ke server (bukan cuma percaya isi sessionStorage), lalu tarik ulang profiles/school_modules
+ * supaya perubahan itu langsung kepakai tanpa user harus logout manual.
+ * Return null kalau sesi Supabase sudah mati (caller wajib hapus sesi lokal dan arahkan ke
+ * login), atau objek sesi segar kalau masih hidup.
  */
-export async function refreshSessionModules(session) {
-  if (!session || !session.school_id) return session;
+export async function refreshSession() {
+  const { data: userData, error: userErr } = await supabase.auth.getUser();
+  if (userErr || !userData?.user) return null;
+
   try {
-    const modules = await fetchActiveModules(session.school_id);
-    const unchanged = modules.length === (session.modules || []).length
-      && modules.every((m) => (session.modules || []).includes(m));
-    if (unchanged) return session;
-    const next = { ...session, modules };
-    saveSession(next);
-    return next;
+    const profileSession = await fetchProfileSession(userData.user.id);
+    const { data: sessionData } = await supabase.auth.getSession();
+    return { ...profileSession, token: sessionData?.session?.access_token || null };
   } catch {
-    // Gagal refresh (mis. offline sebentar) -- pertahankan sesi lama, jangan sampai user
-    // ke-logout paksa cuma karena satu request modul gagal.
-    return session;
+    return null;
   }
 }
 

@@ -30,7 +30,7 @@ const CHECKS = [
   "Setiap laporan dilengkapi tindak lanjut konkret",
 ];
 
-export default function LoginPage({ onLogin }) {
+export default function LoginPage({ onLogin, notice }) {
   const [username, setUsername] = useState("");
   const [kode, setKode]         = useState("");
   const [showKode, setShowKode] = useState(false);
@@ -166,6 +166,7 @@ export default function LoginPage({ onLogin }) {
               </div>
             </div>
 
+            {!error && notice && <div className={styles.noticeMsg} role="status">{notice}</div>}
             {error && <div className={styles.errorMsg} role="alert">{error}</div>}
 
             <button className={styles.submit} type="submit" disabled={loading}>

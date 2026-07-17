@@ -5,6 +5,8 @@
  *   transformSupabaseMI  — dari Supabase mi_hasil (kolom skor_* dan pred_*)
  */
 
+import { MI_LEVEL_CUTOFF } from "../../lib/cutoffs";
+
 const NAME_TO_CODE = {
   "musikal":       "Mu",
   "spasial":       "Sp",
@@ -236,11 +238,18 @@ function str(val) {
   return s === "undefined" || s === "null" ? "" : s;
 }
 
-function norm(val) {
+export function norm(val) {
   return str(val).toLowerCase().replace(/\s+/g, " ");
 }
 
-function nameToCode(nameLower) {
+/**
+ * Cocokkan nama kecerdasan (mis. dari mi_hasil.detail->>top_1) ke kode internal lewat
+ * substring, bukan exact-match -- hulu tidak selalu konsisten menulis nama kecerdasan yang
+ * sama (contoh nyata: "Logika-Matematika" vs "Logis-Matematis"). Dipakai juga oleh
+ * processOutputMI (miMeta.js) untuk tally distribusi dominan sekolah, supaya dua tempat itu
+ * tidak punya aturan pencocokan yang beda-beda dan diam-diam salah hitung.
+ */
+export function nameToCode(nameLower) {
   if (nameLower.includes("intrapersonal")) return "Ia";
   if (nameLower.includes("interpersonal")) return "Ie";
   for (const [k, v] of Object.entries(NAME_TO_CODE)) {
@@ -259,8 +268,8 @@ function normLevel(raw) {
 }
 
 function computeLevel(score) {
-  if (score >= 75) return "Kuat";
-  if (score >= 50) return "Sedang";
+  if (score >= MI_LEVEL_CUTOFF.kuat) return "Kuat";
+  if (score >= MI_LEVEL_CUTOFF.sedang) return "Sedang";
   return "Berkembang";
 }
 

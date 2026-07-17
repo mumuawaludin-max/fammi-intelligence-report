@@ -12,8 +12,8 @@
 // publik (auth.signUp) sempat menolaknya di awal proyek.
 //
 // Password: kalau tidak dikirim di body, digenerate otomatis dari email — kata pertama
-// bagian lokal email (huruf kecil saja, tanpa huruf besar biar minim salah ketik) + 3 digit
-// acak. Contoh: "wiwifarida80@admin.sd.belajar.id" -> "wiwifarida482".
+// bagian lokal email (huruf kecil saja, tanpa huruf besar biar minim salah ketik) + 6 digit
+// acak kriptografis. Contoh: "wiwifarida80@admin.sd.belajar.id" -> "wiwifarida482917".
 //
 // Mode: body `{ nama, username, peran, school_id, cakupan, password? }` (satu akun), atau
 // `{ users: [ {...sama seperti di atas}, ... ] }` (bulk, dipakai upload CSV guru/wali kelas),
@@ -26,9 +26,26 @@
 //
 // Deploy: supabase functions deploy create-user
 // Secret: SUPABASE_SERVICE_ROLE_KEY sudah otomatis tersedia sebagai env bawaan Supabase Functions.
+//
+// corsHeaders ditulis LANGSUNG di sini (bukan impor dari ../_shared/cors.ts) supaya berkas ini
+// bisa dideploy sebagai satu file lewat Supabase Dashboard "Via Editor", yang tidak membundel
+// folder _shared/. Lihat komentar yang sama di admin-actions/index.ts.
 
 import { createClient } from "jsr:@supabase/supabase-js@2";
-import { corsHeaders } from "../_shared/cors.ts";
+
+// localhost diizinkan di port berapa pun (Vite autoPort bisa geser dari 5173) -- lihat
+// komentar lengkap di _shared/cors.ts, salinan inline supaya berkas ini tetap satu file.
+const PROD_ORIGIN = Deno.env.get("ALLOWED_ORIGIN") || "https://fammi-intelligence-report.vercel.app";
+
+function buildCorsHeaders(req: Request) {
+  const origin = req.headers.get("origin") || req.headers.get("Origin");
+  const allowed = origin && (origin === PROD_ORIGIN || /^http:\/\/localhost:\d+$/.test(origin));
+  const allowOrigin = allowed ? origin : PROD_ORIGIN;
+  return {
+    "Access-Control-Allow-Origin": allowOrigin,
+    "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  };
+}
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
@@ -36,6 +53,14 @@ const ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY")!;
 const PERAN_VALID = ["AdminFammi", "Yayasan", "KepalaSekolah", "WakilKepalaSekolah", "WaliKelas", "OrangTua", "Siswa"];
 
 Deno.serve(async (req) => {
+  const corsHeaders = buildCorsHeaders(req);
+  function json(body, status = 200) {
+    return new Response(JSON.stringify(body), {
+      status,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  }
+
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
 
   try {
@@ -61,7 +86,7 @@ Deno.serve(async (req) => {
     const body = await req.json();
 
     if (body.reset_user_id) {
-      const password = generatePassword(body.reset_username || "fammi");
+      const password = generatePassword();
       const { error: resetErr } = await admin.auth.admin.updateUserById(body.reset_user_id, { password });
       if (resetErr) return json({ error: `Gagal reset password: ${resetErr.message}` }, 500);
       return json({ ok: true, username: body.reset_username, password });
@@ -70,7 +95,7 @@ Deno.serve(async (req) => {
     if (Array.isArray(body.reset_users)) {
       const results = [];
       for (const row of body.reset_users) {
-        const password = generatePassword(row.username || "fammi");
+        const password = generatePassword();
         const { error: resetErr } = await admin.auth.admin.updateUserById(row.user_id, { password });
         results.push(resetErr
           ? { ok: false, username: row.username, error: resetErr.message }
@@ -125,7 +150,7 @@ async function createOne(admin, row) {
 
   const usernameTrim = username.trim();
   const email = usernameTrim.includes("@") ? usernameTrim : `${usernameTrim}@fammi.internal`;
-  const password = givenPassword || generatePassword(usernameTrim);
+  const password = givenPassword || generatePassword();
 
   const { data: created, error: createErr } = await admin.auth.admin.createUser({
     email,
@@ -165,17 +190,21 @@ async function deleteOne(admin, userId) {
   return { ok: true, id: userId };
 }
 
-/** Kata pertama bagian lokal email, huruf kecil semua (tanpa huruf besar biar minim salah ketik) + 3 digit acak. */
-function generatePassword(usernameOrEmail) {
-  const local = usernameOrEmail.split("@")[0] || "fammi";
-  const word = (local.replace(/[^a-zA-Z]/g, "") || "fammi").slice(0, 12).toLowerCase();
-  const digits = String(Math.floor(100 + Math.random() * 900));
-  return word + digits;
+/**
+ * PIN 6 digit acak kriptografis (crypto.getRandomValues, bukan Math.random -- Math.random
+ * bisa diprediksi, tidak cocok untuk apa pun yang menjaga akses). Dulu "kata dari email +
+ * 6 digit"; bagian kata itu dihapus -- siapa pun yang tahu username otomatis bisa menebak
+ * bagian kata itu, jadi tidak menambah keamanan sama sekali, cuma bikin kode lebih panjang
+ * dan lebih rentan salah ketik. PIN murni 6 digit (sejuta kemungkinan) lebih gampang
+ * dibaca/diketik dan sesuai label "Kode khusus" di layar login.
+ */
+function generatePassword() {
+  return randomDigits(6);
 }
 
-function json(body, status = 200) {
-  return new Response(JSON.stringify(body), {
-    status,
-    headers: { ...corsHeaders, "Content-Type": "application/json" },
-  });
+/** n digit acak kriptografis, dipading nol di depan supaya selalu genap n digit. */
+function randomDigits(n) {
+  const arr = new Uint32Array(1);
+  crypto.getRandomValues(arr);
+  return String(arr[0] % 10 ** n).padStart(n, "0");
 }

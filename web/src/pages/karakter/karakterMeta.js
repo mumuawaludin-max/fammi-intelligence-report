@@ -1,3 +1,5 @@
+import { KARAKTER_PENCAPAIAN_BAIK, KARAKTER_BAR_TONE_CUTOFF } from "../../lib/cutoffs";
+
 // Warna spoke aspek karakter, dipetakan dari token --dv-1..--dv-6 (tokens.css).
 // Aspek sendiri (label, urutan) datang dari tabel karakter_aspek_config, bukan hardcode di sini,
 // karena aspek Karakter custom per sekolah.
@@ -57,9 +59,20 @@ export function persen(v) {
 
 /** top5_siswa_tertinggi ("Nama1\nNama2\n...") + top5_nilai_siswa_tertinggi ("100%\n98%\n...") → pasangan. */
 export function parseTop5Pair(namaStr, nilaiStr) {
-  const namaList = String(namaStr || "").split("\n").map((s) => s.trim()).filter(Boolean);
-  const nilaiList = String(nilaiStr || "").split("\n").map((s) => s.trim()).filter(Boolean);
-  return namaList.map((nama, i) => ({ nama, nilai: nilaiList[i] || "" }));
+  // Pasangkan per indeks baris DULU, baru buang pasangan yang dua-duanya kosong -- kalau
+  // masing-masing sisi difilter kosong secara terpisah sebelum dipasangkan, satu baris kosong
+  // di tengah salah satu sisi (mis. nama urutan ke-3 tidak tercatat) menggeser semua pasangan
+  // setelahnya, memasangkan nama yang salah dengan nilai yang salah.
+  const namaList = String(namaStr || "").split("\n").map((s) => s.trim());
+  const nilaiList = String(nilaiStr || "").split("\n").map((s) => s.trim());
+  const len = Math.max(namaList.length, nilaiList.length);
+  const pairs = [];
+  for (let i = 0; i < len; i++) {
+    const nama = namaList[i] || "";
+    const nilai = nilaiList[i] || "";
+    if (nama || nilai) pairs.push({ nama, nilai });
+  }
+  return pairs;
 }
 
 /** top5_indikator_terbaik/terendah tersimpan sebagai string JSON. Parse dengan aman. */
@@ -99,6 +112,24 @@ export function periodeLabel(periodeId) {
 }
 
 /**
+ * Fallback label indikator kalau sekolah itu belum punya baris karakter_indikator_config
+ * (belum ada label manual dari admin). Tanpa ini, layar Wali Kelas/Yayasan menampilkan kode
+ * mentah kolom Excel apa adanya ("karakter1_indikator2_melihat_sisi_baik") -- kode itu memang
+ * sengaja dipakai APA ADANYA sebagai indikator_kode di DB (lihat komentar resolveIndikatorCols
+ * di karakterImporter.js), tapi tidak pernah dimaksudkan untuk tampil ke pengguna. Buang
+ * prefix "karakterN_" dan "indikatorM_", sisanya jadi "Melihat Sisi Baik".
+ */
+export function indikatorFallbackLabel(aspekKode, indikatorKode) {
+  const gabung = `${aspekKode || ""}_${indikatorKode || ""}`;
+  const bersih = gabung.replace(/^karakter\d+_/i, "").replace(/^indikator\d+_/i, "");
+  return bersih
+    .split("_")
+    .filter(Boolean)
+    .map((w) => w[0].toUpperCase() + w.slice(1))
+    .join(" ") || gabung;
+}
+
+/**
  * Emoji ikon per aspek karakter, dicocokkan lewat kata kunci di labelnya supaya tetap
  * jalan untuk aspek custom sekolah lain di masa depan (bukan hardcode per sekolah).
  */
@@ -117,27 +148,26 @@ export function aspekIcon(label = "") {
 }
 
 /**
- * Klasifikasi 80%: kelas/aspek dengan pencapaian >= 80% dianggap "baik" (sudah bagus),
- * di bawahnya "perlu_perhatian". Null (tidak ada data) BUKAN "perlu_perhatian" — beda kasus.
+ * Klasifikasi kelas/aspek jadi "baik" (sudah bagus) atau "perlu_perhatian". Null (tidak ada
+ * data) BUKAN "perlu_perhatian" — beda kasus. Cutoff-nya masih sementara, lihat cutoffs.js.
  */
 export const CLASSIFY_TONE = { baik: "aman", perlu_perhatian: "perhatian" };
 export function classifyPencapaian(value) {
   const v = pct(value);
   if (v === null) return null;
-  return v >= 80 ? "baik" : "perlu_perhatian";
+  return v >= KARAKTER_PENCAPAIAN_BAIK ? "baik" : "perlu_perhatian";
 }
 
 /**
  * Tiga tingkat warna untuk bar skor, sesuai palet status Fammi: hijau (bagus),
  * kuning (perlu perhatian), merah (waspada, hanya untuk skor sungguh rendah supaya
- * merah tetap berarti peringatan, bukan hiasan). Cutoff 80/60 masih sementara,
- * salah satu parameter yang menunggu penetapan pemilik produk (lihat CLAUDE.md).
+ * merah tetap berarti peringatan, bukan hiasan). Cutoff-nya masih sementara, lihat cutoffs.js.
  */
 export function classifyBarTone(value) {
   const v = pct(value);
   if (v === null) return null;
-  if (v >= 80) return "aman";
-  if (v >= 60) return "perhatian";
+  if (v >= KARAKTER_BAR_TONE_CUTOFF.aman) return "aman";
+  if (v >= KARAKTER_BAR_TONE_CUTOFF.perhatian) return "perhatian";
   return "waspada";
 }
 
@@ -155,8 +185,12 @@ export function groupTindakLanjut(tindakLanjut = [], kelas = []) {
     if (r.scope === "kelas" && kelasByScopeId.has(r.scope_id)) {
       const k = kelasByScopeId.get(r.scope_id);
       const kelasTone = classifyPencapaian(k.ringkasan?.rata_rata_pencapaian_guru);
+      // classifyPencapaian mengembalikan null kalau kelas itu belum ada data pencapaian --
+      // itu BUKAN "perlu_perhatian" (lihat catatan di classifyPencapaian sendiri), jadi jangan
+      // ikut ditumpuk ke bucket itu, biar tidak dikira kelas bermasalah padahal cuma kosong.
       if (kelasTone === "baik") buckets.baik.push(r);
-      else buckets.perlu_perhatian.push(r);
+      else if (kelasTone === "perlu_perhatian") buckets.perlu_perhatian.push(r);
+      else buckets.lainnya.push(r);
     } else {
       buckets.lainnya.push(r);
     }
@@ -253,15 +287,33 @@ export function isBlankEssay(raw) {
   return BLANK_ESSAY_TOKENS.has(normalized);
 }
 
+/** Normalisasi teks pilihan mentah dari form (spasi berlebih, jenis kutip beda) supaya
+ * pencocokan .includes() tidak gagal cuma karena beda spasi/kutip, bukan beda makna. */
+function normalizeChoiceText(s) {
+  return String(s || "")
+    .replace(/[“”]/g, '"')
+    .replace(/[‘’]/g, "'")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
 /** Hitung berapa baris yang menyebut tiap opsi (satu baris bisa kena banyak opsi sekaligus). */
 export function countMultiValue(rows, field, options) {
+  const normOptions = options.map((o) => ({ ...o, matchNorm: normalizeChoiceText(o.match) }));
   const counts = Object.fromEntries(options.map((o) => [o.label, 0]));
   let totalWithAnswer = 0;
   rows.forEach((r) => {
     const raw = r[field];
     if (isNoAnswer(raw)) return;
     totalWithAnswer++;
-    options.forEach((o) => { if (raw.includes(o.match)) counts[o.label]++; });
+    const rawNorm = normalizeChoiceText(raw);
+    let matched = false;
+    normOptions.forEach((o) => {
+      if (rawNorm.includes(o.matchNorm)) { counts[o.label]++; matched = true; }
+    });
+    if (!matched && import.meta.env.DEV) {
+      console.warn(`[karakterMeta] Opsi "${field}" tidak dikenali salah satu daftar option: "${raw}"`);
+    }
   });
   const items = options.map((o) => ({ label: o.label, icon: o.icon, count: counts[o.label] }));
   return { items, totalWithAnswer };
@@ -270,7 +322,8 @@ export function countMultiValue(rows, field, options) {
 /** Opsi (dari daftar options manapun) yang cocok untuk satu nilai field multi-pilih mentah. */
 export function matchedOptions(raw, options) {
   if (isNoAnswer(raw)) return [];
-  return options.filter((o) => raw.includes(o.match));
+  const rawNorm = normalizeChoiceText(raw);
+  return options.filter((o) => rawNorm.includes(normalizeChoiceText(o.match)));
 }
 
 /** Opsi kategori_pernyataan yang cocok untuk satu baris, dipakai jadi tag pada kartu kutipan. */

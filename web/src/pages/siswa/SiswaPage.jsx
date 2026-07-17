@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { supabase } from "../../lib/supabase";
 import { transformMIData, transformSupabaseMI } from "./miTransform";
+import { MI_LEVEL_CUTOFF } from "../../lib/cutoffs";
 import styles from "./SiswaPage.module.css";
 
 // ════════════════════════════════════════════════════════════════════════════
@@ -649,7 +650,7 @@ const EXEC_HOOKS = {
   Ia: (p) => `${p} mengenal dirinya sendiri dengan baik untuk usianya. Kecerdasan Intrapersonal tertingginya adalah fondasi kepemimpinan diri yang kuat. Laporan ini menjelaskan cara membangun di atas fondasi ini.`,
 };
 
-function ReadModeGate({ student, panggilan, top1, top2, isSample, onLogout, modules, onGuided, onFull }) {
+function ReadModeGate({ student, panggilan, top1, top2, isSample, onLogout, modules, onGuided }) {
   const initials = (student.name || "S").split(/\s+/).map((w) => w[0]).slice(0, 2).join("").toUpperCase();
   const hook = EXEC_HOOKS[top1?.code]
     ? EXEC_HOOKS[top1.code](panggilan)
@@ -713,27 +714,21 @@ function ReadModeGate({ student, panggilan, top1, top2, isSample, onLogout, modu
           </div>
         )}
 
-        {/* ── CTA: Reading Modes ── */}
+        {/* ── CTA: mulai perjalanan panduan. Dulu ada dua pilihan (dipandu / langsung lihat
+            semua) -- opsi "langsung lihat semua" sengaja dihilangkan dari layar ini supaya
+            journey-nya benar-benar terasa sejak awal, bukan sekadar salah satu opsi yang
+            gampang dilewati. Tetap bisa "Lihat semua" dari TENGAH perjalanan (link kecil di
+            header mode dipandu) untuk yang sudah mulai lalu ingin percepat. ── */}
         <div style={{ padding: "20px 20px 0" }}>
-          <p style={{ margin: "0 0 14px", fontSize: 13, color: T.textMuted, fontWeight: 600, textAlign: "center" }}>Mau dibaca bagaimana?</p>
-          <div style={{ display: "flex", flexDirection: "column", gap: 11 }}>
-            <button onClick={onGuided} className={`${styles.lgCta} ${styles.lgCtaGlow}`} style={{ display: "flex", alignItems: "center", gap: 14, padding: "18px 18px", borderRadius: 22, background: "linear-gradient(135deg,#7B3BF0,#6323DA 60%,#4A12B0)", color: "#fff", border: "none", cursor: "pointer", textAlign: "left", width: "100%" }}>
-              <span style={{ width: 46, height: 46, borderRadius: 14, background: "rgba(255,255,255,0.16)", color: "#fff", display: "grid", placeItems: "center", flexShrink: 0 }}><IcCompass size={23} /></span>
-              <div style={{ flex: 1 }}>
-                <div style={{ fontSize: 15, fontWeight: 800, marginBottom: 2 }}>Pandu saya membacanya</div>
-                <div style={{ fontSize: 12, color: "rgba(255,255,255,0.78)", lineHeight: 1.5 }}>Satu bagian sekaligus, dengan penjelasan di setiap langkah.</div>
-              </div>
-              <IcArrowRight size={18} style={{ color: "rgba(255,255,255,0.85)", flexShrink: 0 }} />
-            </button>
-            <button onClick={onFull} className={styles.lgPress} style={{ display: "flex", alignItems: "center", gap: 14, padding: "18px 18px", borderRadius: 22, background: "#fff", color: T.textStrong, cursor: "pointer", textAlign: "left", width: "100%", border: "none", boxShadow: "0 10px 24px rgba(20,20,26,0.07)" }}>
-              <span style={{ width: 46, height: 46, borderRadius: 14, background: T.violet50, color: T.brand, display: "grid", placeItems: "center", flexShrink: 0 }}><IcBookOpen size={23} /></span>
-              <div style={{ flex: 1 }}>
-                <div style={{ fontSize: 15, fontWeight: 800, marginBottom: 2 }}>Langsung lihat semua</div>
-                <div style={{ fontSize: 12, color: T.textMuted, lineHeight: 1.5 }}>Buka seluruh laporan dan scroll sesuai keinginan.</div>
-              </div>
-              <IcArrowRight size={18} style={{ color: T.textFaint, flexShrink: 0 }} />
-            </button>
-          </div>
+          <p style={{ margin: "0 0 14px", fontSize: 13, color: T.textMuted, fontWeight: 600, textAlign: "center" }}>Yuk mulai baca laporannya</p>
+          <button onClick={onGuided} className={`${styles.lgCta} ${styles.lgCtaGlow}`} style={{ display: "flex", alignItems: "center", gap: 14, padding: "18px 18px", borderRadius: 22, background: "linear-gradient(135deg,#7B3BF0,#6323DA 60%,#4A12B0)", color: "#fff", border: "none", cursor: "pointer", textAlign: "left", width: "100%" }}>
+            <span style={{ width: 46, height: 46, borderRadius: 14, background: "rgba(255,255,255,0.16)", color: "#fff", display: "grid", placeItems: "center", flexShrink: 0 }}><IcCompass size={23} /></span>
+            <div style={{ flex: 1 }}>
+              <div style={{ fontSize: 15, fontWeight: 800, marginBottom: 2 }}>Pandu saya membacanya</div>
+              <div style={{ fontSize: 12, color: "rgba(255,255,255,0.78)", lineHeight: 1.5 }}>Satu bagian sekaligus, dengan penjelasan di setiap langkah.</div>
+            </div>
+            <IcArrowRight size={18} style={{ color: "rgba(255,255,255,0.85)", flexShrink: 0 }} />
+          </button>
         </div>
 
         <DailyChecklist studentKey={student.username || student.name || "siswa"} />
@@ -924,7 +919,6 @@ function BakatView({ student, intel, topDetails, mi, isSample, onLogout, modules
         onLogout={onLogout}
         modules={modules}
         onGuided={() => { setReadMode("guided"); setActiveStop(0); }}
-        onFull={() => setReadMode("full")}
       />
     );
   }
@@ -1220,9 +1214,9 @@ function BakatView({ student, intel, topDetails, mi, isSample, onLogout, modules
               </div>
               <PetalChart items={chart} />
               <div style={{ display: "flex", justifyContent: "center", gap: 14, padding: "2px 0 6px", flexWrap: "wrap" }}>
-                <Legend color="#16A34A" label="Kuat" range="75-100" />
-                <Legend color="#D97706" label="Sedang" range="50-74" />
-                <Legend color="#94A3B8" label="Berkembang" range="<50" />
+                <Legend color="#16A34A" label="Kuat" range={`${MI_LEVEL_CUTOFF.kuat}-100`} />
+                <Legend color="#D97706" label="Sedang" range={`${MI_LEVEL_CUTOFF.sedang}-${MI_LEVEL_CUTOFF.kuat - 1}`} />
+                <Legend color="#94A3B8" label="Berkembang" range={`<${MI_LEVEL_CUTOFF.sedang}`} />
               </div>
             </div>
             <div style={{ marginTop: 14 }}>
@@ -1412,9 +1406,9 @@ function BakatView({ student, intel, topDetails, mi, isSample, onLogout, modules
         <LCard>
           <PetalChart items={chart} />
           <div style={{ display: "flex", justifyContent: "center", gap: 14, padding: "6px 0 13px", flexWrap: "wrap" }}>
-            <Legend color="#16A34A" label="Kuat" range="75-100" />
-            <Legend color="#D97706" label="Sedang" range="50-74" />
-            <Legend color="#94A3B8" label="Berkembang" range="<50" />
+            <Legend color="#16A34A" label="Kuat" range={`${MI_LEVEL_CUTOFF.kuat}-100`} />
+            <Legend color="#D97706" label="Sedang" range={`${MI_LEVEL_CUTOFF.sedang}-${MI_LEVEL_CUTOFF.kuat - 1}`} />
+            <Legend color="#94A3B8" label="Berkembang" range={`<${MI_LEVEL_CUTOFF.sedang}`} />
           </div>
           <div style={{ height: 1, background: T.divider }} />
           <div style={{ marginTop: 10 }}>

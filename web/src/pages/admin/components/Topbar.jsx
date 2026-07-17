@@ -4,16 +4,21 @@ import { IconRefresh, IconSearch } from './icons';
 const TITLES = {
   dashboard: { title: 'Dashboard Ringkasan', subtitle: () => 'Status seluruh sekolah, upload terbaru, antrean persetujuan' },
   antrian: { title: 'Antrian Persetujuan', subtitle: (n) => n + ' draf menunggu tinjauan · gerbang tayang ke sekolah' },
+  'persetujuan-mi': { title: 'Persetujuan MI', subtitle: () => 'Laporan MI hasil generate Gemini · gerbang tayang ke siswa & orang tua' },
   upload: { title: 'Upload Data', subtitle: () => 'Import Excel ke Supabase · Karakter · MI · Screening' },
   gemini: { title: 'Trigger & Antrian Gemini', subtitle: () => 'Picu draf briefing/tindak_lanjut on-demand via Edge Function' },
   sekolah: { title: 'Sekolah & Modul', subtitle: () => 'CRUD schools, school_modules, konfigurasi aspek per sekolah' },
   pengguna: { title: 'Pengguna & Peran', subtitle: () => 'Akun per sekolah, PascalCase enum · profiles_peran_check' },
 };
+// Fallback untuk key layar yang belum terdaftar di TITLES -- layar baru yang lupa menambah
+// entri di sini pernah membuat SELURUH CMS blank (screenInfo undefined -> .title melempar,
+// Topbar crash di luar ErrorBoundary). Judul generik jauh lebih baik daripada halaman kosong.
+const FALLBACK_TITLE = { title: 'CMS Admin Fammi', subtitle: () => '' };
 
 export function Topbar() {
   const { data, state, refetch } = useCms();
   const totalPending = data.antrian.length;
-  const screenInfo = TITLES[state.screen];
+  const screenInfo = TITLES[state.screen] || FALLBACK_TITLE;
 
   return (
     <div style={{ height: 60, background: 'var(--surface)', borderBottom: '1px solid var(--line)', padding: '0 26px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16, flexShrink: 0 }}>

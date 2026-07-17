@@ -1,20 +1,22 @@
 import { createContext, useCallback, useContext, useMemo, useRef, useState } from 'react';
-import { useAdminCmsData, actApprovalAction, toggleModuleAction, addSchoolAction, runImportAction, triggerGeminiJobAction, createUserAction, updateUserAction, resetPasswordAction, bulkResetPasswordAction, deleteUserAction, bulkDeleteUsersAction, updateGeminiScheduleAction, regenerateDraftAction } from '../useAdminCmsData';
+import { useAdminCmsData, actApprovalAction, toggleModuleAction, addSchoolAction, addYayasanAction, runImportAction, runMiGenerateAction, triggerGeminiJobAction, createUserAction, updateUserAction, resetPasswordAction, bulkResetPasswordAction, deleteUserAction, bulkDeleteUsersAction, updateGeminiScheduleAction, regenerateDraftAction } from '../useAdminCmsData';
 import { bulkCreateUsers as bulkCreateUsersAction } from '../importers/guruImporter';
-import { downloadCsv } from '../data/helpers';
+import { downloadXlsx } from '../data/helpers';
 
 const CmsContext = createContext(null);
 
 const initialState = {
   screen: 'dashboard',
   selectedApproval: null,
-  approvalFilter: { modul: 'all', prioritas: 'all', sekolah: 'all' },
+  approvalFilter: { modul: 'all', prioritas: 'all', sekolah: 'all', yayasan: 'all', periode: 'all' },
+  geminiFilter: { yayasan: 'all', sekolah: 'all', periode: 'all' },
   sekolahFilter: 'all',
   userFilter: 'all',
   approvalEditText: {},
   toast: null,
   addUserOpen: false,
   addSchoolOpen: false,
+  addYayasanOpen: false,
   editUserTarget: null,
 };
 
@@ -70,6 +72,18 @@ export function CmsProvider({ session, children }) {
     }
   }, [showToast, refetch]);
 
+  const addYayasan = useCallback(async (payload) => {
+    try {
+      const result = await addYayasanAction(payload);
+      showToast(`Yayasan ${result.nama} terdaftar`, 'safe');
+      refetch();
+      return true;
+    } catch (e) {
+      showToast('Gagal tambah yayasan: ' + e.message, 'alert');
+      return false;
+    }
+  }, [showToast, refetch]);
+
   const runImport = useCallback(async (payload) => {
     try {
       const result = await runImportAction(payload);
@@ -79,6 +93,20 @@ export function CmsProvider({ session, children }) {
       showToast('Import gagal: ' + e.message, 'alert');
       refetch();
     }
+  }, [showToast, refetch]);
+
+  const runMiGenerate = useCallback(async (rows, onProgress) => {
+    const results = await runMiGenerateAction(rows, onProgress);
+    const ok = results.filter((r) => r.ok);
+    const failed = results.filter((r) => !r.ok);
+    showToast(
+      failed.length === 0
+        ? `${ok.length} laporan MI digenerate, menunggu persetujuan di Antrian.`
+        : `${ok.length} berhasil, ${failed.length} gagal (lihat detail di layar).`,
+      failed.length === 0 ? 'safe' : 'warn', 8000,
+    );
+    refetch();
+    return results;
   }, [showToast, refetch]);
 
   const triggerGeminiJob = useCallback(async (payload) => {
@@ -199,14 +227,14 @@ export function CmsProvider({ session, children }) {
       const ok = results.filter((r) => r.ok);
       const failed = results.filter((r) => !r.ok);
       const byUsername = Object.fromEntries(ok.map((r) => [r.username, r.password]));
-      downloadCsv('kode-khusus-fammi.csv', users.map((u) => ({
+      downloadXlsx('kode-khusus-fammi.xlsx', users.map((u) => ({
         nama: u.nama, username: u.username, peran: u.peran, sekolah: u.sekolah || '',
         kode_khusus: byUsername[u.username] || 'GAGAL',
       })));
       showToast(
         failed.length === 0
-          ? `${ok.length} kode direset & file CSV terunduh. Kode lama langsung tidak berlaku.`
-          : `${ok.length} berhasil, ${failed.length} gagal. File CSV terunduh untuk yang berhasil.`,
+          ? `${ok.length} kode direset & file Excel terunduh. Kode lama langsung tidak berlaku.`
+          : `${ok.length} berhasil, ${failed.length} gagal. File Excel terunduh untuk yang berhasil.`,
         failed.length === 0 ? 'safe' : 'warn', 8000,
       );
       refetch();
@@ -227,17 +255,21 @@ export function CmsProvider({ session, children }) {
     setScreen: (screen) => setState((s) => ({ ...s, screen, selectedApproval: null })),
     setSelectedApproval: (selectedApproval) => setState((s) => ({ ...s, selectedApproval })),
     setApprovalFilter: (f) => setState((s) => ({ ...s, approvalFilter: { ...s.approvalFilter, ...f } })),
+    setGeminiFilter: (f) => setState((s) => ({ ...s, geminiFilter: { ...s.geminiFilter, ...f } })),
     setSekolahFilter: (sekolahFilter) => setState((s) => ({ ...s, sekolahFilter })),
     setUserFilter: (userFilter) => setState((s) => ({ ...s, userFilter })),
     setAddUserOpen: (addUserOpen) => setState((s) => ({ ...s, addUserOpen })),
     setAddSchoolOpen: (addSchoolOpen) => setState((s) => ({ ...s, addSchoolOpen })),
+    setAddYayasanOpen: (addYayasanOpen) => setState((s) => ({ ...s, addYayasanOpen })),
     setEditUserTarget: (editUserTarget) => setState((s) => ({ ...s, editUserTarget })),
     showToast,
     actApproval,
     toggleModule,
     isModuleOn,
     addSchool,
+    addYayasan,
     runImport,
+    runMiGenerate,
     triggerGeminiJob,
     createUser,
     updateUser,
@@ -254,7 +286,7 @@ export function CmsProvider({ session, children }) {
       delete n[id];
       return { ...s, approvalEditText: n };
     }),
-  }), [session, data, loading, error, refetch, state, showToast, actApproval, toggleModule, isModuleOn, addSchool, runImport, triggerGeminiJob, createUser, updateUser, bulkCreateUsers, resetPassword, bulkResetAndExport, deleteUser, bulkDeleteUsers, updateGeminiSchedule, regenerateDraft]);
+  }), [session, data, loading, error, refetch, state, showToast, actApproval, toggleModule, isModuleOn, addSchool, addYayasan, runImport, runMiGenerate, triggerGeminiJob, createUser, updateUser, bulkCreateUsers, resetPassword, bulkResetAndExport, deleteUser, bulkDeleteUsers, updateGeminiSchedule, regenerateDraft]);
 
   return <CmsContext.Provider value={value}>{children}</CmsContext.Provider>;
 }

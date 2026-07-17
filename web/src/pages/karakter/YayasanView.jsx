@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 import SectionHeading from "../../components/SectionHeading";
 import SampleTag from "../../components/SampleTag";
+import FollowupRibbon from "../../components/FollowupRibbon";
 import {
   KarakterStateBox, AskMascot, ScoreBarList, GoodEmptyState, Donut,
   ParentVoiceBento, TrendChart, useSummaryTrend,
@@ -13,6 +14,7 @@ import {
   pct, deltaVsPrevious, classifyPencapaian, periodeLabel, aspekIcon,
   avgAspek, ringkasanAspekValue, isKebijakanReady, SECTION_ICON,
 } from "./karakterMeta";
+import { KARAKTER_BAR_TONE_CUTOFF } from "../../lib/cutoffs";
 import styles from "./KarakterViews.module.css";
 
 const WHO_YAYASAN = { short: "untuk Pengurus Yayasan", long: "untuk Yayasan" };
@@ -49,9 +51,13 @@ export default function YayasanView({ session, periodeId }) {
   const { periode, aspekBySekolah, indikatorBySekolah, pernyataan, tindakLanjut } = data;
 
   // Baris nyata (sudah disetujui) kalau ada, fallback ke contoh sampai Gemini mengisi tabelnya.
+  // kebijakanLegacy: sudah disetujui tapi berskema lama (belum lolos isKebijakanReady) --
+  // dulu hilang sama sekali (tertimpa sample), sekarang tetap tampil sebagai kartu sederhana.
   const kebijakanReal = (tindakLanjut || []).filter(isKebijakanReady);
+  const kebijakanLegacy = (tindakLanjut || []).filter((r) => !isKebijakanReady(r));
   const kebijakanData = kebijakanReal.length > 0 ? kebijakanReal : KEBIJAKAN_YAYASAN;
-  const kebijakanIsSample = kebijakanReal.length === 0;
+  const kebijakanIsSample = kebijakanReal.length === 0 && kebijakanLegacy.length === 0;
+  const showKebijakanGoals = kebijakanReal.length > 0 || kebijakanIsSample;
   const singleSekolah = sekolahRows.length === 1 ? sekolahRows[0] : null;
 
   const rataVals = sekolahRows.map((s) => s.rata).filter((v) => v != null);
@@ -81,7 +87,7 @@ export default function YayasanView({ session, periodeId }) {
   const activeIndikator = activeSekolah ? (indikatorBySekolah[activeSekolah.id] || []) : [];
   const adaIndikator = activeIndikator.length > 0;
   const indTerbaik = [...activeIndikator].sort((a, b) => b.value - a.value).slice(0, 5);
-  const indLemah = activeIndikator.filter((it) => it.value < 80).sort((a, b) => a.value - b.value).slice(0, 5);
+  const indLemah = activeIndikator.filter((it) => it.value < KARAKTER_BAR_TONE_CUTOFF.aman).sort((a, b) => a.value - b.value).slice(0, 5);
 
   return (
     <div className={`${styles.page} ${styles.pageFullBleed}`}>
@@ -306,7 +312,12 @@ export default function YayasanView({ session, periodeId }) {
               <SampleTag /> Isi rekomendasi masih contoh, menunggu perumusan otomatis. Strukturnya sudah final.
             </p>
           )}
-          <KebijakanGoals data={kebijakanData} who={WHO_YAYASAN} ranges={RANGES_YAYASAN} />
+          {showKebijakanGoals && <KebijakanGoals data={kebijakanData} who={WHO_YAYASAN} ranges={RANGES_YAYASAN} />}
+          {kebijakanLegacy.length > 0 && (
+            <FollowupRibbon
+              items={kebijakanLegacy.map((r) => ({ id: r.id, action: r.action, trigger: r.trigger_desc, module: "karakter", priority: r.priority }))}
+            />
+          )}
         </section>
       </div>
       )}

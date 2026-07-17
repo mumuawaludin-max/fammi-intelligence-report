@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback } from 'react';
-import { supabase } from '../../lib/supabase';
+import { supabase, edgeErrorDetail } from '../../lib/supabase';
 import { importKarakterWorkbook } from './importers/karakterImporter';
 
 function currentPeriode() {
@@ -56,7 +56,7 @@ export function useAdminCmsData() {
         supabase.from('gemini_schedule').select('*').eq('id', 'default').maybeSingle(),
       ]);
 
-      const firstError = [yayasanRes, schoolsRes, modulesRes, summaryRes, aspekRes, briefingRes, tlRes, importLogRes, profilesRes, kelasSummaryRes, tlKelasAllRes, tlSekolahYayasanRes]
+      const firstError = [yayasanRes, schoolsRes, modulesRes, summaryRes, aspekRes, briefingRes, tlRes, importLogRes, profilesRes, kelasSummaryRes, tlKelasAllRes, tlSekolahYayasanRes, scheduleRes]
         .find((r) => r.error);
       if (firstError) throw new Error(firstError.error.message);
 
@@ -110,6 +110,7 @@ export function useAdminCmsData() {
       });
 
       const schoolNameById = Object.fromEntries(sekolah.map((s) => [s.id, s.nama]));
+      const sekolahInfoById = Object.fromEntries(sekolah.map((s) => [s.id, s]));
 
       // Rekomendasi PER PERIODE: setiap (sekolah, kelas, periode) yang punya karakter_summary
       // tapi belum ada tindak_lanjut untuk periode itu. Sengaja SEMUA periode (bukan cuma
@@ -122,7 +123,11 @@ export function useAdminCmsData() {
       (kelasSummaryRes.data || []).forEach((r) => {
         const key = `${r.sekolah_id}|${r.scope_id}|${r.periode_id}`;
         if (!tlKelasKeySet.has(key)) {
-          rekomendasi.push({ sekolahId: r.sekolah_id, sekolahNama: schoolNameById[r.sekolah_id] || r.sekolah_id, kelasId: r.scope_id, periodeId: r.periode_id });
+          rekomendasi.push({
+            sekolahId: r.sekolah_id, sekolahNama: schoolNameById[r.sekolah_id] || r.sekolah_id,
+            yayasanId: sekolahInfoById[r.sekolah_id]?.yay || null,
+            kelasId: r.scope_id, periodeId: r.periode_id,
+          });
         }
       });
       // Urut per sekolah, lalu periode terbaru dulu, lalu kelas, supaya panel gampang dibaca.
@@ -138,14 +143,13 @@ export function useAdminCmsData() {
         (tlSekolahYayasanRes.data || []).map((r) => `${r.sekolah_id}|${r.periode_id}|${r.target_role}`)
       );
       const yayasanNameById = Object.fromEntries((yayasanRes.data || []).map((y) => [y.id, y.nama]));
-      const sekolahInfoById = Object.fromEntries(sekolah.map((s) => [s.id, s]));
       const rekomendasiSekolah = [];
       const rekomendasiYayasan = [];
       (summaryRes.data || []).forEach((r) => {
         const info = sekolahInfoById[r.sekolah_id];
         if (!info || !info.modules.includes('karakter')) return;
         if (!tlSekolahKeySet.has(`${r.sekolah_id}|${r.periode_id}|kepala_sekolah`)) {
-          rekomendasiSekolah.push({ sekolahId: r.sekolah_id, sekolahNama: info.nama, periodeId: r.periode_id });
+          rekomendasiSekolah.push({ sekolahId: r.sekolah_id, sekolahNama: info.nama, yayasanId: info.yay || null, periodeId: r.periode_id });
         }
         if (info.yay && !tlSekolahKeySet.has(`${r.sekolah_id}|${r.periode_id}|yayasan`)) {
           rekomendasiYayasan.push({
@@ -159,7 +163,8 @@ export function useAdminCmsData() {
       rekomendasiYayasan.sort(byNamaPeriodeDesc);
 
       const antrianTlAll = (tlRes.data || []).map((r) => ({
-        id: r.id, tipe: 'tindak_lanjut', modul: r.modul, sekolah: r.sekolah_id,
+        id: r.id, tipe: 'tindak_lanjut', modul: r.modul, sekolah: r.sekolah_id, periode: r.periode_id,
+        yayasan: sekolahInfoById[r.sekolah_id]?.yay || null,
         kelas: r.scope === 'kelas' ? r.scope_id : null, scope: r.scope,
         prioritas: r.priority || 'sedang', status: r.status,
         dibuat: (r.created_at || '').replace('T', ' ').slice(0, 16),
@@ -174,7 +179,8 @@ export function useAdminCmsData() {
         targetRole: r.target_role || null,
       }));
       const antrianBriefing = (briefingRes.data || []).map((r) => ({
-        id: r.id, tipe: 'briefing', modul: r.modul, sekolah: r.sekolah_id,
+        id: r.id, tipe: 'briefing', modul: r.modul, sekolah: r.sekolah_id, periode: r.periode_id,
+        yayasan: sekolahInfoById[r.sekolah_id]?.yay || null,
         kelas: r.scope === 'kelas' ? r.scope_id : null, scope: r.scope,
         prioritas: 'sedang', status: r.status,
         dibuat: (r.created_at || '').replace('T', ' ').slice(0, 16),
@@ -219,42 +225,85 @@ export function useAdminCmsData() {
 // ── Actions (dipanggil dari CmsStore, tiap fungsi refetch sendiri lewat pemanggilnya) ──
 
 export async function actApprovalAction(item, action, langkahTerpilih) {
-  const table = item.tipe === 'briefing' ? 'briefing' : 'tindak_lanjut';
-  const status = action === 'setuju' ? 'disetujui' : 'ditolak';
-  const patch = { status };
-  if (item.tipe === 'briefing') patch.teks = item.teks;
-  else {
-    patch.action = item.teks;
-    if (langkahTerpilih) patch.langkah_terpilih = langkahTerpilih; // array opsi terpilih (bisa semua)
-  }
-  const { error } = await supabase.from(table).update(patch).eq('id', item.id);
-  if (error) throw new Error(error.message);
-
-  // Penggantian mulus: begitu draf hasil regenerate disetujui, baris lama yang digantikannya
-  // otomatis ditolak supaya tidak tayang ganda di laporan sekolah.
-  if (action === 'setuju' && item.tipe !== 'briefing' && item.regenerateDari) {
-    await supabase.from('tindak_lanjut').update({ status: 'ditolak' }).eq('id', item.regenerateDari);
-  }
+  const { error } = await supabase.functions.invoke('admin-actions', {
+    body: {
+      action: action === 'setuju' ? 'approve' : 'reject',
+      id: item.id, tipe: item.tipe, teks: item.teks,
+      langkahTerpilih: langkahTerpilih || undefined,
+      regenerateDari: item.regenerateDari || undefined,
+    },
+  });
+  if (error) throw new Error(await edgeErrorDetail(error, 'Edge Function admin-actions gagal dipanggil.'));
 }
 
 export async function toggleModuleAction(schoolId, modul, nextOn) {
-  const { error } = await supabase
-    .from('school_modules')
-    .upsert({ school_id: schoolId, modul, aktif: nextOn }, { onConflict: 'school_id,modul' });
-  if (error) throw new Error(error.message);
+  const { error } = await supabase.functions.invoke('admin-actions', {
+    body: { action: 'toggle-module', schoolId, modul, aktif: nextOn },
+  });
+  if (error) throw new Error(await edgeErrorDetail(error, 'Edge Function admin-actions gagal dipanggil.'));
 }
 
-export async function addSchoolAction({ nama, yayasanId, modules }) {
-  const id = nama.toUpperCase().replace(/[^A-Z0-9]+/g, '-').replace(/(^-|-$)/g, '').slice(0, 40);
-  const { error: schoolErr } = await supabase.from('schools').insert({ id, nama, yayasan_id: yayasanId || null, aktif: true });
-  if (schoolErr) throw new Error(schoolErr.message);
-  if (modules.length > 0) {
-    const { error: modErr } = await supabase.from('school_modules').insert(
-      modules.map((m) => ({ school_id: id, modul: m, aktif: true }))
-    );
-    if (modErr) throw new Error(modErr.message);
+export async function addSchoolAction({ nama, jenjang: _jenjang, yayasanId, modules }) {
+  const { data, error } = await supabase.functions.invoke('admin-actions', {
+    body: { action: 'add-school', nama, yayasanId, modules },
+  });
+  if (error) throw new Error(await edgeErrorDetail(error, 'Edge Function admin-actions gagal dipanggil.'));
+  return data.id;
+}
+
+export async function addYayasanAction({ nama }) {
+  const { data, error } = await supabase.functions.invoke('admin-actions', {
+    body: { action: 'add-yayasan', nama },
+  });
+  if (error) throw new Error(await edgeErrorDetail(error, 'Edge Function admin-actions gagal dipanggil.'));
+  return data;
+}
+
+/**
+ * Generate laporan MI: satu panggilan Edge Function generate-mi PER SISWA (5 panggilan Gemini
+ * per siswa, ~15-30 detik, jadi tidak bisa sekelas sekaligus dalam satu request). onProgress
+ * dipanggil tiap siswa selesai supaya UI bisa menampilkan bilah kemajuan. Tidak berhenti di
+ * siswa yang gagal -- kumpulkan hasil per siswa, lapor ringkasannya di akhir. Tiap panggilan
+ * menulis satu baris mi_hasil berstatus menunggu_persetujuan (lihat generate-mi).
+ */
+export async function runMiGenerateAction(rows, onProgress) {
+  const results = [];
+  for (let i = 0; i < rows.length; i++) {
+    const row = rows[i];
+    try {
+      const { data, error } = await supabase.functions.invoke('generate-mi', { body: { row } });
+      if (error) {
+        results.push({ ok: false, nama: row.nama_siswa, error: await edgeErrorDetail(error, 'generate-mi gagal dipanggil.') });
+      } else if (!data?.ok) {
+        results.push({ ok: false, nama: row.nama_siswa, error: data?.error || 'Gagal tanpa keterangan.' });
+      } else {
+        results.push({ ok: true, nama: row.nama_siswa, top_1: data.top_1 });
+      }
+    } catch (e) {
+      results.push({ ok: false, nama: row.nama_siswa, error: String(e?.message || e) });
+    }
+    onProgress?.(i + 1, rows.length);
   }
-  return id;
+  return results;
+}
+
+/** Ambil daftar laporan MI menunggu persetujuan lewat admin-actions (service_role, supaya RLS
+ * mi_hasil tidak perlu membuka baris menunggu ke AdminFammi). */
+export async function loadMiPendingAction() {
+  const { data, error } = await supabase.functions.invoke('admin-actions', { body: { action: 'list-mi-pending' } });
+  if (error) throw new Error(await edgeErrorDetail(error, 'Gagal memuat antrian MI.'));
+  return data?.rows || [];
+}
+
+/** Setuju/tolak satu laporan MI. Kalau disetujui, admin-actions otomatis buat akun OrangTua
+ * untuk murid itu (kalau belum ada) -- hasilnya dikembalikan di sini supaya kodenya bisa
+ * ditampilkan sekali ke admin (password tidak bisa diambil ulang setelah ini). */
+export async function actMiApproval(id, action) {
+  const { data, error } = await supabase.functions.invoke('admin-actions', {
+    body: { action: action === 'setuju' ? 'approve-mi' : 'reject-mi', id },
+  });
+  if (error) throw new Error(await edgeErrorDetail(error, 'Edge Function admin-actions gagal dipanggil.'));
+  return data?.akun || null;
 }
 
 export async function runImportAction({ sekolahId, modul, fileName, parsed }) {
@@ -276,26 +325,6 @@ export async function runImportAction({ sekolahId, modul, fileName, parsed }) {
   return result;
 }
 
-/**
- * Ambil pesan error ASLI dari body respons Edge Function. supabase.functions.invoke cuma
- * kasih pesan generik "non-2xx status code"; error sebenarnya (mis. kolom belum ada,
- * Gemini balas JSON tak valid) ada di body JSON {error: "..."} yang tersimpan di
- * error.context (sebuah Response). Baca itu supaya toast menampilkan penyebab nyata.
- */
-async function edgeErrorDetail(error, fallback) {
-  try {
-    const ctx = error?.context;
-    if (ctx && typeof ctx.json === 'function') {
-      const body = await ctx.json();
-      if (body?.error) return body.error;
-    } else if (ctx && typeof ctx.text === 'function') {
-      const t = await ctx.text();
-      if (t) return t;
-    }
-  } catch { /* body tidak bisa dibaca, pakai fallback */ }
-  return error?.message || fallback;
-}
-
 export async function triggerGeminiJobAction({ scope, scopeId, sekolahId, modul, tipe, periodeId, role }) {
   const { data, error } = await supabase.functions.invoke('generate-tindak-lanjut', {
     body: { scope, scope_id: scopeId, sekolah_id: sekolahId, modul, tipe, periode_id: periodeId, role },
@@ -313,8 +342,10 @@ export async function regenerateDraftAction({ id, catatan }) {
 }
 
 export async function updateGeminiScheduleAction(patch) {
-  const { error } = await supabase.from('gemini_schedule').update(patch).eq('id', 'default');
-  if (error) throw new Error(error.message);
+  const { error } = await supabase.functions.invoke('admin-actions', {
+    body: { action: 'update-schedule', patch },
+  });
+  if (error) throw new Error(await edgeErrorDetail(error, 'Edge Function admin-actions gagal dipanggil.'));
 }
 
 export async function createUserAction({ nama, username, peran, schoolId, cakupan }) {
@@ -328,18 +359,17 @@ export async function createUserAction({ nama, username, peran, schoolId, cakupa
 
 export async function updateUserAction(userId, { nama, peran, schoolId, cakupan }) {
   const cakupanArr = cakupan ? cakupan.split(',').map((s) => s.trim()).filter(Boolean) : [];
-  const { error } = await supabase.from('profiles').update({
-    nama, peran, school_id: schoolId || null,
-    cakupan: cakupanArr.length > 0 ? cakupanArr : null,
-  }).eq('id', userId);
-  if (error) throw new Error(error.message);
+  const { error } = await supabase.functions.invoke('admin-actions', {
+    body: { action: 'update-profile', userId, nama, peran, schoolId, cakupan: cakupanArr },
+  });
+  if (error) throw new Error(await edgeErrorDetail(error, 'Edge Function admin-actions gagal dipanggil.'));
 }
 
 export async function resetPasswordAction({ userId, username }) {
   const { data, error } = await supabase.functions.invoke('create-user', {
     body: { reset_user_id: userId, reset_username: username },
   });
-  if (error) throw new Error(error.message || 'Edge Function create-user (reset) gagal dipanggil.');
+  if (error) throw new Error(await edgeErrorDetail(error, 'Edge Function create-user (reset) gagal dipanggil.'));
   return data;
 }
 
@@ -347,7 +377,7 @@ export async function bulkResetPasswordAction(users) {
   const { data, error } = await supabase.functions.invoke('create-user', {
     body: { reset_users: users.map((u) => ({ user_id: u.id, username: u.username })) },
   });
-  if (error) throw new Error(error.message || 'Edge Function create-user (bulk reset) gagal dipanggil.');
+  if (error) throw new Error(await edgeErrorDetail(error, 'Edge Function create-user (bulk reset) gagal dipanggil.'));
   return data.results;
 }
 

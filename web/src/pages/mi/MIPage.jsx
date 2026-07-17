@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { supabase } from "../../lib/supabase";
+import { supabase, fetchAllRows } from "../../lib/supabase";
 import { MI_META, MI_BY_CODE, processOutputMI } from "./miMeta";
 import StatTile from "../../components/StatTile";
 import RadarChart from "../../components/charts/RadarChart";
@@ -83,33 +83,26 @@ function KelasTable({ kelasList }) {
 }
 
 function ErrorState({ message, onRetry }) {
-  const isToken  = message?.includes("Token") || message?.includes("kedaluwarsa") || message?.includes("tidak valid");
-  const isSetup  = !isToken && (message?.includes("Sheet") || message?.includes("Cakupan") || message?.includes("langganan") || message?.includes("Workbook") || message?.includes("dikonfigurasi"));
+  const isToken = message?.includes("JWT") || message?.toLowerCase().includes("token");
 
   return (
     <div className={styles.stateBox}>
       <div className={styles.stateIcon}>!</div>
-      <h3 className={styles.stateTitle}>
-        {isToken ? "Sesi berakhir" : isSetup ? "Sheets belum terhubung" : "Gagal memuat data"}
-      </h3>
+      <h3 className={styles.stateTitle}>{isToken ? "Sesi berakhir" : "Gagal memuat data"}</h3>
       <p className={styles.stateMsg}>
         {isToken
           ? "Sesi login sudah berakhir. Klik Keluar di kanan atas lalu masuk kembali."
           : message}
       </p>
-      {isSetup && (
-        <p className={styles.setupHint}>
-          Pastikan spreadsheet kontrol sudah punya sheet: <code>Akses_Kapabilitas</code>,{" "}
-          <code>Akses_Cakupan</code>, <code>Langganan</code>, <code>Registry</code>, dan
-          workbook data sekolah punya sheet <code>Fakta_Aspek</code>.
-        </p>
-      )}
       {!isToken && <button className={styles.retryBtn} onClick={onRetry}>Coba lagi</button>}
     </div>
   );
 }
 
-// Tentukan kecerdasan dominan dari skor kolom mi_hasil
+// Fallback kalau mi_hasil.detail belum ada isinya: tebak dominan dari skor mentah (argmax).
+// Dipakai HANYA kalau top_1_final (dari detail->>top_1, nilai final hulu) tidak tersedia --
+// argmax lokal ini tidak tahu aturan pemutus seri yang mungkin dipakai hulu, jadi bukan
+// sumber utama.
 function deriveTop1(row) {
   const entries = [
     ["Ie", row.skor_inter], ["Ia", row.skor_intra], ["Ki", row.skor_kines],
@@ -126,7 +119,10 @@ function deriveTop1(row) {
 function toProcessable(row) {
   return {
     kelas_id:     row.kelas_id,
-    top_1:        deriveTop1(row),
+    // top_1_final dibaca langsung dari mi_hasil.detail->>top_1 (nilai final pipeline hulu,
+    // sama dengan yang dilihat murid di laporan individunya sendiri -- lihat SiswaPage.jsx).
+    // deriveTop1 cuma fallback kalau baris itu belum ada detail-nya.
+    top_1:        row.top_1_final || deriveTop1(row),
     r_inter:      row.skor_inter,
     r_intra:      row.skor_intra,
     r_kines:      row.skor_kines,
@@ -143,17 +139,38 @@ function useMIData(session) {
   const [rows, setRows]       = useState(null);
   const [tl, setTl]           = useState(null);
   const [error, setError]     = useState(null);
+  const [tlError, setTlError] = useState(null);
 
   async function fetch_() {
     setLoading(true);
     setError(null);
+    setTlError(null);
 
+    // Periode terbaru dulu -- tanpa ini, murid yang dites di lebih dari satu bulan terhitung
+    // dobel di semua statistik sekolah (Siswa terpetakan, distribusi dominan, dst).
+    const { data: periodeRows } = await supabase
+      .from("mi_hasil")
+      .select("periode_id")
+      .eq("sekolah_id", session.school_id)
+      .eq("status", "disetujui")
+      .not("periode_id", "is", null)
+      .order("periode_id", { ascending: false })
+      .limit(1);
+    const latestPeriode = periodeRows?.[0]?.periode_id || null;
+
+    // mi_hasil bisa lewat batas diam-diam 1000 baris Supabase untuk sekolah besar, jadi
+    // dipaginasi penuh. top_1_final diambil langsung dari detail->>top_1 (nilai final hulu,
+    // sama dengan yang dilihat murid di laporannya sendiri), bukan dihitung ulang dari skor.
     const [{ data, error: err }, { data: tlData, error: tlErr }] = await Promise.all([
-      supabase
-        .from("mi_hasil")
-        .select("murid_id, kelas_id, skor_inter, skor_intra, skor_kines, skor_linguistik, skor_logmat, skor_musikal, skor_naturalis, skor_spasial")
-        .eq("sekolah_id", session.school_id)
-        .eq("status", "disetujui"),
+      fetchAllRows((from, to) => {
+        let q = supabase
+          .from("mi_hasil")
+          .select("murid_id, kelas_id, skor_inter, skor_intra, skor_kines, skor_linguistik, skor_logmat, skor_musikal, skor_naturalis, skor_spasial, top_1_final:detail->>top_1")
+          .eq("sekolah_id", session.school_id)
+          .eq("status", "disetujui");
+        if (latestPeriode) q = q.eq("periode_id", latestPeriode);
+        return q.range(from, to);
+      }),
       supabase
         .from("tindak_lanjut")
         .select("id, action, trigger_desc, priority")
@@ -166,24 +183,31 @@ function useMIData(session) {
     if (err) setError(err.message);
     else setRows(data || []);
 
-    if (!tlErr) setTl(tlData || []);
+    if (tlErr) setTlError(tlErr.message);
+    else setTl(tlData || []);
 
     setLoading(false);
   }
 
   useEffect(() => { fetch_(); }, [session.school_id]);
 
-  return { loading, rows, tl, error, refetch: fetch_ };
+  return { loading, rows, tl, error, tlError, refetch: fetch_ };
 }
 
 // ── Komponen utama ───────────────────────────────────────────────────────────
 export default function MIPage({ session }) {
-  const { loading, rows, tl: tlRows, error, refetch } = useMIData(session);
+  const { loading, rows, tl: tlRows, error, tlError, refetch } = useMIData(session);
 
   const hasData  = Array.isArray(rows) && rows.length > 0;
-  const isSample = !hasData;
-
   const hasTl = Array.isArray(tlRows) && tlRows.length > 0;
+  // Statistik sample HANYA tampil kalau benar-benar tidak ada data apa pun (MI maupun tindak
+  // lanjut). Kalau tindak lanjut asli sudah ada tapi mi_hasil belum, statistik contoh
+  // disembunyikan sama sekali (angka pemicu di kartu tindak lanjut, mis. "48% siswa", tidak
+  // akan pernah cocok dengan statistik contoh yang acak) -- diganti pesan kosong yang jujur.
+  const isSample = !hasData && !hasTl;
+  const showStatsEmpty = !hasData && hasTl;
+  // Kalau query tindak lanjut gagal (bukan sekadar kosong), jangan tampilkan tindak lanjut
+  // CONTOH seolah itu data asli sekolah -- tampilkan pesan gagal di bagian itu saja.
   const tl = hasTl
     ? tlRows.map((r) => ({
         id: r.id,
@@ -192,8 +216,8 @@ export default function MIPage({ session }) {
         module: "mi",
         priority: r.priority,
       }))
-    : SAMPLE_TINDAK_LANJUT;
-  const tlIsSample = !hasTl;
+    : tlError ? [] : SAMPLE_TINDAK_LANJUT;
+  const tlIsSample = !hasTl && !tlError;
 
   // Hitung agregat
   let processed;
@@ -221,7 +245,9 @@ export default function MIPage({ session }) {
   const radarAxes = MI_META.map((m) => ({
     label: m.name,
     short: m.code,
-    value: miAvg[m.code] || 0,
+    // Biarkan null (bukan 0) kalau belum ada satu murid pun bernilai di kecerdasan ini --
+    // RadarChart sudah aman menerima null, jangan bohongi jadi skor 0.
+    value: miAvg[m.code],
     max: 100,
     color: m.color,
   }));
@@ -248,71 +274,86 @@ export default function MIPage({ session }) {
         {isSample && <SampleTag />}
       </div>
 
-      {/* ── Stat tiles ── */}
-      <div className={styles.tiles}>
-        <StatTile label="Siswa terpetakan" value={nSiswa} sub={`${nKelas} kelas`} />
-        <StatTile
-          label="Kecerdasan terbanyak"
-          value={topPct}
-          unit="%"
-          sub={`${topMI.name} · ${topMI.n} siswa`}
-        />
-        <StatTile label="Kelas dipetakan" value={nKelas} />
-        <StatTile
-          label="Tindak lanjut aktif"
-          value={tl.length}
-          tone={tl.some((t) => t.priority === "tinggi") ? "perhatian" : "default"}
-        />
-      </div>
-
-      {/* ── Sebaran kecerdasan ── */}
-      <section className={styles.section}>
-        <SectionHeading
-          title="Sebaran Kecerdasan Dominan"
-          subtitle="Jumlah siswa per kecerdasan terkuat. Kanan: rata-rata index seluruh kelas."
-        />
-        <div className={styles.sebaranGrid}>
-          {/* Bar list */}
-          <div className={styles.card}>
-            <p className={styles.cardTitle}>Distribusi kecerdasan dominan</p>
-            <p className={styles.cardSub}>n = {nSiswa} siswa · satu kecerdasan terkuat per siswa</p>
-            <MIBarList items={miDist} total={nSiswa} />
-          </div>
-
-          {/* Radar */}
-          <div className={styles.card}>
-            <p className={styles.cardTitle}>Profil rata-rata sekolah</p>
-            <p className={styles.cardSub}>Index 0–100 per kecerdasan</p>
-            <div className={styles.radarWrap}>
-              <RadarChart axes={radarAxes} size={260} />
-            </div>
-            <div className={styles.insightBox}>
-              <span className={styles.insightLabel}>Ringkasan</span>
-              <p className={styles.insightText}>
-                Kecerdasan paling umum adalah <strong>{topMI.name}</strong> ({topMI.n} siswa · {topPct}%).
-                Metode {topMI.tagline.toLowerCase()} akan menjangkau paling banyak siswa di sekolah ini.
-              </p>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* ── Per kelas ── */}
-      <section className={styles.section}>
-        <SectionHeading
-          title="Breakdown per Kelas"
-          subtitle="Kecerdasan dominan terbanyak di tiap kelas."
-        />
+      {showStatsEmpty ? (
         <div className={styles.card}>
-          <KelasTable kelasList={kelasList} />
+          <p className={styles.statsEmptyNote}>
+            Data hasil Multiple Intelligence belum diunggah untuk sekolah ini. Tindak lanjut di
+            bawah tetap ditampilkan karena sudah disetujui.
+          </p>
         </div>
-      </section>
+      ) : (
+        <>
+          {/* ── Stat tiles ── */}
+          <div className={styles.tiles}>
+            <StatTile label="Siswa terpetakan" value={nSiswa} sub={`${nKelas} kelas`} />
+            <StatTile
+              label="Kecerdasan terbanyak"
+              value={topPct}
+              unit="%"
+              sub={`${topMI.name} · ${topMI.n} siswa`}
+            />
+            <StatTile label="Kelas dipetakan" value={nKelas} />
+            <StatTile
+              label="Tindak lanjut aktif"
+              value={tl.length}
+              tone={tl.some((t) => t.priority === "tinggi") ? "perhatian" : "default"}
+            />
+          </div>
+
+          {/* ── Sebaran kecerdasan ── */}
+          <section className={styles.section}>
+            <SectionHeading
+              title="Sebaran Kecerdasan Dominan"
+              subtitle="Jumlah siswa per kecerdasan terkuat. Kanan: rata-rata index seluruh kelas."
+            />
+            <div className={styles.sebaranGrid}>
+              {/* Bar list */}
+              <div className={styles.card}>
+                <p className={styles.cardTitle}>Distribusi kecerdasan dominan</p>
+                <p className={styles.cardSub}>n = {nSiswa} siswa · satu kecerdasan terkuat per siswa</p>
+                <MIBarList items={miDist} total={nSiswa} />
+              </div>
+
+              {/* Radar */}
+              <div className={styles.card}>
+                <p className={styles.cardTitle}>Profil rata-rata sekolah</p>
+                <p className={styles.cardSub}>Index 0–100 per kecerdasan</p>
+                <div className={styles.radarWrap}>
+                  <RadarChart axes={radarAxes} size={260} />
+                </div>
+                <div className={styles.insightBox}>
+                  <span className={styles.insightLabel}>Ringkasan</span>
+                  <p className={styles.insightText}>
+                    Kecerdasan paling umum adalah <strong>{topMI.name}</strong> ({topMI.n} siswa · {topPct}%).
+                    Metode {topMI.tagline.toLowerCase()} akan menjangkau paling banyak siswa di sekolah ini.
+                  </p>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          {/* ── Per kelas ── */}
+          <section className={styles.section}>
+            <SectionHeading
+              title="Breakdown per Kelas"
+              subtitle="Kecerdasan dominan terbanyak di tiap kelas."
+            />
+            <div className={styles.card}>
+              <KelasTable kelasList={kelasList} />
+            </div>
+          </section>
+        </>
+      )}
 
       {/* ── Tindak lanjut ── */}
-      <FollowupRibbon
-        items={tl.filter((t) => t.module === "mi" || !t.module)}
-        isSample={tlIsSample}
-      />
+      {tlError ? (
+        <p className={styles.tlErrorNote}>Gagal memuat tindak lanjut: {tlError}</p>
+      ) : (
+        <FollowupRibbon
+          items={tl.filter((t) => t.module === "mi" || !t.module)}
+          isSample={tlIsSample}
+        />
+      )}
     </div>
   );
 }
