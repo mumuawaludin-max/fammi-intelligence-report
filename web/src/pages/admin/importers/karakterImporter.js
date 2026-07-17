@@ -1,9 +1,14 @@
 import * as XLSX from 'xlsx';
 import { supabase } from '../../../lib/supabase';
 
+// parseFloat berhenti diam-diam di karakter koma ("84,67" -> 84, bukan 84.67) -- kalau ada
+// sekolah yang sel skornya berformat Indonesia (koma desimal) alih-alih titik, skor yang
+// ditulis ke karakter_skor/karakter_skor_indikator bisa salah 1 poin tanpa error apa pun.
+// Verifikasi nyata: ringkasan jenjang KB TK Istiqamah menyimpan "84,12 %" dkk untuk
+// rata_pencapaian_orangtua -- ganti koma ke titik dulu sebelum parseFloat.
 function pct(v) {
   if (v === '' || v === null || v === undefined) return null;
-  const n = parseFloat(String(v).replace('%', '').trim());
+  const n = parseFloat(String(v).replace('%', '').replace(',', '.').trim());
   return Number.isFinite(n) ? Math.round(n) : null;
 }
 
@@ -55,9 +60,9 @@ function parseBulan(raw) {
     return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, '0')}`;
   }
   const s = String(raw).trim();
-  let m = s.match(/^(\d{4})[-\/](\d{1,2})/);
+  let m = s.match(/^(\d{4})[-/](\d{1,2})/);
   if (m) return `${m[1]}-${String(parseInt(m[2], 10)).padStart(2, '0')}`;
-  m = s.match(/^(\d{1,2})[-\/](\d{4})$/);
+  m = s.match(/^(\d{1,2})[-/](\d{4})$/);
   if (m) return `${m[2]}-${String(parseInt(m[1], 10)).padStart(2, '0')}`;
   const parts = s.toLowerCase().replace(/[^a-z0-9 ]/g, ' ').trim().split(/\s+/).filter(Boolean);
   if (parts.length >= 2) {
@@ -257,13 +262,23 @@ export async function parseKarakterWorkbook(file, { sekolahId }) {
     if (!periode) { badRows.push(`detail_pernyataan_orangtua baris ${i + 2} (bulan)`); return; }
     if (!kelas) { badRows.push(`detail_pernyataan_orangtua baris ${i + 2} (kelas)`); return; }
     countPeriode(periode);
+    // Dulu 6 kolom di bawah dibaca lewat properti langsung (r.pernyataan_orangtua dst),
+    // beda dari nama/kelas/bulan yang sudah lebih dulu case/spasi-toleran lewat getField().
+    // Bahaya nyatanya: kalau SATU SAJA kolom di header file beda kapitalisasi/spasi dari
+    // yang persis diharapkan, baris tetap ikut ter-insert (tidak masuk badRows sama sekali,
+    // karena kelas/bulan/nama-nya tetap lengkap) tapi kolom itu diam-diam jadi NULL untuk
+    // SEMUA baris -- persis yang terjadi di KB TK Istiqamah: 573/573 baris punya kolom
+    // "pernyataan" (testimoni orangtua) kosong padahal 6 kolom lain di sheet yang sama
+    // terisi penuh, ternyata cuma beda kapitalisasi/spasi di satu nama kolom itu saja.
+    // getField() sama-sama case/spasi-toleran seperti nama/kelas/bulan, jadi sekarang aman
+    // dari kelas bug yang sama untuk keenam kolom ini.
     pernyataanRows.push({
       sekolah_id: sekolahId, kelas_id: kelas, murid_id: muridId(nama), nama_murid: nama,
       periode_id: periode,
-      kategori_pernyataan: r.kategori_pernyataan, pernyataan: r.pernyataan_orangtua,
-      emosi_anak: r.emosi_anak, alasan_emosi: r.alasan_emosi_anak,
-      dukungan_dibutuhkan: r.dukungan_yang_dibutuhkan_orangtua, dukungan_lainnya: r.dukungan_lainya,
-      hal_disyukuri: r.hal_yang_disyukuri_orangtua, status: 'disetujui',
+      kategori_pernyataan: getField(r, 'kategori_pernyataan'), pernyataan: getField(r, 'pernyataan_orangtua'),
+      emosi_anak: getField(r, 'emosi_anak'), alasan_emosi: getField(r, 'alasan_emosi_anak'),
+      dukungan_dibutuhkan: getField(r, 'dukungan_yang_dibutuhkan_orangtua'), dukungan_lainnya: getField(r, 'dukungan_lainya', 'dukungan_lainnya'),
+      hal_disyukuri: getField(r, 'hal_yang_disyukuri_orangtua'), status: 'disetujui',
     });
   });
 
@@ -278,18 +293,24 @@ export async function parseKarakterWorkbook(file, { sekolahId }) {
     summaryByKey.set(`${scope}|${scopeId}|${periode}`, { sekolah_id: sekolahId, scope, scope_id: scopeId, periode_id: periode, ringkasan, status: 'disetujui' });
   }
   sk.forEach((r, i) => {
+    if (Object.values(r).every((v) => v === '')) return; // baris kosong beneran, bukan error
     const kelas = getField(r, 'kelas');
-    if (!kelas) return;
+    // Dulu di-skip diam-diam kalau kolom "kelas" tidak ketemu -- baris summary_kelas hilang
+    // tanpa jejak dan import tetap dilaporkan "sukses", padahal karakter_summary scope=kelas
+    // jadi kosong untuk sekolah itu (kelas baru tidak pernah muncul di Rekomendasi/Antrian).
+    // Sekarang gagal cepat dan kelihatan, sama seperti pengecekan periode di baris sebelahnya.
+    if (!kelas) { badRows.push(`summary_kelas baris ${i + 2} (kolom kelas kosong/tidak ditemukan, header yang ada: ${Object.keys(r).join(', ')})`); return; }
     const periode = ownBulan(r) || periodeDominan;
-    if (!periode) { badRows.push(`summary_kelas baris ${i + 2}`); return; }
+    if (!periode) { badRows.push(`summary_kelas baris ${i + 2} (bulan)`); return; }
     const { bulan, Kelas, kelas: kelasLower, ...rest } = r;
     pushSummary('kelas', kelas, periode, rest);
   });
   sj.forEach((r, i) => {
+    if (Object.values(r).every((v) => v === '')) return;
     const jenjang = getField(r, 'jenjang');
-    if (!jenjang) return;
+    if (!jenjang) { badRows.push(`summary_jenjang baris ${i + 2} (kolom jenjang kosong/tidak ditemukan, header yang ada: ${Object.keys(r).join(', ')})`); return; }
     const periode = ownBulan(r) || periodeDominan;
-    if (!periode) { badRows.push(`summary_jenjang baris ${i + 2}`); return; }
+    if (!periode) { badRows.push(`summary_jenjang baris ${i + 2} (bulan)`); return; }
     const { bulan, jenjang: jenjangLower, Jenjang, ...rest } = r;
     pushSummary('jenjang', jenjang, periode, rest);
   });

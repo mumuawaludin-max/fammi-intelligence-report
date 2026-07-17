@@ -22,7 +22,7 @@ function gapFor(latestPeriode) {
 }
 
 /** Hook data utama CMS Admin Fammi. Baca-baca lintas sekolah (RLS admin_all). */
-export function useAdminCmsData(session) {
+export function useAdminCmsData() {
   const [state, setState] = useState({ loading: true, error: null, data: null });
 
   const fetchAll = useCallback(async () => {
@@ -244,7 +244,7 @@ export async function toggleModuleAction(schoolId, modul, nextOn) {
   if (error) throw new Error(error.message);
 }
 
-export async function addSchoolAction({ nama, jenjang, yayasanId, modules }) {
+export async function addSchoolAction({ nama, yayasanId, modules }) {
   const id = nama.toUpperCase().replace(/[^A-Z0-9]+/g, '-').replace(/(^-|-$)/g, '').slice(0, 40);
   const { error: schoolErr } = await supabase.from('schools').insert({ id, nama, yayasan_id: yayasanId || null, aktif: true });
   if (schoolErr) throw new Error(schoolErr.message);

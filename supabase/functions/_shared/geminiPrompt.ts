@@ -212,11 +212,15 @@ PENTING soal granularitas, jangan cuma ambil satu wakil per fokus lalu berhenti:
   berbeda, bukan sekadar dua sebutan untuk kelemahan yang sama), masing-masing berhak
   jadi rekomendasi mutu tersendiri, jangan dirangkum jadi satu rekomendasi umum
   "karakter lemah". Berlaku juga untuk indikator terkuat (fokus pertahankan).
-- Untuk citra, refleksi orang tua diberikan satu baris per orang tua (kategori, emosi
-  anak, dukungan dibutuhkan, hal disyukuri, kutipan). Perhatikan sebarannya: kalau ada
-  2 atau lebih kategori/kebutuhan yang berbeda topik dan sama-sama cukup sering muncul
-  di banyak orang tua berbeda, masing-masing berhak jadi rekomendasi citra tersendiri,
-  jangan dirangkum jadi satu rekomendasi umum "orang tua butuh komunikasi".
+- Untuk citra, dipakai DUA blok data yang saling melengkapi, jangan tertukar fungsinya:
+  blok "Hitungan TERPROGRAM refleksi orang tua" untuk tahu ANGKA persis tiap kategori/
+  kebutuhan (WAJIB dipakai untuk klaim jumlah dan "paling banyak", lihat instruksi wajib
+  di bagian data), dan daftar kutipan mentah satu baris per orang tua untuk NUANSA/kutipan
+  kualitatif saja. Lihat hitungan itu dulu sebelum menyimpulkan pola: kalau ada 2 atau
+  lebih kategori/kebutuhan yang berbeda topik dan sama-sama punya hitungan cukup tinggi,
+  masing-masing berhak jadi rekomendasi citra tersendiri, jangan dirangkum jadi satu
+  rekomendasi umum "orang tua butuh komunikasi", dan jangan menyebut satu kebutuhan
+  sebagai "paling banyak" kalau hitungannya bukan yang tertinggi di blok itu.
 - Jangan berhenti setelah menemukan satu temuan di tiap fokus hanya karena itu terasa
   "cukup". Periksa apakah ada temuan lain yang levelnya sama kuat sebelum menutup daftar.
 
@@ -973,6 +977,13 @@ code fence, tanpa teks lain di luar JSON, sesuai skema persis ini:
  * kategori/emosi/dukungan/hal_disyukuri antar orang tua dan mendeteksi kalau ada
  * BEBERAPA sinyal citra yang berbeda satu sama lain, bukan menganggap semuanya satu
  * sinyal tunggal hanya karena datanya kualitatif (bukan angka).
+ *
+ * CATATAN: hanya dipakai untuk contoh kutipan kualitatif (dibatasi 40 baris supaya
+ * prompt tidak membengkak). Untuk KLAIM ANGKA ("X orang tua butuh Y", "kategori paling
+ * banyak"), Gemini WAJIB pakai tallyOrtuRows() di bawah, bukan menghitung sendiri dari
+ * baris-baris ini -- LLM terbukti gampang salah hitung dari daftar teks panjang (lihat
+ * kasus nyata: klaim "16 orang tua" padahal tally asli 13, dan kebutuhan yang disebut
+ * "paling banyak" ternyata bukan yang tertinggi).
  */
 function ringkasOrtuRows(rows: any[]): string[] {
   const isi = (v: any) => (v && String(v).trim()) ? String(v).trim() : "(kosong)";
@@ -982,6 +993,97 @@ function ringkasOrtuRows(rows: any[]): string[] {
     .map((r) =>
       `kategori: ${isi(r.kategori_pernyataan)} | emosi anak: ${isi(r.emosi_anak)} | dukungan dibutuhkan: ${isi(r.dukungan_dibutuhkan)} | hal disyukuri: ${isi(r.hal_disyukuri)} | kutipan: "${isi(r.pernyataan)}"`
     );
+}
+
+// Katalog opsi multi-pilih, SAMA PERSIS dengan KATEGORI_PERNYATAAN_OPTIONS/DUKUNGAN_OPTIONS/
+// HAL_DISYUKURI_OPTIONS di web/src/pages/karakter/karakterMeta.js -- sengaja disalin, bukan
+// dipanggil lintas paket (Deno edge function terpisah dari bundel React), supaya angka yang
+// Gemini kutip identik dengan tab "Suara Orang Tua" yang nanti dilihat sekolah sendiri di FIR.
+// Kalau daftar opsi ini berubah di sisi frontend, salin ulang perubahannya ke sini juga.
+const TALLY_KATEGORI_OPTIONS: Array<[string, string]> = [
+  ["Ucapan Terimakasih", "Apresiasi"],
+  ["Harapan", "Harapan"],
+  ["Saran dan Masukan", "Saran & Masukan"],
+  ["Kritik", "Kritik"],
+];
+const TALLY_DUKUNGAN_OPTIONS: Array<[string, string]> = [
+  ["Kelas parenting tematik (misalnya: atasi tantrum, susah makan, screen time, dsb.)", "Kelas/seminar parenting tematik"],
+  ["Konsultasi ringan dengan guru secara pribadi (jika anak punya kesulitan khusus)", "Konsultasi pribadi dengan guru"],
+  ["Panduan sederhana untuk membantu pembiasaan anak di rumah", "Panduan pembiasaan di rumah"],
+  ["Rekomendasi aktivitas bermain yang bermakna (tanpa screen time berlebihan)", "Rekomendasi aktivitas bermain"],
+  ["Wadah komunikasi dua arah yang lebih fleksibel (grup WhatsApp, form umpan balik, dll.)", "Wadah komunikasi dua arah"],
+  ["Sesi diskusi reflektif bareng guru atau orangtua lain (berbagi pengalaman)", "Diskusi reflektif dengan orang tua lain"],
+  ["Saya belum tahu pasti, tapi ingin ikut terlibat lebih aktif bulan depan", "Ingin terlibat lebih aktif"],
+  ["Tidak ada yang saya butuhkan saat ini", "Tidak butuh dukungan tambahan"],
+];
+const TALLY_HAL_DISYUKURI_OPTIONS: Array<[string, string]> = [
+  ["Melihat Ananda mulai tumbuh kebiasaan positif", "Kebiasaan Positif Tumbuh"],
+  ["Guru atau sekolah menunjukkan kepedulian", "Kepedulian Sekolah"],
+  ["Ada perubahan kecil pada Ananda yang membuat saya terharu", "Perubahan yang Menyentuh"],
+  ["Ada momen kecil yang membuat saya merasa dekat kembali dengan Ananda", "Momen Lebih Dekat"],
+  ["Saya bersyukur karena bisa belajar lebih memahami Ananda", "Belajar Memahami Anak"],
+  ["bukan dari daftar di atas", "Hal Lain"],
+  ["Saya merasa terbantu karena sekolah memberi perhatian yang konsisten", "Perhatian Konsisten"],
+  ["Saya belum merasakan hal tertentu", "Masih Berproses"],
+  ["Belum ada yang bisa syukuri di bulan ini", "Belum Ada Bulan Ini"],
+];
+
+// "0" dipakai sebagai penanda tidak ada jawaban di field ini (sama seperti isNoAnswer di
+// karakterMeta.js) -- jangan dihitung sebagai orang tua yang menjawab.
+function tallyNoAnswer(raw: any): boolean {
+  return !raw || String(raw).trim() === "0";
+}
+
+/** Hitung berapa baris yang menyebut tiap opsi (satu baris bisa kena banyak opsi sekaligus), field multi-pilih gabungan koma. */
+function tallyMultiValue(rows: any[], field: string, options: Array<[string, string]>) {
+  const counts: Record<string, number> = Object.fromEntries(options.map(([, label]) => [label, 0]));
+  let totalMenjawab = 0;
+  for (const r of rows) {
+    const raw = r[field];
+    if (tallyNoAnswer(raw)) continue;
+    totalMenjawab++;
+    for (const [match, label] of options) {
+      if (String(raw).includes(match)) counts[label]++;
+    }
+  }
+  return { counts, totalMenjawab };
+}
+
+/** Tally emosi_anak (field single-pilih, beda dari field multi-pilih di atas). */
+function tallyEmosi(rows: any[]) {
+  const counts: Record<string, number> = {};
+  let total = 0;
+  for (const r of rows) {
+    const v = String(r.emosi_anak || "").trim();
+    if (tallyNoAnswer(v)) continue;
+    counts[v] = (counts[v] || 0) + 1;
+    total++;
+  }
+  return { counts, total };
+}
+
+/**
+ * Hitungan TERPROGRAM (bukan estimasi Gemini) untuk kategori_pernyataan/dukungan_dibutuhkan/
+ * hal_disyukuri/emosi_anak, dari SELURUH baris karakter_pernyataan_ortu cakupan ini (bukan
+ * cuma 40 baris contoh kutipan di ringkasOrtuRows). Ini sumber kebenaran satu-satunya untuk
+ * klaim angka "X orang tua ..." dan "kategori/kebutuhan paling banyak" di mengapa_data --
+ * IDENTIK dengan angka yang dihitung countMultiValue()/countEmosi() di frontend
+ * (karakterMeta.js) untuk tab "Suara Orang Tua", supaya klaim Gemini tidak pernah beda
+ * dengan yang sekolah lihat sendiri kalau mereka buka tab itu.
+ */
+function tallyOrtuRows(rows: any[]) {
+  const kategori = tallyMultiValue(rows, "kategori_pernyataan", TALLY_KATEGORI_OPTIONS);
+  const dukungan = tallyMultiValue(rows, "dukungan_dibutuhkan", TALLY_DUKUNGAN_OPTIONS);
+  const halDisyukuri = tallyMultiValue(rows, "hal_disyukuri", TALLY_HAL_DISYUKURI_OPTIONS);
+  const emosi = tallyEmosi(rows);
+  return {
+    catatan: "Angka di sini SUDAH DIHITUNG TERPROGRAM dari seluruh baris, bukan perkiraan. WAJIB dipakai persis untuk klaim jumlah/terbanyak, DILARANG menghitung ulang sendiri dari daftar kutipan mentah di bawah.",
+    total_orang_tua_mengisi: rows.length,
+    jenis_masukan: { total_menjawab: kategori.totalMenjawab, hitungan: kategori.counts },
+    dukungan_dibutuhkan: { total_menjawab: dukungan.totalMenjawab, hitungan: dukungan.counts },
+    hal_disyukuri: { total_menjawab: halDisyukuri.totalMenjawab, hitungan: halDisyukuri.counts },
+    emosi_anak: { total_menjawab: emosi.total, hitungan: emosi.counts },
+  };
 }
 
 /**
@@ -1076,10 +1178,13 @@ function siapkanRingkasanUntukGemini(
   return bersih;
 }
 
-export function buildUserPrompt({ role, scope, scope_id, modul, periode_id, ringkasan, kutipanOrtu, arahanReviewer, tipe, aspekLabels }) {
+export function buildUserPrompt({ role, scope, scope_id, modul, periode_id, ringkasan, kutipanOrtu, tallyOrtu, arahanReviewer, tipe, aspekLabels }) {
   const fakta = JSON.stringify(siapkanRingkasanUntukGemini(ringkasan, { scope, aspekLabels }), null, 2);
+  const tallyBlok = tallyOrtu
+    ? `\nHitungan TERPROGRAM refleksi orang tua (SUMBER KEBENARAN SATU-SATUNYA untuk klaim\nangka/jumlah/terbanyak soal orang tua -- lihat instruksi wajib di atas):\n${JSON.stringify(tallyOrtu, null, 2)}\n`
+    : "";
   const kutipanBlok = kutipanOrtu && kutipanOrtu.length > 0
-    ? `\nRefleksi orang tua periode ini, satu baris per orang tua (dipakai untuk temuan\nfokus citra, jangan lewatkan kalau ada beberapa kategori berbeda yang cukup sering muncul):\n${kutipanOrtu.map((k) => `- ${k}`).join("\n")}\n`
+    ? `\nContoh kutipan orang tua periode ini, satu baris per orang tua (HANYA untuk konteks\nkualitatif/nuansa dan bahan kutipan, BUKAN untuk dihitung sendiri jumlahnya -- pakai\nhitungan tally di atas untuk itu):\n${kutipanOrtu.map((k) => `- ${k}`).join("\n")}\n`
     : "";
   const arahanBlok = arahanReviewer && arahanReviewer.length > 0
     ? `\nArahan perbaikan dari reviewer sebelumnya, WAJIB dipatuhi semuanya di draf ini:\n${arahanReviewer.map((a) => `- ${a}`).join("\n")}\n`
@@ -1135,11 +1240,20 @@ ASAL DATA, WAJIB DIPAHAMI SEBELUM MENULIS APA PUN:
 - Di field mengapa_data, sebutkan bahwa angka itu adalah rata-rata capaian ${cakupanLabel}
   pada periode ${periode_id} (agregat semua siswa yang dinilai, bukan satu anak), supaya
   semua peran tahu data ini valid dan dari mana asalnya.
+- ANGKA SOAL ORANG TUA ("X orang tua ...", "kebutuhan/kategori paling banyak ..."), WAJIB
+  DIPATUHI: SELALU ambil dari blok "Hitungan TERPROGRAM refleksi orang tua" di bawah,
+  JANGAN PERNAH menghitung sendiri dari daftar contoh kutipan. Kalau menyebut kategori
+  atau kebutuhan "paling banyak"/"paling sering", itu HARUS benar-benar angka tertinggi
+  di hitungan tersebut -- cek semua nilainya dulu sebelum menyimpulkan mana yang tertinggi,
+  jangan menebak dari kesan membaca kutipan. Kesalahan yang pernah terjadi dan tidak boleh
+  terulang: menyebut "16 orang tua" padahal hitungan aslinya cuma 13 yang benar-benar
+  menjawab, dan menyebut kebutuhan tertentu "paling banyak" padahal ada kebutuhan lain
+  dengan hitungan lebih tinggi yang tidak disebut sama sekali.
 ${arahanBlok}
 Data kuantitatif AGREGAT untuk ${cakupanLabel} periode ${periode_id} (sumber kebenaran
 satu-satunya untuk angka, jangan pakai angka di luar ini):
 ${fakta}
-${kutipanBlok}`;
+${tallyBlok}${kutipanBlok}`;
 }
 
 export async function callGemini(apiKey: string, model: string, systemInstruction: string, prompt: string) {
@@ -1196,20 +1310,25 @@ export async function generateAndInsertDraft(
   // kutipan teks lepas. Ini yang bikin Gemini bisa mendeteksi ada BEBERAPA sinyal citra
   // yang berbeda (bukan cuma satu), sama seperti top5_indikator memberi beberapa sinyal
   // mutu berbeda lewat karakter_summary.
+  // TIDAK dibatasi .limit(60) lagi -- tallyOrtuRows() di bawah butuh SELURUH baris cakupan
+  // ini supaya hitungannya benar-benar akurat (limit lama diam-diam memotong scope='sekolah'
+  // yang besar, bikin tally maupun kutipan cuma mewakili sebagian orang tua, bukan semua).
+  // Kutipan teks yang dikirim ke prompt tetap dibatasi 40 lewat ringkasOrtuRows() sendiri.
   const ORTU_COLUMNS = "pernyataan, kategori_pernyataan, emosi_anak, alasan_emosi, dukungan_dibutuhkan, dukungan_lainnya, hal_disyukuri";
   let ortuRows: any[] = [];
   if (scope === "kelas" || scope === "murid") {
     const { data } = await db.from("karakter_pernyataan_ortu")
       .select(ORTU_COLUMNS).eq("sekolah_id", sekolah_id).eq("kelas_id", scope_id)
-      .eq("periode_id", periode_id).limit(60);
+      .eq("periode_id", periode_id);
     ortuRows = data || [];
   } else if (scope === "sekolah") {
     const { data } = await db.from("karakter_pernyataan_ortu")
       .select(ORTU_COLUMNS).eq("sekolah_id", sekolah_id)
-      .eq("periode_id", periode_id).limit(60);
+      .eq("periode_id", periode_id);
     ortuRows = data || [];
   }
   const kutipanOrtu = ringkasOrtuRows(ortuRows);
+  const tallyOrtu = ortuRows.length > 0 ? tallyOrtuRows(ortuRows) : null;
 
   // Arahan reviewer terdahulu untuk scope ini: memori perbaikan yang menumpuk dari
   // tiap regenerate, dipatuhi Gemini di semua generate berikutnya.
@@ -1226,7 +1345,7 @@ export async function generateAndInsertDraft(
   const aspekLabels: Record<string, string> = {};
   (aspekCfgRows || []).forEach((a: any) => { if (a.aspek_kode) aspekLabels[a.aspek_kode] = a.aspek_label; });
 
-  const prompt = buildUserPrompt({ role, scope, scope_id, modul, periode_id, ringkasan: summaryRow.ringkasan, kutipanOrtu, arahanReviewer, tipe, aspekLabels });
+  const prompt = buildUserPrompt({ role, scope, scope_id, modul, periode_id, ringkasan: summaryRow.ringkasan, kutipanOrtu, tallyOrtu, arahanReviewer, tipe, aspekLabels });
 
   if (tipe === "briefing") {
     const hasil = await callGemini(apiKey, model, SYSTEM_INSTRUCTION_BRIEFING, prompt);

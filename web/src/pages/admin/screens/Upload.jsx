@@ -105,9 +105,22 @@ export function Upload() {
             {['karakter', 'mi', 'screening'].map((m) => {
               const mc = moduleColor(m);
               const active = m === modul;
+              // Importer baru mendukung Karakter -- MI/Screening sengaja dinonaktifkan di sini
+              // (bukan cuma dibiarkan klik lalu gagal belakangan pas upload file) supaya tidak
+              // kelihatan seperti modul itu "ON tapi tidak bisa dipilih" padahal memang belum ada importernya.
+              const supported = m === 'karakter';
               return (
-                <button key={m} className="clk" onClick={() => setModul(m)} style={{ padding: '10px 14px', borderRadius: 11, fontSize: 12.5, fontWeight: 700, background: active ? mc.bg : 'var(--surface-soft)', color: active ? mc.ink : 'var(--ink-2)', boxShadow: active ? 'none' : 'inset 0 0 0 1px var(--line)' }}>
-                  {moduleShort(m)}
+                <button
+                  key={m} className="clk" onClick={() => supported && setModul(m)}
+                  disabled={!supported}
+                  title={supported ? undefined : 'Importer modul ini belum tersedia'}
+                  style={{
+                    padding: '10px 14px', borderRadius: 11, fontSize: 12.5, fontWeight: 700,
+                    background: active ? mc.bg : 'var(--surface-soft)', color: active ? mc.ink : 'var(--ink-2)',
+                    boxShadow: active ? 'none' : 'inset 0 0 0 1px var(--line)',
+                    opacity: supported ? 1 : 0.45, cursor: supported ? 'pointer' : 'not-allowed',
+                  }}>
+                  {moduleShort(m)}{!supported && ' · segera hadir'}
                 </button>
               );
             })}

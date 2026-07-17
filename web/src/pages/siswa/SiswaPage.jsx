@@ -1,5 +1,4 @@
 import { useState, useRef, useEffect, useCallback } from "react";
-import SampleTag from "../../components/SampleTag";
 import { supabase } from "../../lib/supabase";
 import { transformMIData, transformSupabaseMI } from "./miTransform";
 import styles from "./SiswaPage.module.css";
@@ -34,8 +33,6 @@ const T = {
   shadowMd:  "0 8px 20px rgba(20,20,26,0.07)",
   shadowSm:  "0 2px 8px rgba(20,20,26,0.06)",
 };
-const FONT_BODY = "'Plus Jakarta Sans', sans-serif";
-const FONT_DISP = "'Space Grotesk', sans-serif";
 // Laporan Bakat memakai Montserrat agar persis dengan design file.
 const MONT = "'Montserrat', sans-serif";
 
@@ -51,46 +48,6 @@ const LEVEL_STYLE = {
   Berkembang: { bg: T.ink100,   ink: T.textMuted },
 };
 
-// ── Sample data (referensi desain dark theme: Beranda/Karakter/Perasaan) ───────
-const SAMPLE_STUDENT = {
-  name: "Aisyah Putri Faisal",
-  panggilan: "Aisyah",
-  kelas: "X-A",
-  sekolah: "SMA Al Fath Cireundeu",
-  karakter: 86,
-  karakterTrend: "naik",
-};
-
-const SAMPLE_INTEL = [
-  { code: "Ie", name: "Interpersonal",    score: 23, level: "Kuat",       desc: "Kamu mudah memahami perasaan orang lain dan nyaman menjalin pertemanan. Teman-teman sering menjadikanmu tempat bercerita." },
-  { code: "Sp", name: "Spasial",          score: 22, level: "Kuat",       desc: "Kamu punya daya imajinasi visual yang kuat dan senang berkarya. Kamu menangkap bentuk, warna, dan ruang dengan baik." },
-  { code: "Ia", name: "Intrapersonal",    score: 19, level: "Sedang",     desc: "Kamu cukup mengenali perasaan dan tujuanmu sendiri. Terus diperkuat lewat kebiasaan refleksi." },
-  { code: "Ve", name: "Linguistik",       score: 18, level: "Sedang",     desc: "Kamu berkomunikasi dengan baik dalam keseharian. Latihan menulis dan berbicara akan menajamkan potensi ini." },
-  { code: "Na", name: "Naturalis",        score: 16, level: "Sedang",     desc: "Kamu menikmati kegiatan di alam dan peka terhadap lingkungan sekitar." },
-  { code: "Mu", name: "Musikal",          score: 15, level: "Sedang",     desc: "Kamu menikmati musik dan mampu mengikuti irama dengan baik." },
-  { code: "Lo", name: "Logika-Matematika",score: 13, level: "Berkembang", desc: "Kemampuan penalaran logismu sedang berkembang dan akan tumbuh dengan latihan bertahap." },
-  { code: "Ki", name: "Kinestetik",       score: 12, level: "Berkembang", desc: "Koordinasi gerakmu sedang berkembang. Aktivitas fisik yang menyenangkan akan membantu." },
-];
-
-const SAMPLE_DUKUNGAN = "Aku ingin difasilitasi untuk melukis, dan tidak terlalu banyak dikomentari soal apa yang sedang kukerjakan.";
-
-const SAMPLE_KARAKTER = [
-  { name: "Mandiri",              level: "Konsisten",    val: 92, trend: "naik",   note: "Kamu mengerjakan tugas dan keperluanmu tanpa banyak diingatkan." },
-  { name: "7 Kebiasaan Anak Hebat", level: "Konsisten", val: 88, trend: "naik",   note: "Kebiasaan baik harian seperti beribadah dan merapikan diri sudah melekat." },
-  { name: "Aktif",                level: "Sering Muncul",val: 85, trend: "naik",   note: "Kamu aktif bertanya dan ikut serta dalam kegiatan kelas." },
-  { name: "Terampil",             level: "Sering Muncul",val: 84, trend: "stabil", note: "Terampil berkarya, terutama dalam kegiatan seni dan kerajinan." },
-  { name: "Religius",             level: "Sering Muncul",val: 82, trend: "stabil", note: "Menjalankan ibadah dengan kesadaran sendiri." },
-  { name: "Santun",               level: "Kadang Muncul",val: 74, trend: "naik",   note: "Kesantunan dalam tutur kata sedang dibiasakan dan menunjukkan kemajuan." },
-];
-
-const SAMPLE_ASPEK = [
-  { name: "Tolong Menolong",  status: "aman",      teks: "Kamu mudah membantu teman dan peka pada keadaan sekitar." },
-  { name: "Relasi Pertemanan",status: "aman",      teks: "Kamu punya pertemanan yang sehat dan saling mendukung." },
-  { name: "Hiperaktivitas",   status: "aman",      teks: "Kamu mampu menjaga fokus dan tenang saat belajar." },
-  { name: "Emosional",        status: "perhatian", teks: "Kadang kamu memendam perasaan saat banyak pikiran. Tidak apa-apa, cerita ke orang yang kamu percaya bisa membantu." },
-  { name: "Agresi",           status: "aman",      teks: "Kamu jarang bereaksi kasar dan bisa menahan diri dengan baik." },
-];
-
 // ── Per-intelligence color + emoji (dark theme) ────────────────────────────────
 const INTEL_META = {
   Ie: { color: "#818CF8", bg: "rgba(129,140,248,0.16)", bd: "rgba(129,140,248,0.28)", emoji: "🤝", tagline: "Membaca & menjalin hubungan" },
@@ -102,23 +59,6 @@ const INTEL_META = {
   Na: { color: "#34D399", bg: "rgba(52,211,153,0.16)",  bd: "rgba(52,211,153,0.28)",  emoji: "🌿", tagline: "Alam, pola, dan makhluk hidup" },
   Sp: { color: "#A78BFA", bg: "rgba(167,139,250,0.16)", bd: "rgba(167,139,250,0.28)", emoji: "🎨", tagline: "Visual, ruang, dan gambar" },
 };
-
-const KAR_COLOR = {
-  "Konsisten":    "#B68CFF",
-  "Sering Muncul":"#9D6BFF",
-  "Kadang Muncul":"#FBBF24",
-  "Belum Muncul": "rgba(245,242,252,0.34)",
-};
-const INTEL_LEVEL_COLOR = {
-  "Kuat":       "#B68CFF",
-  "Sedang":     "#8B5CF6",
-  "Berkembang": "rgba(245,242,252,0.34)",
-};
-
-function calcWellbeing(aspek) {
-  const W = { aman: 100, perhatian: 64, waspada: 28 };
-  return Math.round(aspek.reduce((s, a) => s + (W[a.status] || 70), 0) / aspek.length);
-}
 
 // ════════════════════════════════════════════════════════════════════════════
 //  KONTEN DEFAULT LAPORAN BAKAT (handoff: Laporan Bakat Siswa.dc.html)
@@ -202,12 +142,6 @@ const PROFESI_DB = {
   "Anggota DPR / Hakim": { desc: "Merumuskan kebijakan publik sebagai legislator, atau menegakkan hukum dan keadilan sebagai hakim di pengadilan.", skills: ["Pemahaman hukum dan kebijakan publik yang mendalam", "Kemampuan negosiasi dan lobi yang strategis", "Integritas dan akuntabilitas yang tidak bisa dikompromikan"], jalur: "S1 Hukum atau Ilmu Politik. Untuk DPR, aktif di partai atau organisasi sejak dini. Untuk hakim, lewat rekrutmen MA yang ketat.", figur: ["Mahfud MD, mantan Ketua MK", "Susi Pudjiastuti (jalur alternatif kepemimpinan publik)"] },
 };
 
-const STUDI_KASUS = [
-  { name: "Farah R.", initials: "FR", color: "#0891B2", lightBg: "#E0F7FA", profile: "Linguistik 91, Interpersonal 86", tagline: "Dari debater ke jurnalis nasional", short: "Reporter di Kompas TV, usia 26 tahun", story: "Di SMA, Farah sering dianggap terlalu banyak bicara. Tapi seorang guru melihat sesuatu yang berbeda: dia selalu bisa membuat siapapun nyaman bercerita. Farah masuk Jurnalistik Unpad, aktif di Pers Mahasiswa, dan mulai magang di media lokal semester 5. Tiga tahun setelah lulus, dia meliput isu lingkungan untuk siaran nasional.", kunci: ["Konsisten menulis blog sejak kelas X, bahkan ketika tidak ada yang membaca", "Bergabung dengan debate club walau awalnya merasa tidak siap", "Berani magang jauh dari kota asal untuk memperluas jaringan"], catatan: "Farah tidak pernah merasa berbakat. Yang dia lakukan hanyalah terus menulis dan terus berbicara sampai akhirnya dunia mendengar." },
-  { name: "Rizky P.", initials: "RP", color: "#059669", lightBg: "#D1FAE5", profile: "Linguistik 89, Interpersonal 84", tagline: "Content creator dengan 800K subscribers", short: "YouTube dan podcast, tanpa jalur kuliah formal", story: "Rizky berhenti kuliah di semester 2 karena merasa tidak cocok dengan sistemnya. Dia mulai membuat video yang menjelaskan sejarah rumit dengan bahasa sederhana. Setahun pertama hampir tidak ada yang menonton. Tahun ketiga, satu videonya viral karena menjelaskan isu sosial dengan sangat jernih. Sekarang Rizky menjadi referensi edukasi bagi ratusan ribu pelajar.", kunci: ["Konsisten upload konten walau views sangat rendah di awal", "Fokus pada satu topik yang dia benar-benar peduli dan kuasai", "Berkolaborasi dengan kreator lain untuk terus belajar dan tumbuh"], catatan: "Butuh dua tahun sebelum hasilnya terlihat. Tapi dia tidak berhenti karena prosesnya sendiri sudah terasa benar." },
-  { name: "Amira S.", initials: "AS", color: "#7C3AED", lightBg: "#EDE9FE", profile: "Linguistik 90, Intrapersonal 82", tagline: "Pengacara HAM dan penulis muda", short: "Advokat di LBH, buku pertamanya terbit sebelum wisuda", story: "Amira tahu sejak SMA bahwa dia ingin membela orang-orang yang tidak punya suara. Dia masuk Fakultas Hukum, aktif di himpunan mahasiswa, dan magang di LBH semester 6. Sambil kuliah, dia menulis esai-esai tentang keadilan yang dibaca ribuan orang. Bukunya tentang hak anak terbit sebelum dia wisuda, dan menjadi referensi di beberapa seminar nasional.", kunci: ["Menulis jurnal refleksi setiap malam sejak kelas XI, tanpa jeda", "Bergabung dengan organisasi yang sejalan dengan nilai-nilainya", "Membangun kebiasaan membaca lintas bidang, dari filsafat hingga ekonomi"], catatan: "Amira memilih jalur yang lebih sepi dari segi popularitas, tapi jauh lebih bermakna baginya. Dan itu keputusan yang dia buat sendiri, dengan sadar." },
-];
-
 const PATHS = [
   { emoji: "🎤", label: "Komunikator", tagline: "Suara yang menggerakkan", description: "Jalur untuk yang ingin idenya tersampaikan ke banyak orang, lewat panggung, kamera, atau podium.", color: "#6323DA", bgColor: T.violet100, inkColor: T.violet700, kegiatan: ["Muhadharah dan Khitobah", "MC acara", "Debat antar kelas", "Ketua OSIS atau BEM"], jurusan: ["Ilmu Komunikasi", "KPI (Komunikasi Penyiaran)", "Hubungan Internasional", "Sosiologi"], profesi: ["Public Speaker", "MC / Presenter"], parentTip: "Ajak dia tampil berbicara di acara keluarga besar. Rekam dan putar ulang bersama. Banggakan prosesnya, bukan hanya hasilnya." },
   { emoji: "📰", label: "Media dan Pena", tagline: "Kata-kata yang meninggalkan jejak", description: "Jalur untuk yang lebih suka mempengaruhi lewat tulisan, narasi, dan konten, tidak selalu harus di panggung.", color: "#0891B2", bgColor: "#E0F7FA", inkColor: "#006780", kegiatan: ["Jurnalistik dan mading", "Tulis opini atau cerita", "Podcast sekolah", "Lomba cipta puisi"], jurusan: ["Jurnalistik", "Sastra Indonesia atau Arab", "Komunikasi Digital", "Bahasa dan Sastra Inggris"], profesi: ["Jurnalis / Reporter", "Penulis & Editor", "Content Creator"], parentTip: "Belikan jurnal dan biarkan dia mengisinya bebas. Bacakan tulisannya tanpa mengoreksi. Eksplorasi bahasa perlu ruang dulu sebelum disempurnakan." },
@@ -289,9 +223,6 @@ const DEFAULT_DISKUSI = [
 const DEFAULT_MAPEL_KUASAI = ["Bahasa Indonesia", "Bahasa Inggris", "Bahasa Arab", "PPKn", "Sejarah", "Sosiologi"];
 const DEFAULT_MAPEL_TANTANG = ["Matematika", "Fisika", "Kimia"];
 
-const DEFAULT_KOMBINASI = "Bukan hanya pandai bicara. Kamu tahu cara membaca ruangan, memilih kata yang tepat untuk orang yang tepat, dan tahu kapan waktunya diam. Kombinasi ini tidak umum.";
-const DEFAULT_KOMBINASI_BOX = "Ini bahan dasar seorang pemimpin, negosiator, jurnalis, atau siapapun yang ingin membuat orang sungguh-sungguh bergerak, bukan sekadar mendengarkan.";
-
 // Contoh laporan bakat (dipakai saat data OUTPUT_MI belum tersedia). Persis design file.
 const SAMPLE_BAKAT = {
   student: { name: "Aisyah Putri Faisal", panggilan: "Aisyah", kelas: "Kelas X", sekolah: "MTs Al-Hikmah" },
@@ -312,177 +243,14 @@ const SAMPLE_BAKAT = {
   ],
 };
 
-// ════════════════════════════════════════════════════════════════════════════
-//  SVG CHARTS (dark theme: Beranda/Karakter/Perasaan)
-// ════════════════════════════════════════════════════════════════════════════
-
-function RingGauge({ value = 0, size = 104, stroke = 11, gradient, color = "#9D6BFF", track = "rgba(255,255,255,0.10)", label = "", suffix = "" }) {
-  const r = (size - stroke) / 2;
-  const circ = 2 * Math.PI * r;
-  const dash = Math.min(value / 100, 1) * circ;
-  const uid = `rg-${size}-${value}`;
-  return (
-    <div style={{ position: "relative", width: size, height: size, flexShrink: 0 }}>
-      <svg width={size} height={size} style={{ transform: "rotate(-90deg)" }}>
-        {gradient && (
-          <defs>
-            <linearGradient id={uid} x1="0%" y1="0%" x2="100%" y2="0%">
-              <stop offset="0%" stopColor={gradient[0]} />
-              <stop offset="100%" stopColor={gradient[1]} />
-            </linearGradient>
-          </defs>
-        )}
-        <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke={track} strokeWidth={stroke} />
-        <circle cx={size / 2} cy={size / 2} r={r} fill="none"
-          stroke={gradient ? `url(#${uid})` : color}
-          strokeWidth={stroke} strokeLinecap="round"
-          strokeDasharray={`${dash} ${circ}`}
-        />
-      </svg>
-      <div style={{ position: "absolute", inset: 0, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 1 }}>
-        <span style={{ fontSize: size < 80 ? 14 : size < 100 ? 18 : 22, fontWeight: 800, color: "#fff", lineHeight: 1, letterSpacing: "-.02em", fontFamily: FONT_DISP }}>
-          {value}{suffix}
-        </span>
-        {label && <span style={{ fontSize: 9, fontWeight: 700, color: "rgba(245,242,252,0.5)", textTransform: "uppercase", letterSpacing: ".06em" }}>{label}</span>}
-      </div>
-    </div>
-  );
-}
-
-function DonutChart({ segments = [], size = 132, stroke = 20, center, centerSub }) {
-  const r = (size - stroke) / 2;
-  const circ = 2 * Math.PI * r;
-  const total = segments.reduce((s, x) => s + x.value, 0) || 1;
-  let offset = 0;
-  const slices = segments.map((seg) => {
-    const dash = (seg.value / total) * circ;
-    const s = { ...seg, dash, offset: circ - offset };
-    offset += dash;
-    return s;
-  });
-  return (
-    <div style={{ position: "relative", width: size, height: size, flexShrink: 0 }}>
-      <svg width={size} height={size} style={{ transform: "rotate(-90deg)" }}>
-        {slices.map((s, i) => (
-          <circle key={i} cx={size / 2} cy={size / 2} r={r} fill="none"
-            stroke={s.color} strokeWidth={stroke}
-            strokeDasharray={`${Math.max(s.dash - 3, 0)} ${circ - Math.max(s.dash - 3, 0)}`}
-            strokeDashoffset={s.offset}
-          />
-        ))}
-      </svg>
-      <div style={{ position: "absolute", inset: 0, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center" }}>
-        <span style={{ fontSize: 26, fontWeight: 800, color: "#fff", lineHeight: 1, fontFamily: FONT_DISP }}>{center}</span>
-        {centerSub && <span style={{ fontSize: 10, fontWeight: 700, color: "rgba(245,242,252,0.5)", marginTop: 2 }}>{centerSub}</span>}
-      </div>
-    </div>
-  );
-}
-
-function SemiGauge({ value = 0, size = 260, label = "", sub = "" }) {
-  const cx = size / 2;
-  const R = (size - 40) / 2;
-  const stroke = 18;
-  const cy = R + stroke / 2 + 8;
-  const trackD = `M ${cx - R} ${cy} A ${R} ${R} 0 1 0 ${cx + R} ${cy}`;
-  const angle = Math.PI * (1 - value / 100);
-  const fillX = cx + R * Math.cos(angle);
-  const fillY = cy - R * Math.sin(angle);
-  const largeArc = value > 50 ? 1 : 0;
-  const fillD = value > 0 ? `M ${cx - R} ${cy} A ${R} ${R} 0 ${largeArc} 0 ${fillX} ${fillY}` : null;
-  const svgH = cy + stroke / 2 + 12;
-  const uid = `sg-${size}`;
-  return (
-    <div style={{ textAlign: "center" }}>
-      <svg width={size} height={svgH} viewBox={`0 0 ${size} ${svgH}`} style={{ overflow: "visible" }}>
-        <defs>
-          <linearGradient id={uid} x1="0%" y1="0%" x2="100%" y2="0%">
-            <stop offset="0%" stopColor="#6D28D9" />
-            <stop offset="100%" stopColor="#B68CFF" />
-          </linearGradient>
-        </defs>
-        <path d={trackD} fill="none" stroke="rgba(255,255,255,0.10)" strokeWidth={stroke} strokeLinecap="round" />
-        {fillD && <path d={fillD} fill="none" stroke={`url(#${uid})`} strokeWidth={stroke} strokeLinecap="round" />}
-        <text x={cx} y={cy - R * 0.32} textAnchor="middle" fill="#F5F2FC"
-          fontSize={Math.round(size * 0.136)} fontWeight="800" letterSpacing="-1"
-          fontFamily={FONT_DISP}>{value}</text>
-        {label && <text x={cx} y={cy - R * 0.06} textAnchor="middle" fill="rgba(245,242,252,0.52)" fontSize={11} fontWeight="700">{label}</text>}
-      </svg>
-      {sub && <p style={{ margin: "-4px 0 0", fontSize: 12.5, color: "rgba(245,242,252,0.52)", textAlign: "center" }}>{sub}</p>}
-    </div>
-  );
-}
-
-// ── Shared UI dark ─────────────────────────────────────────────────────────────
-function SCard({ children, style, glow }) {
-  return (
-    <div className={styles.sCard} style={{
-      boxShadow: glow
-        ? "0 18px 54px rgba(124,58,237,0.28), inset 0 1px 0 rgba(255,255,255,0.07)"
-        : "0 12px 36px rgba(0,0,0,0.34), inset 0 1px 0 rgba(255,255,255,0.05)",
-      ...style,
-    }}>{children}</div>
-  );
-}
-
-function SChip({ children, tone = "ungu", style: sx }) {
-  const map = {
-    ungu:     { fg: "#B68CFF", bg: "rgba(157,107,255,0.20)", bd: "rgba(157,107,255,0.34)" },
-    aman:     { fg: "#34D399", bg: "rgba(52,211,153,0.15)",  bd: "rgba(52,211,153,0.34)" },
-    perhatian:{ fg: "#FBBF24", bg: "rgba(251,191,36,0.15)",  bd: "rgba(251,191,36,0.34)" },
-  };
-  const c = map[tone] || map.ungu;
-  return (
-    <span style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 11.5, fontWeight: 700,
-      color: c.fg, background: c.bg, border: `1px solid ${c.bd}`, padding: "5px 11px",
-      borderRadius: 99, whiteSpace: "nowrap", ...sx }}>{children}</span>
-  );
-}
-
-function SHeading({ kicker, title, sub }) {
-  return (
-    <div style={{ marginBottom: 14 }}>
-      {kicker && <div style={{ fontSize: 11, fontWeight: 700, color: "#B68CFF", textTransform: "uppercase", letterSpacing: ".14em", marginBottom: 7, fontFamily: FONT_DISP }}>{kicker}</div>}
-      <h2 style={{ margin: 0, fontSize: 22, fontWeight: 800, letterSpacing: "-.02em", color: "#F5F2FC", lineHeight: 1.15 }}>{title}</h2>
-      {sub && <p style={{ margin: "6px 0 0", fontSize: 13.5, color: "rgba(245,242,252,0.52)", lineHeight: 1.5 }}>{sub}</p>}
-    </div>
-  );
-}
-
-function SHomeTip({ children }) {
-  return (
-    <div style={{ display: "flex", gap: 12, alignItems: "flex-start", padding: "16px 17px", background: "rgba(157,107,255,0.12)", borderRadius: 18, border: "1px solid rgba(157,107,255,0.28)" }}>
-      <span style={{ width: 34, height: 34, borderRadius: 11, background: "rgba(255,255,255,0.08)", color: "#B68CFF", display: "grid", placeItems: "center", flexShrink: 0 }}>
-        <IcSparkle size={17} />
-      </span>
-      <div>
-        <div style={{ fontSize: 12.5, fontWeight: 700, color: "#B68CFF", marginBottom: 4 }}>Yang bisa kamu coba</div>
-        <p style={{ margin: 0, fontSize: 13.5, lineHeight: 1.55, color: "rgba(245,242,252,0.76)" }}>{children}</p>
-      </div>
-    </div>
-  );
-}
-
-function STrend({ t, size = 13 }) {
-  if (t === "naik")  return <IcArrowUp size={size} style={{ color: "#34D399" }} />;
-  if (t === "turun") return <IcArrowDown size={size} style={{ color: "#FB7185" }} />;
-  return <IcMinus size={size} style={{ color: "rgba(245,242,252,0.34)" }} />;
-}
-
 // ── Inline icons ──────────────────────────────────────────────────────────────
 const S = { fill: "none", stroke: "currentColor", strokeWidth: 2, strokeLinecap: "round", strokeLinejoin: "round" };
 
-function IcHeart({ size = 20 }) { return <svg width={size} height={size} viewBox="0 0 24 24" {...S}><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>; }
-function IcShield({ size = 20 }) { return <svg width={size} height={size} viewBox="0 0 24 24" {...S}><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>; }
 function IcSparkle({ size = 20 }) { return <svg width={size} height={size} viewBox="0 0 24 24" fill="currentColor" stroke="none"><path d="M12 2l2.09 6.26L20 10l-5.91 1.74L12 18l-2.09-6.26L4 10l5.91-1.74z"/></svg>; }
 function IcArrowRight({ size = 18 }) { return <svg width={size} height={size} viewBox="0 0 24 24" {...S}><polyline points="9 18 15 12 9 6"/></svg>; }
 function IcArrowUp({ size = 14 }) { return <svg width={size} height={size} viewBox="0 0 24 24" {...S}><polyline points="18 15 12 9 6 15"/></svg>; }
-function IcArrowDown({ size = 14 }) { return <svg width={size} height={size} viewBox="0 0 24 24" {...S}><polyline points="6 9 12 15 18 9"/></svg>; }
-function IcMinus({ size = 14 }) { return <svg width={size} height={size} viewBox="0 0 24 24" {...S}><line x1="5" y1="12" x2="19" y2="12"/></svg>; }
-function IcCheckCircle({ size = 20 }) { return <svg width={size} height={size} viewBox="0 0 24 24" {...S}><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>; }
 function IcUsers({ size = 20 }) { return <svg width={size} height={size} viewBox="0 0 24 24" {...S}><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>; }
 function IcLogout({ size = 16 }) { return <svg width={size} height={size} viewBox="0 0 24 24" {...S}><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>; }
-function IcChat({ size = 16 }) { return <svg width={size} height={size} viewBox="0 0 24 24" {...S}><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>; }
 function IcHome({ size = 20 }) { return <svg width={size} height={size} viewBox="0 0 24 24" {...S}><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>; }
 // Ikon perjalanan mode terpandu (design system, garis 2px)
 function IcCompass({ size = 20 }) { return <svg width={size} height={size} viewBox="0 0 24 24" {...S}><circle cx="12" cy="12" r="10"/><polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76"/></svg>; }
@@ -539,78 +307,6 @@ function FammiOrb() {
         <img src="/favicon-512.png" alt="Fammi" style={{ width: 56, height: 56, objectFit: "contain" }} />
       </div>
     </div>
-  );
-}
-
-function IntelBadge({ code, size = 44 }) {
-  const m = INTEL_META[code] || {};
-  return (
-    <span style={{ width: size, height: size, borderRadius: Math.round(size * 0.28), background: m.bg || "rgba(157,107,255,0.18)", border: `1.5px solid ${m.bd || "rgba(157,107,255,0.28)"}`, display: "grid", placeItems: "center", flexShrink: 0, fontSize: Math.round(size * 0.5), lineHeight: 1 }}>
-      {m.emoji || code.slice(0, 2)}
-    </span>
-  );
-}
-
-// ════════════════════════════════════════════════════════════════════════════
-//  VIEW: BERANDA (dark)
-// ════════════════════════════════════════════════════════════════════════════
-function BerandaView({ student, intel, karakter, aspek, dukungan, setView }) {
-  const dom = intel.filter((i) => i.level === "Kuat");
-  const perhatian = aspek.filter((a) => a.status === "perhatian");
-  const well = aspek.length ? calcWellbeing(aspek) : 0;
-
-  return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 22 }}>
-      <SCard glow style={{ padding: "22px 20px", background: "linear-gradient(150deg, rgba(157,107,255,0.28), rgba(109,40,217,0.10) 60%, rgba(255,255,255,0.02))" }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <SChip><IcSparkle size={12} /> Semester ini</SChip>
-            <h2 style={{ margin: "12px 0 0", fontSize: 23, fontWeight: 800, letterSpacing: "-.02em", lineHeight: 1.15, color: "#fff" }}>
-              Halo, {student.panggilan}!
-            </h2>
-            <p style={{ margin: "8px 0 0", fontSize: 13.5, lineHeight: 1.55, color: "rgba(245,242,252,0.76)" }}>
-              Kamu berkembang pesat semester ini. Karaktermu makin kuat, bakatmu mulai bersinar, dan perasaanmu lagi cukup cerah.
-            </p>
-          </div>
-          {student.karakter ? <RingGauge value={student.karakter} size={104} stroke={11} gradient={["#C9B0FF", "#7C3AED"]} label="Karakter" /> : null}
-        </div>
-      </SCard>
-
-      {dom.length > 0 && (
-        <div>
-          <div style={{ fontSize: 11, fontWeight: 700, color: "#B68CFF", textTransform: "uppercase", letterSpacing: ".12em", marginBottom: 11, fontFamily: FONT_DISP }}>Kekuatan supermu</div>
-          <div style={{ display: "flex", gap: 11 }}>
-            {dom.map((it) => (
-              <SCard key={it.code} style={{ flex: 1, padding: "16px 15px", textAlign: "center" }}>
-                <IntelBadge code={it.code} size={44} />
-                <div style={{ marginTop: 11, fontSize: 14.5, fontWeight: 800, color: "rgba(245,242,252,1)", letterSpacing: "-.01em" }}>{it.name}</div>
-                <div style={{ marginTop: 3, fontSize: 11.5, fontWeight: 700, color: "#B68CFF" }}>{it.score}/100 · {it.level}</div>
-              </SCard>
-            ))}
-          </div>
-        </div>
-      )}
-
-      <div style={{ display: "flex", flexDirection: "column", gap: 11 }}>
-        <SJumpLink Icon={IcSparkle} title="Bakatmu" note={dom.length ? "Menonjol: " + dom.map((d) => d.name).join(" & ") : "Lihat peta kecerdasanmu"} onOpen={() => setView("bakat")} />
-      </div>
-    </div>
-  );
-}
-
-function SJumpLink({ Icon, title, note, tone, onOpen }) {
-  const col = tone === "perhatian" ? "#FBBF24" : "#B68CFF";
-  return (
-    <button onClick={onOpen} className={styles.sjump}>
-      <span style={{ width: 42, height: 42, borderRadius: 13, background: "rgba(157,107,255,0.20)", color: col, display: "grid", placeItems: "center", flexShrink: 0 }}>
-        <Icon size={21} />
-      </span>
-      <div style={{ flex: 1, minWidth: 0 }}>
-        <div style={{ fontSize: 14.5, fontWeight: 800, color: "rgba(245,242,252,1)" }}>{title}</div>
-        <div style={{ fontSize: 12, color: "rgba(245,242,252,0.52)", marginTop: 2 }}>{note}</div>
-      </div>
-      <IcArrowRight size={18} style={{ color: "rgba(245,242,252,0.34)", flexShrink: 0 }} />
-    </button>
   );
 }
 
@@ -859,7 +555,7 @@ function useDailyChecklist(studentKey) {
   const toggle = useCallback((id) => {
     setChecked((prev) => {
       const next = { ...prev, [id]: !prev[id] };
-      try { localStorage.setItem(storageKey, JSON.stringify(next)); } catch {}
+      try { localStorage.setItem(storageKey, JSON.stringify(next)); } catch { /* storage penuh atau diblokir, abaikan */ }
       return next;
     });
   }, [storageKey]);
@@ -1158,8 +854,6 @@ function BakatView({ student, intel, topDetails, mi, isSample, onLogout, modules
     const p = PROFESI_DB[name] || fromDetail || fromSorot || null;
     setDialog({ type: "profesi", data: { name, p } });
   };
-  const openStudi = (i) => setDialog({ type: "studi", data: STUDI_KASUS[i] });
-
   // Sumber data: kolom sheet bila ada, jika kosong pakai default
   const coverHead = mi?.narasiCover || COVER_HEADLINE[topCode] || COVER_HEADLINE.Ve;
   const keunikanTitle = KEUNIKAN_TITLE[topCode] || KEUNIKAN_TITLE.Ve;
@@ -2179,171 +1873,6 @@ function GuideChips({ n, eyebrow, title, color, bg, ink, items, onItem, chevron 
 }
 
 // ════════════════════════════════════════════════════════════════════════════
-//  VIEW: KARAKTER (dark)
-// ════════════════════════════════════════════════════════════════════════════
-function KarakterView({ karakter }) {
-  const levels = ["Konsisten", "Sering Muncul", "Kadang Muncul", "Belum Muncul"];
-  const counts = levels.map((lv) => ({ lv, n: karakter.filter((k) => k.level === lv).length }));
-  const segments = counts.filter((x) => x.n > 0).map((x) => ({ value: x.n, color: KAR_COLOR[x.lv] }));
-
-  return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 18 }}>
-      <SHeading kicker="Lencana Karakter" title="Karaktermu" sub="Enam kebiasaan baik yang kamu tumbuhkan di sekolah dan di rumah. Kumpulkan terus lencananya!" />
-      <SCard style={{ padding: "20px 18px 16px" }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 18 }}>
-          <DonutChart segments={segments} size={132} stroke={20} center={karakter.length} centerSub="Karakter" />
-          <div style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column", gap: 9 }}>
-            {counts.filter((x) => x.n > 0).map((x) => (
-              <div key={x.lv} style={{ display: "flex", alignItems: "center", gap: 9 }}>
-                <span style={{ width: 10, height: 10, borderRadius: 3, background: KAR_COLOR[x.lv], flexShrink: 0 }} />
-                <span style={{ fontSize: 12.5, color: "rgba(245,242,252,0.76)", fontWeight: 600, flex: 1 }}>{x.lv}</span>
-                <span style={{ fontSize: 14, fontWeight: 800, color: "rgba(245,242,252,1)" }}>{x.n}</span>
-              </div>
-            ))}
-          </div>
-        </div>
-      </SCard>
-      <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-        {karakter.map((k) => <BadgeCard key={k.name} k={k} />)}
-      </div>
-    </div>
-  );
-}
-
-function BadgeCard({ k }) {
-  const col = KAR_COLOR[k.level];
-  const earned = k.level === "Konsisten";
-  return (
-    <SCard style={{ padding: "15px 16px", display: "flex", alignItems: "center", gap: 15 }}>
-      <div style={{ position: "relative", flexShrink: 0 }}>
-        <RingGauge value={k.val} size={68} stroke={7} color={col} track="rgba(255,255,255,0.10)" suffix="%" />
-        {earned && (
-          <span style={{ position: "absolute", right: -2, bottom: -2, width: 22, height: 22, borderRadius: 99, background: "#9D6BFF", color: "#fff", display: "grid", placeItems: "center", border: "2px solid #0C0817", boxShadow: "0 0 12px rgba(157,107,255,0.7)" }}>
-            <IcCheckCircle size={13} />
-          </span>
-        )}
-      </div>
-      <div style={{ flex: 1, minWidth: 0 }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", marginBottom: 4 }}>
-          <h3 style={{ margin: 0, fontSize: 15, fontWeight: 800, color: "rgba(245,242,252,1)" }}>{k.name}</h3>
-          <SChip tone={k.level === "Kadang Muncul" ? "perhatian" : "ungu"} style={{ padding: "3px 9px", fontSize: 10.5 }}>
-            {k.level} <STrend t={k.trend} size={11} />
-          </SChip>
-        </div>
-        <p style={{ margin: 0, fontSize: 12.5, lineHeight: 1.5, color: "rgba(245,242,252,0.52)" }}>{k.note}</p>
-      </div>
-    </SCard>
-  );
-}
-
-// ════════════════════════════════════════════════════════════════════════════
-//  VIEW: PERASAAN (dark)
-// ════════════════════════════════════════════════════════════════════════════
-function PerasaanView({ aspek }) {
-  const perhatian = aspek.filter((a) => a.status === "perhatian");
-  const aman = aspek.filter((a) => a.status === "aman");
-  const well = calcWellbeing(aspek);
-
-  return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 18 }}>
-      <SHeading kicker="Cuaca Perasaan" title="Perasaanmu" sub="Gambaran lembut tentang perasaan dan pertemananmu. Ini bukan penilaian, cuma cara mengenali diri sendiri." />
-      <SCard style={{ padding: "20px 18px 16px" }}>
-        <div style={{ display: "flex", justifyContent: "center" }}>
-          <SemiGauge value={well} size={260} label="Kesejahteraan" sub="Perasaanmu secara umum lagi cerah" />
-        </div>
-        <div style={{ display: "flex", gap: 10, marginTop: 8 }}>
-          <div style={{ flex: 1, background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.11)", borderRadius: 14, padding: "12px 14px", display: "flex", alignItems: "center", gap: 11 }}>
-            <span style={{ fontSize: 26, fontWeight: 800, color: "#34D399", letterSpacing: "-.02em", lineHeight: 1, fontFamily: FONT_DISP }}>{aman.length}</span>
-            <span style={{ fontSize: 12, fontWeight: 700, color: "rgba(245,242,252,0.76)", lineHeight: 1.25 }}>Terasa baik</span>
-          </div>
-          <div style={{ flex: 1, background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.11)", borderRadius: 14, padding: "12px 14px", display: "flex", alignItems: "center", gap: 11 }}>
-            <span style={{ fontSize: 26, fontWeight: 800, color: "#FBBF24", letterSpacing: "-.02em", lineHeight: 1, fontFamily: FONT_DISP }}>{perhatian.length}</span>
-            <span style={{ fontSize: 12, fontWeight: 700, color: "rgba(245,242,252,0.76)", lineHeight: 1.25 }}>Bisa dirawat</span>
-          </div>
-        </div>
-      </SCard>
-      <div style={{ display: "flex", flexDirection: "column", gap: 11 }}>
-        {aspek.map((a) => <AspekCard key={a.name} a={a} />)}
-      </div>
-    </div>
-  );
-}
-
-function AspekCard({ a }) {
-  const ok = a.status === "aman";
-  const col = ok ? "#34D399" : "#FBBF24";
-  const bg  = ok ? "rgba(52,211,153,0.15)" : "rgba(251,191,36,0.15)";
-  return (
-    <SCard style={{ padding: "15px 17px", display: "flex", alignItems: "flex-start", gap: 13 }}>
-      <span style={{ width: 40, height: 40, borderRadius: 12, background: bg, color: col, display: "grid", placeItems: "center", flexShrink: 0 }}>
-        {ok ? <IcCheckCircle size={20} /> : <IcHeart size={20} />}
-      </span>
-      <div style={{ flex: 1, minWidth: 0 }}>
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8, marginBottom: 4 }}>
-          <span style={{ fontSize: 14.5, fontWeight: 700, color: "rgba(245,242,252,1)" }}>{a.name}</span>
-          <SChip tone={ok ? "aman" : "perhatian"} style={{ padding: "4px 9px", fontSize: 10.5 }}>{ok ? "Baik" : "Dirawat"}</SChip>
-        </div>
-        <p style={{ margin: 0, fontSize: 13, lineHeight: 1.5, color: "rgba(245,242,252,0.76)" }}>{a.teks}</p>
-      </div>
-    </SCard>
-  );
-}
-
-// ════════════════════════════════════════════════════════════════════════════
-//  NAV + HEADER (dark shell)
-// ════════════════════════════════════════════════════════════════════════════
-const NAV_ITEMS = [
-  { id: "bakat", label: "Bakat", Icon: IcSparkle },
-];
-
-function SiswaHeader({ student, onLogout }) {
-  return (
-    <header className={styles.sHeader}>
-      <div className={styles.sHeaderTop}>
-        <img src="/logo.png" alt="FammiR" style={{ height: 28, width: "auto", objectFit: "contain" }} />
-        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-          <SChip><IcSparkle size={12} /> Mode Siswa</SChip>
-          <button className={styles.sLogoutBtn} onClick={onLogout} title="Keluar">
-            <IcLogout size={15} />
-          </button>
-        </div>
-      </div>
-      <div className={styles.sHeaderProfile}>
-        <span className={styles.sAvatar}>{(student.panggilan || "S")[0]}</span>
-        <div style={{ minWidth: 0 }}>
-          <div style={{ fontSize: 11, fontWeight: 700, color: "#B68CFF", textTransform: "uppercase", letterSpacing: ".12em", fontFamily: FONT_DISP }}>Peta Diriku</div>
-          <h1 className={styles.sHeaderName}>{student.name}</h1>
-          {(student.kelas || student.sekolah) && (
-            <p style={{ margin: "2px 0 0", fontSize: 12, color: "rgba(245,242,252,0.52)" }}>
-              {[student.kelas, student.sekolah].filter(Boolean).join(" · ")}
-            </p>
-          )}
-        </div>
-      </div>
-    </header>
-  );
-}
-
-function SiswaBottomNav({ activeView, setView }) {
-  return (
-    <nav className={styles.sBottomNav}>
-      {NAV_ITEMS.map((n) => {
-        const active = n.id === activeView;
-        const Icon = n.Icon;
-        return (
-          <button key={n.id} className={`${styles.sNavBtn} ${active ? styles.sNavActive : ""}`} onClick={() => setView(n.id)}>
-            <span className={`${styles.sNavPill} ${active ? styles.sNavPillActive : ""}`}>
-              <Icon size={20} />
-            </span>
-            <span style={{ fontSize: 10.5, fontWeight: active ? 700 : 600, letterSpacing: ".01em" }}>{n.label}</span>
-          </button>
-        );
-      })}
-    </nav>
-  );
-}
-
-// ════════════════════════════════════════════════════════════════════════════
 //  MAIN PAGE
 // ════════════════════════════════════════════════════════════════════════════
 function useSiswaMI(session) {
@@ -2370,30 +1899,23 @@ function useSiswaMI(session) {
         setMi(transformed);
         setLoading(false);
       });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [session?.murid_id]);
 
   return { loading, mi };
 }
 
 export default function SiswaPage({ session, onLogout }) {
-  const [activeView, setActiveView] = useState("bakat");
   const mainRef = useRef(null);
 
   const { loading, mi } = useSiswaMI(session);
 
-  useEffect(() => {
-    if (mainRef.current) mainRef.current.scrollTop = 0;
-  }, [activeView]);
-
-  let student, intel, karakter, aspek, dukungan, topDetails;
+  let student, intel, topDetails;
   let isSample = false;
 
   if (mi) {
     student    = mi.student;
     intel      = mi.intel;
-    karakter   = mi.karakter;
-    aspek      = mi.aspek;
-    dukungan   = mi.dukungan;
     topDetails = mi.topDetails;
   }
 
@@ -2402,9 +1924,6 @@ export default function SiswaPage({ session, onLogout }) {
     student = SAMPLE_BAKAT.student;
     intel = SAMPLE_BAKAT.intel;
     topDetails = SAMPLE_BAKAT.topDetails;
-    karakter = SAMPLE_KARAKTER;
-    aspek = SAMPLE_ASPEK;
-    dukungan = SAMPLE_DUKUNGAN;
     isSample = true;
   }
 

@@ -11,10 +11,17 @@ export function withAspekColor(aspekRows = []) {
   }));
 }
 
-/** "87 %" / "87%" / 87 → 87 (number). Null kalau tidak bisa diparse. */
+/**
+ * "87 %" / "87%" / 87 / "84,67 %" (format Indonesia, koma desimal) → 87 / 85 (number).
+ * Null kalau tidak bisa diparse. parseFloat murni BERHENTI di karakter koma tanpa error
+ * ("84,67" -> 84, bukan 84.67) -- kalau tidak dikonversi ke titik dulu, nilai kayak
+ * "84,67 %" kepotong diam-diam jadi 84 alih-alih dibulatkan semestinya ke 85. Ini ditemukan
+ * dari data sungguhan (ringkasan jenjang KB TK Istiqamah pakai koma desimal untuk
+ * rata_pencapaian_orangtua), bukan cuma teori.
+ */
 export function pct(v) {
   if (v === null || v === undefined || v === "") return null;
-  const n = parseFloat(String(v).replace("%", "").trim());
+  const n = parseFloat(String(v).replace("%", "").replace(",", ".").trim());
   return Number.isFinite(n) ? Math.round(n) : null;
 }
 

@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { getSession, logoutSupabase } from "./lib/auth";
+import { getSession, logoutSupabase, refreshSessionModules } from "./lib/auth";
 import { useOverviewBriefing } from "./hooks/useOverviewBriefing";
 import { useAvailablePeriods } from "./hooks/useAvailablePeriods";
 import LoginPage from "./pages/LoginPage";
@@ -79,6 +79,21 @@ export default function App() {
         : { type: "bulanan", period: availablePeriods[0] }
     ));
   }, [isKepsekShell, availablePeriods]);
+
+  // session.modules dibaca sekali dari sessionStorage (lihat auth.js) -- kalau AdminFammi
+  // meng-ON/OFF-kan modul sekolah setelah user ini login, muat ulang halaman biasa tidak
+  // akan pernah mengambil perubahan itu tanpa baris ini, karena getSession() cuma baca cache
+  // lokal. Refresh sekali tiap App dimuat cukup untuk kasus "admin baru saja aktifkan modul,
+  // reload aja" tanpa perlu polling terus-menerus.
+  useEffect(() => {
+    if (!session) return;
+    let alive = true;
+    refreshSessionModules(session).then((next) => {
+      if (alive && next !== session) setSession(next);
+    });
+    return () => { alive = false; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [session?.user_id]);
 
   function handleLogin(newSession) {
     setSession(newSession);

@@ -17,5 +17,15 @@ export default defineConfig([
       globals: globals.browser,
       parserOptions: { ecmaFeatures: { jsx: true } },
     },
+    rules: {
+      // Destructuring cuma untuk buang properti dari ...rest (pola omit) itu disengaja.
+      'no-unused-vars': ['error', { ignoreRestSiblings: true }],
+    },
+  },
+  {
+    files: ['*.config.js'],
+    languageOptions: {
+      globals: globals.node,
+    },
   },
 ])

@@ -39,16 +39,18 @@ export function Antrian() {
       .map(s => ({ key: s.id, label: `${s.nama} (${sekolahCount[s.id]})` })),
   ];
 
-  async function handleSetujuiSemua() {
+  async function handleBulkAction(action) {
     if (items.length === 0) return;
     const label = f.sekolah !== 'all' ? sekolahOptions.find(o => o.key === f.sekolah)?.label.replace(/\s*\(\d+\)$/, '') : null;
     const ok = window.confirm(
-      `Setujui ${items.length} draf sekaligus${label ? ` untuk ${label}` : ''}? Semua opsi tindak lanjut/briefing di kartu yang sedang tampil (sesuai filter) langsung tayang ke sekolah.`
+      action === 'setuju'
+        ? `Setujui ${items.length} draf sekaligus${label ? ` untuk ${label}` : ''}? Semua opsi tindak lanjut/briefing di kartu yang sedang tampil (sesuai filter) langsung tayang ke sekolah.`
+        : `Tolak ${items.length} draf sekaligus${label ? ` untuk ${label}` : ''}? Semua draf di kartu yang sedang tampil (sesuai filter) akan ditolak dan bisa digenerate ulang.`
     );
     if (!ok) return;
-    setBulkBusy({ done: 0, total: items.length });
+    setBulkBusy({ kind: action, done: 0, total: items.length });
     for (const a of items) {
-      await actApproval(a.id, 'setuju');
+      await actApproval(a.id, action);
       setBulkBusy((s) => (s ? { ...s, done: s.done + 1 } : s));
     }
     setBulkBusy(null);
@@ -69,14 +71,24 @@ export function Antrian() {
           }}>{label}</button>
         ))}
         {tab === 'menunggu' && items.length > 0 && (
-          <button
-            className="btn-primary"
-            style={{ marginLeft: 'auto', padding: '9px 16px', fontSize: 12.5, background: 'var(--status-safe)' }}
-            disabled={!!bulkBusy}
-            onClick={handleSetujuiSemua}
-          >
-            {bulkBusy ? `Menyetujui ${bulkBusy.done}/${bulkBusy.total}…` : `✓ Setujui semua (${items.length})`}
-          </button>
+          <div style={{ marginLeft: 'auto', display: 'flex', gap: 8 }}>
+            <button
+              className="btn-primary btn-danger"
+              style={{ padding: '9px 16px', fontSize: 12.5 }}
+              disabled={!!bulkBusy}
+              onClick={() => handleBulkAction('tolak')}
+            >
+              {bulkBusy?.kind === 'tolak' ? `Menolak ${bulkBusy.done}/${bulkBusy.total}…` : `✕ Tolak semua (${items.length})`}
+            </button>
+            <button
+              className="btn-primary"
+              style={{ padding: '9px 16px', fontSize: 12.5, background: 'var(--status-safe)' }}
+              disabled={!!bulkBusy}
+              onClick={() => handleBulkAction('setuju')}
+            >
+              {bulkBusy?.kind === 'setuju' ? `Menyetujui ${bulkBusy.done}/${bulkBusy.total}…` : `✓ Setujui semua (${items.length})`}
+            </button>
+          </div>
         )}
       </div>
 

@@ -19,7 +19,7 @@ const initialState = {
 };
 
 export function CmsProvider({ session, children }) {
-  const { data, loading, error, refetch } = useAdminCmsData(session);
+  const { data, loading, error, refetch } = useAdminCmsData();
   const [state, setState] = useState(initialState);
   const toastTimer = useRef(null);
 

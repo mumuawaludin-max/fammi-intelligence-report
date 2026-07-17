@@ -859,6 +859,13 @@ export function ParentVoiceBento({ pernyataan, aspek, sekolahId, periodeId, seko
   const visibleRows = showAllQuotes ? rows : rows.slice(0, pageStep);
   const remainingCount = rows.length - visibleRows.length;
   const badgeIcon = activeItems.find((it) => it.label === effectiveValue)?.icon || "";
+  // Hitungan bar kiri (StatBarMiniList) menghitung SEMUA baris yang memilih kategori ini,
+  // tanpa peduli apakah orang tuanya juga menulis esai bebas -- banyak yang cuma centang
+  // kategori tanpa menulis apa-apa. matchedRows di kanan sudah difilter buang esai kosong
+  // (isBlankEssay), jadi angkanya wajar lebih kecil dari count di kiri, kadang sampai nol.
+  // Simpan selisihnya supaya pesan kosong di kanan menjelaskan alasannya, bukan sekadar
+  // "belum ada data" yang bikin count di kiri kelihatan salah/tidak konsisten.
+  const categoryTotalCount = !isNamesMode ? (activeItems.find((it) => it.label === effectiveValue)?.count || 0) : 0;
 
   return (
     <div className={styles.parentVoiceWrap}>
@@ -958,6 +965,10 @@ export function ParentVoiceBento({ pernyataan, aspek, sekolahId, periodeId, seko
                 </button>
               )}
             </>
+          ) : categoryTotalCount > 0 ? (
+            <p className={styles.briefingEmptyText}>
+              {categoryTotalCount} orang tua memilih "{effectiveValue}", tapi belum ada yang menuliskan pesan tertulis untuk periode ini.
+            </p>
           ) : (
             <p className={styles.briefingEmptyText}>Belum ada data untuk pilihan ini.</p>
           )}

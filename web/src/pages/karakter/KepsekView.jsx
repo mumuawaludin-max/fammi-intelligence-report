@@ -24,9 +24,14 @@ function JenjangPieGrid({ rows, aspek, onSelect }) {
       {rows.map((r) => {
         const rk = r.ringkasan;
         const guruPart = pct(rk?.pencapaian_guru);
-        const guruAch = avgAspek(rk, aspek, "rata_input_guru_");
+        // Pakai angka rata-rata jenjang yang SUDAH final dari ringkasan (kalau sheet-nya
+        // menyediakan field itu langsung, sama seperti level sekolah), baru fallback ke
+        // avgAspek (rata-rata dari skor per aspek yang masing-masing sudah dibulatkan
+        // sendiri-sendiri). Dua rute ini bisa beda 1pp karena pembulatan bertingkat --
+        // FIR tidak boleh menghitung ulang kalau angka finalnya sudah tersedia (CLAUDE.md).
+        const guruAch = pct(rk?.rata_pencapaian_guru) ?? avgAspek(rk, aspek, "rata_input_guru_");
         const ortuPart = pct(rk?.pencapaian_orangtua);
-        const ortuAch = avgAspek(rk, aspek, "rata_input_orangtua_");
+        const ortuAch = pct(rk?.rata_pencapaian_orangtua) ?? avgAspek(rk, aspek, "rata_input_orangtua_");
         const donutVal = guruAch ?? ortuAch;
         return (
           <button type="button" key={r.scope_id} className={styles.jenjangCard} onClick={() => onSelect(r)}>
@@ -214,6 +219,12 @@ export default function KepsekView({ session, periodeId }) {
           title="Perkembangan Karakter per Jenjang"
           subtitle={`Tiap jenjang punya satu diagram. "Jumlah murid yang dinilai" = berapa persen murid sudah dinilai; "Rata-rata karakter" = tingkat perkembangan karakternya (0-100%), dari sisi guru dan orang tua. Ini bukan nilai akademik. Klik satu jenjang untuk rinciannya per aspek.`}
         />
+        {aspek.length === 0 && jenjang.length > 0 && (
+          <p className={styles.emptyNote} style={{ marginBottom: 10 }}>
+            "Rata-rata karakter" tampil "—" karena konfigurasi aspek (karakter_aspek_config) untuk sekolah ini belum diatur,
+            padahal jumlah murid yang dinilai sudah terbaca. Perlu ditambahkan lewat Admin CMS sebelum angka ini bisa muncul.
+          </p>
+        )}
         <JenjangPieGrid rows={jenjang} aspek={aspek} onSelect={setSelectedJenjangDialog} />
       </section>
 

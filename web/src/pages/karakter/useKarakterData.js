@@ -2,6 +2,27 @@ import { useEffect, useMemo, useState } from "react";
 import { supabase } from "../../lib/supabase";
 import { withAspekColor, latestPeriode } from "./karakterMeta";
 
+const PAGE_SIZE = 1000; // batas default PostgREST per panggilan -- lewat ini, data terpotong diam-diam.
+
+/**
+ * Tabel per-murid/per-aspek (karakter_skor, karakter_skor_indikator, karakter_pernyataan_ortu)
+ * gampang lewat 1000 baris begitu sekolah punya banyak kelas/periode. queryFactory harus
+ * mengembalikan query builder BARU tiap dipanggil (builder Supabase sekali pakai per .range()).
+ */
+async function fetchAllRows(queryFactory) {
+  let from = 0;
+  let all = [];
+  for (;;) {
+    const { data, error } = await queryFactory().range(from, from + PAGE_SIZE - 1);
+    if (error) return { data: all, error };
+    const rows = data || [];
+    all = all.concat(rows);
+    if (rows.length < PAGE_SIZE) break;
+    from += PAGE_SIZE;
+  }
+  return { data: all, error: null };
+}
+
 async function fetchAspekConfig(sekolahId) {
   const { data } = await supabase
     .from("karakter_aspek_config")
@@ -56,21 +77,21 @@ export function useKarakterWaliKelas(session, periodeId) {
           .eq("sekolah_id", session.school_id)
           .eq("scope", "sekolah")
           .eq("scope_id", session.school_id),
-        supabase
+        fetchAllRows(() => supabase
           .from("karakter_skor")
           .select("kelas_id, murid_id, nama_murid, periode_id, aspek_kode, skor")
           .eq("sekolah_id", session.school_id)
-          .in("kelas_id", kelasList),
-        supabase
+          .in("kelas_id", kelasList)),
+        fetchAllRows(() => supabase
           .from("karakter_skor_indikator")
           .select("kelas_id, murid_id, nama_murid, periode_id, aspek_kode, indikator_kode, skor")
           .eq("sekolah_id", session.school_id)
-          .in("kelas_id", kelasList),
-        supabase
+          .in("kelas_id", kelasList)),
+        fetchAllRows(() => supabase
           .from("karakter_pernyataan_ortu")
           .select("kelas_id, murid_id, nama_murid, periode_id, pernyataan, kategori_pernyataan, emosi_anak, alasan_emosi, dukungan_dibutuhkan, dukungan_lainnya, hal_disyukuri")
           .eq("sekolah_id", session.school_id)
-          .in("kelas_id", kelasList),
+          .in("kelas_id", kelasList)),
         supabase
           .from("briefing")
           .select("teks, sumber, periode_id")
@@ -186,10 +207,10 @@ export function useKarakterKepsek(session, periodeId) {
           .eq("scope", "sekolah")
           .eq("target_role", "kepala_sekolah")
           .eq("status", "disetujui"),
-        supabase
+        fetchAllRows(() => supabase
           .from("karakter_pernyataan_ortu")
           .select("kelas_id, murid_id, nama_murid, periode_id, pernyataan, kategori_pernyataan, emosi_anak, alasan_emosi, dukungan_dibutuhkan, dukungan_lainnya, hal_disyukuri")
-          .eq("sekolah_id", sekolahId),
+          .eq("sekolah_id", sekolahId)),
       ]);
 
       if (!alive) return;
@@ -296,15 +317,15 @@ export function useKarakterYayasan(session, periodeId) {
           .select("sekolah_id, aspek_kode, aspek_label, urutan")
           .in("sekolah_id", sekolahIds)
           .order("urutan", { ascending: true }),
-        supabase
+        fetchAllRows(() => supabase
           .from("karakter_pernyataan_ortu")
           .select("sekolah_id, kelas_id, murid_id, nama_murid, periode_id, pernyataan, kategori_pernyataan, emosi_anak, alasan_emosi, dukungan_dibutuhkan, dukungan_lainnya, hal_disyukuri")
-          .in("sekolah_id", sekolahIds),
+          .in("sekolah_id", sekolahIds)),
         // Indikator per sekolah diagregat dari skor murid (summary sekolah tidak menyimpan top5 indikator).
-        supabase
+        fetchAllRows(() => supabase
           .from("karakter_skor_indikator")
           .select("sekolah_id, periode_id, aspek_kode, indikator_kode, skor")
-          .in("sekolah_id", sekolahIds),
+          .in("sekolah_id", sekolahIds)),
         supabase
           .from("karakter_indikator_config")
           .select("sekolah_id, aspek_kode, indikator_kode, indikator_label")

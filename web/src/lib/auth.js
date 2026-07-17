@@ -11,6 +11,16 @@ import { supabase } from "./supabase";
 
 const SESSION_KEY = "fir_session";
 
+/** Baca daftar modul yang aktif (school_modules.aktif = true) untuk satu sekolah. */
+async function fetchActiveModules(schoolId) {
+  const { data } = await supabase
+    .from("school_modules")
+    .select("modul")
+    .eq("school_id", schoolId)
+    .eq("aktif", true);
+  return (data || []).map((r) => r.modul);
+}
+
 /**
  * Login dengan username + kode khusus.
  * Email Supabase dibentuk: username@fammi.internal — kecuali username sudah berupa
@@ -40,13 +50,7 @@ export async function loginSupabase(username, kode) {
   if (profileError || !profile) throw new Error("Profil pengguna tidak ditemukan.");
 
   // Baca modul yang aktif untuk sekolah ini
-  const { data: modulRows } = await supabase
-    .from("school_modules")
-    .select("modul")
-    .eq("school_id", profile.school_id)
-    .eq("aktif", true);
-
-  const modules = (modulRows || []).map((r) => r.modul);
+  const modules = await fetchActiveModules(profile.school_id);
 
   return {
     user_id: userId,
@@ -59,6 +63,32 @@ export async function loginSupabase(username, kode) {
     modules,
     token: authData.session.access_token,
   };
+}
+
+/**
+ * Ambil ulang daftar modul aktif dari Supabase dan timpa session.modules kalau berubah.
+ * session.modules cuma diisi sekali waktu login lalu disimpan di sessionStorage -- kalau
+ * AdminFammi meng-ON/OFF-kan modul sekolah SETELAH user login, sesi yang sudah tersimpan di
+ * browser tidak pernah tahu perubahan itu (bahkan refresh halaman biasa pun cuma baca ulang
+ * sessionStorage, bukan Supabase). Dipanggil tiap App dimuat (lihat App.jsx) supaya modul yang
+ * baru diaktifkan Admin langsung kelihatan tanpa harus logout-login manual.
+ * Kembalikan session baru (objek baru kalau modul berubah, objek sama kalau tidak).
+ */
+export async function refreshSessionModules(session) {
+  if (!session || !session.school_id) return session;
+  try {
+    const modules = await fetchActiveModules(session.school_id);
+    const unchanged = modules.length === (session.modules || []).length
+      && modules.every((m) => (session.modules || []).includes(m));
+    if (unchanged) return session;
+    const next = { ...session, modules };
+    saveSession(next);
+    return next;
+  } catch {
+    // Gagal refresh (mis. offline sebentar) -- pertahankan sesi lama, jangan sampai user
+    // ke-logout paksa cuma karena satu request modul gagal.
+    return session;
+  }
 }
 
 /** Logout dari Supabase dan hapus sesi lokal. */
