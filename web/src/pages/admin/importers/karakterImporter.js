@@ -33,11 +33,20 @@ function bulanIndex(word) {
   return NAMA_BULAN.findIndex((names) => names.includes(word));
 }
 
-/** Cari kolom di baris tanpa peduli besar/kecil huruf, karena header sumber tidak konsisten.
+/** "Pernyataan Orangtua", "pernyataan_orangtua ", "pernyataan-orangtua" semua jadi kunci yang
+ * sama, tidak peduli sumber headernya pakai spasi, underscore, atau strip -- termasuk spasi
+ * tak terlihat (non-breaking space) yang sering ikut ke-copy-paste dari Word/Google Docs,
+ * karena kelas \s di regex JS sudah mencakup non-breaking space per spesifikasi ECMAScript. */
+function normalizeKey(s) {
+  return String(s).toLowerCase().trim().replace(/[\s_-]+/g, '_');
+}
+
+/** Cari kolom di baris tanpa peduli besar/kecil huruf ataupun spasi/underscore/strip, karena
+ * header sumber tidak konsisten (dan kadang bawa spasi tak terlihat dari copy-paste Word/Docs).
  * Diekspor supaya importer lain (mis. MI) memakai logika pencarian kolom yang sama. */
 export function getField(row, ...names) {
-  const wanted = names.map((n) => n.toLowerCase());
-  const key = Object.keys(row).find((k) => wanted.includes(k.toLowerCase().trim()));
+  const wanted = names.map(normalizeKey);
+  const key = Object.keys(row).find((k) => wanted.includes(normalizeKey(k)));
   return key ? row[key] : undefined;
 }
 
@@ -270,6 +279,20 @@ export async function parseKarakterWorkbook(file, { sekolahId }) {
       });
     });
   });
+
+  // Pre-flight: kolom testimoni ("pernyataan_orangtua") sengaja dicek SEBELUM loop, bukan
+  // per-baris, karena kalau kolomnya memang tidak ketemu di header, SEMUA baris akan gagal
+  // dengan cara yang sama -- lebih berguna satu pesan jelas dengan daftar header asli
+  // (seperti pengecekan kolom aspek karakter1-6 di atas) daripada mengimpor 500+ baris dengan
+  // testimoni kosong tanpa satu pun error, seperti yang sempat terjadi ke KB TK Istiqamah dua
+  // kali berturut-turut (kolom "pernyataan_orangtua" yang dicoba ternyata tidak cocok dengan
+  // nama kolom asli di file itu, bukan cuma beda kapitalisasi/spasi seperti dugaan awal).
+  if (po.length > 0 && getField(po[0], 'pernyataan_orangtua') === undefined) {
+    return {
+      preview, ok: false,
+      error: `Kolom testimoni orang tua tidak ditemukan di sheet detail_pernyataan_orangtua (dicari lewat nama "pernyataan_orangtua"). Kolom yang benar-benar ada di file: ${Object.keys(po[0]).join(', ')}. Cek nama kolom yang benar di daftar itu, lalu kabari pengembang supaya importer dicocokkan.`,
+    };
+  }
 
   const pernyataanRows = [];
   po.forEach((r, i) => {
