@@ -84,15 +84,27 @@ export function parseBulan(raw) {
   return null;
 }
 
-const ASPEK_KODE = ['karakter1', 'karakter2', 'karakter3', 'karakter4', 'karakter5', 'karakter6'];
-
 /**
- * Cari kolom skor aspek karakter di header lewat prefix "karakterN_", bebas apa pun akhirannya.
- * Tiap sekolah bisa pakai istilah Indonesia berbeda untuk aspek yang sama (mis. sekolah A pakai
+ * Cari SEMUA kode aspek karakter yang benar-benar ada di header lewat prefix "karakterN_",
+ * apa pun angka N dan berapa pun jumlahnya -- BUKAN daftar tetap 6 aspek. Tiap sekolah bisa
+ * punya jumlah aspek karakter yang beda (5, 6, 7, atau berapa pun), sama seperti tiap sekolah
+ * bisa pakai istilah Indonesia berbeda untuk aspek yang sama (mis. sekolah A pakai
  * "karakter1_berpikir_positif", sekolah B pakai "karakter1_optimis") -- akhiran itu cuma label,
  * yang disimpan ke DB tetap kode pendeknya ("karakter1"). Kolom indikator ("karakterN_indikatorM_...")
- * sengaja dikecualikan supaya tidak salah tertangkap sebagai skor aspek.
+ * sengaja dikecualikan supaya tidak salah tertangkap sebagai skor aspek. Kalau jumlah aspek
+ * di-hardcode (mis. selalu 6), sekolah yang jumlah aspeknya beda gagal upload dengan cara sama
+ * seperti bug kolom testimoni KB TK Istiqamah: semua baris "gagal" karena kolom yang dicari
+ * memang tidak pernah ada di file itu, bukan karena datanya salah.
  */
+function detectAspekKode(headerRow) {
+  const found = new Set();
+  Object.keys(headerRow).forEach((k) => {
+    const m = k.trim().match(/^karakter(\d+)_(?!indikator)/i);
+    if (m) found.add(`karakter${m[1]}`);
+  });
+  return [...found].sort((a, b) => parseInt(a.replace('karakter', ''), 10) - parseInt(b.replace('karakter', ''), 10));
+}
+
 function resolveAspekCol(headerRow, kode) {
   const n = kode.replace('karakter', '');
   const re = new RegExp(`^karakter${n}_(?!indikator)`, 'i');
@@ -101,17 +113,20 @@ function resolveAspekCol(headerRow, kode) {
 
 /**
  * Cari semua kolom skor indikator di header lewat pola "karakterN_indikatorM_...", apa pun
- * teks setelah "indikatorM_". Beda dari aspek, teks itu justru DIPAKAI APA ADANYA sebagai
- * bagian indikator_kode yang disimpan ke DB (bukan cuma label tampilan) -- karena tiap
- * sekolah bisa punya indikator yang beda secara isi, bukan cuma beda istilah untuk hal yang
- * sama. Kode yang disimpan otomatis konsisten dengan nama kolom sekolah itu sendiri, tidak
- * dicocokkan ke daftar tetap SDIP Al Madani. Sekolah baru butuh baris karakter_indikator_config
- * sendiri yang kode-nya cocok dengan hasil fungsi ini supaya labelnya tampil di FIR.
+ * angka N, angka M, dan teks setelah "indikatorM_". Dulu N dibatasi 1-6 dan M dibatasi 1-2 --
+ * sekolah yang punya lebih dari 6 aspek atau lebih dari 2 indikator per aspek gagal upload
+ * karena kolom-kolom itu tidak pernah cocok dengan pola lama. Teks setelah "indikatorM_" justru
+ * DIPAKAI APA ADANYA sebagai bagian indikator_kode yang disimpan ke DB (bukan cuma label
+ * tampilan) -- karena tiap sekolah bisa punya indikator yang beda secara isi, bukan cuma beda
+ * istilah untuk hal yang sama. Kode yang disimpan otomatis konsisten dengan nama kolom sekolah
+ * itu sendiri, tidak dicocokkan ke daftar tetap SDIP Al Madani. Sekolah baru butuh baris
+ * karakter_indikator_config sendiri yang kode-nya cocok dengan hasil fungsi ini supaya labelnya
+ * tampil di FIR.
  */
 function resolveIndikatorCols(headerRow) {
   const out = [];
   Object.keys(headerRow).forEach((k) => {
-    const m = k.trim().match(/^karakter([1-6])_(indikator[12]_.+)$/i);
+    const m = k.trim().match(/^karakter(\d+)_(indikator\d+_.+)$/i);
     if (m) out.push({ aspek: `karakter${m[1]}`, kode: m[2].toLowerCase(), col: k });
   });
   return out;
@@ -179,22 +194,24 @@ export async function parseKarakterWorkbook(file, { sekolahId }) {
     return { preview, ok: false, error: 'Sheet "detail_persentase_karakter" tidak ditemukan atau kosong.' };
   }
 
-  // Resolusi kolom aspek dilakukan sekali di sini lewat prefix "karakterN_" (lihat resolveAspekCol),
-  // bukan nama kolom tetap, supaya akhiran istilah beda-beda antar sekolah tidak perlu dipetakan
-  // manual tiap kali sekolah baru onboarding. Kalau tidak satu pun dari 6 aspek ketemu, kemungkinan
-  // sekolah ini malah tidak pakai konvensi "karakterN_..." sama sekali -- gagal cepat dan tunjukkan
+  // Jumlah aspek karakter dideteksi dari header file itu sendiri lewat prefix "karakterN_"
+  // (lihat detectAspekKode), bukan daftar tetap 6 aspek, supaya sekolah dengan jumlah aspek
+  // berbeda (kurang atau lebih dari 6) tetap bisa terbaca tanpa perlu ubah kode tiap kali
+  // sekolah baru onboarding. Kalau tidak satu pun kolom "karakterN_..." ketemu, kemungkinan
+  // sekolah ini malah tidak pakai konvensi itu sama sekali -- gagal cepat dan tunjukkan
   // header asli file, daripada membanjiri pesan error per baris per murid.
+  const aspekKodeList = detectAspekKode(dk[0]);
+  if (aspekKodeList.length === 0) {
+    return {
+      preview, ok: false,
+      error: `Tidak ada satu pun kolom skor karakter yang dikenali di sheet detail_persentase_karakter (dicari lewat prefix karakterN_, apa pun angka N-nya). Kolom yang benar-benar ada di file: ${Object.keys(dk[0]).join(', ')}. Kemungkinan file ini pakai konvensi nama kolom yang sama sekali berbeda, importer perlu disesuaikan dulu untuk sekolah ini.`,
+    };
+  }
   const aspekColMap = {};
-  ASPEK_KODE.forEach((kode) => {
+  aspekKodeList.forEach((kode) => {
     const col = resolveAspekCol(dk[0], kode);
     if (col) aspekColMap[kode] = col;
   });
-  if (Object.keys(aspekColMap).length === 0) {
-    return {
-      preview, ok: false,
-      error: `Tidak ada satu pun kolom skor karakter yang dikenali di sheet detail_persentase_karakter (dicari lewat prefix karakter1_ sampai karakter6_). Kolom yang benar-benar ada di file: ${Object.keys(dk[0]).join(', ')}. Kemungkinan file ini pakai konvensi nama kolom yang sama sekali berbeda, importer perlu disesuaikan dulu untuk sekolah ini.`,
-    };
-  }
   let indikatorCols = [];
   if (di.length > 0) {
     indikatorCols = resolveIndikatorCols(di[0]);
@@ -244,7 +261,7 @@ export async function parseKarakterWorkbook(file, { sekolahId }) {
     const namaKey = normalizeNama(nama);
     namaPeriode[namaKey] = periode; namaKelas[namaKey] = kelas;
     const mid = muridId(nama);
-    ASPEK_KODE.forEach((aspek) => {
+    aspekKodeList.forEach((aspek) => {
       const col = aspekColMap[aspek];
       const skor = col ? pct(r[col]) : null;
       if (skor === null) { badRows.push(`detail_persentase_karakter baris ${i + 2} (kolom skor ${aspek}${col ? ` "${col}"` : ''} kosong/tidak ditemukan untuk ${nama || 'baris ini'})`); return; }
