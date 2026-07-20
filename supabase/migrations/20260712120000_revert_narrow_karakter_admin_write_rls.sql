@@ -7,25 +7,34 @@
 -- admin-actions, action "import-karakter", bukan RPC langsung dari browser+anon key) --
 -- lihat migration berikutnya setelah perubahan itu diverifikasi.
 
+-- Catatan idempotensi (ditambahkan 2026-07-20): sama seperti di migration 20260712110000,
+-- tiap `create policy` didahului `drop policy if exists` untuk nama yang SAMA supaya
+-- `supabase db push` tidak gagal 42710 di database yang sudah dipasangi policy ini manual.
+-- Isi dan maksud policy tidak berubah.
+
 drop policy if exists karakter_skor_admin_baca on public.karakter_skor;
+drop policy if exists karakter_skor_admin_all on public.karakter_skor;
 create policy karakter_skor_admin_all on public.karakter_skor
 for all to public
 using (is_admin_fammi())
 with check (is_admin_fammi());
 
 drop policy if exists karakter_skor_indikator_admin_baca on public.karakter_skor_indikator;
+drop policy if exists karakter_skor_indikator_admin_all on public.karakter_skor_indikator;
 create policy karakter_skor_indikator_admin_all on public.karakter_skor_indikator
 for all to public
 using (is_admin_fammi())
 with check (is_admin_fammi());
 
 drop policy if exists karakter_pernyataan_ortu_admin_baca on public.karakter_pernyataan_ortu;
+drop policy if exists karakter_pernyataan_ortu_admin_all on public.karakter_pernyataan_ortu;
 create policy karakter_pernyataan_ortu_admin_all on public.karakter_pernyataan_ortu
 for all to public
 using (is_admin_fammi())
 with check (is_admin_fammi());
 
 drop policy if exists karakter_summary_admin_baca on public.karakter_summary;
+drop policy if exists karakter_summary_admin_all on public.karakter_summary;
 create policy karakter_summary_admin_all on public.karakter_summary
 for all to public
 using (is_admin_fammi())

@@ -6,7 +6,9 @@ import { ErrorState } from '../components/ErrorState';
 import { Toggle } from '../components/StatusPill';
 import { IconMoreVertical } from '../components/icons';
 
-const MODULES = ['karakter', 'mi', 'screening'];
+// Urutannya harus sama dengan kolom <th> di tabel bawah -- baris data dirender dengan
+// MODULES.map, jadi menambah modul di sini tanpa menambah header bikin kolom bergeser.
+const MODULES = ['karakter', 'mi', 'screening', 'cw'];
 
 export function Sekolah() {
   const { data, loading, error, setAddSchoolOpen, setAddYayasanOpen, showToast, isModuleOn, toggleModule, refetch } = useCms();
@@ -43,6 +45,7 @@ export function Sekolah() {
                 <th>Karakter</th>
                 <th>MI</th>
                 <th>Screening</th>
+                <th>Culture</th>
                 <th>Aspek config</th>
                 <th>Aktif</th>
                 <th style={{ width: 36 }}></th>

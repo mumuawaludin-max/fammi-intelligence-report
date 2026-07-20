@@ -1,0 +1,99 @@
+/* Latar abu sangat muda (--cw-bg), bukan krem hangat seperti modul lain -- instruksi eksplisit
+   pemilik produk. Trik margin negatif dipakai supaya latarnya membentang penuh melewati padding
+   <main>, pola sama dengan .page di KarakterViews.module.css. */
+.page {
+  display: flex;
+  flex-direction: column;
+  gap: 26px;
+  background: var(--cw-bg);
+  margin: -32px -24px;
+  padding: 28px 24px 48px;
+}
+
+.heroLabel {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.heroPill {
+  font-family: var(--font-display);
+  font-size: 22px;
+  font-weight: 800;
+  color: var(--ink);
+  letter-spacing: -0.3px;
+}
+
+/* ── Sub-tab pimpinan (Dashboard / Laporan Individu) ── */
+.subTabs {
+  display: flex;
+  gap: 6px;
+  padding: 5px;
+  background: var(--bg-2);
+  border-radius: 999px;
+  align-self: flex-start;
+}
+
+.subTab {
+  padding: 8px 18px;
+  font-size: 13px;
+  font-weight: 700;
+  font-family: var(--font-body);
+  color: var(--ink-3);
+  background: transparent;
+  border: none;
+  border-radius: 999px;
+  cursor: pointer;
+  transition: background var(--transition-fast), color var(--transition-fast);
+}
+
+.subTab:hover {
+  color: var(--ink);
+}
+
+.subTabActive {
+  background: var(--surface);
+  color: var(--purple-700);
+  box-shadow: var(--shadow-card);
+}
+
+.stateBox {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  min-height: 300px;
+  background: var(--surface);
+  border: 1.5px dashed var(--line);
+  border-radius: var(--radius-xl);
+  padding: 48px 32px;
+  text-align: center;
+}
+
+.stateIcon {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: var(--purple-050);
+  color: var(--purple-600);
+  font-size: 22px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.stateTitle {
+  font-size: 17px;
+  font-weight: 700;
+  color: var(--ink);
+  margin: 0;
+}
+
+.stateMsg {
+  font-size: 14px;
+  color: var(--ink-3);
+  margin: 0;
+  max-width: 420px;
+  line-height: 1.5;
+}

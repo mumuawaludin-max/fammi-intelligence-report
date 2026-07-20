@@ -1,11 +1,11 @@
 import * as XLSX from 'xlsx';
 
 export function moduleLabel(m) {
-  return { karakter: 'Karakter', mi: 'Multiple Intelligence', screening: 'Screening' }[m] || m;
+  return { karakter: 'Karakter', mi: 'Multiple Intelligence', screening: 'Screening', cw: 'Culture & Wellbeing' }[m] || m;
 }
 
 export function moduleShort(m) {
-  return { karakter: 'Karakter', mi: 'MI', screening: 'Screening' }[m] || m;
+  return { karakter: 'Karakter', mi: 'MI', screening: 'Screening', cw: 'Culture' }[m] || m;
 }
 
 export function moduleColor(m) {
@@ -13,6 +13,7 @@ export function moduleColor(m) {
     karakter: { bg: '#EDE6FB', ink: '#5418C2' },
     mi: { bg: '#E5EBF7', ink: '#3B5A9E' },
     screening: { bg: '#FBE7EA', ink: '#B03A4C' },
+    cw: { bg: '#DFF7E4', ink: '#1E7A3A' },
   }[m] || { bg: '#F0F0F4', ink: '#4A4458' };
 }
 
@@ -64,6 +65,7 @@ export function peranColor(p) {
     Yayasan: { bg: '#E5EBF7', ink: '#3B5A9E', label: 'Yayasan' },
     KepalaSekolah: { bg: '#FAF1DC', ink: '#8A6210', label: 'Kepala Sekolah' },
     WakilKepalaSekolah: { bg: '#FAF1DC', ink: '#8A6210', label: 'Wakil Kepala Sekolah' },
+    Manajemen: { bg: '#F4EFFD', ink: '#5418C2', label: 'Manajemen' },
     WaliKelas: { bg: '#E7F4EE', ink: '#1E7A50', label: 'Wali Kelas' },
     OrangTua: { bg: '#FDE2FE', ink: '#843D8A', label: 'Orang Tua' },
     Siswa: { bg: '#F1ECE3', ink: '#7C6A48', label: 'Siswa' },

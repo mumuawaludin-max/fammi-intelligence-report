@@ -103,6 +103,25 @@
   --status-alert:     #D6455A;
   --status-alert-bg:  #FBE7EA;
 
+  /* ---- CW (Culture & Wellbeing): token khusus modul ini, terpisah dari status 3-tingkat di
+     atas per keputusan docs/cw-module-design-spec.md bagian 2. Nilai hex masih proposal,
+     belum sign-off final pemilik produk -- gampang diganti karena cuma dipakai lewat token ini. ---- */
+  --cw-line-saat-ini:  #0F9B8E;  /* teal, garis penuh radar budaya */
+  --cw-line-harapan:   #C9861A;  /* amber, garis putus-putus radar budaya */
+
+  /* Latar modul CW: abu sangat muda, BUKAN krem hangat --bg seperti modul lain. Instruksi
+     eksplisit pemilik produk ("jangan cream, putih atau abu muda banget"), di-scope lokal ke
+     halaman CW lewat CwPage.module.css supaya modul lain tidak ikut berubah -- pola sama
+     dengan pengecualian latar #EDEDF0 di modul Karakter. */
+  --cw-bg: #F7F8FA;
+
+  /* Skala kualitatif 5-tingkat (dipakai chart_data kesejahteraan & nilai lembaga) */
+  --cw-nilai-sangat-rendah: #D6455A;
+  --cw-nilai-rendah:        #E07A4E;
+  --cw-nilai-sedang:        #D69219;
+  --cw-nilai-tinggi:        #7FB86B;
+  --cw-nilai-sangat-tinggi: #2E9E6B;
+
   /* ---- Radius ---- */
   --radius-sm: 12px;
   --radius-md: 16px;

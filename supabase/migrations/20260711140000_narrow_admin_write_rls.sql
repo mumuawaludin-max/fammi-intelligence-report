@@ -21,32 +21,42 @@
 -- jalur itu, dan belum diverifikasi ada jalur browser lain yang memakainya -- di luar
 -- cakupan A4).
 
+-- Catatan idempotensi (ditambahkan 2026-07-20): tiap `create policy` didahului
+-- `drop policy if exists` untuk nama yang SAMA, supaya `supabase db push` tidak gagal 42710
+-- kalau policy ini sudah pernah dipasang manual di database. Isi policy tidak berubah.
+
 drop policy if exists profiles_admin_all on public.profiles;
+drop policy if exists profiles_admin_baca on public.profiles;
 create policy profiles_admin_baca on public.profiles
 for select to authenticated
 using (is_admin_fammi());
 
 drop policy if exists tl_admin_all on public.tindak_lanjut;
+drop policy if exists tl_admin_baca on public.tindak_lanjut;
 create policy tl_admin_baca on public.tindak_lanjut
 for select to authenticated
 using (is_admin_fammi());
 
 drop policy if exists briefing_admin_all on public.briefing;
+drop policy if exists briefing_admin_baca on public.briefing;
 create policy briefing_admin_baca on public.briefing
 for select to authenticated
 using (is_admin_fammi());
 
 drop policy if exists schools_admin_all on public.schools;
+drop policy if exists schools_admin_baca on public.schools;
 create policy schools_admin_baca on public.schools
 for select to authenticated
 using (is_admin_fammi());
 
 drop policy if exists school_modules_admin_all on public.school_modules;
+drop policy if exists school_modules_admin_baca on public.school_modules;
 create policy school_modules_admin_baca on public.school_modules
 for select to authenticated
 using (is_admin_fammi());
 
 drop policy if exists gemini_schedule_admin_all on public.gemini_schedule;
+drop policy if exists gemini_schedule_admin_baca on public.gemini_schedule;
 create policy gemini_schedule_admin_baca on public.gemini_schedule
 for select to authenticated
 using (is_admin_fammi());

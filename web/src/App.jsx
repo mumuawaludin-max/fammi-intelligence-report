@@ -10,6 +10,7 @@ import BriefingHero from "./components/BriefingHero";
 import FollowupRibbon from "./components/FollowupRibbon";
 import MIPage from "./pages/mi/MIPage";
 import KarakterPage from "./pages/karakter/KarakterPage";
+import CwPage from "./pages/cw/CwPage";
 import SiswaPage from "./pages/siswa/SiswaPage";
 import AdminCmsPage from "./pages/admin/AdminCmsPage";
 import styles from "./App.module.css";
@@ -55,19 +56,29 @@ function OverviewTab({ overview, period }) {
   );
 }
 
-// Peran yang memakai shell "satu modul (Rapor Karakter), periode di topbar, tanpa tab Ringkasan".
+// Peran yang memakai shell "satu modul, periode di topbar, tanpa tab Ringkasan".
 // Wali Kelas & Yayasan ikut shell ini karena modul yang dilihat cuma Rapor Karakter, sama seperti Kepsek.
-function isKarakterShellPeran(peran) {
-  return peran === "KepalaSekolah" || peran === "WakilKepalaSekolah" || peran === "WaliKelas" || peran === "Yayasan";
+// Manajemen (peran modul CW) juga single-module, cuma modul defaultnya "cw", bukan "karakter".
+function isSingleModuleShellPeran(peran) {
+  return peran === "KepalaSekolah" || peran === "WakilKepalaSekolah" || peran === "WaliKelas"
+    || peran === "Yayasan" || peran === "Manajemen";
+}
+
+/** Modul default kalau session.modules kosong -- Manajemen ke CW, peran lain ke Karakter. */
+function defaultModuleForPeran(peran) {
+  return peran === "Manajemen" ? "cw" : "karakter";
 }
 
 export default function App() {
   const [session, setSession]     = useState(() => getSession());
-  const [activeTab, setActiveTab] = useState(() => (isKarakterShellPeran(getSession()?.peran) ? "karakter" : "overview"));
+  const [activeTab, setActiveTab] = useState(() => {
+    const peran = getSession()?.peran;
+    return isSingleModuleShellPeran(peran) ? defaultModuleForPeran(peran) : "overview";
+  });
   const [period, setPeriod]       = useState({ type: "bulanan", period: "Juni 2026" });
   const [loginNotice, setLoginNotice] = useState("");
   const overview = useOverviewBriefing(session);
-  const isKepsekShell = isKarakterShellPeran(session?.peran);
+  const isKepsekShell = isSingleModuleShellPeran(session?.peran);
   const availablePeriods = useAvailablePeriods(session);
 
   // Sesi di sessionStorage bisa sudah basi (token dicabut/kedaluwarsa di server, atau peran
@@ -104,7 +115,9 @@ export default function App() {
   function handleLogin(newSession) {
     setLoginNotice("");
     setSession(newSession);
-    setActiveTab(isKarakterShellPeran(newSession.peran) ? "karakter" : "overview");
+    setActiveTab(
+      isSingleModuleShellPeran(newSession.peran) ? defaultModuleForPeran(newSession.peran) : "overview"
+    );
   }
   function handleLogout() {
     logoutSupabase();
@@ -130,8 +143,14 @@ export default function App() {
   const bulananOptions = availablePeriods.map((id) => ({ id, label: periodeLabel(id) }));
   const shellModules = (session.modules || []).filter((m) => m !== "overview");
   const modules = isKepsekShell
-    ? (shellModules.length ? shellModules : ["karakter"])
+    ? (shellModules.length ? shellModules : [defaultModuleForPeran(session.peran)])
     : ["overview", ...(session.modules || [])];
+
+  // PeriodPicker disembunyikan untuk Manajemen: daftar periode datang dari useAvailablePeriods
+  // yang sumbernya masih tabel modul Karakter (karakter_summary/briefing/tindak_lanjut), belum
+  // ada padanan tabel CW. Menampilkan picker kosong ke Manajemen cuma bikin bingung -- tampilkan
+  // lagi begitu tabel CW dan hook periodenya ada.
+  const showPeriodPicker = isKepsekShell && session.peran !== "Manajemen";
 
   const navBar = (
     <NavBar
@@ -151,7 +170,7 @@ export default function App() {
         onLogout={handleLogout}
         period={period}
         onPeriodChange={setPeriod}
-        showPeriod={isKepsekShell}
+        showPeriod={showPeriodPicker}
         bulananOptions={bulananOptions}
         inlineNav={isKepsekShell ? navBar : null}
       />
@@ -182,6 +201,8 @@ export default function App() {
         {activeTab === "karakter" && (
           <KarakterPage session={session} periodeId={isKepsekShell ? period.period : null} />
         )}
+
+        {activeTab === "cw" && <CwPage session={session} />}
 
         {activeTab === "screening" && (
           <div className={styles.placeholder}>

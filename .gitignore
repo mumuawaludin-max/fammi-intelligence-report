@@ -3,3 +3,7 @@ web/.env.local
 web/dist/
 gas/.clasp.json
 .DS_Store
+
+# State lokal Supabase CLI (project-ref, versi server, dst) -- hasil `supabase link`,
+# beda per mesin dan bukan bagian dari kode.
+supabase/.temp/

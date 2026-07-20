@@ -3,7 +3,7 @@ import { useCms } from '../store/CmsStore';
 import { moduleColor, moduleLabel } from '../data/helpers';
 import { IconX } from './icons';
 
-const MODULES = ['karakter', 'mi', 'screening'];
+const MODULES = ['karakter', 'mi', 'screening', 'cw'];
 
 export function AddSchoolDialog() {
   const { data, state, setAddSchoolOpen, addSchool } = useCms();
