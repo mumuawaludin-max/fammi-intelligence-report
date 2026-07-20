@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { supabase, fetchAllRows } from "../../lib/supabase";
-import { withAspekColor, latestPeriode, indikatorFallbackLabel } from "./karakterMeta";
+import { withAspekColor, latestPeriode, indikatorFallbackLabel, resolveAspekList, aspekKodeFromRingkasan } from "./karakterMeta";
 
 /** Kembalikan { data, error } mentah (bukan array yang errornya sudah dibuang) supaya
  * pemanggil bisa ikut mengecek error-nya, bukan diam-diam dapat daftar aspek kosong. */
@@ -107,7 +107,7 @@ export function useKarakterWaliKelas(session, periodeId) {
         error: null,
         raw: {
           kelasList,
-          aspek: withAspekColor(aspekRes.data || []),
+          aspek: aspekRes.data || [],
           indikator: indikatorRes.data || [],
           summaryRows: summaryRes.data || [],
           sekolahSummaryRows: sekolahSummaryRes.data || [],
@@ -144,15 +144,23 @@ export function useKarakterWaliKelas(session, periodeId) {
       : (latestPeriode(summaryRows) || latestPeriode(briefingRows) || latestPeriode(tlRows) || latestPeriode(skorRows));
     const sekolahSummary = sekolahSummaryRows.find((r) => r.periode_id === periode) || sekolahSummaryRows[0] || null;
 
+    // karakter_aspek_config cuma diisi manual lewat SQL (lihat resolveAspekList) -- sekolah yang
+    // belum sempat dikonfigurasi kehilangan seluruh "Skor per Aspek" biarpun skornya sendiri
+    // sudah lengkap. Lengkapi dengan kode aspek yang benar-benar ada di karakter_skor periode ini.
+    const skorAtPeriode = skorRows.filter((r) => r.periode_id === periode);
+    const aspekEffective = withAspekColor(
+      resolveAspekList(aspek, new Set(skorAtPeriode.map((r) => r.aspek_kode)))
+    );
+
     return {
       periode,
       availablePeriods,
       kelasList: kl,
-      aspek,
+      aspek: aspekEffective,
       indikator,
       summary: summaryRows.filter((r) => r.periode_id === periode),
       sekolahSummary,
-      skor: skorRows.filter((r) => r.periode_id === periode),
+      skor: skorAtPeriode,
       skorIndikator: skorIndRows.filter((r) => r.periode_id === periode),
       pernyataan: ortuRows.filter((r) => r.periode_id === periode),
       briefing: briefingRows.find((r) => r.periode_id === periode) || null,
@@ -219,7 +227,7 @@ export function useKarakterKepsek(session, periodeId) {
         loading: false,
         error: null,
         raw: {
-          aspek: withAspekColor(aspekRes.data || []),
+          aspek: aspekRes.data || [],
           summaryRows: summaryRes.data || [],
           briefingRows: briefingRes.data || [],
           tlRows: tlRes.data || [],
@@ -249,10 +257,17 @@ export function useKarakterKepsek(session, periodeId) {
       : (latestPeriode(summaryRows) || latestPeriode(briefingRows) || latestPeriode(tlRows));
     const atPeriode = summaryRows.filter((r) => r.periode_id === periode);
 
+    // Lihat catatan di useKarakterWaliKelas: karakter_aspek_config bisa belum lengkap untuk
+    // sekolah ini, jadi dilengkapi dengan kode aspek yang benar-benar ada di ringkasan
+    // (karakter_summary) periode ini, lintas scope sekolah/jenjang/kelas.
+    const aspekKodeHadir = new Set();
+    atPeriode.forEach((r) => aspekKodeFromRingkasan(r.ringkasan).forEach((k) => aspekKodeHadir.add(k)));
+    const aspekEffective = withAspekColor(resolveAspekList(aspek, aspekKodeHadir));
+
     return {
       periode,
       availablePeriods,
-      aspek,
+      aspek: aspekEffective,
       sekolah: atPeriode.find((r) => r.scope === "sekolah") || null,
       jenjang: atPeriode.filter((r) => r.scope === "jenjang"),
       kelas: atPeriode.filter((r) => r.scope === "kelas"),
@@ -356,9 +371,6 @@ export function useKarakterYayasan(session, periodeId) {
       (aspekRes.data || []).forEach((a) => {
         (aspekBySekolah[a.sekolah_id] ||= []).push(a);
       });
-      Object.keys(aspekBySekolah).forEach((id) => {
-        aspekBySekolah[id] = withAspekColor(aspekBySekolah[id]);
-      });
 
       setState({
         loading: false,
@@ -415,12 +427,24 @@ export function useKarakterYayasan(session, periodeId) {
       });
     });
 
+    // Lihat catatan di useKarakterWaliKelas: karakter_aspek_config bisa belum lengkap untuk
+    // sekolah tertentu, jadi dilengkapi per sekolah dengan kode aspek yang benar-benar ada di
+    // ringkasan (karakter_summary) sekolah itu pada periode ini.
+    const summaryAtPeriode = summaryRows.filter((r) => r.periode_id === periode);
+    const aspekEffectiveBySekolah = {};
+    sekolahRows.forEach((s) => {
+      const ringkasan = summaryAtPeriode.find((r) => r.sekolah_id === s.id)?.ringkasan;
+      aspekEffectiveBySekolah[s.id] = withAspekColor(
+        resolveAspekList(aspekBySekolah[s.id] || [], aspekKodeFromRingkasan(ringkasan))
+      );
+    });
+
     return {
       periode,
       availablePeriods,
       sekolahList: sekolahRows,
-      summary: summaryRows.filter((r) => r.periode_id === periode),
-      aspekBySekolah,
+      summary: summaryAtPeriode,
+      aspekBySekolah: aspekEffectiveBySekolah,
       indikatorBySekolah,
       briefing: briefingRows.filter((r) => r.periode_id === periode),
       tindakLanjut: tlRows.filter((r) => r.periode_id === periode),

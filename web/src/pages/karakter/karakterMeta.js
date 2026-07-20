@@ -14,6 +14,58 @@ export function withAspekColor(aspekRows = []) {
 }
 
 /**
+ * Fallback label aspek karakter kalau sekolah itu belum (atau belum lengkap) punya baris
+ * karakter_aspek_config -- tabel itu cuma diisi manual lewat SQL, tidak ada importer atau form
+ * admin yang menulis ke situ (lihat resolveAspekList). Beda dari indikator, importer TIDAK
+ * menyimpan suffix nama asli kolom Excel ke aspek_kode (cuma kode pendek "karakter1" dst yang
+ * disimpan, lihat karakterImporter.js) -- jadi labelnya cuma bisa "Karakter 1", "Karakter 2" dst
+ * sampai admin melengkapi label sungguhannya.
+ */
+export function aspekFallbackLabel(aspekKode) {
+  const n = String(aspekKode || "").match(/\d+/)?.[0];
+  return n ? `Karakter ${n}` : String(aspekKode || "Aspek");
+}
+
+/**
+ * Gabungkan daftar aspek dari karakter_aspek_config (label/urutan sudah diatur admin) dengan
+ * kode aspek yang benar-benar ada di data skor sekolah itu untuk periode berjalan. Sekolah baru
+ * yang belum sempat dikonfigurasi admin-nya (karakter_aspek_config kosong/tidak lengkap) dulu
+ * kehilangan seluruh bagian "Skor per Aspek" biarpun skornya sendiri sudah lengkap ter-upload --
+ * sekarang aspek yang datanya ada tapi belum dikonfigurasi tetap tampil (label generik "Karakter
+ * N"), aspek yang sudah dikonfigurasi tetap pakai label aslinya.
+ */
+export function resolveAspekList(aspekConfig, aspekKodeHadir) {
+  const list = Array.isArray(aspekConfig) ? aspekConfig : [];
+  const hadir = aspekKodeHadir instanceof Set ? aspekKodeHadir : new Set(aspekKodeHadir || []);
+  const byKode = new Map(list.map((a) => [a.aspek_kode, a]));
+  let urutanExtra = list.reduce((m, a) => Math.max(m, a.urutan || 0), 0);
+  hadir.forEach((kode) => {
+    if (!byKode.has(kode)) {
+      urutanExtra += 1;
+      byKode.set(kode, { aspek_kode: kode, aspek_label: aspekFallbackLabel(kode), urutan: urutanExtra });
+    }
+  });
+  return [...byKode.values()].sort((a, b) => (a.urutan || 0) - (b.urutan || 0));
+}
+
+/**
+ * Kode aspek karakter ("karakter1", "karakter2", dst) yang benar-benar ada di kolom ringkasan
+ * (karakter_summary.ringkasan), dicari lewat pola "karakterN_" di mana pun ia muncul dalam nama
+ * kolom -- prefix-nya sendiri beda-beda tergantung level data (input_guru_ untuk kelas,
+ * rata_input_guru_/rata_input_orangtua_ untuk jenjang/sekolah), jadi dicari tanpa peduli
+ * prefixnya apa. Dipakai untuk melengkapi daftar aspek lewat resolveAspekList di atas.
+ */
+export function aspekKodeFromRingkasan(ringkasan) {
+  if (!ringkasan) return [];
+  const found = new Set();
+  Object.keys(ringkasan).forEach((k) => {
+    const m = k.match(/(karakter\d+)_/i);
+    if (m) found.add(m[1].toLowerCase());
+  });
+  return [...found];
+}
+
+/**
  * "87 %" / "87%" / 87 / "84,67 %" (format Indonesia, koma desimal) → 87 / 85 (number).
  * Null kalau tidak bisa diparse. parseFloat murni BERHENTI di karakter koma tanpa error
  * ("84,67" -> 84, bukan 84.67) -- kalau tidak dikonversi ke titik dulu, nilai kayak
