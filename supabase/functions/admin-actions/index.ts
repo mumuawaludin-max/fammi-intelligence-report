@@ -22,9 +22,13 @@
 //   "approve" | "reject"      { id, tipe: "tindak_lanjut"|"briefing", teks?, langkahTerpilih?, regenerateDari? }
 //   "update-profile"          { userId, nama?, peran?, schoolId?, cakupan? }
 //   "add-school"               { nama, yayasanId?, modules? }
-//   "add-yayasan"              { nama } -> { id, nama }. id dibiarkan default dari database
-//                              (bukan slug manual seperti schools.id), sengaja tidak ditebak
-//                              tipenya di sini.
+//   "add-yayasan"              { nama } -> { id, nama }. id di-generate slug manual dari nama
+//                              (prefix "YAY-", lihat handleAddYayasan) -- SEBELUMNYA diasumsikan
+//                              auto-generate dari database, ternyata yayasan.id sungguhan text
+//                              slug manual tanpa default (baris produksi "YAY-FAMMI" untuk
+//                              "Yayasan Fammi" membuktikannya), jadi insert tanpa id selalu
+//                              gagal kena not-null constraint. Ini penyebab "Tambah Yayasan"
+//                              selalu error.
 //   "toggle-module"            { schoolId, modul, aktif }
 //   "update-schedule"          { patch }
 //   "import-karakter"          { payload: { sekolah_id, periode_id, skor_rows, skor_indikator_rows, pernyataan_rows, summary_rows } }
@@ -206,15 +210,24 @@ async function handleAddSchool(admin, body) {
   return { ok: true, id };
 }
 
-/** Beda dari handleAddSchool: id TIDAK dibuat manual dari slug nama -- schools.id memang
- * text slug buatan sendiri (lihat handleAddSchool), tapi tipe kolom id di yayasan tidak
- * diverifikasi dari sini (bisa uuid default, bisa serial). Biarkan Postgres yang isi
- * defaultnya sendiri lewat .select() setelah insert, supaya tidak salah tebak tipe. */
+/**
+ * yayasan.id ternyata text slug manual, sama seperti schools.id (lihat handleAddSchool) --
+ * BUKAN uuid/serial auto-generate seperti yang diasumsikan sebelumnya. Baris produksi yang
+ * sudah ada ("YAY-FAMMI" untuk "Yayasan Fammi") membuktikannya: itu bukan hasil default
+ * database, jadi insert TANPA id selalu gagal kena not-null constraint -- ini penyebab
+ * "Tambah Yayasan" selalu error di CMS. Kata "yayasan" dibuang dulu dari nama (kalau ada)
+ * supaya tidak jadi redundan "YAY-YAYASAN-FAMMI", baru sisanya di-slug-kan -- pola ini
+ * menghasilkan persis "YAY-FAMMI" untuk "Yayasan Fammi", cocok dengan baris yang sudah ada.
+ */
 async function handleAddYayasan(admin, body) {
   const { nama } = body;
   if (!nama) return { ok: false, error: "Field wajib: nama." };
 
-  const { data, error } = await admin.from("yayasan").insert({ nama }).select("id, nama").single();
+  const inti = String(nama).replace(/\byayasan\b/gi, "").trim() || nama;
+  const slug = inti.toUpperCase().replace(/[^A-Z0-9]+/g, "-").replace(/(^-|-$)/g, "");
+  const id = `YAY-${slug}`.slice(0, 40);
+
+  const { data, error } = await admin.from("yayasan").insert({ id, nama }).select("id, nama").single();
   if (error) return { ok: false, error: error.message };
 
   return { ok: true, id: data.id, nama: data.nama };

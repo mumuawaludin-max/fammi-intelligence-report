@@ -14,12 +14,9 @@ export function withAspekColor(aspekRows = []) {
 }
 
 /**
- * Fallback label aspek karakter kalau sekolah itu belum (atau belum lengkap) punya baris
- * karakter_aspek_config -- tabel itu cuma diisi manual lewat SQL, tidak ada importer atau form
- * admin yang menulis ke situ (lihat resolveAspekList). Beda dari indikator, importer TIDAK
- * menyimpan suffix nama asli kolom Excel ke aspek_kode (cuma kode pendek "karakter1" dst yang
- * disimpan, lihat karakterImporter.js) -- jadi labelnya cuma bisa "Karakter 1", "Karakter 2" dst
- * sampai admin melengkapi label sungguhannya.
+ * Fallback label paling akhir aspek karakter, dipakai cuma kalau aspekLabelFromRingkasan (lihat
+ * di bawah) juga tidak menemukan apa-apa -- misal karakter_summary belum ada sama sekali untuk
+ * sekolah itu. "Karakter 1", "Karakter 2" dst, bukan label sungguhan.
  */
 export function aspekFallbackLabel(aspekKode) {
   const n = String(aspekKode || "").match(/\d+/)?.[0];
@@ -31,10 +28,11 @@ export function aspekFallbackLabel(aspekKode) {
  * kode aspek yang benar-benar ada di data skor sekolah itu untuk periode berjalan. Sekolah baru
  * yang belum sempat dikonfigurasi admin-nya (karakter_aspek_config kosong/tidak lengkap) dulu
  * kehilangan seluruh bagian "Skor per Aspek" biarpun skornya sendiri sudah lengkap ter-upload --
- * sekarang aspek yang datanya ada tapi belum dikonfigurasi tetap tampil (label generik "Karakter
- * N"), aspek yang sudah dikonfigurasi tetap pakai label aslinya.
+ * sekarang aspek yang datanya ada tapi belum dikonfigurasi tetap tampil. labelResolver(kode)
+ * opsional dipanggil dulu untuk cari label asli (lihat aspekLabelFromRingkasan); kalau itu juga
+ * tidak ketemu, baru jatuh ke aspekFallbackLabel yang generik.
  */
-export function resolveAspekList(aspekConfig, aspekKodeHadir) {
+export function resolveAspekList(aspekConfig, aspekKodeHadir, labelResolver) {
   const list = Array.isArray(aspekConfig) ? aspekConfig : [];
   const hadir = aspekKodeHadir instanceof Set ? aspekKodeHadir : new Set(aspekKodeHadir || []);
   const byKode = new Map(list.map((a) => [a.aspek_kode, a]));
@@ -42,7 +40,8 @@ export function resolveAspekList(aspekConfig, aspekKodeHadir) {
   hadir.forEach((kode) => {
     if (!byKode.has(kode)) {
       urutanExtra += 1;
-      byKode.set(kode, { aspek_kode: kode, aspek_label: aspekFallbackLabel(kode), urutan: urutanExtra });
+      const label = (labelResolver && labelResolver(kode)) || aspekFallbackLabel(kode);
+      byKode.set(kode, { aspek_kode: kode, aspek_label: label, urutan: urutanExtra });
     }
   });
   return [...byKode.values()].sort((a, b) => (a.urutan || 0) - (b.urutan || 0));
@@ -63,6 +62,31 @@ export function aspekKodeFromRingkasan(ringkasan) {
     if (m) found.add(m[1].toLowerCase());
   });
   return [...found];
+}
+
+/**
+ * Label asli satu aspek, digali dari nama kolom mentah di karakter_summary.ringkasan (mis.
+ * "input_guru_karakter1_berpikir_positif") -- kolom ini masih menyimpan nama kolom Excel APA
+ * ADANYA (lihat pushSummary di karakterImporter.js, cuma spread objek row mentah), beda dari
+ * karakter_skor.aspek_kode yang cuma menyimpan kode pendek "karakter1" tanpa suffix labelnya.
+ * Potong prefix apa pun sebelum "karakterN_" (macam-macam tergantung level data) dan suffix
+ * "karakterN_" itu sendiri, sisanya ganti underscore jadi spasi dan huruf besar tiap kata --
+ * "karakter1_berpikir_positif" jadi "Berpikir Positif". Sama persis polanya dengan
+ * indikatorFallbackLabel di bawah, cuma untuk aspek. Kolom indikator ("karakterN_indikatorM_...")
+ * sengaja dikecualikan supaya tidak salah kepotong jadi label aspek.
+ */
+export function aspekLabelFromRingkasan(ringkasan, aspekKode) {
+  if (!ringkasan || !aspekKode) return null;
+  const re = new RegExp(`(?:^|_)${aspekKode}_(?!indikator)(.+)$`, "i");
+  const key = Object.keys(ringkasan).find((k) => re.test(k));
+  if (!key) return null;
+  const suffix = key.match(re)[1];
+  const label = suffix
+    .split("_")
+    .filter(Boolean)
+    .map((w) => w[0].toUpperCase() + w.slice(1))
+    .join(" ");
+  return label || null;
 }
 
 /**

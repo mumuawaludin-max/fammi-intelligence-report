@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { supabase, fetchAllRows } from "../../lib/supabase";
-import { withAspekColor, latestPeriode, indikatorFallbackLabel, resolveAspekList, aspekKodeFromRingkasan } from "./karakterMeta";
+import { withAspekColor, latestPeriode, indikatorFallbackLabel, resolveAspekList, aspekKodeFromRingkasan, aspekLabelFromRingkasan } from "./karakterMeta";
 
 /** Kembalikan { data, error } mentah (bukan array yang errornya sudah dibuang) supaya
  * pemanggil bisa ikut mengecek error-nya, bukan diam-diam dapat daftar aspek kosong. */
@@ -146,10 +146,20 @@ export function useKarakterWaliKelas(session, periodeId) {
 
     // karakter_aspek_config cuma diisi manual lewat SQL (lihat resolveAspekList) -- sekolah yang
     // belum sempat dikonfigurasi kehilangan seluruh "Skor per Aspek" biarpun skornya sendiri
-    // sudah lengkap. Lengkapi dengan kode aspek yang benar-benar ada di karakter_skor periode ini.
+    // sudah lengkap. Lengkapi dengan kode aspek yang benar-benar ada di karakter_skor periode ini,
+    // dan gali label aslinya dari karakter_summary (yang masih simpan nama kolom Excel lengkap)
+    // kalau ada, sebelum jatuh ke label generik "Karakter N".
     const skorAtPeriode = skorRows.filter((r) => r.periode_id === periode);
+    const summaryAtPeriode = summaryRows.filter((r) => r.periode_id === periode);
+    const labelResolver = (kode) => {
+      for (const r of summaryAtPeriode) {
+        const label = aspekLabelFromRingkasan(r.ringkasan, kode);
+        if (label) return label;
+      }
+      return null;
+    };
     const aspekEffective = withAspekColor(
-      resolveAspekList(aspek, new Set(skorAtPeriode.map((r) => r.aspek_kode)))
+      resolveAspekList(aspek, new Set(skorAtPeriode.map((r) => r.aspek_kode)), labelResolver)
     );
 
     return {
@@ -158,7 +168,7 @@ export function useKarakterWaliKelas(session, periodeId) {
       kelasList: kl,
       aspek: aspekEffective,
       indikator,
-      summary: summaryRows.filter((r) => r.periode_id === periode),
+      summary: summaryAtPeriode,
       sekolahSummary,
       skor: skorAtPeriode,
       skorIndikator: skorIndRows.filter((r) => r.periode_id === periode),
@@ -259,10 +269,18 @@ export function useKarakterKepsek(session, periodeId) {
 
     // Lihat catatan di useKarakterWaliKelas: karakter_aspek_config bisa belum lengkap untuk
     // sekolah ini, jadi dilengkapi dengan kode aspek yang benar-benar ada di ringkasan
-    // (karakter_summary) periode ini, lintas scope sekolah/jenjang/kelas.
+    // (karakter_summary) periode ini, lintas scope sekolah/jenjang/kelas -- label aslinya digali
+    // dari ringkasan yang sama sebelum jatuh ke label generik "Karakter N".
     const aspekKodeHadir = new Set();
     atPeriode.forEach((r) => aspekKodeFromRingkasan(r.ringkasan).forEach((k) => aspekKodeHadir.add(k)));
-    const aspekEffective = withAspekColor(resolveAspekList(aspek, aspekKodeHadir));
+    const labelResolver = (kode) => {
+      for (const r of atPeriode) {
+        const label = aspekLabelFromRingkasan(r.ringkasan, kode);
+        if (label) return label;
+      }
+      return null;
+    };
+    const aspekEffective = withAspekColor(resolveAspekList(aspek, aspekKodeHadir, labelResolver));
 
     return {
       periode,
@@ -429,13 +447,18 @@ export function useKarakterYayasan(session, periodeId) {
 
     // Lihat catatan di useKarakterWaliKelas: karakter_aspek_config bisa belum lengkap untuk
     // sekolah tertentu, jadi dilengkapi per sekolah dengan kode aspek yang benar-benar ada di
-    // ringkasan (karakter_summary) sekolah itu pada periode ini.
+    // ringkasan (karakter_summary) sekolah itu pada periode ini -- label aslinya digali dari
+    // ringkasan yang sama sebelum jatuh ke label generik "Karakter N".
     const summaryAtPeriode = summaryRows.filter((r) => r.periode_id === periode);
     const aspekEffectiveBySekolah = {};
     sekolahRows.forEach((s) => {
       const ringkasan = summaryAtPeriode.find((r) => r.sekolah_id === s.id)?.ringkasan;
       aspekEffectiveBySekolah[s.id] = withAspekColor(
-        resolveAspekList(aspekBySekolah[s.id] || [], aspekKodeFromRingkasan(ringkasan))
+        resolveAspekList(
+          aspekBySekolah[s.id] || [],
+          aspekKodeFromRingkasan(ringkasan),
+          (kode) => aspekLabelFromRingkasan(ringkasan, kode)
+        )
       );
     });
 
