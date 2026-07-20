@@ -35,10 +35,12 @@ export default function CwPage({ session }) {
   const [tab, setTab] = useState("dashboard");
 
   if (!isPimpinanCw(session?.peran)) {
-    // Karyawan (dan peran non-pimpinan lain yang modul cw-nya aktif): laporan pribadinya
-    // sendiri, tampilan mobile-first. Tanpa pill judul besar seperti sisi pimpinan -- laporan
-    // individu sudah punya sapaan + identitasnya sendiri di paling atas, menumpuknya dengan
-    // judul modul cuma menambah baris yang tidak berguna di layar sempit.
+    // Fallback defensif -- dalam praktiknya jalur ini seharusnya tidak pernah tercapai.
+    // Karyawan (peran individu utama modul ini) sudah di-alihkan App.jsx ke CwKaryawanPage
+    // (shell mobile mandiri, di luar Header/NavBar desktop) SEBELUM CwPage ini pernah dirender.
+    // Blok ini cuma jaga-jaga kalau ada peran lain (mis. WaliKelas/Yayasan) yang kebetulan
+    // modul cw-nya aktif -- tetap tampilkan laporan individu, tapi tanpa jaminan shell
+    // mobile-only karena tetap lewat shell desktop generik App.jsx.
     return (
       <div className={styles.page}>
         <div className={styles.pageInnerNarrow}>

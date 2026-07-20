@@ -11,6 +11,7 @@ import FollowupRibbon from "./components/FollowupRibbon";
 import MIPage from "./pages/mi/MIPage";
 import KarakterPage from "./pages/karakter/KarakterPage";
 import CwPage from "./pages/cw/CwPage";
+import CwKaryawanPage from "./pages/cw/CwKaryawanPage";
 import SiswaPage from "./pages/siswa/SiswaPage";
 import AdminCmsPage from "./pages/admin/AdminCmsPage";
 import styles from "./App.module.css";
@@ -58,20 +59,18 @@ function OverviewTab({ overview, period }) {
 
 // Peran yang memakai shell "satu modul, periode di topbar, tanpa tab Ringkasan".
 // Wali Kelas & Yayasan ikut shell ini karena modul yang dilihat cuma Rapor Karakter, sama seperti Kepsek.
-// Manajemen & Karyawan (peran modul CW) juga single-module, cuma modul defaultnya "cw".
+// Manajemen (sisi pimpinan modul CW) juga single-module, cuma modul defaultnya "cw".
+// Karyawan SENGAJA TIDAK di sini -- dia dapat shell mandiri (CwKaryawanPage, mobile-only,
+// pola sama dengan Siswa/OrangTua), bukan shell desktop generik ini. Lihat early-return di
+// bawah, sebelum kode ini pernah dipakai.
 function isSingleModuleShellPeran(peran) {
   return peran === "KepalaSekolah" || peran === "WakilKepalaSekolah" || peran === "WaliKelas"
-    || peran === "Yayasan" || peran === "Manajemen" || peran === "Karyawan";
+    || peran === "Yayasan" || peran === "Manajemen";
 }
 
-/** Peran modul CW: default modulnya "cw", bukan "karakter". */
-function isPeranCw(peran) {
-  return peran === "Manajemen" || peran === "Karyawan";
-}
-
-/** Modul default kalau session.modules kosong. */
+/** Modul default kalau session.modules kosong -- Manajemen ke CW, peran lain ke Karakter. */
 function defaultModuleForPeran(peran) {
-  return isPeranCw(peran) ? "cw" : "karakter";
+  return peran === "Manajemen" ? "cw" : "karakter";
 }
 
 export default function App() {
@@ -141,6 +140,13 @@ export default function App() {
     return <SiswaPage session={session} onLogout={handleLogout} />;
   }
 
+  // Karyawan: padanan korporat dari Siswa/OrangTua -- laporan pribadi, mobile-only, shell
+  // sendiri sepenuhnya di luar Header/NavBar/main desktop di bawah. Lihat CwKaryawanPage.jsx
+  // untuk kenapa ini WAJIB early-return, bukan cuma dikecilkan pakai CSS responsive.
+  if (session.peran === "Karyawan") {
+    return <CwKaryawanPage session={session} onLogout={handleLogout} />;
+  }
+
   if (session.peran === "AdminFammi") {
     return <AdminCmsPage session={session} onLogout={handleLogout} />;
   }
@@ -151,11 +157,11 @@ export default function App() {
     ? (shellModules.length ? shellModules : [defaultModuleForPeran(session.peran)])
     : ["overview", ...(session.modules || [])];
 
-  // PeriodPicker disembunyikan untuk peran CW (Manajemen/Karyawan): daftar periode datang dari
-  // useAvailablePeriods yang sumbernya masih tabel modul Karakter (karakter_summary/briefing/
-  // tindak_lanjut), belum ada padanan tabel CW. Menampilkan picker kosong cuma bikin bingung --
-  // tampilkan lagi begitu tabel CW dan hook periodenya ada.
-  const showPeriodPicker = isKepsekShell && !isPeranCw(session.peran);
+  // PeriodPicker disembunyikan untuk Manajemen: daftar periode datang dari useAvailablePeriods
+  // yang sumbernya masih tabel modul Karakter (karakter_summary/briefing/tindak_lanjut), belum
+  // ada padanan tabel CW. Menampilkan picker kosong cuma bikin bingung -- tampilkan lagi begitu
+  // tabel CW dan hook periodenya ada. (Karyawan tidak pernah sampai sini, lihat early-return.)
+  const showPeriodPicker = isKepsekShell && session.peran !== "Manajemen";
 
   const navBar = (
     <NavBar

@@ -7,6 +7,7 @@ import CwIndividuPreview from "./pages/cw/CwIndividuPreview.jsx";
 import CwAgregatPreview from "./pages/cw/CwAgregatPreview.jsx";
 import CwListPreview from "./pages/cw/CwListPreview.jsx";
 import CwPagePreview from "./pages/cw/CwPagePreview.jsx";
+import CwKaryawanPreview from "./pages/cw/CwKaryawanPreview.jsx";
 
 // Preview lepas-login untuk komponen CW yang belum dirakit ke halaman produk final, dibuka
 // lewat ?preview=... di URL dev server. Project ini tidak pakai Storybook, jadi ini pengganti
@@ -17,6 +18,7 @@ const PREVIEWS = {
   "cw-agregat": CwAgregatPreview,
   "cw-list": CwListPreview,
   "cw-page": CwPagePreview,
+  "cw-karyawan": CwKaryawanPreview,
 };
 const previewParam = new URLSearchParams(window.location.search).get("preview");
 const RootComponent = PREVIEWS[previewParam] || App;

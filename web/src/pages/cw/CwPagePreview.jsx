@@ -3,14 +3,17 @@ import CwPage from "./CwPage";
 import styles from "./CwChartsPreview.module.css";
 
 /**
- * CwPagePreview -- preview lepas-login untuk mengecek routing CwPage per peran (Manajemen &
- * pimpinan lain dapat dashboard + sub-tab, peran lain dapat laporan pribadi), dibuka lewat
- * http://localhost:5173/?preview=cw-page
+ * CwPagePreview -- preview lepas-login untuk mengecek routing CwPage sisi PIMPINAN (dashboard
+ * lembaga + sub-tab), dibuka lewat http://localhost:5173/?preview=cw-page
+ *
+ * Karyawan SENGAJA tidak ada di sini -- App.jsx sudah mengalihkannya ke CwKaryawanPage sebelum
+ * CwPage ini pernah dirender (shell mobile mandiri, position:fixed ambil-alih viewport penuh,
+ * tidak cocok ditumpuk dalam UI switcher seperti ini). Untuk itu pakai ?preview=cw-karyawan.
  *
  * Session di sini objek palsu seadanya, cuma field `peran` yang dipakai CwPage -- BUKAN sesi
  * Supabase sungguhan, jadi tidak menyentuh auth/RLS sama sekali.
  */
-const PERAN_UJI = ["Manajemen", "Karyawan", "KepalaSekolah"];
+const PERAN_UJI = ["Manajemen", "KepalaSekolah", "WaliKelas"];
 
 export default function CwPagePreview() {
   const [peran, setPeran] = useState("Manajemen");
@@ -20,7 +23,8 @@ export default function CwPagePreview() {
       <p className={styles.pageTitle}>CW Page Routing Preview</p>
       <p className={styles.pageNote}>
         Ganti peran untuk melihat tampilan mana yang dirender CwPage. Manajemen &amp; Kepala
-        Sekolah dapat dashboard lembaga + sub-tab, Karyawan dapat laporan pribadi mobile-first.
+        Sekolah dapat dashboard lembaga + sub-tab; WaliKelas contoh fallback defensif (laporan
+        individu tanpa jaminan shell mobile-only, lihat komentar di CwPage.jsx).
       </p>
 
       <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
