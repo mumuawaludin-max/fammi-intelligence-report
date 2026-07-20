@@ -1,13 +1,47 @@
 /* Latar abu sangat muda (--cw-bg), bukan krem hangat seperti modul lain -- instruksi eksplisit
    pemilik produk. Trik margin negatif dipakai supaya latarnya membentang penuh melewati padding
-   <main>, pola sama dengan .page di KarakterViews.module.css. */
+   <main>, pola sama dengan .page di KarakterViews.module.css.
+   Latar full-bleed, TAPI isinya dibatasi .pageInner -- lihat catatan di bawah. */
 .page {
-  display: flex;
-  flex-direction: column;
-  gap: 26px;
   background: var(--cw-bg);
   margin: -32px -24px;
   padding: 28px 24px 48px;
+  min-height: calc(100vh - 140px);
+}
+
+/* Shell Manajemen memakai .mainFull (App.module.css) yang membuang max-width <main>, jadi tanpa
+   pembatas di sini konten meregang selebar layar dan di monitor besar jadi terasa renggang.
+   1440px dipilih lebih lega dari 1280px milik shell generik karena dashboard ini padat kolom
+   (hero + 4 kartu, lalu grid dua kolom), tapi tetap terbatas supaya baris teks tidak melebar
+   sampai sulit dibaca. */
+.pageInner {
+  width: 100%;
+  max-width: 1440px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 26px;
+}
+
+/* Laporan individu (Karyawan) mobile-first: dibatasi jauh lebih sempit dari dashboard pimpinan
+   supaya di desktop tetap terbaca seperti aplikasi mobile, bukan melar jadi kolom raksasa. */
+.pageInnerNarrow {
+  width: 100%;
+  max-width: 560px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.sampleRow {
+  display: flex;
+}
+
+@media (min-width: 1200px) {
+  .page {
+    padding: 32px 40px 56px;
+  }
 }
 
 .heroLabel {

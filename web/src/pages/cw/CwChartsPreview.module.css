@@ -11,9 +11,10 @@
 }
 
 /* Varian lebar untuk preview dashboard, supaya proporsinya mendekati lebar desktop nyata.
-   Ditulis SETELAH .page karena spesifisitasnya sama -- yang belakangan yang menang. */
+   Ditulis SETELAH .page karena spesifisitasnya sama -- yang belakangan yang menang.
+   1440px disamakan dengan .pageInner di CwPage.module.css (lebar isi di aplikasi asli). */
 .pageWide {
-  max-width: 1280px;
+  max-width: 1440px;
 }
 
 .pageTitle {

@@ -8,16 +8,26 @@ import styles from "./WellbeingBarChart.module.css";
  * tetap murni menampilkan data yang sudah final (CLAUDE.md butir 3).
  *
  * items: SubdimensiKesejahteraan[] (lihat cw.types.ts).
+ * onSelectItem: opsional -- kalau diisi, tiap baris jadi <button> yang bisa diklik (dipakai
+ * dashboard agregat untuk buka dialog detail). Tanpa prop ini baris tetap <div> statis, dipakai
+ * apa adanya di laporan individu supaya perilakunya tidak berubah.
  */
-export default function WellbeingBarChart({ items = [] }) {
+export default function WellbeingBarChart({ items = [], onSelectItem }) {
   if (items.length === 0) return null;
+  const clickable = typeof onSelectItem === "function";
+  const Row = clickable ? "button" : "div";
 
   return (
     <div className={styles.list}>
       {items.map((it) => {
         const color = KATEGORI_KESEJAHTERAAN_COLOR[it.kategori] || "var(--ink-4)";
         return (
-          <div className={styles.row} key={it.kode}>
+          <Row
+            type={clickable ? "button" : undefined}
+            className={`${styles.row} ${clickable ? styles.rowClickable : ""}`}
+            key={it.kode}
+            onClick={clickable ? () => onSelectItem(it) : undefined}
+          >
             <span className={styles.label} title={it.label}>{it.label}</span>
             <div className={styles.track}>
               <div
@@ -32,7 +42,8 @@ export default function WellbeingBarChart({ items = [] }) {
             >
               {it.kategori}
             </span>
-          </div>
+            {clickable && <span className={styles.rowChevron} aria-hidden="true">›</span>}
+          </Row>
         );
       })}
     </div>

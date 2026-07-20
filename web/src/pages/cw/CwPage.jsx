@@ -35,43 +35,47 @@ export default function CwPage({ session }) {
   const [tab, setTab] = useState("dashboard");
 
   if (!isPimpinanCw(session?.peran)) {
-    // Guru/karyawan: laporan pribadinya sendiri. Peran mana persisnya yang mengisi CW belum
-    // final (lihat cw-module-design-spec.md bagian 8 item 1) -- untuk sementara semua peran
-    // non-pimpinan yang punya modul cw aktif jatuh ke sini.
+    // Karyawan (dan peran non-pimpinan lain yang modul cw-nya aktif): laporan pribadinya
+    // sendiri, tampilan mobile-first. Tanpa pill judul besar seperti sisi pimpinan -- laporan
+    // individu sudah punya sapaan + identitasnya sendiri di paling atas, menumpuknya dengan
+    // judul modul cuma menambah baris yang tidak berguna di layar sempit.
     return (
       <div className={styles.page}>
-        <div className={styles.heroLabel}>
-          <span className={styles.heroPill}>Culture &amp; Wellbeing</span>
-          <SampleTag />
+        <div className={styles.pageInnerNarrow}>
+          <div className={styles.sampleRow}>
+            <SampleTag />
+          </div>
+          <CwLaporanIndividuPage laporan={MOCK_LAPORAN_INDIVIDU_CW[0]} />
         </div>
-        <CwLaporanIndividuPage laporan={MOCK_LAPORAN_INDIVIDU_CW[0]} />
       </div>
     );
   }
 
   return (
     <div className={styles.page}>
-      <div className={styles.heroLabel}>
-        <span className={styles.heroPill}>Culture &amp; Wellbeing</span>
-        <SampleTag />
-      </div>
+      <div className={styles.pageInner}>
+        <div className={styles.heroLabel}>
+          <span className={styles.heroPill}>Culture &amp; Wellbeing</span>
+          <SampleTag />
+        </div>
 
-      <div className={styles.subTabs}>
-        {PIMPINAN_TABS.map((t) => (
-          <button
-            key={t.id}
-            type="button"
-            className={`${styles.subTab} ${tab === t.id ? styles.subTabActive : ""}`}
-            onClick={() => setTab(t.id)}
-          >
-            {t.label}
-          </button>
-        ))}
-      </div>
+        <div className={styles.subTabs}>
+          {PIMPINAN_TABS.map((t) => (
+            <button
+              key={t.id}
+              type="button"
+              className={`${styles.subTab} ${tab === t.id ? styles.subTabActive : ""}`}
+              onClick={() => setTab(t.id)}
+            >
+              {t.label}
+            </button>
+          ))}
+        </div>
 
-      {tab === "dashboard"
-        ? <CwLaporanAgregatPage laporan={MOCK_LAPORAN_AGREGAT_CW} />
-        : <CwRespondenListPage respondenList={MOCK_LAPORAN_INDIVIDU_CW} />}
+        {tab === "dashboard"
+          ? <CwLaporanAgregatPage laporan={MOCK_LAPORAN_AGREGAT_CW} />
+          : <CwRespondenListPage respondenList={MOCK_LAPORAN_INDIVIDU_CW} />}
+      </div>
     </div>
   );
 }

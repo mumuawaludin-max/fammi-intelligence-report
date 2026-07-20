@@ -2,7 +2,7 @@ import { useRef, useState } from 'react';
 import { useCms } from '../store/CmsStore';
 import { IconX } from './icons';
 
-const PERAN_OPTIONS = ['AdminFammi', 'Yayasan', 'KepalaSekolah', 'WakilKepalaSekolah', 'Manajemen', 'WaliKelas', 'OrangTua', 'Siswa'];
+const PERAN_OPTIONS = ['AdminFammi', 'Yayasan', 'KepalaSekolah', 'WakilKepalaSekolah', 'Manajemen', 'Karyawan', 'WaliKelas', 'OrangTua', 'Siswa'];
 const labelStyle = { fontSize: 10.5, fontWeight: 800, letterSpacing: '0.06em', textTransform: 'uppercase', color: 'var(--ink-3)', marginBottom: 5, display: 'block' };
 
 export function EditUserDialog() {

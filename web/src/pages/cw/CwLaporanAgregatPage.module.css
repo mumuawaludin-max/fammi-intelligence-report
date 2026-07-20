@@ -35,41 +35,42 @@
 .hero {
   display: grid;
   grid-template-columns: 1fr;
-  gap: 22px;
+  gap: 24px;
   background: var(--ink);
-  border-radius: 24px;
+  border-radius: 26px;
   padding: 28px;
 }
 
 @media (min-width: 1000px) {
+  /* Kolom kanan lebih lebar: empat kartu budaya butuh ruang supaya proporsinya mirip benchmark
+     (agak portrait, bukan jangkung sempit). align-items: center, BUKAN stretch -- kalau stretch,
+     kartu ikut meregang setinggi blok narasi kiri. */
   .hero {
-    /* Kolom kanan sengaja jauh lebih lebar: empat kartu budaya butuh ruang supaya proporsinya
-       mirip benchmark (agak portrait, bukan jangkung sempit). align-items: center, BUKAN
-       stretch -- kalau stretch, kartu ikut meregang setinggi blok narasi kiri. */
-    grid-template-columns: minmax(270px, 0.92fr) minmax(0, 1.92fr);
+    grid-template-columns: minmax(290px, 0.95fr) minmax(0, 1.9fr);
     align-items: center;
-    gap: 26px;
-    padding: 30px 32px;
+    gap: 30px;
+    padding: 34px 36px;
   }
 }
 
 .heroMain {
   display: flex;
   flex-direction: column;
-  justify-content: center;
+  align-items: flex-start;
 }
 
 .heroGreeting {
   font-size: 12.5px;
   font-weight: 600;
   color: var(--ink-4);
-  margin: 0 0 10px;
+  margin: 0 0 12px;
+  line-height: 1.5;
 }
 
 .heroTitle {
   font-family: var(--font-display);
-  font-size: 22px;
-  line-height: 1.3;
+  font-size: 23px;
+  line-height: 1.32;
   font-weight: 800;
   color: var(--surface);
   margin: 0;
@@ -78,20 +79,33 @@
 
 .heroSub {
   font-size: 13.5px;
-  line-height: 1.55;
-  color: rgba(255, 255, 255, 0.62);
+  line-height: 1.6;
+  color: rgba(255, 255, 255, 0.64);
   margin: 12px 0 0;
 }
 
-.heroSumber {
-  align-self: flex-start;
-  margin-top: 18px;
-  font-size: 11px;
-  font-weight: 700;
-  color: var(--purple-100);
-  background: rgba(183, 156, 240, 0.16);
-  padding: 6px 13px;
+.heroCta {
+  margin-top: 20px;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 11px 20px;
+  font-family: var(--font-body);
+  font-size: 12.5px;
+  font-weight: 800;
+  color: var(--ink);
+  background: var(--surface);
+  border: none;
   border-radius: 999px;
+  cursor: pointer;
+  transition: transform var(--transition-fast), box-shadow var(--transition-fast);
+}
+
+.heroCta:hover,
+.heroCta:focus-visible {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
+  outline: none;
 }
 
 /* Kartu budaya 01-04 */
@@ -114,9 +128,9 @@
   text-align: left;
   border: none;
   font-family: var(--font-body);
-  border-radius: 18px;
-  padding: 15px 16px 17px;
-  height: 186px;
+  border-radius: 20px;
+  padding: 16px 17px 18px;
+  height: 208px;
   cursor: pointer;
   transition: transform var(--transition-fast), box-shadow var(--transition-fast);
   animation: cardIn 0.5s cubic-bezier(0.2, 0.8, 0.3, 1) backwards;
@@ -124,8 +138,8 @@
 
 .cultureCard:hover,
 .cultureCard:focus-visible {
-  transform: translateY(-4px);
-  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.22);
+  transform: translateY(-5px);
+  box-shadow: 0 14px 30px rgba(0, 0, 0, 0.24);
   outline: none;
 }
 
@@ -152,42 +166,50 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 14px;
+  margin-bottom: 12px;
 }
 
 .cultureCardNum {
   font-family: var(--font-display);
   font-size: 12px;
   font-weight: 800;
-  opacity: 0.75;
+  opacity: 0.7;
 }
 
 .cultureCardGap {
   font-size: 11.5px;
   font-weight: 800;
-  opacity: 0.9;
+  opacity: 0.92;
 }
 
 .cultureCardIcon {
   font-size: 21px;
   line-height: 1;
-  margin-bottom: 12px;
+  margin-bottom: 10px;
 }
 
 .cultureCardTitle {
   font-family: var(--font-display);
-  font-size: 15.5px;
+  font-size: 16px;
   font-weight: 800;
-  line-height: 1.25;
+  line-height: 1.2;
   margin: 0;
   letter-spacing: -0.2px;
 }
 
+.cultureCardRingkas {
+  font-size: 10.5px;
+  font-weight: 700;
+  opacity: 0.66;
+  margin: 4px 0 0;
+  line-height: 1.35;
+}
+
 .cultureCardCaption {
   font-size: 10.5px;
-  font-weight: 600;
-  opacity: 0.72;
-  margin: 6px 0 0;
+  font-weight: 700;
+  opacity: 0.78;
+  margin: 10px 0 8px;
 }
 
 .cultureBarTrack {
@@ -214,16 +236,32 @@
   opacity: 0.55;
 }
 
-/* ══ Statistik ════════════════════════════════════════════════════════════════ */
+/* ══ Judul section ════════════════════════════════════════════════════════════ */
+.sectionHead {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 14px;
+  flex-wrap: wrap;
+}
+
 .sectionTitle {
   font-family: var(--font-display);
   font-size: 17px;
   font-weight: 800;
   color: var(--ink);
-  margin: 0 0 14px;
+  margin: 0;
   letter-spacing: -0.2px;
 }
 
+.sectionHint {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--ink-4);
+}
+
+/* ══ Kartu statistik ══════════════════════════════════════════════════════════ */
 .statRow {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -232,116 +270,229 @@
 
 @media (min-width: 760px) {
   .statRow {
-    grid-template-columns: 1fr 1fr 1.7fr;
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+@media (min-width: 1100px) {
+  .statRow {
+    grid-template-columns: repeat(3, 1fr) 1.5fr;
   }
 }
 
 .statCard {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  position: relative;
+  text-align: left;
+  font-family: var(--font-body);
   background: var(--surface);
   border: 1px solid var(--line);
-  border-radius: 18px;
+  border-radius: 20px;
   padding: 20px 22px;
+  cursor: pointer;
+  transition: transform var(--transition-fast), box-shadow var(--transition-fast),
+              border-color var(--transition-fast);
+}
+
+.statCard:hover,
+.statCard:focus-visible {
+  transform: translateY(-3px);
+  border-color: var(--purple-300);
+  box-shadow: var(--shadow-card);
+  outline: none;
 }
 
 .statCardWide {
   grid-column: 1 / -1;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 14px;
 }
 
-@media (min-width: 760px) {
+@media (min-width: 1100px) {
   .statCardWide {
     grid-column: auto;
   }
 }
 
+.statBody {
+  flex: 1;
+  min-width: 0;
+}
+
 .statValue {
   font-family: var(--font-display);
-  font-size: 34px;
+  font-size: 32px;
   font-weight: 800;
   color: var(--ink);
   line-height: 1.05;
-  margin: 0 0 8px;
+  margin: 0 0 7px;
   letter-spacing: -0.8px;
 }
 
-.statLabel {
-  font-size: 12px;
-  line-height: 1.45;
+.statUnit {
+  font-size: 16px;
+  font-weight: 800;
   color: var(--ink-3);
+  margin-left: 2px;
+  letter-spacing: 0;
+}
+
+.statLabel {
+  font-size: 12.5px;
+  font-weight: 700;
+  line-height: 1.4;
+  color: var(--ink-2);
   margin: 0;
 }
 
 .statBadge {
   display: inline-block;
-  margin-left: 6px;
+  margin-top: 7px;
   font-size: 10.5px;
   font-weight: 800;
-  padding: 3px 9px;
+  padding: 3px 10px;
   border-radius: 999px;
+}
+
+.statHint {
+  font-size: 11px;
+  line-height: 1.45;
+  color: var(--ink-4);
+  margin: 6px 0 0;
+}
+
+.statChevron {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  font-size: 16px;
+  color: var(--ink-4);
+  transition: transform var(--transition-fast), color var(--transition-fast);
+}
+
+.statCard:hover .statChevron {
+  color: var(--purple-600);
+  transform: translateX(2px);
 }
 
 .spark {
   flex-shrink: 0;
 }
 
+@media (prefers-reduced-motion: reduce) {
+  .statCard:hover,
+  .statCard:focus-visible {
+    transform: none;
+  }
+  .statCard:hover .statChevron {
+    transform: none;
+  }
+}
+
 /* ══ Dua kolom ════════════════════════════════════════════════════════════════ */
 .twoCol {
   display: grid;
   grid-template-columns: 1fr;
-  gap: 26px;
+  gap: 28px;
 }
 
 @media (min-width: 1000px) {
   .twoCol {
-    grid-template-columns: 1.25fr 1fr;
+    grid-template-columns: 1.15fr 1fr;
     align-items: start;
+    gap: 32px;
   }
 }
 
 .colStack {
   display: flex;
   flex-direction: column;
-  gap: 26px;
+  gap: 28px;
   min-width: 0;
 }
 
 .card {
   background: var(--surface);
   border: 1px solid var(--line);
-  border-radius: 18px;
+  border-radius: 20px;
   padding: 20px 22px;
+}
+
+/* Kartu yang seluruhnya jadi tombol (radar). */
+.cardButton {
+  display: block;
+  width: 100%;
+  text-align: left;
+  font-family: var(--font-body);
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 20px;
+  padding: 20px 22px;
+  cursor: pointer;
+  transition: transform var(--transition-fast), box-shadow var(--transition-fast),
+              border-color var(--transition-fast);
+}
+
+.cardButton:hover,
+.cardButton:focus-visible {
+  transform: translateY(-3px);
+  border-color: var(--purple-300);
+  box-shadow: var(--shadow-card);
+  outline: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cardButton:hover,
+  .cardButton:focus-visible {
+    transform: none;
+  }
 }
 
 .radarWrap {
   display: flex;
   justify-content: center;
-  padding: 2px 0 6px;
+  padding: 2px 0 10px;
 }
 
-.narasi {
-  font-size: 12.5px;
+.cardHintLine {
+  font-size: 11.5px;
   line-height: 1.6;
   color: var(--ink-3);
-  margin: 16px 0 0;
+  margin: 0;
   padding-top: 14px;
   border-top: 1px solid var(--line);
 }
 
-.narasiPlain {
-  font-size: 12.5px;
+.cardHintCta {
+  font-weight: 800;
+  color: var(--purple-600);
+  white-space: nowrap;
+}
+
+.cardFootNote {
+  font-size: 11.5px;
   line-height: 1.6;
   color: var(--ink-3);
-  margin: 12px 2px 0;
+  margin-top: 16px;
+  padding-top: 14px;
+  border-top: 1px solid var(--line);
+}
+
+.cardFootStrong {
+  font-weight: 800;
+  color: var(--ink-2);
+}
+
+.cardFootSep {
+  margin: 0 8px;
+  color: var(--ink-4);
 }
 
 /* ══ Baris daftar ber-icon-badge ══════════════════════════════════════════════ */
 .rowList {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 9px;
 }
 
 .row {
@@ -354,8 +505,8 @@
   font-family: var(--font-body);
   background: var(--surface);
   border: 1px solid var(--line);
-  border-radius: 16px;
-  padding: 13px 16px;
+  border-radius: 18px;
+  padding: 14px 17px;
   cursor: pointer;
   transition: transform var(--transition-fast), box-shadow var(--transition-fast),
               border-color var(--transition-fast);
@@ -367,6 +518,41 @@
   border-color: var(--purple-300);
   box-shadow: var(--shadow-card);
   outline: none;
+}
+
+.rowIcon {
+  width: 44px;
+  height: 44px;
+  border-radius: 14px;
+  display: grid;
+  place-items: center;
+  font-size: 18px;
+}
+
+.rowBody {
+  min-width: 0;
+}
+
+.rowTitle {
+  font-size: 13.5px;
+  font-weight: 700;
+  color: var(--ink);
+  line-height: 1.45;
+  margin: 0;
+}
+
+.rowSub {
+  font-size: 11.5px;
+  color: var(--ink-3);
+  margin: 3px 0 0;
+}
+
+.rowMeta {
+  font-size: 11px;
+  font-weight: 800;
+  padding: 5px 11px;
+  border-radius: 999px;
+  white-space: nowrap;
 }
 
 .rowChevron {
@@ -390,41 +576,6 @@
   }
 }
 
-.rowIcon {
-  width: 44px;
-  height: 44px;
-  border-radius: 14px;
-  display: grid;
-  place-items: center;
-  font-size: 18px;
-}
-
-.rowBody {
-  min-width: 0;
-}
-
-.rowTitle {
-  font-size: 13.5px;
-  font-weight: 700;
-  color: var(--ink);
-  line-height: 1.4;
-  margin: 0;
-}
-
-.rowSub {
-  font-size: 11.5px;
-  color: var(--ink-3);
-  margin: 3px 0 0;
-}
-
-.rowMeta {
-  font-size: 11px;
-  font-weight: 800;
-  padding: 5px 11px;
-  border-radius: 999px;
-  white-space: nowrap;
-}
-
 /* ══ Isi dialog detail ════════════════════════════════════════════════════════ */
 .dialogSectionTitle {
   font-size: 11px;
@@ -432,14 +583,23 @@
   letter-spacing: 0.06em;
   text-transform: uppercase;
   color: var(--ink-4);
-  margin: 0 0 8px;
+  margin: 0 0 9px;
 }
 
 .dialogText {
   font-size: 13.5px;
-  line-height: 1.6;
+  line-height: 1.65;
   color: var(--ink-2);
   margin: 0;
+}
+
+.dialogFootnote {
+  font-size: 11.5px;
+  line-height: 1.6;
+  color: var(--ink-4);
+  margin: 0;
+  padding-top: 14px;
+  border-top: 1px solid var(--line);
 }
 
 .dialogStats {
@@ -452,7 +612,7 @@
 .dialogStat {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 5px;
   background: var(--surface);
   border: 1px solid var(--line);
   border-radius: 14px;
@@ -461,25 +621,203 @@
 
 .dialogStatValue {
   font-family: var(--font-display);
-  font-size: 19px;
+  font-size: 18px;
   font-weight: 800;
   color: var(--ink);
-  line-height: 1.1;
+  line-height: 1.15;
 }
 
 .dialogStatLabel {
   font-size: 10.5px;
   color: var(--ink-3);
+  line-height: 1.35;
+}
+
+/* Kotak sorotan "apa artinya" */
+.callout {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  border-radius: 14px;
+  padding: 14px 16px;
+}
+
+.calloutIcon {
+  font-size: 14px;
+  line-height: 1.5;
+  flex-shrink: 0;
+}
+
+.calloutText {
+  font-size: 13px;
+  line-height: 1.6;
+  margin: 0;
+  font-weight: 600;
+}
+
+.callout_baik {
+  background: var(--status-safe-bg);
+}
+.callout_baik .calloutText {
+  color: #1B6B4A;
+}
+
+.callout_waspada {
+  background: var(--status-alert-bg);
+}
+.callout_waspada .calloutText {
+  color: #9E2F40;
+}
+
+.callout_netral {
+  background: var(--surface);
+  border: 1px solid var(--line);
+}
+.callout_netral .calloutText {
+  color: var(--ink-2);
+}
+
+.callout_aksi {
+  background: var(--purple-050);
+}
+.callout_aksi .calloutText {
+  color: var(--purple-700);
+}
+
+/* Daftar langkah bernomor di dialog */
+.langkahList {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.langkahItem {
+  display: flex;
+  gap: 11px;
+  align-items: flex-start;
+}
+
+.langkahNum {
+  flex-shrink: 0;
+  width: 22px;
+  height: 22px;
+  border-radius: 8px;
+  background: var(--purple-050);
+  color: var(--purple-700);
+  font-size: 11px;
+  font-weight: 800;
+  display: grid;
+  place-items: center;
+  margin-top: 1px;
+}
+
+.langkahText {
+  font-size: 13px;
+  line-height: 1.6;
+  color: var(--ink-2);
+}
+
+.langkahArea {
+  display: block;
+  font-size: 11.5px;
+  color: var(--ink-4);
+  margin-top: 2px;
+}
+
+/* Baris ringkas di dalam dialog (sebaran responden, daftar sumbu) */
+.rowListPlain {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.miniRow {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 90px 30px 34px;
+  align-items: center;
+  gap: 10px;
+}
+
+.miniRowLabel {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--ink);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.miniRowTrack {
+  height: 7px;
+  background: var(--bg-2);
+  border-radius: 99px;
+  overflow: hidden;
+}
+
+.miniRowFill {
+  height: 100%;
+  border-radius: 99px;
+  background: var(--purple-600);
+}
+
+.miniRowVal {
+  font-size: 12px;
+  font-weight: 800;
+  color: var(--ink);
+  text-align: right;
+}
+
+.miniRowPct {
+  font-size: 11px;
+  color: var(--ink-4);
+  text-align: right;
+}
+
+.axisRow {
+  display: flex;
+  gap: 11px;
+  align-items: flex-start;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  padding: 12px 14px;
+}
+
+.axisIcon {
+  font-size: 17px;
   line-height: 1.3;
+}
+
+.axisTitle {
+  font-size: 13px;
+  font-weight: 800;
+  color: var(--ink);
+  margin: 0;
+}
+
+.axisRingkas {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--ink-4);
+  margin-left: 6px;
+}
+
+.axisMeta {
+  font-size: 11.5px;
+  color: var(--ink-3);
+  margin: 3px 0 0;
 }
 
 /* ══ Footer ═══════════════════════════════════════════════════════════════════ */
 .disclaimer {
   font-size: 11.5px;
   color: var(--ink-4);
-  line-height: 1.5;
+  line-height: 1.55;
   text-align: center;
-  padding-top: 12px;
+  padding-top: 14px;
   border-top: 1px solid var(--line-warm);
   margin: 0;
 }

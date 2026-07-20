@@ -1,7 +1,7 @@
 .list {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 10px;
 }
 
 .row {
@@ -9,6 +9,38 @@
   grid-template-columns: minmax(120px, 168px) 1fr 40px auto;
   align-items: center;
   gap: 10px;
+  width: 100%;
+  padding: 6px 0;
+}
+
+.rowClickable {
+  grid-template-columns: minmax(120px, 168px) 1fr 40px auto 14px;
+  text-align: left;
+  font-family: var(--font-body);
+  background: none;
+  border: none;
+  border-radius: 10px;
+  cursor: pointer;
+  padding: 8px 8px;
+  margin: 0 -8px;
+  transition: background var(--transition-fast);
+}
+
+.rowClickable:hover,
+.rowClickable:focus-visible {
+  background: var(--cw-bg, var(--bg-2));
+  outline: none;
+}
+
+.rowChevron {
+  font-size: 15px;
+  color: var(--ink-4);
+  transition: transform var(--transition-fast), color var(--transition-fast);
+}
+
+.rowClickable:hover .rowChevron {
+  color: var(--purple-600);
+  transform: translateX(2px);
 }
 
 .label {
@@ -49,10 +81,18 @@
 }
 
 @media (max-width: 520px) {
-  .row {
+  .row,
+  .rowClickable {
     grid-template-columns: 96px 1fr 34px;
   }
-  .kategoriTag {
+  .kategoriTag,
+  .rowChevron {
     display: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .rowClickable:hover .rowChevron {
+    transform: none;
   }
 }

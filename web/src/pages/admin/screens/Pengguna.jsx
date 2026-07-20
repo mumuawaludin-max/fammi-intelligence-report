@@ -6,7 +6,7 @@ import { ErrorState } from '../components/ErrorState';
 import { peranColor } from '../data/helpers';
 import { IconMoreVertical } from '../components/icons';
 
-const PERAN_ORDER = ['AdminFammi', 'Yayasan', 'KepalaSekolah', 'WakilKepalaSekolah', 'Manajemen', 'WaliKelas', 'OrangTua', 'Siswa'];
+const PERAN_ORDER = ['AdminFammi', 'Yayasan', 'KepalaSekolah', 'WakilKepalaSekolah', 'Manajemen', 'Karyawan', 'WaliKelas', 'OrangTua', 'Siswa'];
 
 export function Pengguna() {
   const { data, loading, error, setAddUserOpen, refetch, bulkResetAndExport, bulkDeleteUsers, session } = useCms();
@@ -72,7 +72,9 @@ export function Pengguna() {
 
   return (
     <div style={{ padding: '22px 26px 40px' }}>
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7,1fr)', gap: 10, marginBottom: 18 }}>
+      {/* auto-fit, BUKAN jumlah kolom tetap -- daftar peran bertambah seiring modul baru
+          (Manajemen & Karyawan untuk CW), kolom tetap bikin kartu gepeng/meluber. */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(132px, 1fr))', gap: 10, marginBottom: 18 }}>
         {peranSummary.map((p, i) => (
           <div key={i} className="card" style={{ padding: '14px 16px', boxShadow: 'var(--shadow-sm)' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 6 }}>
@@ -139,7 +141,7 @@ export function Pengguna() {
       <div style={{ marginTop: 14, padding: '10px 14px', background: 'var(--info-soft)', borderRadius: 8, fontSize: 11.5, color: 'var(--info)', display: 'flex', gap: 8, alignItems: 'flex-start' }}>
         <span style={{ fontSize: 14 }}>ℹ</span>
         <div>
-          Nilai peran ditegakkan lewat <span className="mono" style={{ fontSize: 11 }}>profiles_peran_check</span> constraint. Wajib PascalCase persis: <span className="mono" style={{ fontSize: 11 }}>'AdminFammi','Yayasan','KepalaSekolah','WakilKepalaSekolah','Manajemen','WaliKelas','OrangTua','Siswa'</span>. Nilai lain akan ditolak Postgres.
+          Nilai peran ditegakkan lewat <span className="mono" style={{ fontSize: 11 }}>profiles_peran_check</span> constraint. Wajib PascalCase persis: <span className="mono" style={{ fontSize: 11 }}>'AdminFammi','Yayasan','KepalaSekolah','WakilKepalaSekolah','Manajemen','Karyawan','WaliKelas','OrangTua','Siswa'</span>. Nilai lain akan ditolak Postgres.
         </div>
       </div>
     </div>

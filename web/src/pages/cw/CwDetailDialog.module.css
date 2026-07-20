@@ -21,7 +21,9 @@
   max-width: 640px;
   max-height: 85vh;
   overflow-y: auto;
-  background: var(--bg);
+  /* BUKAN var(--bg) (krem hangat global) -- dialog CW wajib pakai skema abu muda yang sama
+     dengan sisa dashboard modul ini (--cw-bg), supaya tidak ada warna cream yang menyelip. */
+  background: var(--cw-bg);
   border-radius: var(--radius-xl);
   padding: 26px 26px 32px;
   position: relative;

@@ -10,7 +10,7 @@ import styles from "./CwChartsPreview.module.css";
  * Session di sini objek palsu seadanya, cuma field `peran` yang dipakai CwPage -- BUKAN sesi
  * Supabase sungguhan, jadi tidak menyentuh auth/RLS sama sekali.
  */
-const PERAN_UJI = ["Manajemen", "KepalaSekolah", "WaliKelas"];
+const PERAN_UJI = ["Manajemen", "Karyawan", "KepalaSekolah"];
 
 export default function CwPagePreview() {
   const [peran, setPeran] = useState("Manajemen");
@@ -20,7 +20,7 @@ export default function CwPagePreview() {
       <p className={styles.pageTitle}>CW Page Routing Preview</p>
       <p className={styles.pageNote}>
         Ganti peran untuk melihat tampilan mana yang dirender CwPage. Manajemen &amp; Kepala
-        Sekolah dapat dashboard lembaga + sub-tab, peran lain dapat laporan pribadi.
+        Sekolah dapat dashboard lembaga + sub-tab, Karyawan dapat laporan pribadi mobile-first.
       </p>
 
       <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
@@ -42,7 +42,7 @@ export default function CwPagePreview() {
         ))}
       </div>
 
-      <CwPage session={{ peran, school_id: "sch-istiqamah", nama: "Akun Uji" }} />
+      <CwPage session={{ peran, school_id: "org-phe", nama: "Akun Uji" }} />
     </div>
   );
 }

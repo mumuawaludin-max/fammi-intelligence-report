@@ -117,6 +117,28 @@ export interface CwMeta {
   periode_id: string;
 }
 
+/**
+ * Satu langkah tindak lanjut PRIBADI untuk karyawan yang bersangkutan.
+ *
+ * ASUMSI, bukan dari skema yang disebutkan pemilik produk -- ditambahkan karena laporan individu
+ * tanpa "jadi saya harus apa?" berhenti sebagai informasi, bukan alat bantu. Beda dari
+ * PrioritasPerbaikan di laporan agregat: itu keputusan level organisasi untuk pimpinan, ini
+ * langkah kecil yang bisa dijalankan karyawan sendiri tanpa menunggu kebijakan.
+ */
+export interface AksiPribadi {
+  id: string;
+  /** Kalimat aksi, diawali kata kerja. Mis. "Blokir 1 jam tanpa rapat tiap Rabu pagi". */
+  judul: string;
+  /** Penjelasan 1-2 kalimat: kenapa ini disarankan untuk orang ini. */
+  alasan: string;
+  /** Subdimensi/tipe budaya yang jadi sumber saran, dipakai sebagai tag di UI. */
+  terkait: string;
+  /** Perkiraan rentang waktu, mis. "Minggu ini", "1 bulan". */
+  jangka: string;
+  /** Ikon pendek (emoji) untuk badge di daftar aksi. */
+  ikon: string;
+}
+
 /** Struktur penuh satu laporan individu CW. */
 export interface LaporanIndividuCW {
   meta: CwMeta;
@@ -127,6 +149,8 @@ export interface LaporanIndividuCW {
   bagian_cermin: string;
   /** Teks bebas -- ajakan/pertanyaan refleksi untuk responden. */
   bagian_refleksi: string;
+  /** ASUMSI (lihat AksiPribadi): 2-4 langkah tindak lanjut pribadi. */
+  rencana_aksi?: AksiPribadi[];
   footer: CwFooter;
 }
 
@@ -184,6 +208,14 @@ export interface PrioritasPerbaikan {
   trigger_desc: string;
   /** Label area/unit yang jadi konteks tambahan, mis. "Beban Kerja · Operasional". */
   area: string;
+  /**
+   * ASUMSI, ditambahkan supaya dialog detail lebih menjelaskan -- bukan dari deskripsi user.
+   * 2-4 langkah konkret, ditampilkan sebagai checklist di dialog. Hapus field ini kalau skema
+   * asli ternyata tidak punya rincian langkah.
+   */
+  langkah?: string[];
+  /** ASUMSI: dampak yang diharapkan kalau prioritas ini dijalankan, 1 kalimat. */
+  dampak?: string;
 }
 
 /** Struktur penuh laporan agregat/pimpinan CW satu sekolah satu periode. */

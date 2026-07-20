@@ -66,6 +66,7 @@ export function peranColor(p) {
     KepalaSekolah: { bg: '#FAF1DC', ink: '#8A6210', label: 'Kepala Sekolah' },
     WakilKepalaSekolah: { bg: '#FAF1DC', ink: '#8A6210', label: 'Wakil Kepala Sekolah' },
     Manajemen: { bg: '#F4EFFD', ink: '#5418C2', label: 'Manajemen' },
+    Karyawan: { bg: '#DFF7E4', ink: '#1E7A3A', label: 'Karyawan' },
     WaliKelas: { bg: '#E7F4EE', ink: '#1E7A50', label: 'Wali Kelas' },
     OrangTua: { bg: '#FDE2FE', ink: '#843D8A', label: 'Orang Tua' },
     Siswa: { bg: '#F1ECE3', ink: '#7C6A48', label: 'Siswa' },
