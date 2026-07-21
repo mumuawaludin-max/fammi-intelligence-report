@@ -1395,7 +1395,6 @@ export function useSummaryTrend({ sekolahId, scope, scopeId, limit = 6 }) {
     const scopeIds = Array.isArray(scopeId) ? scopeId : [scopeId];
     // sekolahId boleh array (Yayasan memantau banyak sekolah sekaligus).
     const sekolahIds = Array.isArray(sekolahId) ? sekolahId : [sekolahId];
-    const field = scope === "sekolah" ? "rata_pencapaian_guru" : "rata_rata_pencapaian_guru";
 
     supabase
       .from("karakter_summary")
@@ -1407,7 +1406,15 @@ export function useSummaryTrend({ sekolahId, scope, scopeId, limit = 6 }) {
         if (!alive) return;
         const byPeriode = {};
         (data || []).forEach((r) => {
-          const v = pct(r.ringkasan?.[field]);
+          // Sekolah lain bisa simpan angka ringkasan sekolah tanpa prefix "rata_" (mis.
+          // "pencapaian_guru" alih-alih "rata_pencapaian_guru") -- kartu hero KepsekView/
+          // YayasanView sudah toleran ke dua-duanya (lihat latestValue/rata di sana), tapi
+          // hook ini (dipakai buat grafik tren) dulu cuma cek "rata_pencapaian_guru", jadi
+          // grafik trennya kosong sama sekali untuk sekolah yang pakai nama kolom satunya,
+          // padahal angka hero-nya sendiri tetap tampil normal lewat fallback itu.
+          const v = scope === "sekolah"
+            ? pct(r.ringkasan?.rata_pencapaian_guru ?? r.ringkasan?.pencapaian_guru)
+            : pct(r.ringkasan?.rata_rata_pencapaian_guru);
           if (v === null) return;
           if (!byPeriode[r.periode_id]) byPeriode[r.periode_id] = { sum: 0, n: 0, ringkasan: null };
           byPeriode[r.periode_id].sum += v;
