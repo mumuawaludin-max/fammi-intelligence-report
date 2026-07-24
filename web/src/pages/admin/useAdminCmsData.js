@@ -398,7 +398,12 @@ function sleep(ms) {
  * server-side, dicek lagi di sini untuk retry lapis kedua di sisi klien (lihat komentar di
  * runScIndividuGenerateAction). */
 function isTransientGeminiError(msg) {
-  return /\b503\b|UNAVAILABLE|\b429\b|high demand/i.test(String(msg || ''));
+  // "timeout"/"gagal dihubungi" -- callGemini() (_shared/geminiPrompt.ts) sekarang membatasi tiap
+  // fetch ke Gemini dengan AbortController, ditemukan lewat log Supabase yang menunjukkan
+  // function generate-sc-individu mati diam-diam di ~75 detik (platform membunuh koneksi yang
+  // menggantung tanpa timeout sendiri) alih-alih melempar error yang bisa di-retry. Kedua pesan
+  // baru itu sama transiennya dengan 503/429, wajib ikut lapis retry batch di sini juga.
+  return /\b503\b|UNAVAILABLE|\b429\b|high demand|timeout|gagal dihubungi/i.test(String(msg || ''));
 }
 
 async function generateSatuSc(p) {

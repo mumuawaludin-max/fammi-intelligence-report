@@ -1283,28 +1283,60 @@ function backoffMs(attempt: number) {
  */
 export async function callGemini(apiKey: string, model: string, systemInstruction: string, prompt: string) {
   const RETRYABLE = new Set([429, 503]);
-  const MAX_ATTEMPT = 5;
+  // MAX_ATTEMPT diturunkan dari 5 -> 3, dan tiap fetch sekarang punya timeout eksplisit (lihat
+  // FETCH_TIMEOUT_MS di bawah) -- ditemukan lewat log Supabase (Boot/Shutdown) yang menunjukkan
+  // banyak invocation generate-sc-individu mati persis di ~75 detik, konsisten di banyak
+  // percobaan berbeda. Itu bukan pola 503+backoff (yang variannya lebih acak), tapi ciri khas
+  // PLATFORM MEMBUNUH function yang jalan kelamaan -- kemungkinan besar karena fetch() ke Gemini
+  // TIDAK PERNAH punya batas waktu sendiri, jadi satu koneksi yang menggantung (bukan cuma
+  // lambat merespons 503) bisa membuat SATU percobaan saja menghabiskan seluruh sisa waktu
+  // eksekusi function, sebelum retry/backoff kita sendiri sempat jalan. Anggaran baru (3
+  // percobaan x 12 detik timeout + backoff 2s+4s = maksimal ~42 detik) sengaja jauh di bawah
+  // ~75 detik yang teramati, supaya function SELALU sempat melempar error yang jelas dan
+  // ditangkap try/catch pemanggil, bukan mati mendadak tanpa pesan.
+  const MAX_ATTEMPT = 3;
+  const FETCH_TIMEOUT_MS = 12000;
   let lastErr: Error | null = null;
 
   for (let attempt = 1; attempt <= MAX_ATTEMPT; attempt++) {
-    const res = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`,
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          systemInstruction: { parts: [{ text: systemInstruction }] },
-          contents: [{ parts: [{ text: prompt }] }],
-          // maxOutputTokens EKSPLISIT (sebelumnya tidak diset, jatuh ke default API yang bisa
-          // lebih kecil dari cukup) -- laporan individu SC/Karakter yang isinya panjang (esai
-          // staf ikut dibaca sebagai konteks, rencana_aksi 4 item) sempat KEPOTONG di tengah
-          // JSON kalau kebetulan mepet limit, bikin JSON.parse gagal walau responseMimeType
-          // sudah "application/json". 8192 token cukup lega untuk skema output terbesar (array
-          // tindak lanjut Karakter/SC) tanpa menaikkan biaya berarti.
-          generationConfig: { responseMimeType: "application/json", maxOutputTokens: 8192 },
-        }),
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
+    let res: Response;
+    try {
+      res = await fetch(
+        `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          signal: controller.signal,
+          body: JSON.stringify({
+            systemInstruction: { parts: [{ text: systemInstruction }] },
+            contents: [{ parts: [{ text: prompt }] }],
+            // maxOutputTokens EKSPLISIT (sebelumnya tidak diset, jatuh ke default API yang bisa
+            // lebih kecil dari cukup) -- laporan individu SC/Karakter yang isinya panjang (esai
+            // staf ikut dibaca sebagai konteks, rencana_aksi 4 item) sempat KEPOTONG di tengah
+            // JSON kalau kebetulan mepet limit, bikin JSON.parse gagal walau responseMimeType
+            // sudah "application/json". 8192 token cukup lega untuk skema output terbesar (array
+            // tindak lanjut Karakter/SC) tanpa menaikkan biaya berarti.
+            generationConfig: { responseMimeType: "application/json", maxOutputTokens: 8192 },
+          }),
+        }
+      );
+    } catch (fetchErr) {
+      // AbortError (timeout kita sendiri) ATAU error jaringan lain -- keduanya diperlakukan
+      // RETRYABLE (pesan mengandung "timeout" supaya cocok juga dengan isTransientGeminiError
+      // di sisi klien, useAdminCmsData.js, untuk lapis retry batch di atas ini).
+      lastErr = fetchErr?.name === "AbortError"
+        ? new Error(`Gemini API timeout (tidak merespons dalam ${FETCH_TIMEOUT_MS / 1000} detik).`)
+        : new Error(`Gemini API gagal dihubungi: ${String(fetchErr?.message || fetchErr)}`);
+      if (attempt < MAX_ATTEMPT) {
+        await tunggu(backoffMs(attempt));
+        continue;
       }
-    );
+      throw lastErr;
+    } finally {
+      clearTimeout(timeoutId);
+    }
 
     if (!res.ok) {
       const bodyText = await res.text();
