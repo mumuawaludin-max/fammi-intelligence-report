@@ -61,14 +61,17 @@
 
 import { createClient } from "jsr:@supabase/supabase-js@2";
 
-// localhost diizinkan di port berapa pun (Vite autoPort bisa geser dari 5173) -- lihat
-// komentar lengkap di _shared/cors.ts, salinan inline supaya berkas ini tetap satu file.
-const PROD_ORIGIN = Deno.env.get("ALLOWED_ORIGIN") || "https://fammi-intelligence-report.vercel.app";
+// localhost diizinkan di port berapa pun (Vite autoPort bisa geser dari 5173), dan ALLOWED_ORIGIN
+// boleh berisi lebih dari satu domain dipisah koma (FIR dilayani dari domain kustom fammi.id
+// SEKALIGUS domain default Vercel) -- lihat komentar lengkap di _shared/cors.ts, salinan inline
+// supaya berkas ini tetap satu file.
+const PROD_ORIGINS = (Deno.env.get("ALLOWED_ORIGIN") || "https://fammi-intelligence-report.vercel.app")
+  .split(",").map((s) => s.trim()).filter(Boolean);
 
 function buildCorsHeaders(req) {
   const origin = req.headers.get("origin") || req.headers.get("Origin");
-  const allowed = origin && (origin === PROD_ORIGIN || /^http:\/\/localhost:\d+$/.test(origin));
-  const allowOrigin = allowed ? origin : PROD_ORIGIN;
+  const allowed = origin && (PROD_ORIGINS.includes(origin) || /^http:\/\/localhost:\d+$/.test(origin));
+  const allowOrigin = allowed ? origin : PROD_ORIGINS[0];
   return {
     "Access-Control-Allow-Origin": allowOrigin,
     "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
