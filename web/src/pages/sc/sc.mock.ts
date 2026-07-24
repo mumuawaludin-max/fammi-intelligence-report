@@ -49,7 +49,7 @@ const RESPONDEN_1: LaporanIndividuSC = {
   },
   bagian_kesejahteraan: {
     narasi:
-      "Secara umum kondisi kesejahteraan Anda berada di kategori Tinggi. Kenyamanan bekerja jadi titik terkuat, sementara keseimbangan kerja-hidup masih dalam batas wajar meski sedikit lebih tertekan menjelang musim ujian.",
+      "Secara umum kondisi kesejahteraan Anda berada di kategori Tinggi. Kenyamanan bekerja jadi titik terkuat, sementara Work-Life Balance masih dalam batas wajar meski sedikit lebih tertekan menjelang musim ujian.",
     indeks: 79,
     kategori: "Tinggi",
     chart_data: [
@@ -88,7 +88,7 @@ const RESPONDEN_1: LaporanIndividuSC = {
     {
       id: "sc1-balance",
       judul: "Petakan ulang jadwal minggu menjelang ujian.",
-      alasan: "Keseimbangan kerja-hidup jadi subdimensi terendah Anda (68%, kategori Sedang). Memetakan lebih awal menjaga ini tidak turun saat jadwal ujian menumpuk.",
+      alasan: "Work-Life Balance jadi subdimensi terendah Anda (68%, kategori Sedang). Memetakan lebih awal menjaga ini tidak turun saat jadwal ujian menumpuk.",
       terkait: "Work-Life Balance",
       jangka: "Minggu ini",
       ikon: "🗓️",
@@ -227,7 +227,7 @@ const RESPONDEN_3: LaporanIndividuSC = {
   },
   bagian_kesejahteraan: {
     narasi:
-      "Indeks kesejahteraan Anda berada di kategori Rendah, terutama ditekan keseimbangan kerja-hidup dan kenyamanan bekerja yang jadi dua subdimensi terlemah. Ini pola yang perlu jadi perhatian bersama, bukan cuma catatan pribadi.",
+      "Indeks kesejahteraan Anda berada di kategori Rendah, terutama ditekan Work-Life Balance dan kenyamanan bekerja yang jadi dua subdimensi terlemah. Ini pola yang perlu jadi perhatian bersama, bukan cuma catatan pribadi.",
     indeks: 45,
     kategori: "Rendah",
     chart_data: [
@@ -258,7 +258,7 @@ const RESPONDEN_3: LaporanIndividuSC = {
     {
       id: "sc3-bicara",
       judul: "Bicarakan beban kerja Anda dengan Kepala Sekolah minggu ini.",
-      alasan: "Kenyamanan bekerja Anda di 34% (Rendah) dan keseimbangan kerja-hidup 29% (Sangat Rendah). Dua angka ini bersamaan adalah sinyal kelelahan kerja yang sebaiknya tidak ditunda.",
+      alasan: "Kenyamanan bekerja Anda di 34% (Rendah) dan Work-Life Balance 29% (Sangat Rendah). Dua angka ini bersamaan adalah sinyal kelelahan kerja yang sebaiknya tidak ditunda.",
       terkait: "Kenyamanan Bekerja",
       jangka: "Minggu ini",
       ikon: "🗣️",
@@ -266,7 +266,7 @@ const RESPONDEN_3: LaporanIndividuSC = {
     {
       id: "sc3-batas",
       judul: "Tetapkan satu batas waktu berhenti kerja, lalu patuhi selama dua minggu.",
-      alasan: "Keseimbangan kerja-hidup Anda 29% (Sangat Rendah). Batas yang jelas dan konsisten lebih membantu daripada niat mengurangi jam kerja secara umum.",
+      alasan: "Work-Life Balance Anda 29% (Sangat Rendah). Batas yang jelas dan konsisten lebih membantu daripada niat mengurangi jam kerja secara umum.",
       terkait: "Work-Life Balance",
       jangka: "2 minggu",
       ikon: "⏰",
@@ -348,7 +348,7 @@ export const MOCK_LAPORAN_AGREGAT_SC: LaporanAgregatSC = {
   },
   bagian_kesejahteraan: {
     narasi:
-      "Indeks kesejahteraan gabungan berada di kategori Sedang. Kenyamanan bekerja jadi subdimensi terkuat, sementara keseimbangan kerja-hidup jadi titik yang paling perlu diperhatikan sekolah secara keseluruhan.",
+      "Indeks kesejahteraan gabungan berada di kategori Sedang. Kenyamanan bekerja jadi subdimensi terkuat, sementara Work-Life Balance jadi titik yang paling perlu diperhatikan sekolah secara keseluruhan.",
     indeks: 60,
     kategori: "Sedang",
     chart_data: [
