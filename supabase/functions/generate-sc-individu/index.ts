@@ -99,8 +99,20 @@ Deno.serve(async (req) => {
       budaya: row.budaya || [], kesejahteraan: row.kesejahteraan || [],
       profilOrganisasi: row.profil_organisasi || [], essay: row.essay || {}, arahanReviewer,
     });
-    const out = await callGemini(GEMINI_API_KEY, GEMINI_MODEL, SYSTEM_INSTRUCTION_SC_INDIVIDU, prompt);
+    let out;
+    try {
+      out = await callGemini(GEMINI_API_KEY, GEMINI_MODEL, SYSTEM_INSTRUCTION_SC_INDIVIDU, prompt);
+    } catch (geminiErr: any) {
+      // Log eksplisit -- SEBELUMNYA error dari callGemini() cuma dilempar ke catch terluar dan
+      // dibalas sebagai JSON ke klien, tapi TIDAK PERNAH tercatat di Supabase Function Logs
+      // (yang cuma menangkap Boot/Shutdown dari infra, bukan console output kita). Tanpa baris
+      // ini, admin tidak bisa tahu APAKAH kegagalan berulang sungguh Gemini 503, API key
+      // salah, model tidak ada, atau sebab lain -- cuma bisa menebak dari pola waktu.
+      console.error(`generate-sc-individu gagal untuk sc_personal_id=${scPersonalId} (${row.nama_responden}): ${geminiErr?.message || geminiErr}`);
+      throw geminiErr;
+    }
     if (!out || !out.header || !Array.isArray(out.rencana_aksi)) {
+      console.error(`generate-sc-individu: Gemini balas JSON tapi skema tidak valid untuk sc_personal_id=${scPersonalId} (${row.nama_responden}). Keys: ${out ? Object.keys(out).join(", ") : "null"}`);
       return json({ error: "Gemini tidak mengembalikan laporan yang valid." }, 500);
     }
     const qcFlags = computeQcFlags(out);
@@ -177,7 +189,10 @@ Deno.serve(async (req) => {
     if (insErr) return json({ error: insErr.message }, 500);
 
     return json({ ok: true, nama: row.nama_responden });
-  } catch (e) {
+  } catch (e: any) {
+    // Jaring pengaman terluar -- menangkap error DI LUAR blok callGemini di atas (mis. koneksi
+    // DB, RPC gagal), yang sebelumnya juga tidak pernah tercatat di Function Logs.
+    console.error(`generate-sc-individu error tak tertangani: ${e?.message || e}`);
     return json({ error: String(e?.message || e) }, 500);
   }
 });

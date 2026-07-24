@@ -1322,7 +1322,7 @@ export async function callGemini(apiKey: string, model: string, systemInstructio
           }),
         }
       );
-    } catch (fetchErr) {
+    } catch (fetchErr: any) {
       // AbortError (timeout kita sendiri) ATAU error jaringan lain -- keduanya diperlakukan
       // RETRYABLE (pesan mengandung "timeout" supaya cocok juga dengan isTransientGeminiError
       // di sisi klien, useAdminCmsData.js, untuk lapis retry batch di atas ini).
