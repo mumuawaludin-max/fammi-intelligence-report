@@ -221,7 +221,14 @@ function OrbitVisual() {
       <span className={`${styles.orbitRing} ${styles.orbitRing1}`} />
       <span className={`${styles.orbitRing} ${styles.orbitRing2}`} />
       <span className={`${styles.orbitRing} ${styles.orbitRing3}`} />
-      <span className={styles.orbitCenter}>👤</span>
+      <span className={styles.orbitCenter}>
+        {/* SVG, bukan emoji "👤" -- emoji berwarna tetap (tidak ikut CSS color), jadi
+            tidak bisa dipastikan putih di atas latar ungu. currentColor mengikuti .orbitCenter. */}
+        <svg viewBox="0 0 24 24" width="26" height="26" fill="currentColor" aria-hidden="true">
+          <circle cx="12" cy="8" r="4" />
+          <path d="M4 20c0-4.4 3.6-8 8-8s8 3.6 8 8v1H4v-1z" />
+        </svg>
+      </span>
       <span className={`${styles.orbitDot} ${styles.orbitDot1}`}>1</span>
       <span className={`${styles.orbitDot} ${styles.orbitDot2}`}>2</span>
       <span className={`${styles.orbitDot} ${styles.orbitDot3}`}>3</span>

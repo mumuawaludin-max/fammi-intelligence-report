@@ -638,21 +638,30 @@ export function useScIndividu(session) {
   return state;
 }
 
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
 /**
  * Komitmen 30 hari milik staf yang login (sc_komitmen, lihat migration 20260726100000) --
  * genuinely fitur tulis pertama dari peran non-admin di FIR. RLS sc_komitmen_rw sudah membatasi
  * baris ke sc_personal_id = my_sc_responden_id() sendiri, hook ini cuma pembungkus baca/tulis di
  * sisi React, TIDAK melakukan pengecekan permission tambahan (itu tugas RLS + prop viewerIsOwner
  * di ScLaporanIndividuPage untuk lapis UI).
- */
+ *
+ * scRespondenId WAJIB divalidasi sebagai UUID sebelum dipakai di query -- sc_personal_id di
+ * skema sc_komitmen bertipe uuid (mengikuti sc_personal.id), Postgres menolak nilai yang bukan
+ * UUID dengan error "invalid input syntax for type uuid" SEBELUM RLS sempat berperan. Di
+ * produksi id ini selalu UUID asli (dari sc_personal.id), tapi ScIndividuPreview.jsx (QA visual
+ * lepas-login) memakai id contoh seperti "sc-stf-003" dari sc.mock.ts -- tanpa validasi ini,
+ * error mentah Postgres bocor ke UI preview. */
 export function useScKomitmen(scRespondenId, periodeId) {
   const [state, setState] = useState({ loading: true, error: null, komitmen: null });
+  const idValid = scRespondenId != null && UUID_RE.test(scRespondenId);
 
   useEffect(() => {
     let alive = true;
 
     async function run() {
-      if (!scRespondenId || !periodeId) {
+      if (!idValid || !periodeId) {
         setState({ loading: false, error: null, komitmen: null });
         return;
       }
@@ -672,12 +681,12 @@ export function useScKomitmen(scRespondenId, periodeId) {
 
     run();
     return () => { alive = false; };
-  }, [scRespondenId, periodeId]);
+  }, [scRespondenId, periodeId, idValid]);
 
   /** Upsert satu baris (unique sc_personal_id+periode_id) -- dipakai baik untuk "simpan draft"
    * (status tetap 'draft') maupun "kunci komitmen" (status 'committed', committed_at diisi). */
   async function simpan(patch, { commit = false } = {}) {
-    if (!scRespondenId || !periodeId) throw new Error("Sesi responden tidak lengkap.");
+    if (!idValid || !periodeId) throw new Error("Sesi responden tidak lengkap atau bukan data produksi (mis. sedang di halaman preview).");
     const now = new Date().toISOString();
     const payload = {
       sc_personal_id: scRespondenId,
