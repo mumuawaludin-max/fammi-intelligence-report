@@ -8,12 +8,16 @@ import { moduleColor, moduleShort, periodeMatch } from '../data/helpers';
 import { IconZap } from '../components/icons';
 
 const SCOPES = ['sekolah', 'kelas', 'jenjang', 'murid', 'yayasan'];
-const MODULES = ['karakter', 'mi', 'screening'];
+// 'sc' ditambahkan supaya trigger manual bisa memicu narasi agregat School Culture (lihat
+// generate-tindak-lanjut/index.ts, modul==='sc') -- generate-tindak-lanjut cuma menerima
+// scope='sekolah' untuk modul ini (tidak ada granularitas kelas/jenjang seperti Karakter).
+const MODULES = ['karakter', 'mi', 'screening', 'sc'];
 const ROLES = [
   ['wali_kelas', 'Wali Kelas'],
   ['kepala_sekolah', 'Kepala Sekolah'],
   ['yayasan', 'Yayasan'],
   ['orang_tua', 'Orang Tua'],
+  ['manajemen', 'Manajemen (School Culture)'],
 ];
 const INTERVAL_OPTIONS = [1, 3, 6, 12, 24];
 
@@ -39,6 +43,7 @@ export function Gemini() {
   const rekomendasi = data.rekomendasi.filter(byFilter);
   const rekomendasiSekolah = data.rekomendasiSekolah.filter(byFilter);
   const rekomendasiYayasan = data.rekomendasiYayasan.filter(byFilter);
+  const rekomendasiSc = (data.rekomendasiSc || []).filter(byFilter);
   const recentAll = data.antrian.filter((a) =>
     (gf.yayasan === 'all' || a.yayasan === gf.yayasan) &&
     (gf.sekolah === 'all' || a.sekolah === gf.sekolah) &&
@@ -48,7 +53,7 @@ export function Gemini() {
 
   // Opsi filter dihitung dari gabungan ketiga daftar rekomendasi + draf terbaru, supaya semua
   // yayasan/sekolah/periode yang relevan di layar ini kepilih, bukan cuma satu panel saja.
-  const semuaBaris = [...data.rekomendasi, ...data.rekomendasiSekolah, ...data.rekomendasiYayasan];
+  const semuaBaris = [...data.rekomendasi, ...data.rekomendasiSekolah, ...data.rekomendasiYayasan, ...(data.rekomendasiSc || [])];
   const semuaBarisByYayasan = semuaBaris.filter(byYayasan);
   const semuaBarisBySekolah = semuaBaris.filter(bySekolah);
   const yayasanCount = {};
@@ -123,14 +128,28 @@ export function Gemini() {
     }
   }
 
-  // Batch untuk panel Kepala Sekolah / Yayasan: generate semua (sekolah, periode) sekaligus.
-  async function generateSemuaLevel(panel, items, role) {
+  async function generateSc(r) {
+    const key = `sc|${r.sekolahId}|${r.periodeId}`;
+    setBusyKey(key);
+    try {
+      await triggerGeminiJob({
+        scope: 'sekolah', scopeId: r.sekolahId, sekolahId: r.sekolahId, modul: 'sc',
+        tipe: 'tindak_lanjut', periodeId: r.periodeId, role: 'manajemen',
+      });
+    } finally {
+      setBusyKey(null);
+    }
+  }
+
+  // Batch untuk panel Kepala Sekolah / Yayasan / School Culture: generate semua (sekolah,
+  // periode) sekaligus. modul default 'karakter' supaya pemanggil lama tidak perlu berubah.
+  async function generateSemuaLevel(panel, items, role, modul = 'karakter') {
     setBatchSimple({ panel, done: 0, total: items.length });
     try {
       for (let i = 0; i < items.length; i++) {
         const r = items[i];
         await triggerGeminiJob({
-          scope: 'sekolah', scopeId: r.sekolahId, sekolahId: r.sekolahId, modul: 'karakter',
+          scope: 'sekolah', scopeId: r.sekolahId, sekolahId: r.sekolahId, modul,
           tipe: 'tindak_lanjut', periodeId: r.periodeId, role,
         });
         setBatchSimple({ panel, done: i + 1, total: items.length });
@@ -169,6 +188,14 @@ export function Gemini() {
         batchProgress={batchSimple?.panel === 'yayasan' ? batchSimple : null}
         anyBusy={busyKey != null || batchSimple != null || batchProgress != null}
         labelBaris={(r) => `${r.sekolahNama} · ${r.yayasanNama}`}
+      />
+      <RekomendasiSederhanaPanel
+        judul="Rekomendasi School Culture" ikon="🏢" satuan="sekolah×periode" busyPrefix="sc"
+        items={rekomendasiSc} busyKey={busyKey} onGenerate={generateSc}
+        onGenerateSemua={() => generateSemuaLevel('sc', rekomendasiSc, 'manajemen', 'sc')}
+        batchProgress={batchSimple?.panel === 'sc' ? batchSimple : null}
+        anyBusy={busyKey != null || batchSimple != null || batchProgress != null}
+        labelBaris={(r) => r.sekolahNama}
       />
 
       <div style={{ display: 'grid', gridTemplateColumns: '380px 1fr', gap: 16 }}>

@@ -38,6 +38,18 @@
 //                              (lihat ensureOrangTuaAccount) -- hasilnya balik lewat field
 //                              `akun` di respons: {created, username, password} kalau baru
 //                              dibuat, {created:false, existing:true} kalau sudah ada duluan.
+//   "import-sc"                { payload: { sekolah_id, periode_id, personal, lembaga } } --
+//                              modul School Culture, panggil RPC import_sc_periode (migration
+//                              20260722100000), pola identik import-karakter.
+//   "list-sc-pending"          {}  -> { rows: [...] } daftar laporan SC individu menunggu persetujuan
+//   "approve-sc" | "reject-sc" { id }  setujui/tolak satu baris sc_hasil. Approve yang berhasil
+//                              otomatis buat akun Karyawan untuk responden itu kalau belum ada
+//                              (lihat ensureKaryawanScAccount, padanan ensureOrangTuaAccount) --
+//                              hasilnya balik lewat field `akun`, bentuk sama seperti approve-mi.
+//   "edit-sc"                  { id, detail } -- Fase C: admin sunting manual isi draf sc_hasil
+//                              (LaporanIndividuSC lengkap) SEBELUM approve. Cuma boleh menimpa
+//                              baris yang masih 'menunggu_persetujuan', supaya laporan yang
+//                              sudah tayang ke staf tidak bisa diam-diam diubah lewat jalur ini.
 //
 // Deploy: supabase functions deploy admin-actions
 //
@@ -131,6 +143,22 @@ Deno.serve(async (req) => {
       case "approve-mi":
       case "reject-mi":
         result = await handleMiApproval(admin, body);
+        break;
+      case "import-sc":
+        result = await handleImportSc(admin, body);
+        break;
+      case "list-sc-personal":
+        result = await handleListScPersonal(admin, body);
+        break;
+      case "list-sc-pending":
+        result = await handleListScPending(admin);
+        break;
+      case "approve-sc":
+      case "reject-sc":
+        result = await handleScApproval(admin, body);
+        break;
+      case "edit-sc":
+        result = await handleEditSc(admin, body);
         break;
       default:
         return json({ error: `action tidak dikenal: ${body.action}` }, 400);
@@ -310,6 +338,153 @@ async function handleMiApproval(admin, body) {
     akun = await ensureOrangTuaAccount(admin, row.sekolah_id, row.murid_id, row.nama_siswa);
   }
   return { ok: true, akun };
+}
+
+// Daftar id+nama_responden sc_personal untuk satu (sekolah, periode), lewat service_role --
+// sama alasannya dengan handleListMiPending: RLS sc_personal cuma membuka baris ke
+// KepalaSekolah/WakilKepalaSekolah/Manajemen/Yayasan sekolah itu sendiri (lihat migration
+// 20260722100000), AdminFammi TIDAK match sekolah_id = my_school_id() apa pun sekolahnya, jadi
+// query langsung dari CMS (anon key + JWT admin) selalu balas 0 baris walau datanya ada --
+// dipakai Upload.jsx (handleGenerateScIndividu) buat tahu siapa saja yang baru diimpor.
+async function handleListScPersonal(admin, body) {
+  const { sekolah_id, periode_id } = body;
+  if (!sekolah_id || !periode_id) return { ok: false, error: "Field wajib: sekolah_id, periode_id." };
+
+  const { data, error } = await admin
+    .from("sc_personal")
+    .select("id, nama_responden")
+    .eq("sekolah_id", sekolah_id)
+    .eq("periode_id", periode_id);
+  if (error) return { ok: false, error: error.message };
+  return { ok: true, rows: data || [] };
+}
+
+async function handleImportSc(admin, body) {
+  const { payload } = body;
+  if (!payload || typeof payload !== "object") return { ok: false, error: "Field wajib: payload (objek)." };
+  const { sekolah_id, periode_id, personal, lembaga } = payload;
+
+  const { data, error } = await admin.rpc("import_sc_periode", {
+    p_sekolah_id: sekolah_id, p_periode_id: periode_id,
+    p_personal: personal || [], p_lembaga: lembaga || [],
+  });
+  if (error) return { ok: false, error: error.message };
+  return { ok: true, ...data };
+}
+
+// Daftar laporan individu School Culture yang menunggu persetujuan, lewat service_role -- pola
+// identik handleListMiPending. `detail` (jsonb, seluruh LaporanIndividuSC) disertakan supaya CMS
+// bisa menampilkan preview lengkap sebelum admin menyetujui.
+async function handleListScPending(admin) {
+  const { data, error } = await admin
+    .from("sc_hasil")
+    .select(
+      "id, sc_personal_id, sekolah_id, periode_id, generated_at, detail, qc_flags, " +
+      "nama_responden:detail->meta->>nama_responden, peran_kerja:detail->meta->>peran_kerja, " +
+      "unit:detail->meta->>unit"
+    )
+    .eq("status", "menunggu_persetujuan")
+    .order("generated_at", { ascending: false });
+  if (error) return { ok: false, error: error.message };
+  return { ok: true, rows: data || [] };
+}
+
+async function handleScApproval(admin, body) {
+  const { id, action } = body;
+  if (!id) return { ok: false, error: "Field wajib: id." };
+  const status = action === "approve-sc" ? "disetujui" : "ditolak";
+
+  let row = null;
+  if (status === "disetujui") {
+    // Penggantian mulus: laporan SC disetujui LAMA untuk (sc_personal_id, periode) yang sama
+    // ditolak dulu, supaya staf tidak punya dua laporan tayang untuk periode itu -- pola sama
+    // dengan handleMiApproval.
+    const { data: gotRow, error: getErr } = await admin
+      .from("sc_hasil").select("sekolah_id, sc_personal_id, periode_id").eq("id", id).maybeSingle();
+    if (getErr) return { ok: false, error: getErr.message };
+    row = gotRow;
+    if (row) {
+      await admin.from("sc_hasil").update({ status: "ditolak" })
+        .eq("sekolah_id", row.sekolah_id).eq("sc_personal_id", row.sc_personal_id)
+        .eq("periode_id", row.periode_id).eq("status", "disetujui").neq("id", id);
+    }
+  }
+
+  const { error } = await admin.from("sc_hasil").update({ status }).eq("id", id);
+  if (error) return { ok: false, error: error.message };
+
+  // Begitu laporan SC tayang, staf itu butuh akun Karyawan untuk membukanya sendiri (lihat
+  // ScKaryawanPage.jsx). Dibuat di sini (bukan saat generate) supaya tidak ada akun aktif untuk
+  // laporan yang ternyata ditolak -- pola sama dengan ensureOrangTuaAccount di handleMiApproval.
+  let akun = null;
+  if (status === "disetujui" && row?.sekolah_id && row?.sc_personal_id) {
+    const { data: personalRow } = await admin
+      .from("sc_personal").select("nama_responden").eq("id", row.sc_personal_id).maybeSingle();
+    akun = await ensureKaryawanScAccount(admin, row.sekolah_id, row.sc_personal_id, personalRow?.nama_responden);
+  }
+  return { ok: true, akun };
+}
+
+/** Fase C: admin sunting manual draf sc_hasil sebelum approve (mis. rapikan narasi hasil Gemini
+ * atau perbaiki satu kalimat tanpa perlu regenerate seluruh laporan). Guard status di klausa
+ * WHERE (bukan cuma di JS) supaya baris yang keburu disetujui/ditolak di tab lain tidak ikut
+ * kena update balapan (race antara dua admin membuka CMS bersamaan). */
+async function handleEditSc(admin, body) {
+  const { id, detail } = body;
+  if (!id || !detail) return { ok: false, error: "Field wajib: id, detail." };
+  const { data, error } = await admin
+    .from("sc_hasil").update({ detail })
+    .eq("id", id).eq("status", "menunggu_persetujuan")
+    .select("id").maybeSingle();
+  if (error) return { ok: false, error: error.message };
+  if (!data) return { ok: false, error: "Draf tidak ditemukan atau sudah tidak menunggu persetujuan (mungkin sudah disetujui/ditolak di tempat lain)." };
+  return { ok: true };
+}
+
+/** Buat akun Karyawan untuk satu responden SC kalau belum ada (dicek lewat sc_responden_id) --
+ * padanan langsung ensureOrangTuaAccount di bawah, tautannya lewat profiles.sc_responden_id
+ * (bukan murid_id). Gagal buat akun TIDAK membatalkan approval laporannya (laporan tetap
+ * tayang; admin bisa buat akunnya manual lewat layar Pengguna kalau ini gagal terus). */
+async function ensureKaryawanScAccount(admin, sekolahId, scPersonalId, namaResponden) {
+  const { data: existing, error: findErr } = await admin
+    .from("profiles").select("id, username")
+    .eq("school_id", sekolahId).eq("sc_responden_id", scPersonalId).eq("peran", "Karyawan").maybeSingle();
+  if (findErr) return { created: false, error: findErr.message };
+  if (existing) return { created: false, existing: true, username: existing.username };
+
+  const baseUsername = panggilanFromNama(namaResponden);
+  let lastErr = null;
+  for (let attempt = 0; attempt < 5; attempt++) {
+    const username = baseUsername + randomDigits(3);
+    const email = `${username}@fammi.internal`;
+    const password = generatePassword();
+
+    const { data: created, error: createErr } = await admin.auth.admin.createUser({
+      email, password, email_confirm: true,
+    });
+    if (createErr) {
+      lastErr = createErr;
+      if (/registered|exists|duplicate/i.test(createErr.message || "")) continue;
+      return { created: false, error: `Gagal buat auth user: ${createErr.message}` };
+    }
+
+    const { error: profileErr } = await admin.from("profiles").insert({
+      id: created.user.id,
+      username,
+      nama: namaResponden || "Staf Sekolah",
+      peran: "Karyawan",
+      school_id: sekolahId,
+      cakupan: null,
+      sc_responden_id: scPersonalId,
+    });
+    if (profileErr) {
+      await admin.auth.admin.deleteUser(created.user.id);
+      return { created: false, error: `Gagal buat profile: ${profileErr.message}` };
+    }
+
+    return { created: true, username, password };
+  }
+  return { created: false, error: `Gagal buat akun setelah beberapa percobaan (username terus bentrok): ${lastErr?.message || ""}` };
 }
 
 /** Nama siswa -> panggilan: kata pertama nama, huruf kecil, diakritik dihilangkan (é->e).

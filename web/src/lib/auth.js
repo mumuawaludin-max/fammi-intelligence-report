@@ -16,7 +16,7 @@ const SESSION_KEY = "fir_session";
 async function fetchProfileSession(userId) {
   const { data: profile, error: profileError } = await supabase
     .from("profiles")
-    .select("username, nama, peran, school_id, cakupan, murid_id")
+    .select("username, nama, peran, school_id, cakupan, murid_id, sc_responden_id")
     .eq("id", userId)
     .single();
 
@@ -38,6 +38,7 @@ async function fetchProfileSession(userId) {
     school_id: profile.school_id,
     cakupan: profile.cakupan,
     murid_id: profile.murid_id,
+    sc_responden_id: profile.sc_responden_id,
     modules,
   };
 }

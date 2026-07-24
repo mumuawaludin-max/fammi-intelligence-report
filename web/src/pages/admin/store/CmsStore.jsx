@@ -1,5 +1,5 @@
 import { createContext, useCallback, useContext, useMemo, useRef, useState } from 'react';
-import { useAdminCmsData, actApprovalAction, toggleModuleAction, addSchoolAction, addYayasanAction, runImportAction, runMiGenerateAction, triggerGeminiJobAction, createUserAction, updateUserAction, resetPasswordAction, bulkResetPasswordAction, deleteUserAction, bulkDeleteUsersAction, updateGeminiScheduleAction, regenerateDraftAction } from '../useAdminCmsData';
+import { useAdminCmsData, actApprovalAction, toggleModuleAction, addSchoolAction, addYayasanAction, runImportAction, runMiGenerateAction, runScIndividuGenerateAction, triggerGeminiJobAction, createUserAction, updateUserAction, resetPasswordAction, bulkResetPasswordAction, deleteUserAction, bulkDeleteUsersAction, updateGeminiScheduleAction, regenerateDraftAction } from '../useAdminCmsData';
 import { bulkCreateUsers as bulkCreateUsersAction } from '../importers/guruImporter';
 import { downloadXlsx } from '../data/helpers';
 
@@ -108,6 +108,19 @@ export function CmsProvider({ session, children }) {
     refetch();
     return results;
   }, [showToast, refetch]);
+
+  const runScIndividuGenerate = useCallback(async (personalRows, onProgress) => {
+    const results = await runScIndividuGenerateAction(personalRows, onProgress);
+    const ok = results.filter((r) => r.ok);
+    const failed = results.filter((r) => !r.ok);
+    showToast(
+      failed.length === 0
+        ? `${ok.length} laporan School Culture digenerate, menunggu persetujuan.`
+        : `${ok.length} berhasil, ${failed.length} gagal (lihat detail di layar).`,
+      failed.length === 0 ? 'safe' : 'warn', 8000,
+    );
+    return results;
+  }, [showToast]);
 
   const triggerGeminiJob = useCallback(async (payload) => {
     try {
@@ -270,6 +283,7 @@ export function CmsProvider({ session, children }) {
     addYayasan,
     runImport,
     runMiGenerate,
+    runScIndividuGenerate,
     triggerGeminiJob,
     createUser,
     updateUser,
@@ -286,7 +300,7 @@ export function CmsProvider({ session, children }) {
       delete n[id];
       return { ...s, approvalEditText: n };
     }),
-  }), [session, data, loading, error, refetch, state, showToast, actApproval, toggleModule, isModuleOn, addSchool, addYayasan, runImport, runMiGenerate, triggerGeminiJob, createUser, updateUser, bulkCreateUsers, resetPassword, bulkResetAndExport, deleteUser, bulkDeleteUsers, updateGeminiSchedule, regenerateDraft]);
+  }), [session, data, loading, error, refetch, state, showToast, actApproval, toggleModule, isModuleOn, addSchool, addYayasan, runImport, runMiGenerate, runScIndividuGenerate, triggerGeminiJob, createUser, updateUser, bulkCreateUsers, resetPassword, bulkResetAndExport, deleteUser, bulkDeleteUsers, updateGeminiSchedule, regenerateDraft]);
 
   return <CmsContext.Provider value={value}>{children}</CmsContext.Provider>;
 }

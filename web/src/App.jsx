@@ -12,6 +12,8 @@ import MIPage from "./pages/mi/MIPage";
 import KarakterPage from "./pages/karakter/KarakterPage";
 import CwPage from "./pages/cw/CwPage";
 import CwKaryawanPage from "./pages/cw/CwKaryawanPage";
+import ScPage from "./pages/sc/ScPage";
+import ScKaryawanPage from "./pages/sc/ScKaryawanPage";
 import SiswaPage from "./pages/siswa/SiswaPage";
 import AdminCmsPage from "./pages/admin/AdminCmsPage";
 import styles from "./App.module.css";
@@ -59,7 +61,8 @@ function OverviewTab({ overview, period }) {
 
 // Peran yang memakai shell "satu modul, periode di topbar, tanpa tab Ringkasan".
 // Wali Kelas & Yayasan ikut shell ini karena modul yang dilihat cuma Rapor Karakter, sama seperti Kepsek.
-// Manajemen (sisi pimpinan modul CW) juga single-module, cuma modul defaultnya "cw".
+// Manajemen (sisi pimpinan modul CW/SC) juga single-module, defaultnya "cw" atau "sc" tergantung
+// session.modules (lihat defaultModuleForPeran).
 // Karyawan SENGAJA TIDAK di sini -- dia dapat shell mandiri (CwKaryawanPage, mobile-only,
 // pola sama dengan Siswa/OrangTua), bukan shell desktop generik ini. Lihat early-return di
 // bawah, sebelum kode ini pernah dipakai.
@@ -68,16 +71,26 @@ function isSingleModuleShellPeran(peran) {
     || peran === "Yayasan" || peran === "Manajemen";
 }
 
-/** Modul default kalau session.modules kosong -- Manajemen ke CW, peran lain ke Karakter. */
-function defaultModuleForPeran(peran) {
-  return peran === "Manajemen" ? "cw" : "karakter";
+/**
+ * Modul default kalau session.modules kosong -- Manajemen ke CW atau SC (dua modul "budaya
+ * organisasi" berbeda, dibedakan lewat entitlement school_modules), peran lain ke Karakter.
+ * Kalau `modules` sudah menyebut salah satunya secara eksplisit, ikuti itu -- fallback "cw"
+ * cuma jaring pengaman untuk sesi yang modules-nya benar-benar kosong.
+ */
+function defaultModuleForPeran(peran, modules = []) {
+  if (peran !== "Manajemen") return "karakter";
+  if (modules.includes("sc")) return "sc";
+  return "cw";
 }
 
 export default function App() {
   const [session, setSession]     = useState(() => getSession());
   const [activeTab, setActiveTab] = useState(() => {
-    const peran = getSession()?.peran;
-    return isSingleModuleShellPeran(peran) ? defaultModuleForPeran(peran) : "overview";
+    const initialSession = getSession();
+    const peran = initialSession?.peran;
+    return isSingleModuleShellPeran(peran)
+      ? defaultModuleForPeran(peran, initialSession?.modules)
+      : "overview";
   });
   const [period, setPeriod]       = useState({ type: "bulanan", period: "Juni 2026" });
   const [loginNotice, setLoginNotice] = useState("");
@@ -120,7 +133,9 @@ export default function App() {
     setLoginNotice("");
     setSession(newSession);
     setActiveTab(
-      isSingleModuleShellPeran(newSession.peran) ? defaultModuleForPeran(newSession.peran) : "overview"
+      isSingleModuleShellPeran(newSession.peran)
+        ? defaultModuleForPeran(newSession.peran, newSession.modules)
+        : "overview"
     );
   }
   function handleLogout() {
@@ -140,11 +155,16 @@ export default function App() {
     return <SiswaPage session={session} onLogout={handleLogout} />;
   }
 
-  // Karyawan: padanan korporat dari Siswa/OrangTua -- laporan pribadi, mobile-only, shell
-  // sendiri sepenuhnya di luar Header/NavBar/main desktop di bawah. Lihat CwKaryawanPage.jsx
-  // untuk kenapa ini WAJIB early-return, bukan cuma dikecilkan pakai CSS responsive.
+  // Karyawan: padanan dari Siswa/OrangTua -- laporan pribadi, mobile-only, shell sendiri
+  // sepenuhnya di luar Header/NavBar/main desktop di bawah. Lihat CwKaryawanPage.jsx untuk
+  // kenapa ini WAJIB early-return, bukan cuma dikecilkan pakai CSS responsive.
+  // Dua modul "budaya organisasi" berbagi peran Karyawan yang sama (CW korporat, SC sekolah) --
+  // session.modules (entitlement school_modules) yang membedakan mana yang dirender untuk
+  // sekolah/organisasi ini, fallback ke CW kalau tidak ada penanda "sc" (jaring pengaman lama).
   if (session.peran === "Karyawan") {
-    return <CwKaryawanPage session={session} onLogout={handleLogout} />;
+    return (session.modules || []).includes("sc")
+      ? <ScKaryawanPage session={session} onLogout={handleLogout} />
+      : <CwKaryawanPage session={session} onLogout={handleLogout} />;
   }
 
   if (session.peran === "AdminFammi") {
@@ -154,7 +174,7 @@ export default function App() {
   const bulananOptions = availablePeriods.map((id) => ({ id, label: periodeLabel(id) }));
   const shellModules = (session.modules || []).filter((m) => m !== "overview");
   const modules = isKepsekShell
-    ? (shellModules.length ? shellModules : [defaultModuleForPeran(session.peran)])
+    ? (shellModules.length ? shellModules : [defaultModuleForPeran(session.peran, session.modules)])
     : ["overview", ...(session.modules || [])];
 
   // PeriodPicker disembunyikan untuk Manajemen: daftar periode datang dari useAvailablePeriods
@@ -214,6 +234,8 @@ export default function App() {
         )}
 
         {activeTab === "cw" && <CwPage session={session} />}
+
+        {activeTab === "sc" && <ScPage session={session} />}
 
         {activeTab === "screening" && (
           <div className={styles.placeholder}>

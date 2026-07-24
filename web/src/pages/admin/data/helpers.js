@@ -1,11 +1,11 @@
 import * as XLSX from 'xlsx';
 
 export function moduleLabel(m) {
-  return { karakter: 'Karakter', mi: 'Multiple Intelligence', screening: 'Screening', cw: 'Culture & Wellbeing' }[m] || m;
+  return { karakter: 'Karakter', mi: 'Multiple Intelligence', screening: 'Screening', cw: 'Culture & Wellbeing', sc: 'School Culture' }[m] || m;
 }
 
 export function moduleShort(m) {
-  return { karakter: 'Karakter', mi: 'MI', screening: 'Screening', cw: 'Culture' }[m] || m;
+  return { karakter: 'Karakter', mi: 'MI', screening: 'Screening', cw: 'Culture', sc: 'School Culture' }[m] || m;
 }
 
 export function moduleColor(m) {
@@ -14,6 +14,7 @@ export function moduleColor(m) {
     mi: { bg: '#E5EBF7', ink: '#3B5A9E' },
     screening: { bg: '#FBE7EA', ink: '#B03A4C' },
     cw: { bg: '#DFF7E4', ink: '#1E7A3A' },
+    sc: { bg: '#FFEBCB', ink: '#8A4E00' },
   }[m] || { bg: '#F0F0F4', ink: '#4A4458' };
 }
 

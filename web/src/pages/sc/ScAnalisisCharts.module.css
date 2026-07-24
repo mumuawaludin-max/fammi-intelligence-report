@@ -1,0 +1,257 @@
+.emptyNote {
+  font-size: 12.5px;
+  color: var(--ink-4);
+  margin: 0;
+  padding: 12px 0;
+}
+
+/* ══ Donut ═══════════════════════════════════════════════════════════════════ */
+.donutWrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+}
+
+.legend {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 10px 16px;
+}
+
+.legendItem {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11.5px;
+  font-weight: 700;
+  color: var(--ink-2);
+}
+
+.legendDot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+/* ══ Distribusi arah (stacked bar) ═══════════════════════════════════════════ */
+.arahList {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.arahRow {
+  display: grid;
+  grid-template-columns: 100px 1fr;
+  align-items: center;
+  gap: 10px;
+}
+
+.arahLabel {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--ink-2);
+}
+
+.arahTrack {
+  display: flex;
+  height: 16px;
+  border-radius: 99px;
+  overflow: hidden;
+  background: var(--bg-2);
+}
+
+.arahSegment {
+  height: 100%;
+}
+
+.arahLegend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px 16px;
+  margin-top: 4px;
+}
+
+/* ══ Strip / dot plot ═════════════════════════════════════════════════════════ */
+.stripList {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.stripRow {
+  display: grid;
+  grid-template-columns: 150px 1fr;
+  align-items: center;
+  gap: 10px;
+}
+
+.stripLabel {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--ink-2);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.stripTrack {
+  position: relative;
+  height: 10px;
+  border-radius: 99px;
+  background: var(--bg-2);
+}
+
+.stripDot {
+  position: absolute;
+  top: 50%;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: var(--purple-600);
+  border: 1.5px solid var(--surface);
+  transform: translate(-50%, -50%);
+  opacity: 0.82;
+}
+
+.stripFootnote {
+  font-size: 11px;
+  line-height: 1.55;
+  color: var(--ink-4);
+  margin: 4px 0 0;
+}
+
+/* ══ Heatmap ══════════════════════════════════════════════════════════════════ */
+.heatmapWrap {
+  overflow-x: auto;
+}
+
+.heatmapTable {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 6px;
+}
+
+.heatmapTable th {
+  font-size: 10.5px;
+  font-weight: 800;
+  color: var(--ink-3);
+  text-align: center;
+  padding: 4px;
+  white-space: nowrap;
+}
+
+.heatmapTable th[scope="row"] {
+  text-align: right;
+  padding-right: 10px;
+  font-size: 11.5px;
+  color: var(--ink-2);
+}
+
+.heatmapCell {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 56px;
+  height: 40px;
+  border-radius: 10px;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+/* ══ Scatter budaya vs wellbeing ══════════════════════════════════════════════ */
+.scatterWrap {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.scatterFootnote {
+  font-size: 11px;
+  line-height: 1.55;
+  color: var(--ink-4);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.scatterBadge {
+  align-self: flex-start;
+  padding: 3px 9px;
+  border-radius: 999px;
+  background: var(--status-warn-bg, #FAF1DC);
+  color: var(--status-warn, #D69219);
+  font-size: 10.5px;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+}
+
+/* ══ Tren antarperiode ═══════════════════════════════════════════════════════════ */
+.trenPlaceholder {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 8px;
+  padding: 24px 16px;
+}
+
+.trenPlaceholderIcon {
+  font-size: 26px;
+  opacity: 0.6;
+}
+
+.trenPlaceholderText {
+  margin: 0;
+  max-width: 340px;
+  font-size: 12.5px;
+  line-height: 1.55;
+  color: var(--ink-4);
+}
+
+/* ══ Tema esai ═════════════════════════════════════════════════════════════════ */
+.temaList {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.temaCard {
+  padding: 13px 15px;
+  background: var(--surface-soft);
+  border-radius: 14px;
+}
+
+.temaHead {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 5px;
+}
+
+.temaNama {
+  font-size: 13.5px;
+  font-weight: 800;
+  color: var(--ink);
+}
+
+.temaCount {
+  margin-left: auto;
+  font-size: 10.5px;
+  font-weight: 800;
+  color: var(--purple-700);
+  background: var(--purple-050);
+  padding: 3px 9px;
+  border-radius: 999px;
+  white-space: nowrap;
+}
+
+.temaRingkasan {
+  margin: 0;
+  font-size: 12.5px;
+  line-height: 1.55;
+  color: var(--ink-2);
+}

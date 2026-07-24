@@ -8,7 +8,7 @@ import { IconMoreVertical } from '../components/icons';
 
 // Urutannya harus sama dengan kolom <th> di tabel bawah -- baris data dirender dengan
 // MODULES.map, jadi menambah modul di sini tanpa menambah header bikin kolom bergeser.
-const MODULES = ['karakter', 'mi', 'screening', 'cw'];
+const MODULES = ['karakter', 'mi', 'screening', 'cw', 'sc'];
 
 export function Sekolah() {
   const { data, loading, error, setAddSchoolOpen, setAddYayasanOpen, showToast, isModuleOn, toggleModule, refetch } = useCms();
@@ -46,6 +46,7 @@ export function Sekolah() {
                 <th>MI</th>
                 <th>Screening</th>
                 <th>Culture</th>
+                <th>School Culture</th>
                 <th>Aspek config</th>
                 <th>Aktif</th>
                 <th style={{ width: 36 }}></th>

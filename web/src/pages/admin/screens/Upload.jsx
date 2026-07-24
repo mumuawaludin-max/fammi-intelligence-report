@@ -5,6 +5,8 @@ import { ErrorState } from '../components/ErrorState';
 import { moduleColor, moduleShort, statusColor } from '../data/helpers';
 import { parseKarakterWorkbook } from '../importers/karakterImporter';
 import { parseMiWorkbook } from '../importers/miImporter';
+import { parseScWorkbook } from '../importers/scImporter';
+import { loadScPersonalIdsAction, loadScPendingAction, actScApproval } from '../useAdminCmsData';
 import { periodeLabel } from '../../karakter/karakterMeta';
 
 // Modul MI dibaca per-baris dari file (multi-sekolah), jadi tidak pakai langkah "pilih sekolah".
@@ -13,16 +15,26 @@ const SEKOLAH_MI = '__mi__';
 const STEPS = ['Sekolah', 'Modul', 'Upload file', 'Cek & konfirmasi'];
 
 export function Upload() {
-  const { data, loading, error, runImport, runMiGenerate, refetch } = useCms();
+  const { data, loading, error, runImport, runMiGenerate, runScIndividuGenerate, refetch } = useCms();
   const [step, setStep] = useState(1);
   const [sekolahId, setSekolahId] = useState('');
   const [modul, setModul] = useState('karakter');
+  // School Culture tidak punya kolom bulan/periode sendiri di filenya (sudah dicek langsung ke
+  // contoh file asli), jadi periode wajib diketik admin sebelum upload -- beda dari Karakter/MI
+  // yang membaca periode dari tiap baris file.
+  const [periodeSc, setPeriodeSc] = useState('');
   const [file, setFile] = useState(null);
   const [parsed, setParsed] = useState(null);
   const [parseError, setParseError] = useState(null);
   const [busy, setBusy] = useState(false);
   const [miProgress, setMiProgress] = useState(null); // { done, total }
   const [miResults, setMiResults] = useState(null); // ringkasan hasil generate
+  const [scImported, setScImported] = useState(false); // import mentah sc_personal/sc_lembaga selesai
+  const [scProgress, setScProgress] = useState(null); // { done, total }
+  const [scResults, setScResults] = useState(null); // ringkasan hasil generate laporan individu SC
+  const [scApproveBusy, setScApproveBusy] = useState(false);
+  const [scApproveProgress, setScApproveProgress] = useState(null); // { done, total }
+  const [scApproveResult, setScApproveResult] = useState(null); // { okCount, failed, akunBaru }
 
   if (loading) return <LoadingCards rows={3} />;
   if (error) {
@@ -30,11 +42,51 @@ export function Upload() {
   }
 
   const isMi = modul === 'mi';
+  const isSc = modul === 'sc';
   const sekolah = data.sekolah.find((s) => s.id === sekolahId);
 
   function resetFlow() {
     setStep(1); setSekolahId(''); setModul('karakter'); setFile(null);
-    setParsed(null); setParseError(null); setMiProgress(null); setMiResults(null);
+    setParsed(null); setParseError(null); setMiProgress(null); setMiResults(null); setPeriodeSc('');
+    setScImported(false); setScProgress(null); setScResults(null);
+    setScApproveBusy(false); setScApproveProgress(null); setScApproveResult(null);
+  }
+
+  // Klik terakhir dari alur upload SC: setujui SEMUA draf 'menunggu_persetujuan' milik
+  // sekolah+periode ini sekaligus. Approve yang berhasil otomatis memicu ensureKaryawanScAccount
+  // (admin-actions) -- begitu tombol ini selesai, akun Karyawan+kode langsung ada dan muncul di
+  // menu Pengguna & Peran, TANPA admin perlu pindah ke layar Persetujuan School Culture secara
+  // terpisah. Ini bukan jalan pintas melewati gerbang persetujuan (CLAUDE.md butir 6) -- klik
+  // ini SENDIRI adalah tindakan persetujuannya, cuma ditaruh di alur yang sama supaya satu klik.
+  async function handleApproveSemuaSc() {
+    const targets = (scResults || []).filter((r) => r.ok);
+    if (targets.length === 0) return;
+    setScApproveBusy(true);
+    setScApproveProgress({ done: 0, total: targets.length });
+    try {
+      const pendingRows = await loadScPendingAction();
+      const rowsSekolahIni = pendingRows.filter((r) => r.sekolah_id === sekolahId && r.periode_id === periodeSc);
+      let okCount = 0;
+      const failed = [];
+      const akunBaru = [];
+      for (let i = 0; i < rowsSekolahIni.length; i++) {
+        const r = rowsSekolahIni[i];
+        try {
+          const akun = await actScApproval(r.id, 'setuju');
+          okCount++;
+          if (akun?.created) akunBaru.push({ username: akun.username, password: akun.password });
+        } catch (e) {
+          failed.push({ nama: r.nama_responden || r.sc_personal_id, error: e.message || String(e) });
+        }
+        setScApproveProgress({ done: i + 1, total: rowsSekolahIni.length });
+      }
+      setScApproveResult({ okCount, failed, akunBaru });
+    } catch (e) {
+      setParseError(e.message || 'Gagal memuat antrian persetujuan School Culture.');
+    } finally {
+      setScApproveBusy(false);
+      setScApproveProgress(null);
+    }
   }
 
   async function handleFile(f) {
@@ -49,8 +101,10 @@ export function Upload() {
         result = await parseKarakterWorkbook(f, { sekolahId });
       } else if (modul === 'mi') {
         result = await parseMiWorkbook(f, { schools: data.sekolah });
+      } else if (modul === 'sc') {
+        result = await parseScWorkbook(f, { sekolahId, periodeId: periodeSc });
       } else {
-        setParseError('Importer untuk modul ini belum tersedia (baru Karakter dan MI).');
+        setParseError('Importer untuk modul ini belum tersedia (baru Karakter, MI, dan School Culture).');
         return;
       }
       if (!result.ok) { setParseError(result.error); return; }
@@ -70,10 +124,35 @@ export function Upload() {
         setMiProgress(null);
         setMiResults(results);
         // Tetap di langkah 4 supaya admin lihat ringkasan berhasil/gagal per siswa.
+      } else if (isSc) {
+        await runImport({ sekolahId, modul, fileName: file?.name, parsed });
+        setScImported(true);
+        // Sama alurnya dengan MI: begitu file selesai diimpor, laporan narasi tiap staf
+        // langsung digenerate otomatis (tidak perlu klik tombol terpisah lagi) -- HANYA sampai
+        // status 'menunggu_persetujuan', BUKAN langsung tayang/buat akun. Akun Karyawan +
+        // kode login tetap baru dibuat saat admin approve (lihat ensureKaryawanScAccount di
+        // admin-actions/index.ts) -- gerbang persetujuan manusia CLAUDE.md butir 6 tidak boleh
+        // dilewati sekalipun untuk kemudahan alur upload.
+        await handleGenerateScIndividu();
       } else {
         await runImport({ sekolahId, modul, fileName: file?.name, parsed });
         resetFlow();
       }
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function handleGenerateScIndividu() {
+    setBusy(true);
+    try {
+      const personalRows = await loadScPersonalIdsAction(sekolahId, periodeSc);
+      setScProgress({ done: 0, total: personalRows.length });
+      const results = await runScIndividuGenerate(personalRows, (done, total) => setScProgress({ done, total }));
+      setScProgress(null);
+      setScResults(results);
+    } catch (e) {
+      setParseError(e.message || 'Gagal memuat daftar responden untuk digenerate.');
     } finally {
       setBusy(false);
     }
@@ -133,7 +212,7 @@ export function Upload() {
         <div className="card" style={{ padding: 24 }}>
           <div className="disp" style={{ fontSize: 16, fontWeight: 700, color: 'var(--ink)', marginBottom: 10 }}>Pilih modul</div>
           <div style={{ display: 'flex', gap: 8, marginBottom: 6 }}>
-            {['karakter', 'mi', 'screening'].map((m) => {
+            {['karakter', 'mi', 'screening', 'sc'].map((m) => {
               const mc = moduleColor(m);
               const active = m === modul;
               // Kalau masuk lewat mode MI (sekolah dibaca dari file), modul dikunci ke MI, dan
@@ -149,9 +228,24 @@ export function Upload() {
           <div style={{ fontSize: 11.5, color: 'var(--ink-3)', marginBottom: 14 }}>
             {isMi
               ? 'MI: tiap baris file = satu siswa. Gemini merumuskan seluruh laporan (dominan, narasi, profesi, rencana) lalu masuk antrian persetujuan. Periode dan sekolah dibaca dari file.'
+              : modul === 'sc'
+              ? 'School Culture: sheet "Personal" (satu baris per staf) + sheet "Lembaga" (agregat sekolah). File ini TIDAK punya kolom bulan sendiri, jadi periode wajib diisi manual di bawah.'
               : 'Periode tidak perlu diketik manual — sistem membaca kolom "bulan" langsung dari tiap baris file, jadi satu file boleh memuat beberapa bulan sekaligus.'}
           </div>
-          <button className="btn-primary" onClick={() => setStep(3)}>Lanjut ke langkah 3</button>
+          {modul === 'sc' && (
+            <div style={{ marginBottom: 14 }}>
+              <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: 'var(--ink-2)', marginBottom: 6 }}>Periode (format YYYY-MM)</label>
+              <input
+                className="fld"
+                type="text"
+                placeholder="mis. 2026-07"
+                value={periodeSc}
+                onChange={(e) => setPeriodeSc(e.target.value.trim())}
+                style={{ maxWidth: 160 }}
+              />
+            </div>
+          )}
+          <button className="btn-primary" disabled={modul === 'sc' && !/^\d{4}-\d{2}$/.test(periodeSc)} onClick={() => setStep(3)}>Lanjut ke langkah 3</button>
         </div>
       )}
 
@@ -172,7 +266,13 @@ export function Upload() {
           <div className="card" style={{ padding: 40, border: '2px dashed var(--purple-300)', borderRadius: 16, textAlign: 'center', background: 'var(--purple-050)' }}>
             <div style={{ fontSize: 44, marginBottom: 12 }}>📄</div>
             <div className="disp" style={{ fontSize: 18, fontWeight: 700, color: 'var(--ink)', marginBottom: 6 }}>Pilih file Excel</div>
-            <div style={{ fontSize: 13, color: 'var(--ink-3)', marginBottom: 16 }}>{isMi ? '.xlsx / .xls · satu sheet, satu baris per siswa (kolom nama_siswa, kelas_id, sekolah_id, periode, r_inter..r_spasial, essay_*)' : '.xlsx / .xls · sheet detail_persentase_karakter dkk (format sama seperti data awal)'}</div>
+            <div style={{ fontSize: 13, color: 'var(--ink-3)', marginBottom: 16 }}>
+              {isMi
+                ? '.xlsx / .xls · satu sheet, satu baris per siswa (kolom nama_siswa, kelas_id, sekolah_id, periode, r_inter..r_spasial, essay_*)'
+                : modul === 'sc'
+                ? '.xlsx / .xls · sheet "Personal" (satu baris per staf) + sheet "Lembaga" (agregat sekolah)'
+                : '.xlsx / .xls · sheet detail_persentase_karakter dkk (format sama seperti data awal)'}
+            </div>
             <label className="btn-primary" style={{ display: 'inline-flex', cursor: 'pointer' }}>
               Pilih file
               <input type="file" accept=".xlsx,.xls" style={{ display: 'none' }} onChange={(e) => handleFile(e.target.files?.[0])} />
@@ -250,7 +350,9 @@ export function Upload() {
               <div>
                 <div className="disp" style={{ fontSize: 16, fontWeight: 700, color: 'var(--ink)' }}>Preview file: {file?.name}</div>
                 <div style={{ fontSize: 12, color: 'var(--ink-3)', marginTop: 3 }}>
-                  {parsed.rows.skorRows.length} baris skor · {parsed.muridBaru} murid baru terdeteksi
+                  {isSc
+                    ? `${parsed.rows.personalRows.length} responden · ${parsed.rows.lembagaRows.length} baris agregat lembaga`
+                    : `${parsed.rows.skorRows.length} baris skor · ${parsed.muridBaru} murid baru terdeteksi`}
                 </div>
               </div>
               <span className="pill" style={{ background: 'var(--status-safe-bg)', color: 'var(--status-safe)' }}><span className="dot" style={{ background: 'var(--status-safe)' }} />Siap import</span>
@@ -277,16 +379,104 @@ export function Upload() {
             </div>
           </div>
 
-          <div className="card" style={{ padding: '14px 22px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'var(--surface-soft)' }}>
-            <div>
-              <div style={{ fontSize: 13, color: 'var(--ink-2)', lineHeight: 1.5 }}>Akan menulis ke tabel: </div>
-              <div className="mono" style={{ fontSize: 12, color: 'var(--purple-700)', marginTop: 3 }}>karakter_skor · karakter_skor_indikator · karakter_pernyataan_ortu · karakter_summary</div>
+          {isSc && scImported ? (
+            <div className="card" style={{ padding: '16px 22px' }}>
+              <div className="disp" style={{ fontSize: 15, fontWeight: 700, color: 'var(--status-safe)', marginBottom: 8 }}>✓ Data mentah berhasil diimpor</div>
+              {scResults ? (
+                <>
+                  <div className="disp" style={{ fontSize: 14, fontWeight: 700, color: 'var(--ink)', marginBottom: 8 }}>
+                    Hasil generate laporan individu: {scResults.filter((r) => r.ok).length}/{scResults.length} berhasil
+                  </div>
+                  {scResults.filter((r) => !r.ok).length > 0 && (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 4, marginBottom: 12 }}>
+                      {scResults.filter((r) => !r.ok).map((r, i) => (
+                        <div key={i} style={{ fontSize: 12, color: 'var(--status-alert)' }}>⚠ {r.nama}: {r.error}</div>
+                      ))}
+                    </div>
+                  )}
+
+                  {scApproveResult ? (
+                    <>
+                      <div className="disp" style={{ fontSize: 14, fontWeight: 700, color: 'var(--status-safe)', marginBottom: 8 }}>
+                        ✓ {scApproveResult.okCount} laporan disetujui & tayang
+                      </div>
+                      {scApproveResult.failed.length > 0 && (
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 4, marginBottom: 12 }}>
+                          {scApproveResult.failed.map((f, i) => (
+                            <div key={i} style={{ fontSize: 12, color: 'var(--status-alert)' }}>⚠ {f.nama}: {f.error}</div>
+                          ))}
+                        </div>
+                      )}
+                      {scApproveResult.akunBaru.length > 0 && (
+                        <div style={{ marginBottom: 12, padding: '12px 14px', background: 'var(--info-soft)', borderRadius: 12 }}>
+                          <div style={{ fontSize: 12, fontWeight: 800, color: 'var(--info)', marginBottom: 8 }}>
+                            💡 {scApproveResult.akunBaru.length} akun Karyawan baru · kode cuma tampil sekali di sini, sudah muncul juga di menu Pengguna & Peran
+                          </div>
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                            {scApproveResult.akunBaru.map((a, i) => (
+                              <div key={i} className="mono" style={{ fontSize: 11.5, color: 'var(--ink-2)' }}>{a.username} / {a.password}</div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                      <button className="btn-primary" onClick={resetFlow}>Selesai</button>
+                    </>
+                  ) : (
+                    <>
+                      <div style={{ fontSize: 12.5, color: 'var(--ink-2)', marginBottom: 12 }}>
+                        Draf laporan menunggu ditinjau. Klik di bawah untuk menyetujui SEMUA sekaligus (satu klik) -- akun Karyawan + kode login langsung dibuat untuk staf yang belum punya akun, dan laporan langsung tayang ke mereka. Cek dulu ringkasan hasil generate di atas kalau mau meninjau satu-satu lewat menu Persetujuan School Culture sebelum menyetujui semua.
+                      </div>
+                      {scApproveProgress && (
+                        <div style={{ marginBottom: 12 }}>
+                          <div style={{ height: 8, background: 'var(--surface-soft)', borderRadius: 99, overflow: 'hidden' }}>
+                            <div style={{ height: '100%', width: `${Math.round((scApproveProgress.done / scApproveProgress.total) * 100)}%`, background: 'var(--status-safe)', transition: '.3s' }} />
+                          </div>
+                          <div style={{ fontSize: 12, color: 'var(--ink-3)', marginTop: 6 }}>Menyetujui {scApproveProgress.done}/{scApproveProgress.total}…</div>
+                        </div>
+                      )}
+                      <div style={{ display: 'flex', gap: 8 }}>
+                        <button className="btn-secondary" onClick={resetFlow} disabled={scApproveBusy}>Lewati, tinjau nanti</button>
+                        <button className="btn-primary" style={{ background: 'var(--status-safe)' }} onClick={handleApproveSemuaSc} disabled={scApproveBusy}>
+                          {scApproveBusy ? 'Menyetujui…' : '✓ Setujui semua & buat akun'}
+                        </button>
+                      </div>
+                    </>
+                  )}
+                </>
+              ) : (
+                <>
+                  <div style={{ fontSize: 12.5, color: 'var(--ink-2)', lineHeight: 1.6, marginBottom: 12 }}>
+                    Generate laporan narasi per staf otomatis berjalan setelah import. Kalau belum mulai atau sempat gagal di tengah jalan, pakai tombol di bawah untuk memicu ulang (aman diulang, draf lama untuk staf yang sudah berhasil tidak akan ditimpa dua kali).
+                  </div>
+                  {scProgress && (
+                    <div style={{ marginBottom: 12 }}>
+                      <div style={{ height: 8, background: 'var(--surface-soft)', borderRadius: 99, overflow: 'hidden' }}>
+                        <div style={{ height: '100%', width: `${Math.round((scProgress.done / scProgress.total) * 100)}%`, background: 'var(--purple-600)', transition: '.3s' }} />
+                      </div>
+                      <div style={{ fontSize: 12, color: 'var(--ink-3)', marginTop: 6 }}>Memproses {scProgress.done}/{scProgress.total} staf…</div>
+                    </div>
+                  )}
+                  <div style={{ display: 'flex', gap: 8 }}>
+                    <button className="btn-secondary" onClick={resetFlow} disabled={busy}>Lewati, selesai</button>
+                    <button className="btn-primary" onClick={handleGenerateScIndividu} disabled={busy}>{busy ? 'Menggenerate…' : `Generate ${parsed.rows.personalRows.length} laporan individu`}</button>
+                  </div>
+                </>
+              )}
             </div>
-            <div style={{ display: 'flex', gap: 8 }}>
-              <button className="btn-secondary" onClick={() => setStep(3)}>Batal</button>
-              <button className="btn-primary btn-safe" onClick={handleConfirm} disabled={busy}>{busy ? 'Mengimpor…' : 'Konfirmasi & import'}</button>
+          ) : (
+            <div className="card" style={{ padding: '14px 22px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'var(--surface-soft)' }}>
+              <div>
+                <div style={{ fontSize: 13, color: 'var(--ink-2)', lineHeight: 1.5 }}>Akan menulis ke tabel: </div>
+                <div className="mono" style={{ fontSize: 12, color: 'var(--purple-700)', marginTop: 3 }}>
+                  {isSc ? 'sc_personal · sc_lembaga' : 'karakter_skor · karakter_skor_indikator · karakter_pernyataan_ortu · karakter_summary'}
+                </div>
+              </div>
+              <div style={{ display: 'flex', gap: 8 }}>
+                <button className="btn-secondary" onClick={() => setStep(3)}>Batal</button>
+                <button className="btn-primary btn-safe" onClick={handleConfirm} disabled={busy}>{busy ? 'Mengimpor…' : 'Konfirmasi & import'}</button>
+              </div>
             </div>
-          </div>
+          )}
         </div>
       )}
 

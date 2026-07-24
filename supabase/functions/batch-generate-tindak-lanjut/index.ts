@@ -22,6 +22,7 @@
 import { createClient } from "jsr:@supabase/supabase-js@2";
 import { buildCorsHeaders } from "../_shared/cors.ts";
 import { generateAndInsertDraft } from "../_shared/geminiPrompt.ts";
+import { generateAndInsertDraftSc } from "../_shared/geminiPromptSc.ts";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
@@ -63,6 +64,7 @@ Deno.serve(async (req) => {
     }
 
     const rekomendasi = await hitungRekomendasi(db);
+    const rekomendasiSc = await hitungRekomendasiSc(db);
 
     const hasil = [];
     for (const r of rekomendasi) {
@@ -75,6 +77,22 @@ Deno.serve(async (req) => {
         hasil.push({ ...r, ok: true });
       } catch (e) {
         hasil.push({ ...r, ok: false, error: String(e?.message || e) });
+      }
+    }
+
+    // School Culture: satu draf per sekolah per periode, role default "manajemen" (sekolah-wide,
+    // beda dari Karakter yang default wali_kelas per kelas -- SC tidak punya granularitas kelas).
+    for (const r of rekomendasiSc) {
+      try {
+        const { data: sekolahRow } = await db.from("schools").select("nama").eq("id", r.sekolah_id).maybeSingle();
+        await generateAndInsertDraftSc(
+          db,
+          { role: "manajemen", sekolah_id: r.sekolah_id, sekolah_nama: sekolahRow?.nama || r.sekolah_id, periode_id: r.periode_id, tipe: "tindak_lanjut" },
+          { apiKey: GEMINI_API_KEY, model: GEMINI_MODEL }
+        );
+        hasil.push({ ...r, modul: "sc", ok: true });
+      } catch (e) {
+        hasil.push({ ...r, modul: "sc", ok: false, error: String(e?.message || e) });
       }
     }
 
@@ -116,6 +134,38 @@ async function hitungRekomendasi(db) {
       if (!kelasSudahAda.has(kelasId)) {
         rekomendasi.push({ sekolah_id: sekolahId, kelas_id: kelasId, periode_id: periodeTerbaru });
       }
+    }
+  }
+  return rekomendasi;
+}
+
+/** Sekolah dengan sc_lembaga periode terbaru tapi belum punya tindak_lanjut modul='sc' sama
+ * sekali untuk periode itu -- padanan hitungRekomendasi() di atas untuk Karakter, tapi
+ * granularitasnya per SEKOLAH (bukan per kelas), sesuai bentuk data SC yang sekolah-wide. */
+async function hitungRekomendasiSc(db) {
+  const { data: sekolahAktif } = await db
+    .from("school_modules").select("school_id").eq("modul", "sc").eq("aktif", true);
+  const sekolahIds = [...new Set((sekolahAktif || []).map((s) => s.school_id))];
+  if (sekolahIds.length === 0) return [];
+
+  const rekomendasi = [];
+  for (const sekolahId of sekolahIds) {
+    const { data: lembagaRows } = await db
+      .from("sc_lembaga").select("periode_id")
+      .eq("sekolah_id", sekolahId);
+    if (!lembagaRows || lembagaRows.length === 0) continue;
+
+    const periodeTerbaru = lembagaRows.reduce((max, r) => (!max || r.periode_id > max ? r.periode_id : max), null);
+
+    const { data: tlRows } = await db
+      .from("tindak_lanjut").select("id")
+      .eq("sekolah_id", sekolahId).eq("modul", "sc").eq("scope", "sekolah")
+      .eq("periode_id", periodeTerbaru)
+      .in("status", ["menunggu_persetujuan", "disetujui"])
+      .limit(1);
+
+    if (!tlRows || tlRows.length === 0) {
+      rekomendasi.push({ sekolah_id: sekolahId, periode_id: periodeTerbaru });
     }
   }
   return rekomendasi;

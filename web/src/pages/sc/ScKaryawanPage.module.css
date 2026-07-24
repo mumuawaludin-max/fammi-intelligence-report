@@ -1,0 +1,119 @@
+/* Shell mandiri staf sekolah -- lihat komentar arsitektur di ScKaryawanPage.jsx. Pola identik
+   SiswaPage.jsx/CwKaryawanPage.module.css: viewport diambil alih penuh, isinya dikunci ke lebar
+   HP (bukan cuma responsive). */
+
+.root {
+  position: fixed;
+  inset: 0;
+  background: #E7E8EB;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+.phone {
+  position: relative;
+  width: 100%;
+  max-width: 440px;
+  height: 100%;
+  max-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background: var(--cw-bg);
+  overflow: hidden;
+}
+
+@media (min-width: 480px) {
+  .phone {
+    border-left: 1px solid rgba(33, 27, 46, 0.08);
+    border-right: 1px solid rgba(33, 27, 46, 0.08);
+  }
+}
+
+/* ── Header sticky tipis ───────────────────────────────────────────────────── */
+.header {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 18px;
+  background: rgba(247, 248, 250, 0.92);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border-bottom: 1px solid var(--line);
+}
+
+.logo {
+  font-family: var(--font-display);
+  font-size: 15px;
+  font-weight: 800;
+  color: var(--purple-600);
+  letter-spacing: -0.2px;
+}
+
+.headerRight {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.headerMeta {
+  font-size: 10.5px;
+  font-weight: 700;
+  color: var(--ink-3);
+}
+
+.logoutBtn {
+  width: 30px;
+  height: 30px;
+  flex-shrink: 0;
+  border-radius: 10px;
+  background: var(--bg-2);
+  color: var(--ink-3);
+  border: none;
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+  transition: background var(--transition-fast), color var(--transition-fast);
+}
+
+.logoutBtn:hover,
+.logoutBtn:focus-visible {
+  background: var(--status-alert-bg);
+  color: var(--status-alert);
+  outline: none;
+}
+
+/* ── Area scroll ───────────────────────────────────────────────────────────── */
+.main {
+  flex: 1;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.main::-webkit-scrollbar {
+  display: none;
+}
+
+.content {
+  padding: 18px 16px 32px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.sampleRow {
+  display: flex;
+}
+
+.stateMsg {
+  font-size: 13.5px;
+  color: var(--ink-3);
+  line-height: 1.55;
+  text-align: center;
+  padding: 40px 20px;
+}

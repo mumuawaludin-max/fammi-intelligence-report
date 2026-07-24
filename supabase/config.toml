@@ -1,0 +1,10 @@
+project_id = "hypzmczwpigkyomzgjdb"
+
+# batch-generate-tindak-lanjut dipanggil oleh pg_cron (net.http_post dari dalam Postgres),
+# bukan oleh browser dengan sesi user. Otorisasinya sendiri sudah dijamin lewat header
+# x-cron-secret yang dicek di dalam kode function (lihat index.ts), jadi verify_jwt platform
+# harus dimatikan di sini -- kalau tidak, gateway Supabase menolak request cron dengan 401
+# sebelum kode function sempat jalan, dan jadwal otomatis tidak akan pernah eksekusi sama
+# sekali, terlepas dari toggle "aktif" di gemini_schedule.
+[functions.batch-generate-tindak-lanjut]
+verify_jwt = false

@@ -5,6 +5,7 @@ const NAV = [
   { key: 'dashboard', label: 'Dashboard', Icon: IconDash, badge: null },
   { key: 'antrian', label: 'Antrian Persetujuan', Icon: IconCheck, badge: 'dynamic' },
   { key: 'persetujuan-mi', label: 'Persetujuan MI', Icon: IconCheck, badge: null },
+  { key: 'persetujuan-sc', label: 'Persetujuan School Culture', Icon: IconCheck, badge: null },
   { key: 'upload', label: 'Upload Data', Icon: IconUpload, badge: null },
   { key: 'gemini', label: 'Trigger & Gemini', Icon: IconSpark, badge: null },
   { key: 'sekolah', label: 'Sekolah & Modul', Icon: IconSchool, badge: null },

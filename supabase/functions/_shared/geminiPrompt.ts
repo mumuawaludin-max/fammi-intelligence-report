@@ -1256,28 +1256,135 @@ ${fakta}
 ${tallyBlok}${kutipanBlok}`;
 }
 
+/** Backoff singkat sebelum retry -- Deno tidak punya setTimeout promise bawaan yang lazim. */
+function tunggu(ms: number) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+/**
+ * callGemini -- WAJIB retry untuk error 503 ("model sedang padat", UNAVAILABLE), yang sering
+ * transient dan hilang sendiri dalam beberapa detik, bukan indikasi permintaan salah. Tanpa
+ * retry ini, generate massal (mis. 15+ staf berurutan lewat Upload.jsx) bisa gagal semua kalau
+ * kebetulan menabrak satu jendela padat Gemini, padahal mengulang beberapa detik kemudian
+ * biasanya berhasil. Cuma 503/429 (rate limit) yang di-retry -- error lain (400 payload salah,
+ * 401/403 API key salah) percuma diulang, langsung dilempar supaya kelihatan jelas.
+ */
 export async function callGemini(apiKey: string, model: string, systemInstruction: string, prompt: string) {
-  const res = await fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`,
-    {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        systemInstruction: { parts: [{ text: systemInstruction }] },
-        contents: [{ parts: [{ text: prompt }] }],
-        generationConfig: { responseMimeType: "application/json" },
-      }),
+  const RETRYABLE = new Set([429, 503]);
+  const MAX_ATTEMPT = 3;
+  let lastErr: Error | null = null;
+
+  for (let attempt = 1; attempt <= MAX_ATTEMPT; attempt++) {
+    const res = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          systemInstruction: { parts: [{ text: systemInstruction }] },
+          contents: [{ parts: [{ text: prompt }] }],
+          // maxOutputTokens EKSPLISIT (sebelumnya tidak diset, jatuh ke default API yang bisa
+          // lebih kecil dari cukup) -- laporan individu SC/Karakter yang isinya panjang (esai
+          // staf ikut dibaca sebagai konteks, rencana_aksi 4 item) sempat KEPOTONG di tengah
+          // JSON kalau kebetulan mepet limit, bikin JSON.parse gagal walau responseMimeType
+          // sudah "application/json". 8192 token cukup lega untuk skema output terbesar (array
+          // tindak lanjut Karakter/SC) tanpa menaikkan biaya berarti.
+          generationConfig: { responseMimeType: "application/json", maxOutputTokens: 8192 },
+        }),
+      }
+    );
+
+    if (!res.ok) {
+      const bodyText = await res.text();
+      lastErr = new Error(`Gemini API error ${res.status}: ${bodyText}`);
+      if (RETRYABLE.has(res.status) && attempt < MAX_ATTEMPT) {
+        await tunggu(attempt * 1500); // 1.5s, lalu 3s
+        continue;
+      }
+      throw lastErr;
     }
-  );
-  if (!res.ok) throw new Error(`Gemini API error ${res.status}: ${await res.text()}`);
-  const json = await res.json();
-  const text = json?.candidates?.[0]?.content?.parts?.[0]?.text?.trim();
-  if (!text) return null;
-  try {
-    return JSON.parse(text);
-  } catch {
-    throw new Error(`Gemini tidak balas JSON valid: ${text.slice(0, 300)}`);
+
+    const json = await res.json();
+    const candidate = json?.candidates?.[0];
+    const text = candidate?.content?.parts?.[0]?.text?.trim();
+    // finishReason "MAX_TOKENS" berarti jawaban kepotong di tengah -- JSON.parse pasti gagal,
+    // tapi pesannya harus beda dari "model ngarang teks bukan JSON" supaya jelas ini soal
+    // panjang keluaran, bukan format. Diperlakukan RETRYABLE juga: percobaan berikutnya bisa
+    // beda (temperature default Gemini tidak nol), dan kalau tetap gagal di percobaan
+    // terakhir baru dilempar sebagai error final.
+    if (candidate?.finishReason === "MAX_TOKENS") {
+      lastErr = new Error("Gemini terpotong karena melebihi batas token (finishReason MAX_TOKENS) -- coba lagi.");
+      if (attempt < MAX_ATTEMPT) {
+        await tunggu(attempt * 1500);
+        continue;
+      }
+      throw lastErr;
+    }
+    if (!text) return null;
+    try {
+      return JSON.parse(text);
+    } catch {
+      // finishReason STOP (selesai normal) TAPI JSON.parse tetap gagal -- bukan soal kepotong,
+      // penyebab paling sering: Gemini menaruh newline MENTAH (bukan "\\n" yang di-escape) di
+      // dalam nilai string, mis. narasi panjang yang model pecah jadi beberapa baris. Itu valid
+      // secara teks biasa tapi melanggar spesifikasi JSON (control character di dalam string
+      // wajib di-escape) -- responseMimeType "application/json" TIDAK menjamin ini tidak
+      // terjadi. Coba perbaiki otomatis (escape ulang control character yang ada DI DALAM
+      // string JSON saja, bukan di luar) sebelum menyerah.
+      try {
+        return JSON.parse(sanitizeRawControlCharsInJsonStrings(text));
+      } catch {
+        throw new Error(`Gemini tidak balas JSON valid (finishReason ${candidate?.finishReason || "?"}): ${text.slice(0, 300)}`);
+      }
+    }
   }
+
+  throw lastErr || new Error("Gemini gagal tanpa keterangan setelah beberapa percobaan.");
+}
+
+/**
+ * Escape ulang control character (newline/tab/carriage return/dst, kode < 0x20) yang muncul
+ * MENTAH di dalam literal string JSON. Jalan lewat teks karakter per karakter, lacak status
+ * "sedang di dalam string" (dibuka/ditutup oleh tanda kutip yang tidak sedang di-escape) --
+ * di luar string (whitespace antar token JSON) newline dibiarkan apa adanya karena itu memang
+ * sah di situ.
+ */
+function sanitizeRawControlCharsInJsonStrings(text: string): string {
+  let out = "";
+  let inString = false;
+  let escaped = false;
+  for (const ch of text) {
+    if (inString) {
+      if (escaped) {
+        out += ch;
+        escaped = false;
+        continue;
+      }
+      if (ch === "\\") {
+        out += ch;
+        escaped = true;
+        continue;
+      }
+      if (ch === '"') {
+        inString = false;
+        out += ch;
+        continue;
+      }
+      const code = ch.charCodeAt(0);
+      if (code < 0x20) {
+        if (ch === "\n") out += "\\n";
+        else if (ch === "\r") out += "\\r";
+        else if (ch === "\t") out += "\\t";
+        else out += "\\u" + code.toString(16).padStart(4, "0");
+        continue;
+      }
+      out += ch;
+    } else {
+      if (ch === '"') inString = true;
+      out += ch;
+    }
+  }
+  return out;
 }
 
 /**

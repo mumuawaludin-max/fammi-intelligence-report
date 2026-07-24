@@ -3,7 +3,11 @@ import { useCms } from '../store/CmsStore';
 import { moduleColor, moduleLabel } from '../data/helpers';
 import { IconX } from './icons';
 
-const MODULES = ['karakter', 'mi', 'screening', 'cw'];
+const MODULES = ['karakter', 'mi', 'screening', 'cw', 'sc'];
+// Daycare..SMK = jenjang akademik (sekolah K-12). Manajemen/Karyawan ditambahkan untuk
+// organisasi yang bukan sekolah berjenjang (klien modul Culture & Wellbeing/School Culture),
+// dipilih sesuai peran dominan yang mengisi asesmen budaya kerja di organisasi itu.
+const JENJANG_OPTIONS = ['Daycare', 'TK', 'SD', 'SMP', 'SMA', 'SMK', 'Manajemen', 'Karyawan'];
 
 export function AddSchoolDialog() {
   const { data, state, setAddSchoolOpen, addSchool } = useCms();
@@ -49,7 +53,7 @@ export function AddSchoolDialog() {
             <div>
               <label style={{ fontSize: 10.5, fontWeight: 800, letterSpacing: '0.06em', textTransform: 'uppercase', color: 'var(--ink-3)', marginBottom: 5, display: 'block' }}>Jenjang</label>
               <select ref={jenjangRef} className="fld">
-                {['Daycare', 'TK', 'SD', 'SMP', 'SMA', 'SMK'].map(j => <option key={j} value={j}>{j}</option>)}
+                {JENJANG_OPTIONS.map(j => <option key={j} value={j}>{j}</option>)}
               </select>
             </div>
             <div>

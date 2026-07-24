@@ -6,6 +6,7 @@ const NAV_ITEMS = [
   { id: "screening", label: "Screening" },
   { id: "mi", label: "Multiple Intelligence" },
   { id: "cw", label: "Culture & Wellbeing" },
+  { id: "sc", label: "School Culture" },
 ];
 
 /**

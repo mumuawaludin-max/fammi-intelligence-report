@@ -335,6 +335,28 @@ function DrawerContent({ a }) {
           </div>
         )}
 
+        {a.tipe === 'briefing' && Array.isArray(a.temaEsai) && a.temaEsai.length > 0 && (
+          <div style={{ marginBottom: 20 }}>
+            <label style={{ fontSize: 11, fontWeight: 800, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--ink-3)', marginBottom: 8, display: 'block' }}>
+              Tema esai staf (Fase D, hasil pengelompokan Gemini -- tinjau sebelum approve)
+            </label>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              {a.temaEsai.map((t, i) => (
+                <div key={i} style={{ padding: '12px 14px', background: 'var(--surface)', borderRadius: 12, boxShadow: '0 2px 8px rgba(33,27,46,.05)' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
+                    <span style={{ fontSize: 13, fontWeight: 800, color: 'var(--ink)' }}>{t.tema}</span>
+                    <span className="pill" style={{ marginLeft: 'auto', background: 'var(--purple-050)', color: 'var(--purple-700)', fontSize: 10.5 }}>{t.jumlah_mention} kali disinggung</span>
+                  </div>
+                  <div style={{ fontSize: 12.5, color: 'var(--ink-2)', lineHeight: 1.55 }}>{t.ringkasan}</div>
+                </div>
+              ))}
+            </div>
+            <div style={{ fontSize: 11, color: 'var(--ink-4)', marginTop: 6, lineHeight: 1.4 }}>
+              Kalau ada tema yang salah kelompok/keliru, pakai "Minta regenerate" di bawah dengan catatan spesifik -- belum ada editor per-tema, seluruh draf digenerate ulang.
+            </div>
+          </div>
+        )}
+
         {punyaOpsi && (
           <div style={{ marginBottom: 20 }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>

@@ -1,6 +1,7 @@
 import { useEffect, useState, useCallback } from 'react';
 import { supabase, edgeErrorDetail } from '../../lib/supabase';
 import { importKarakterWorkbook } from './importers/karakterImporter';
+import { importScWorkbook } from './importers/scImporter';
 
 function currentPeriode() {
   const d = new Date();
@@ -32,13 +33,14 @@ export function useAdminCmsData() {
         yayasanRes, schoolsRes, modulesRes, summaryRes, aspekRes,
         briefingRes, tlRes, importLogRes, profilesRes,
         kelasSummaryRes, tlKelasAllRes, tlSekolahYayasanRes, scheduleRes,
+        scLembagaRes, tlScRes,
       ] = await Promise.all([
         supabase.from('yayasan').select('id, nama'),
         supabase.from('schools').select('id, nama, yayasan_id, aktif'),
         supabase.from('school_modules').select('school_id, modul, aktif').eq('aktif', true),
         supabase.from('karakter_summary').select('sekolah_id, periode_id').eq('scope', 'sekolah'),
         supabase.from('karakter_aspek_config').select('sekolah_id, aspek_kode, aspek_label, urutan').order('urutan', { ascending: true }),
-        supabase.from('briefing').select('id, sekolah_id, modul, scope, scope_id, periode_id, teks, sumber, status, created_at').eq('status', 'menunggu_persetujuan'),
+        supabase.from('briefing').select('id, sekolah_id, modul, scope, scope_id, periode_id, teks, sumber, tema_esai, status, created_at').eq('status', 'menunggu_persetujuan'),
         supabase.from('tindak_lanjut').select('id, sekolah_id, modul, scope, scope_id, periode_id, action, trigger_desc, priority, status, gambaran, opsi_kandidat, catatan_internal, langkah_terpilih, regenerate_dari, created_at, term, type, fokus, jenjang, icon, title, teaser, mengapa_data, mengapa_perspektif, dasar_teori, manfaat, konkret, target_role').in('status', ['menunggu_persetujuan', 'disetujui']),
         supabase.from('import_log').select('*').order('created_at', { ascending: false }).limit(50),
         supabase.from('profiles').select('id, username, nama, peran, school_id, cakupan, created_at'),
@@ -54,9 +56,13 @@ export function useAdminCmsData() {
         // sekolah sebagai "sudah ada" padahal belum ada draf karakternya.
         supabase.from('tindak_lanjut').select('sekolah_id, periode_id, target_role').eq('modul', 'karakter').eq('scope', 'sekolah').in('target_role', ['kepala_sekolah', 'yayasan']).in('status', ['menunggu_persetujuan', 'disetujui']),
         supabase.from('gemini_schedule').select('*').eq('id', 'default').maybeSingle(),
+        // Rekomendasi School Culture: sekolah yang punya baris agregat sc_lembaga (unit=null,
+        // seluruh sekolah) tapi belum ada tindak_lanjut modul='sc' untuk periode itu.
+        supabase.from('sc_lembaga').select('sekolah_id, periode_id, unit').is('unit', null),
+        supabase.from('tindak_lanjut').select('sekolah_id, periode_id, target_role').eq('modul', 'sc').eq('scope', 'sekolah').in('status', ['menunggu_persetujuan', 'disetujui']),
       ]);
 
-      const firstError = [yayasanRes, schoolsRes, modulesRes, summaryRes, aspekRes, briefingRes, tlRes, importLogRes, profilesRes, kelasSummaryRes, tlKelasAllRes, tlSekolahYayasanRes, scheduleRes]
+      const firstError = [yayasanRes, schoolsRes, modulesRes, summaryRes, aspekRes, briefingRes, tlRes, importLogRes, profilesRes, kelasSummaryRes, tlKelasAllRes, tlSekolahYayasanRes, scheduleRes, scLembagaRes, tlScRes]
         .find((r) => r.error);
       if (firstError) throw new Error(firstError.error.message);
 
@@ -162,6 +168,23 @@ export function useAdminCmsData() {
       rekomendasiSekolah.sort(byNamaPeriodeDesc);
       rekomendasiYayasan.sort(byNamaPeriodeDesc);
 
+      // Rekomendasi School Culture, padanan rekomendasiSekolah tapi sumbernya sc_lembaga
+      // (bukan karakter_summary) dan target_role='manajemen' (peran pimpinan utama modul ini).
+      // sc_lembaga tidak perlu dicek modules.includes('sc') seperti karakter -- baris sc_lembaga
+      // cuma ada kalau sekolahnya memang sudah import data SC.
+      const tlScKeySet = new Set(
+        (tlScRes.data || []).map((r) => `${r.sekolah_id}|${r.periode_id}|${r.target_role}`)
+      );
+      const rekomendasiSc = [];
+      (scLembagaRes.data || []).forEach((r) => {
+        const info = sekolahInfoById[r.sekolah_id];
+        if (!info) return;
+        if (!tlScKeySet.has(`${r.sekolah_id}|${r.periode_id}|manajemen`)) {
+          rekomendasiSc.push({ sekolahId: r.sekolah_id, sekolahNama: info.nama, yayasanId: info.yay || null, periodeId: r.periode_id });
+        }
+      });
+      rekomendasiSc.sort(byNamaPeriodeDesc);
+
       const antrianTlAll = (tlRes.data || []).map((r) => ({
         id: r.id, tipe: 'tindak_lanjut', modul: r.modul, sekolah: r.sekolah_id, periode: r.periode_id,
         yayasan: sekolahInfoById[r.sekolah_id]?.yay || null,
@@ -185,6 +208,7 @@ export function useAdminCmsData() {
         prioritas: 'sedang', status: r.status,
         dibuat: (r.created_at || '').replace('T', ' ').slice(0, 16),
         pemicu: Array.isArray(r.sumber) ? `Sumber: ${r.sumber.join(', ')}` : '', teks: r.teks || '', konteks: [],
+        temaEsai: r.tema_esai || null,
       }));
       const byDibuatDesc = (a, b) => (a.dibuat < b.dibuat ? 1 : -1);
       const antrian = [...antrianTlAll.filter((r) => r.status === 'menunggu_persetujuan'), ...antrianBriefing].sort(byDibuatDesc);
@@ -208,7 +232,7 @@ export function useAdminCmsData() {
         error: null,
         data: {
           yayasan: yayasanRes.data || [], sekolah, antrian, riwayatDisetujui, uploadHistory, geminiJobs: [], users,
-          rekomendasi, rekomendasiSekolah, rekomendasiYayasan,
+          rekomendasi, rekomendasiSekolah, rekomendasiYayasan, rekomendasiSc,
           geminiSchedule: scheduleRes.data || { id: 'default', aktif: false, interval_jam: 6, terakhir_jalan: null },
         },
       });
@@ -308,14 +332,14 @@ export async function actMiApproval(id, action) {
 
 export async function runImportAction({ sekolahId, modul, fileName, parsed }) {
   const periodeId = parsed?.preview?.periodeDetected?.map((p) => p.periode).join(',') || null;
-  if (modul !== 'karakter') {
+  if (modul !== 'karakter' && modul !== 'sc') {
     await supabase.from('import_log').insert({
       sekolah_id: sekolahId, modul, periode_id: periodeId, rows: 0, status: 'gagal',
       pesan: 'Importer modul ini belum tersedia.', oleh: fileName || 'admin',
     });
     throw new Error('Importer untuk modul ini belum tersedia.');
   }
-  const result = await importKarakterWorkbook(parsed);
+  const result = modul === 'sc' ? await importScWorkbook(parsed) : await importKarakterWorkbook(parsed);
   await supabase.from('import_log').insert({
     sekolah_id: sekolahId, modul, periode_id: periodeId,
     rows: result.rowsWritten, status: result.ok ? 'sukses' : 'gagal',
@@ -323,6 +347,122 @@ export async function runImportAction({ sekolahId, modul, fileName, parsed }) {
   });
   if (!result.ok) throw new Error(result.error);
   return result;
+}
+
+/** Ambil id+nama seluruh sc_personal untuk satu (sekolah, periode) yang baru diimpor -- dipakai
+ * Upload.jsx untuk tahu siapa saja yang perlu digenerate laporan individunya setelah import.
+ * Lewat admin-actions (service_role), BUKAN query langsung -- RLS sc_personal cuma membuka
+ * baris ke KepalaSekolah/WakilKepalaSekolah/Manajemen/Yayasan sekolah itu sendiri, AdminFammi
+ * tidak match sekolah_id = my_school_id() apa pun sekolah yang diakses, jadi query langsung
+ * selalu balas 0 baris walau datanya baru saja berhasil diimpor. */
+export async function loadScPersonalIdsAction(sekolahId, periodeId) {
+  const { data, error } = await supabase.functions.invoke('admin-actions', {
+    body: { action: 'list-sc-personal', sekolah_id: sekolahId, periode_id: periodeId },
+  });
+  if (error) throw new Error(await edgeErrorDetail(error, 'Edge Function admin-actions gagal dipanggil.'));
+  if (!data?.ok) throw new Error(data?.error || 'Gagal memuat daftar responden.');
+  return data.rows || [];
+}
+
+function sleep(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+/** true kalau error-nya kelihatan seperti overload sementara Gemini (503/UNAVAILABLE, atau 429
+ * rate limit) -- pola yang sama dipakai callGemini() di _shared/geminiPrompt.ts untuk retry
+ * server-side, dicek lagi di sini untuk retry lapis kedua di sisi klien (lihat komentar di
+ * runScIndividuGenerateAction). */
+function isTransientGeminiError(msg) {
+  return /\b503\b|UNAVAILABLE|\b429\b|high demand/i.test(String(msg || ''));
+}
+
+async function generateSatuSc(p) {
+  try {
+    const { data, error } = await supabase.functions.invoke('generate-sc-individu', {
+      body: { sc_personal_id: p.id },
+    });
+    if (error) {
+      return { ok: false, nama: p.nama_responden, error: await edgeErrorDetail(error, 'generate-sc-individu gagal dipanggil.') };
+    }
+    if (!data?.ok) {
+      return { ok: false, nama: p.nama_responden, error: data?.error || 'Gagal tanpa keterangan.' };
+    }
+    return { ok: true, nama: p.nama_responden };
+  } catch (e) {
+    return { ok: false, nama: p.nama_responden, error: String(e?.message || e) };
+  }
+}
+
+/**
+ * Generate laporan individu SC satu per satu (bukan Promise.all -- pola sama runMiGenerateAction,
+ * Edge Function generate-sc-individu makan waktu per panggilan). onProgress dipanggil tiap staf
+ * selesai. Tidak berhenti di staf yang gagal, kumpulkan hasil per staf.
+ *
+ * Dua lapis penanganan 503 Gemini ("model sedang padat"): callGemini() di server sudah retry
+ * sendiri (lihat _shared/geminiPrompt.ts), tapi kalau permintaan ditembak beruntun tanpa jeda
+ * (16 staf berturut-turut) itu sendiri bisa memicu overload baru. Di sini ditambah (1) jeda
+ * kecil ANTAR staf supaya tidak membanjiri API, dan (2) SATU putaran retry di akhir khusus
+ * staf yang gagalnya kelihatan transient (503/429), dengan jeda lebih panjang.
+ */
+export async function runScIndividuGenerateAction(personalRows, onProgress) {
+  const results = [];
+  for (let i = 0; i < personalRows.length; i++) {
+    results.push(await generateSatuSc(personalRows[i]));
+    onProgress?.(i + 1, personalRows.length);
+    if (i < personalRows.length - 1) await sleep(600);
+  }
+
+  const gagalTransient = results
+    .map((r, i) => ({ r, i }))
+    .filter(({ r }) => !r.ok && isTransientGeminiError(r.error));
+  if (gagalTransient.length > 0) {
+    for (let j = 0; j < gagalTransient.length; j++) {
+      const { i } = gagalTransient[j];
+      await sleep(3000);
+      results[i] = await generateSatuSc(personalRows[i]);
+      onProgress?.(personalRows.length, personalRows.length);
+    }
+  }
+  return results;
+}
+
+/** Daftar laporan individu School Culture yang menunggu persetujuan -- padanan loadMiPendingAction. */
+export async function loadScPendingAction() {
+  const { data, error } = await supabase.functions.invoke('admin-actions', { body: { action: 'list-sc-pending' } });
+  if (error) throw new Error(await edgeErrorDetail(error, 'Gagal memuat antrian School Culture.'));
+  return data?.rows || [];
+}
+
+/** Setuju/tolak satu laporan SC. Kalau disetujui, admin-actions otomatis buat akun Karyawan
+ * kalau belum ada; kalau BARU dibuat, balik {created:true, username, password} -- WAJIB
+ * ditampilkan sekali ke admin (password tidak bisa diambil ulang setelah ini). */
+export async function actScApproval(id, action) {
+  const { data, error } = await supabase.functions.invoke('admin-actions', {
+    body: { action: action === 'setuju' ? 'approve-sc' : 'reject-sc', id },
+  });
+  if (error) throw new Error(await edgeErrorDetail(error, 'Edge Function admin-actions gagal dipanggil.'));
+  return data?.akun || null;
+}
+
+/** Fase C: simpan sunting manual draf sc_hasil (LaporanIndividuSC lengkap) sebelum approve. */
+export async function updateScDraftAction(id, detail) {
+  const { data, error } = await supabase.functions.invoke('admin-actions', {
+    body: { action: 'edit-sc', id, detail },
+  });
+  if (error) throw new Error(await edgeErrorDetail(error, 'Edge Function admin-actions gagal dipanggil.'));
+  if (data?.error) throw new Error(data.error);
+  return data;
+}
+
+/** Fase C: regenerate satu laporan individu SC dengan catatan reviewer -- catatan tersimpan
+ * permanen ke sc_feedback dan otomatis dipatuhi generate berikutnya untuk staf yang sama. */
+export async function regenerateScIndividuAction(scPersonalId, catatan) {
+  const { data, error } = await supabase.functions.invoke('generate-sc-individu', {
+    body: { sc_personal_id: scPersonalId, catatan: catatan || '' },
+  });
+  if (error) throw new Error(await edgeErrorDetail(error, 'Edge Function generate-sc-individu gagal dipanggil.'));
+  if (data?.error) throw new Error(data.error);
+  return data;
 }
 
 export async function triggerGeminiJobAction({ scope, scopeId, sekolahId, modul, tipe, periodeId, role }) {
