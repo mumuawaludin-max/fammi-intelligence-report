@@ -83,42 +83,6 @@ function tambahHari(dariIso, jumlahHari) {
   return new Date(dari.getTime() + jumlahHari * 86400000);
 }
 
-/** Dua wawasan pribadi untuk carousel pembuka -- DIDERIVASI dari data final yang sudah ada,
- * bukan field baru: "kekuatan" = subdimensi kesejahteraan bernilai tertinggi (skor asli, cuma
- * diranking), "fokus 30 hari" = rencana_aksi[0] yang sudah jadi rekomendasi utama di tempat lain
- * (ScRencanaTindakLanjutPage lama memakai indeks 0 yang sama sebagai "fokus"). Referensi desain
- * punya slot ketiga "dukungan yang dibutuhkan" -- SENGAJA tidak diisi, tidak ada field yang bisa
- * dipetakan tanpa mengarang teks baru (lihat audit redesign, poin data gap). */
-function buildSignals(kesejahteraanItems, aksiList) {
-  const signals = [];
-
-  const top = kesejahteraanItems.reduce(
-    (acc, it) => (acc == null || (it.nilai ?? -1) > (acc.nilai ?? -1) ? it : acc), null,
-  );
-  if (top) {
-    signals.push({
-      key: "strength",
-      icon: "💪",
-      eyebrow: "Kekuatan yang dijaga",
-      value: labelKesejahteraan(top.kode, top.label),
-      detail: KESEJAHTERAAN_INFO[top.kode]?.deskripsi || "",
-    });
-  }
-
-  const fokus = aksiList[0];
-  if (fokus) {
-    signals.push({
-      key: "focus",
-      icon: "🎯",
-      eyebrow: "Fokus 30 hari",
-      value: fokus.judul,
-      detail: fokus.alasan || "",
-    });
-  }
-
-  return signals;
-}
-
 /** Satu kartu tipe budaya: dumbbell chart (Persepsi Anda -> Harapan Anda), progressive disclosure
  * per dimensi -- ganti tampilan dua-bar lama, sumber angka SAMA PERSIS (saat_ini/harapan/tabel_gap
  * yang sudah final dari upstream). Interpretasi pakai implikasiBudaya() (scMeta.js), template statis
@@ -276,14 +240,6 @@ export default function ScLaporanIndividuPage({ laporan, viewerIsOwner = false }
   const kesejahteraanItems = bagian_kesejahteraan?.chart_data || [];
   const aksiList = rencana_aksi || [];
 
-  const signals = buildSignals(kesejahteraanItems, aksiList);
-  const [signalIdx, setSignalIdx] = useState(0);
-  const signal = signals[signalIdx];
-  function gerakSignal(arah) {
-    if (signals.length === 0) return;
-    setSignalIdx((cur) => (cur + arah + signals.length) % signals.length);
-  }
-
   const [expandedBudaya, setExpandedBudaya] = useState(budayaItems[0]?.tipe || null);
   const [expandedKes, setExpandedKes] = useState(kesejahteraanItems[0]?.kode || null);
   const [expandedAgency, setExpandedAgency] = useState("control");
@@ -387,38 +343,11 @@ export default function ScLaporanIndividuPage({ laporan, viewerIsOwner = false }
       <Reveal className={styles.hero}>
         <p className={styles.heroGreet}>Halo, <strong>{meta.nama_responden}</strong></p>
         <h1 className={styles.heroHook}>{header.hook}</h1>
-        <p className={styles.notScore}>Ini bukan nilai akhir tentang diri Anda.</p>
 
         <div className={styles.chips}>
           {meta.peran_kerja && <span className={styles.chip}>{meta.peran_kerja}</span>}
           {meta.unit && <span className={styles.chip}>{meta.unit}</span>}
         </div>
-
-        {signals.length > 0 && (
-          <div className={styles.signalCard}>
-            <div className={styles.signalTopline}>
-              <span>Wawasan pribadi Anda</span>
-              <span>{signalIdx + 1} / {signals.length}</span>
-            </div>
-            <div className={styles.signalContent}>
-              <span className={styles.signalIcon} aria-hidden="true">{signal.icon}</span>
-              <p className={styles.signalEyebrow}>{signal.eyebrow}</p>
-              <h3 className={styles.signalValue}>{signal.value}</h3>
-              {signal.detail && <p className={styles.signalDetail}>{signal.detail}</p>}
-            </div>
-            {signals.length > 1 && (
-              <div className={styles.signalControls}>
-                <button type="button" onClick={() => gerakSignal(-1)} aria-label="Wawasan sebelumnya">‹</button>
-                <div className={styles.signalDots} aria-hidden="true">
-                  {signals.map((s, i) => (
-                    <span key={s.key} className={i === signalIdx ? styles.dotActive : ""} />
-                  ))}
-                </div>
-                <button type="button" onClick={() => gerakSignal(1)} aria-label="Wawasan berikutnya">›</button>
-              </div>
-            )}
-          </div>
-        )}
 
         {/* Kutipan esai pribadi juga -- sumbernya sama dengan Refleksi Pribadi (jawaban_survey),
             jadi ikut disembunyikan total dari drill-down pimpinan supaya konsisten: bukan cuma
@@ -426,7 +355,7 @@ export default function ScLaporanIndividuPage({ laporan, viewerIsOwner = false }
         {viewerIsOwner && jawaban_survey?.yang_ingin_diubah && (
           <div className={styles.heroQuote}>
             <span className={styles.quoteMark} aria-hidden="true">&ldquo;</span>
-            <p className={styles.heroQuoteHeading}>Perubahan yang Anda harapkan</p>
+            <p className={styles.heroQuoteHeading}>Perubahan Lembaga yang Anda harapkan</p>
             <p className={styles.heroQuoteText}>{jawaban_survey.yang_ingin_diubah}</p>
           </div>
         )}

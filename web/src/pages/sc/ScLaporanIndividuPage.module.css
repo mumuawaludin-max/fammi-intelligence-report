@@ -75,23 +75,6 @@
   letter-spacing: -0.3px;
 }
 
-.notScore {
-  position: relative;
-  margin: 0 0 16px;
-  padding-left: 13px;
-  color: var(--ink-3);
-  font-size: 13px;
-}
-
-.notScore::before {
-  content: "";
-  position: absolute;
-  inset: 2px auto 2px 0;
-  width: 3px;
-  border-radius: 2px;
-  background: var(--status-warn);
-}
-
 .chips {
   display: flex;
   flex-wrap: wrap;
@@ -106,107 +89,6 @@
   color: var(--ink-2);
   font-size: 12px;
   font-weight: 700;
-}
-
-/* ── Wawasan pribadi (carousel) ──────────────────────────────────────────────── */
-.signalCard {
-  margin-bottom: 18px;
-  padding: 18px;
-  border: 1px solid var(--purple-100);
-  border-radius: 20px 20px 8px 20px;
-  background: var(--purple-050);
-}
-
-.signalTopline {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  color: var(--ink);
-  font-size: 11.5px;
-  font-weight: 800;
-}
-
-.signalContent {
-  display: grid;
-  place-items: center;
-  min-height: 168px;
-  padding: 18px 4px 8px;
-  text-align: center;
-}
-
-.signalIcon {
-  display: grid;
-  place-items: center;
-  width: 60px;
-  height: 60px;
-  margin-bottom: 10px;
-  border-radius: 50%;
-  background: var(--surface);
-  font-size: 28px;
-}
-
-.signalEyebrow {
-  margin: 0 0 4px;
-  color: var(--ink-3);
-  font-size: 11.5px;
-  font-weight: 700;
-}
-
-.signalValue {
-  margin: 0 0 6px;
-  color: var(--ink);
-  font-family: var(--font-display);
-  font-size: 19px;
-  font-weight: 800;
-}
-
-.signalDetail {
-  max-width: 30ch;
-  margin: 0;
-  color: var(--ink-3);
-  font-size: 13px;
-  line-height: 1.55;
-}
-
-.signalControls {
-  display: grid;
-  grid-template-columns: 44px 1fr 44px;
-  align-items: center;
-  gap: 10px;
-}
-
-.signalControls button {
-  display: grid;
-  place-items: center;
-  width: 44px;
-  height: 44px;
-  border: 0;
-  border-radius: 50%;
-  background: var(--surface);
-  color: var(--purple-600);
-  font-size: 18px;
-  cursor: pointer;
-}
-
-.signalDots {
-  display: flex;
-  justify-content: center;
-  gap: 7px;
-}
-
-.signalDots span {
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  background: rgba(98, 90, 110, 0.24);
-  transition: width 200ms ease, background-color 200ms ease;
-}
-
-.signalDots .dotActive {
-  width: 20px;
-  border-radius: 99px;
-  background: var(--purple-600);
 }
 
 /* ══ Pengingat komitmen aktif/draf ════════════════════════════════════════════ */
