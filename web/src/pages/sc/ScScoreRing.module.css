@@ -1,0 +1,74 @@
+.ring {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 220px;
+  height: 220px;
+  flex-shrink: 0;
+}
+
+.ring svg {
+  width: 100%;
+  height: 100%;
+  transform: rotate(-90deg);
+}
+
+.track {
+  fill: none;
+  stroke: var(--sc-border);
+  stroke-width: 14;
+}
+
+.value {
+  fill: none;
+  stroke: var(--sc-primary);
+  stroke-width: 14;
+  stroke-linecap: round;
+}
+
+.copy {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 0 20px;
+}
+
+.eyebrow {
+  margin-bottom: 6px;
+  color: var(--sc-muted);
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.copy strong {
+  color: var(--sc-heading);
+  font-size: 34px;
+  font-weight: 780;
+  letter-spacing: -0.02em;
+  line-height: 1.1;
+}
+
+.label {
+  margin-top: 6px;
+  color: var(--sc-muted);
+  font-size: 12.5px;
+  font-weight: 650;
+  line-height: 1.3;
+}
+
+@media (max-width: 640px) {
+  .ring {
+    width: 180px;
+    height: 180px;
+  }
+
+  .copy strong {
+    font-size: 28px;
+  }
+}

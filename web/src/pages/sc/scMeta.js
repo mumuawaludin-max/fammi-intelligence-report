@@ -241,3 +241,17 @@ export function toneKesejahteraan(kategori) {
   if (kategori === "Sedang") return "netral";
   return "waspada";
 }
+
+/** Judul singkat hero "Kesejahteraan Tim", ditemplate dari kategori gabungan yang sudah final
+ * (bukan angka baru, cuma kalimat pembuka mengikuti kategori). */
+const HEADLINE_KESEJAHTERAAN = {
+  "Sangat Tinggi": "Kondisi tim terlihat kuat. Energinya tetap perlu dijaga.",
+  "Tinggi": "Kondisi tim terlihat kuat. Energinya tetap perlu dijaga.",
+  "Sedang": "Kondisi tim terlihat stabil. Ada ruang untuk diperkuat.",
+  "Rendah": "Kondisi tim perlu perhatian. Saatnya bertindak bersama.",
+  "Sangat Rendah": "Kondisi tim perlu perhatian segera. Saatnya bertindak bersama.",
+};
+
+export function headlineKesejahteraan(kategori) {
+  return HEADLINE_KESEJAHTERAAN[kategori] || "Kondisi tim belum bisa disimpulkan untuk periode ini.";
+}

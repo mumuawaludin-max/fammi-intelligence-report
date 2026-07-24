@@ -1,0 +1,263 @@
+.section {
+  padding: 40px 0;
+}
+
+.hero {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 48px;
+  align-items: center;
+  margin-bottom: 44px;
+}
+
+.heroCopy h1 {
+  margin: 16px 0 14px;
+  color: var(--sc-heading);
+  font-size: clamp(28px, 3.4vw, 40px);
+  font-weight: 780;
+  line-height: 1.15;
+  letter-spacing: -0.02em;
+}
+
+.kicker {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--sc-primary);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.lead {
+  max-width: 560px;
+  margin: 0 0 26px;
+  color: var(--sc-muted);
+  font-size: 15px;
+  line-height: 1.65;
+}
+
+.meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 28px;
+  margin: 0;
+}
+
+.meta > div {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.meta dt {
+  margin: 0 0 2px;
+  color: var(--sc-muted-2);
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.meta dd {
+  margin: 0;
+  color: var(--sc-heading);
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.heroScore {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 20px;
+}
+
+.callout {
+  position: relative;
+  max-width: 240px;
+  padding-left: 16px;
+}
+
+.calloutBar {
+  position: absolute;
+  left: 0;
+  top: 2px;
+  bottom: 2px;
+  width: 3px;
+  border-radius: 2px;
+  background: var(--sc-gold);
+}
+
+.callout p {
+  margin: 0;
+  color: var(--sc-muted);
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+.aspekBlock {
+  padding-top: 32px;
+  border-top: 1px solid var(--sc-border);
+}
+
+.aspekHeading h2 {
+  margin: 0 0 6px;
+  color: var(--sc-heading);
+  font-size: 20px;
+  font-weight: 760;
+}
+
+.aspekHeading p {
+  margin: 0 0 24px;
+  color: var(--sc-muted);
+  font-size: 13.5px;
+}
+
+.stepperRow {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 280px;
+  gap: 20px;
+  align-items: stretch;
+}
+
+.stepper {
+  position: relative;
+  display: flex;
+  justify-content: space-between;
+  padding: 10px 4px 0;
+}
+
+.stepperLine {
+  position: absolute;
+  left: 5%;
+  right: 5%;
+  top: 32px;
+  height: 1px;
+  background: var(--sc-border);
+}
+
+.step {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  padding: 0 6px;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  font: inherit;
+}
+
+.step span {
+  max-width: 92px;
+  color: var(--sc-muted);
+  font-size: 11.5px;
+  font-weight: 650;
+  line-height: 1.35;
+  text-align: center;
+}
+
+.stepActive span {
+  color: var(--sc-heading);
+  font-weight: 760;
+}
+
+.stepActive::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  bottom: -10px;
+  width: 28px;
+  height: 3px;
+  border-radius: 2px;
+  background: var(--sc-primary);
+  transform: translateX(-50%);
+}
+
+.insightCard {
+  padding: 20px;
+  border-radius: var(--sc-radius-md);
+  background: linear-gradient(160deg, var(--sc-soft), #ffffff);
+  border: 1px solid var(--sc-border);
+}
+
+.insightHeading {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.insightHeading span {
+  color: var(--sc-muted);
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.insightCard h3 {
+  margin: 0 0 8px;
+  color: var(--sc-heading);
+  font-size: 16px;
+  font-weight: 760;
+}
+
+.insightCard p {
+  margin: 0 0 14px;
+  color: var(--sc-muted);
+  font-size: 12.5px;
+  line-height: 1.6;
+}
+
+.insightScore {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+
+.insightScore strong {
+  color: var(--sc-primary);
+  font-size: 20px;
+  font-weight: 780;
+}
+
+.insightScore span {
+  color: var(--sc-muted-2);
+  font-size: 12px;
+  font-weight: 650;
+}
+
+@media (max-width: 960px) {
+  .hero {
+    grid-template-columns: 1fr;
+    gap: 32px;
+  }
+
+  .heroScore {
+    align-items: flex-start;
+  }
+
+  .stepperRow {
+    grid-template-columns: 1fr;
+  }
+
+  .stepper {
+    overflow-x: auto;
+    justify-content: flex-start;
+    gap: 20px;
+  }
+
+  .stepperLine {
+    left: 24px;
+    right: 24px;
+  }
+}
+
+@media (max-width: 640px) {
+  .section {
+    padding: 32px 0;
+  }
+}

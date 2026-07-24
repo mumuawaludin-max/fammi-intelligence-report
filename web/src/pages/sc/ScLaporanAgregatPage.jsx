@@ -6,10 +6,21 @@ import { ScDimensiTindakLanjut } from "./ScDimensiTindakLanjut";
 import { ScBudayaPerbandinganDumbbell } from "./ScBudayaPerbandinganDumbbell";
 import { ScBudayaDetailAspek } from "./ScBudayaDetailAspek";
 import { ScBudayaCeritaPegawai } from "./ScBudayaCeritaPegawai";
-import { TIPE_BUDAYA_INFO, KESEJAHTERAAN_INFO, DIMENSI_PROFIL_INFO } from "./scMeta";
+import { ScKesejahteraanHero } from "./ScKesejahteraanHero";
+import { ScKesejahteraanDriver } from "./ScKesejahteraanDriver";
+import { ScKesejahteraanSuaraTim } from "./ScKesejahteraanSuaraTim";
+import { TIPE_BUDAYA_INFO, KESEJAHTERAAN_INFO, DIMENSI_PROFIL_INFO, headlineKesejahteraan } from "./scMeta";
 import styles from "./ScLaporanAgregatPage.module.css";
 
 const BUDAYA_TINDAK_LANJUT_ID = "sc-budaya-tindak-lanjut";
+
+const BULAN = ["Januari", "Februari", "Maret", "April", "Mei", "Juni", "Juli", "Agustus", "September", "Oktober", "November", "Desember"];
+
+function periodeLabel(periodeId) {
+  if (!periodeId) return "";
+  const [y, m] = String(periodeId).split("-").map(Number);
+  return `${BULAN[m - 1] || ""} ${y}`.trim();
+}
 
 /** Item dengan value tertinggi dari daftar {key,value}. */
 function tertinggiDari(items) {
@@ -45,7 +56,8 @@ function facetsUntuk(info, tipe, icon) {
  * TIDAK termasuk restart ini -- reference tidak pernah mendesain laporan individu sama sekali.
  */
 export default function ScLaporanAgregatPage({ laporan }) {
-  const { bagian_budaya, bagian_kesejahteraan, bagian_profil_organisasi, analisis, cerita_pegawai } = laporan;
+  const { meta, bagian_budaya, bagian_kesejahteraan, bagian_profil_organisasi, analisis, cerita_pegawai, tema_esai } = laporan;
+  const periodLabelTeks = periodeLabel(meta.periode_id);
 
   const [sectionAktif, setSectionAktif] = useState("budaya");
 
@@ -78,26 +90,19 @@ export default function ScLaporanAgregatPage({ laporan }) {
 
   // ── Kesejahteraan Tim (5 subdimensi) ──────────────────────────────────────────────────
   const kesejahteraanItems = useMemo(
-    () => bagian_kesejahteraan.chart_data.map((k) => ({ key: k.kode, label: k.label, icon: k.kode, value: k.nilai })),
+    () => bagian_kesejahteraan.chart_data.map((k) => ({ key: k.kode, label: k.label, icon: k.kode, value: k.nilai, kategori: k.kategori })),
     [bagian_kesejahteraan.chart_data]
   );
   const kesejahteraanDominan = useMemo(() => tertinggiDari(kesejahteraanItems), [kesejahteraanItems]);
   const [kesejahteraanKey, setKesejahteraanKey] = useState(() => kesejahteraanDominan?.key || null);
   const kesejahteraanSelectedKey = kesejahteraanKey || kesejahteraanDominan?.key;
-  const kesejahteraanMeaningFacets = useMemo(
-    () => facetsUntuk(KESEJAHTERAAN_INFO[kesejahteraanSelectedKey], kesejahteraanSelectedKey, kesejahteraanSelectedKey),
-    [kesejahteraanSelectedKey]
-  );
-  // target/gapValue SENGAJA tidak diisi -- kesejahteraan tidak punya konsep "harapan staf" di
-  // data (cuma nilai + kategori), beda dari budaya yang punya pasangan mean_gambaran/harapan.
-  const kesejahteraanPerbandingan = useMemo(() => bagian_kesejahteraan.chart_data.map((k) => ({
-    key: k.kode, label: k.label, current: k.nilai, target: undefined, gapValue: undefined, status: k.status || k.kategori,
-  })), [bagian_kesejahteraan.chart_data]);
   const kesejahteraanTindakLanjut = useMemo(() => bagian_kesejahteraan.chart_data.map((k) => ({
     key: k.kode, label: k.label,
     focus: KESEJAHTERAAN_INFO[k.kode]?.deskripsi,
     steps: k.phases, indicators: k.indicators, warnings: k.warnings,
   })), [bagian_kesejahteraan.chart_data]);
+  const kesejahteraanSelected = kesejahteraanItems.find((it) => it.key === kesejahteraanSelectedKey);
+  const kesejahteraanAksiTerpilih = kesejahteraanTindakLanjut.find((t) => t.key === kesejahteraanSelectedKey)?.steps || [];
 
   // ── Profil Organisasi (6 dimensi) ─────────────────────────────────────────────────────
   const organisasiItems = useMemo(
@@ -162,29 +167,26 @@ export default function ScLaporanAgregatPage({ laporan }) {
 
       {sectionAktif === "kesejahteraan" && (
         <>
-          <ScDimensiRingkasan
-            sectionIndex="02-A"
-            sectionTitle="Laporan Kesejahteraan Tim"
-            subtitle="Kesimpulan Subdimensi Kesejahteraan yang Paling Menonjol di Lembaga Anda"
-            dominantPrefix="Terkuat:"
-            dominant={kesejahteraanDominan}
+          <ScKesejahteraanHero
+            headline={headlineKesejahteraan(bagian_kesejahteraan.kategori)}
+            narasi={bagian_kesejahteraan.narasi}
+            periodLabel={periodLabelTeks}
+            jumlahResponden={meta.jumlah_responden}
             items={kesejahteraanItems}
-            selectedKey={kesejahteraanKey}
+            selectedKey={kesejahteraanSelectedKey}
             onSelect={setKesejahteraanKey}
-            meaningTitle="Itu artinya untuk tim Anda:"
-            meaningFacets={kesejahteraanMeaningFacets}
           />
-          <ScDimensiPerbandingan
+          <ScKesejahteraanDriver
             sectionIndex="02-B"
-            title="Kondisi Kesejahteraan Tim Saat Ini"
-            subtitle="Skor tiap subdimensi kesejahteraan staf pada periode ini"
-            items={kesejahteraanPerbandingan}
+            items={kesejahteraanItems}
+            selectedKey={kesejahteraanSelectedKey}
+            onSelect={setKesejahteraanKey}
           />
-          <ScDimensiTindakLanjut
+          <ScKesejahteraanSuaraTim
             sectionIndex="02-C"
-            title="Tindak Lanjut yang Perlu Dilakukan"
-            subtitle="Melihat hasil tiap subdimensi, berikut ini hal yang bisa dilakukan"
-            items={kesejahteraanTindakLanjut}
+            temaEsai={tema_esai}
+            aspekLabel={kesejahteraanSelected?.label}
+            actionSteps={kesejahteraanAksiTerpilih}
           />
         </>
       )}

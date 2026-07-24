@@ -1,16 +1,24 @@
 import {
   Armchair,
   Buildings,
+  CalendarBlank,
   ChartLineUp,
   CheckCircle,
   ClipboardText,
   Compass,
   GraduationCap,
   Handshake,
+  Heart,
   Lightbulb,
+  ListChecks,
   Medal,
+  Quotes,
   Scales,
+  ShieldWarning,
+  Sparkle,
   Target,
+  TrendDown,
+  TrendUp,
   Users,
   UsersThree,
   WhatsappLogo,
@@ -61,12 +69,31 @@ const ICON_MAP = {
   quality: ChartLineUp,
   whatsapp: WhatsappLogo,
   close: X,
+  heart: Heart,
+  calendar: CalendarBlank,
+  quote: Quotes,
+  sparkle: Sparkle,
+  shieldWarning: ShieldWarning,
+  lightbulb: Lightbulb,
+  checklist: ListChecks,
+  trendUp: TrendUp,
+  trendDown: TrendDown,
+};
+
+const TONE_COLOR = {
+  purple: { color: "var(--sc-primary)", background: "var(--sc-soft)" },
+  gold: { color: "var(--sc-gold)", background: "var(--sc-gold-soft)" },
+  whatsapp: { color: "#25D366", background: "#E7F8EF" },
+  positive: { color: "var(--sc-status-aligned-ink)", background: "var(--sc-status-aligned-bg)" },
+  negative: { color: "var(--sc-status-attention-ink)", background: "var(--sc-status-attention-bg)" },
+  plain: { color: "currentColor", background: "transparent" },
 };
 
 export function ScIconBadge({ icon, size = "md", tone = "purple", className = "" }) {
   const Icon = ICON_MAP[icon] || Target;
   const sizePx = size === "sm" ? 44 : size === "lg" ? 72 : 58;
   const radius = size === "sm" ? 12 : size === "lg" ? 18 : 14;
+  const { color, background } = TONE_COLOR[tone] || TONE_COLOR.purple;
 
   return (
     <span
@@ -79,8 +106,8 @@ export function ScIconBadge({ icon, size = "md", tone = "purple", className = ""
         width: sizePx,
         height: sizePx,
         borderRadius: radius,
-        color: tone === "gold" ? "var(--sc-gold)" : tone === "whatsapp" ? "#25D366" : tone === "plain" ? "currentColor" : "var(--sc-primary)",
-        background: tone === "gold" ? "var(--sc-gold-soft)" : tone === "whatsapp" ? "#E7F8EF" : tone === "plain" ? "transparent" : "var(--sc-soft)",
+        color,
+        background,
       }}
     >
       <Icon weight="duotone" style={{ width: "52%", height: "52%" }} />
