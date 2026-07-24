@@ -24,7 +24,7 @@ export default function ScIndividuPreview() {
             <span className={styles.respondenJabatan}> · {laporan.meta.peran_kerja}</span>
           </h2>
           <SampleTag />
-          <ScLaporanIndividuPage laporan={laporan} />
+          <ScLaporanIndividuPage laporan={laporan} viewerIsOwner />
         </section>
       ))}
     </div>

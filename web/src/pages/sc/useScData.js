@@ -639,6 +639,68 @@ export function useScIndividu(session) {
 }
 
 /**
+ * Komitmen 30 hari milik staf yang login (sc_komitmen, lihat migration 20260726100000) --
+ * genuinely fitur tulis pertama dari peran non-admin di FIR. RLS sc_komitmen_rw sudah membatasi
+ * baris ke sc_personal_id = my_sc_responden_id() sendiri, hook ini cuma pembungkus baca/tulis di
+ * sisi React, TIDAK melakukan pengecekan permission tambahan (itu tugas RLS + prop viewerIsOwner
+ * di ScLaporanIndividuPage untuk lapis UI).
+ */
+export function useScKomitmen(scRespondenId, periodeId) {
+  const [state, setState] = useState({ loading: true, error: null, komitmen: null });
+
+  useEffect(() => {
+    let alive = true;
+
+    async function run() {
+      if (!scRespondenId || !periodeId) {
+        setState({ loading: false, error: null, komitmen: null });
+        return;
+      }
+      setState((s) => ({ ...s, loading: true, error: null }));
+
+      const { data, error } = await supabase
+        .from("sc_komitmen")
+        .select("*")
+        .eq("sc_personal_id", scRespondenId)
+        .eq("periode_id", periodeId)
+        .maybeSingle();
+
+      if (!alive) return;
+      if (error) { setState({ loading: false, error: error.message, komitmen: null }); return; }
+      setState({ loading: false, error: null, komitmen: data });
+    }
+
+    run();
+    return () => { alive = false; };
+  }, [scRespondenId, periodeId]);
+
+  /** Upsert satu baris (unique sc_personal_id+periode_id) -- dipakai baik untuk "simpan draft"
+   * (status tetap 'draft') maupun "kunci komitmen" (status 'committed', committed_at diisi). */
+  async function simpan(patch, { commit = false } = {}) {
+    if (!scRespondenId || !periodeId) throw new Error("Sesi responden tidak lengkap.");
+    const now = new Date().toISOString();
+    const payload = {
+      sc_personal_id: scRespondenId,
+      periode_id: periodeId,
+      ...patch,
+      status: commit ? "committed" : "draft",
+      committed_at: commit ? now : (state.komitmen?.committed_at ?? null),
+      updated_at: now,
+    };
+    const { data, error } = await supabase
+      .from("sc_komitmen")
+      .upsert(payload, { onConflict: "sc_personal_id,periode_id" })
+      .select("*")
+      .single();
+    if (error) throw new Error(error.message);
+    setState({ loading: false, error: null, komitmen: data });
+    return data;
+  }
+
+  return { ...state, simpan };
+}
+
+/**
  * Daftar laporan individu SC yang sudah disetujui, satu sekolah, dipakai ScRespondenListPage.jsx
  * (tab "Laporan Individu" sisi pimpinan) untuk drill-down per staf. `detail` sudah persis bentuk
  * LaporanIndividuSC (lihat useScIndividu), jadi array ini bisa langsung dipakai sebagai

@@ -50,7 +50,7 @@ export default function ScKaryawanPage({ session, onLogout }) {
             ) : error ? (
               <p className={styles.stateMsg}>Gagal memuat laporan: {error}</p>
             ) : laporan ? (
-              <ScLaporanIndividuPage laporan={laporan} />
+              <ScLaporanIndividuPage laporan={laporan} viewerIsOwner />
             ) : (
               <p className={styles.stateMsg}>Laporan Anda belum tersedia atau belum disetujui untuk periode ini.</p>
             )}

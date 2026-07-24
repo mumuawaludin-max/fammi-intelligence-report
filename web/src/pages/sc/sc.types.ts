@@ -188,6 +188,26 @@ export interface JawabanSurveyIndividu {
   yang_ingin_diubah?: string;
 }
 
+/** Komitmen 30 hari milik staf (tabel sc_komitmen, migration 20260726100000) -- fitur tulis
+ * pertama dari peran non-admin di FIR. Satu baris aktif per (sc_personal_id, periode_id).
+ * `aksi_judul` didenormalisasi dari AksiPribadi.judul yang dipilih staf saat itu, supaya tetap
+ * stabil kalau laporan digenerate ulang dan rencana_aksi berubah. */
+export interface KomitmenSC {
+  id?: string;
+  sc_personal_id: string;
+  periode_id: string;
+  aksi_id: string;
+  aksi_judul: string;
+  langkah_pertama: string;
+  frekuensi: string;
+  bukti_kemajuan: string;
+  dukungan: string;
+  status: "draft" | "committed";
+  committed_at?: string | null;
+  created_at?: string;
+  updated_at?: string;
+}
+
 /** Struktur penuh satu laporan individu SC. */
 export interface LaporanIndividuSC {
   meta: ScMeta;

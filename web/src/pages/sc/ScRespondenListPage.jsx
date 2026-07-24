@@ -94,7 +94,7 @@ export default function ScRespondenListPage({ respondenList = [] }) {
           subtitle={selected.meta.peran_kerja || "—"}
           onClose={() => setSelected(null)}
         >
-          <ScLaporanIndividuPage laporan={selected} />
+          <ScLaporanIndividuPage laporan={selected} viewerIsOwner={false} />
         </ScDetailDialog>
       )}
     </div>
