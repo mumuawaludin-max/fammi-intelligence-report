@@ -7,11 +7,12 @@ function formatScore(value) {
 
 /**
  * Cari data skor untuk `terkait` (rencana_aksi[].terkait, teks bebas) di ketiga bagian laporan.
- * Cuma budaya yang PASTI punya pasangan saat_ini/harapan/gap lengkap (RadarBudayaPoint) --
- * kesejahteraan cuma satu angka (tidak ada konsep "harapan staf" di data, lihat catatan sama di
- * useScData.js), profil organisasi harapan/gap-nya OPSIONAL (hanya terisi kalau importer sempat
- * menghitungnya dari item mentah). Field yang genuinely tidak ada TETAP undefined di sini,
- * komponen di bawah WAJIB render tanpa baris itu, bukan mengarang angka.
+ * Budaya punya pasangan saat_ini/harapan/gap lengkap (RadarBudayaPoint) -- gap-nya vs HARAPAN
+ * staf sendiri. Kesejahteraan tidak punya konsep "harapan staf" di data (cuma nilai + kategori,
+ * lihat catatan sama di useScData.js), jadi gap-nya di sini dihitung vs INDEKS gabungan orang itu
+ * sendiri (nilai - indeks) -- bukan skor baru, cuma selisih dua angka final yang sudah ada,
+ * pola sama dengan "vs indeks Anda" yang sudah dipakai versi laporan individu sebelumnya. Profil
+ * organisasi harapan/gap-nya OPSIONAL (hanya terisi kalau importer sempat menghitungnya).
  */
 function cariFokusData(terkait, bagianBudaya, bagianKesejahteraan, bagianProfilOrganisasi) {
   if (!terkait) return null;
@@ -24,7 +25,9 @@ function cariFokusData(terkait, bagianBudaya, bagianKesejahteraan, bagianProfilO
 
   const kes = (bagianKesejahteraan?.chart_data || []).find((k) => k.label === terkait || KESEJAHTERAAN_INFO[k.kode]?.label === terkait);
   if (kes) {
-    return { label: KESEJAHTERAAN_INFO[kes.kode]?.label || kes.label, saatIni: kes.nilai, harapan: undefined, gap: undefined, sumber: "kesejahteraan" };
+    const indeks = bagianKesejahteraan?.indeks;
+    const gap = indeks != null ? Math.round(kes.nilai - indeks) : undefined;
+    return { label: KESEJAHTERAAN_INFO[kes.kode]?.label || kes.label, saatIni: kes.nilai, harapan: undefined, gap, gapVsIndeks: true, sumber: "kesejahteraan" };
   }
 
   const org = (bagianProfilOrganisasi?.chart_data || []).find((d) => d.label === terkait);
@@ -35,11 +38,12 @@ function cariFokusData(terkait, bagianBudaya, bagianKesejahteraan, bagianProfilO
   return null;
 }
 
-/** Predikat gap 3-tingkat (Perlu perhatian/Ringan/Selaras) -- CUMA valid untuk budaya, karena
- * cuma budaya yang punya 4 gap sebanding untuk di-ranking (pola sama statusBudayaPerTipe() di
- * useScData.js: ranking gap absolut yang sudah final, bukan ambang baru). */
-function predikatGapBudaya(tabelGap, terkait) {
-  const sorted = [...(tabelGap || [])]
+/** Predikat gap 3-tingkat (Perlu perhatian/Ringan/Selaras), ranking gap ABSOLUT yang sudah final
+ * -- bukan ambang baru (pola sama statusBudayaPerTipe() di useScData.js). Untuk budaya, gap-nya
+ * vs harapan (tabelGap); untuk kesejahteraan, gap-nya vs indeks gabungan orang itu sendiri
+ * (dihitung di cariFokusData di atas) -- di-ranking lintas 5 subdimensi yang sebanding. */
+function predikatGap(daftarGap, terkait) {
+  const sorted = [...(daftarGap || [])]
     .map((g) => ({ label: g.label, abs: Math.abs(g.nilai_gap ?? 0) }))
     .sort((a, b) => b.abs - a.abs);
   const idx = sorted.findIndex((g) => g.label === terkait);
@@ -64,7 +68,20 @@ export default function ScRencanaTindakLanjutPage({ laporan, onBack }) {
   const { bagian_budaya, bagian_kesejahteraan, bagian_profil_organisasi, rencana_aksi } = laporan;
   const fokus = rencana_aksi?.[0] || null;
   const fokusData = fokus ? cariFokusData(fokus.terkait, bagian_budaya, bagian_kesejahteraan, bagian_profil_organisasi) : null;
-  const predikatGap = fokusData?.sumber === "budaya" ? predikatGapBudaya(bagian_budaya?.tabel_gap, fokus.terkait) : null;
+
+  // Daftar gap sebanding untuk ranking predikat -- budaya dibandingkan vs tabel_gap (harapan),
+  // kesejahteraan dibandingkan vs indeks gabungan (dihitung ulang per subdimensi, sumber sama
+  // dengan gap yang dipakai fokusData di atas).
+  let daftarGapUntukRanking = [];
+  if (fokusData?.sumber === "budaya") {
+    daftarGapUntukRanking = bagian_budaya?.tabel_gap || [];
+  } else if (fokusData?.sumber === "kesejahteraan" && bagian_kesejahteraan?.indeks != null) {
+    daftarGapUntukRanking = (bagian_kesejahteraan.chart_data || []).map((k) => ({
+      label: KESEJAHTERAAN_INFO[k.kode]?.label || k.label,
+      nilai_gap: Math.round(k.nilai - bagian_kesejahteraan.indeks),
+    }));
+  }
+  const predikat = fokusData ? predikatGap(daftarGapUntukRanking, fokusData.label) : null;
 
   return (
     <div className={styles.page}>
@@ -108,18 +125,20 @@ export default function ScRencanaTindakLanjutPage({ laporan, onBack }) {
             </div>
           )}
 
-          {(fokusData.gap != null || predikatGap) && (
+          {(fokusData.gap != null || predikat) && (
             <div className={styles.gapRow}>
               {fokusData.gap != null && (
                 <div className={styles.gapBlock}>
-                  <span className={styles.gapLabel}>Nilai Gap</span>
+                  <span className={styles.gapLabel}>
+                    Nilai Gap{fokusData.gapVsIndeks ? " (vs indeks Anda)" : ""}
+                  </span>
                   <span className={styles.gapBadgeDark}>{fokusData.gap > 0 ? "+" : ""}{fokusData.gap}%</span>
                 </div>
               )}
-              {predikatGap && (
+              {predikat && (
                 <div className={styles.gapBlock}>
                   <span className={styles.gapLabel}>Predikat Gap</span>
-                  <span className={styles.gapBadgeOutline}>{predikatGap}</span>
+                  <span className={styles.gapBadgeOutline}>{predikat}</span>
                 </div>
               )}
             </div>
