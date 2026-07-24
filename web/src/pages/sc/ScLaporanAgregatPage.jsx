@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { ScDimensiRingkasan } from "./ScDimensiRingkasan";
 import { ScDimensiPerbandingan } from "./ScDimensiPerbandingan";
 import { ScDimensiTindakLanjut } from "./ScDimensiTindakLanjut";
@@ -39,9 +39,15 @@ function tertinggiDari(items) {
  * Laporan individu staf (ScLaporanIndividuPage.jsx/ScKaryawanPage.jsx/ScRespondenListPage.jsx)
  * TIDAK termasuk restart ini -- reference tidak pernah mendesain laporan individu sama sekali.
  */
-export default function ScLaporanAgregatPage({ laporan, sectionAktif, onSectionChange }) {
+export default function ScLaporanAgregatPage({ laporan, sectionAktif: sectionAktifProp, onSectionChange }) {
   const { meta, bagian_budaya, bagian_kesejahteraan, bagian_profil_organisasi, footer, analisis, cerita_pegawai } = laporan;
   const periodLabelTeks = periodeLabel(meta.periode_id);
+
+  // Terkontrol dari ScPage (filter di nav bar) kalau prop dikirim; fallback state lokal untuk
+  // pemanggil lama yang belum diupdate (mis. ScAgregatPreview.jsx, QA visual lepas-login).
+  const [sectionAktifLokal, setSectionAktifLokal] = useState("budaya");
+  const sectionAktif = sectionAktifProp ?? sectionAktifLokal;
+  const setSectionAktif = onSectionChange ?? setSectionAktifLokal;
 
   // ── Budaya Kerja (4 tipe) ──────────────────────────────────────────────────────────────
   const budayaItems = useMemo(
@@ -56,7 +62,7 @@ export default function ScLaporanAgregatPage({ laporan, sectionAktif, onSectionC
   );
   function prioritaskanBudaya(tipe) {
     setBudayaKey(tipe);
-    if (onSectionChange) onSectionChange("budaya");
+    setSectionAktif("budaya");
     document.getElementById(BUDAYA_TINDAK_LANJUT_ID)?.scrollIntoView({ behavior: "smooth", block: "start" });
   }
   const budayaMeaningItems = useMemo(
