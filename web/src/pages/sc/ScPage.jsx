@@ -5,6 +5,13 @@ import ScRespondenListPage from "./ScRespondenListPage";
 import { useScAgregat, useScIndividu, useScRespondenList } from "./useScData";
 import styles from "./ScPage.module.css";
 
+/** Section filter untuk pimpinan di modul agregat. */
+const SECTIONS = [
+  { id: "budaya", label: "Laporan Budaya Kerja" },
+  { id: "kesejahteraan", label: "Laporan Kesejahteraan Tim" },
+  { id: "organisasi", label: "Laporan Profil Organisasi" },
+];
+
 /** Sub-tab khusus pimpinan, padanan item sidebar di wireframe (Dashboard / Laporan Individu). */
 const PIMPINAN_TABS = [
   { id: "dashboard", label: "Dashboard" },
@@ -47,6 +54,7 @@ function StateBox({ icon, title, msg }) {
  */
 export default function ScPage({ session }) {
   const [tab, setTab] = useState("dashboard");
+  const [sectionAktif, setSectionAktif] = useState("budaya");
   const pimpinan = isPimpinanSc(session?.peran);
 
   const agregat = useScAgregat(session, null);
@@ -77,10 +85,6 @@ export default function ScPage({ session }) {
   return (
     <div className={styles.page}>
       <div className={styles.pageInner}>
-        <div className={styles.heroLabel}>
-          <span className={styles.heroPill}>School Culture</span>
-        </div>
-
         <div className={styles.subTabs}>
           {PIMPINAN_TABS.map((t) => (
             <button
@@ -94,13 +98,28 @@ export default function ScPage({ session }) {
           ))}
         </div>
 
+        {tab === "dashboard" && (
+          <div className={styles.sectionTabs}>
+            {SECTIONS.map((s) => (
+              <button
+                key={s.id}
+                type="button"
+                className={`${styles.sectionTab} ${sectionAktif === s.id ? styles.sectionTabActive : ""}`}
+                onClick={() => setSectionAktif(s.id)}
+              >
+                {s.label}
+              </button>
+            ))}
+          </div>
+        )}
+
         {tab === "dashboard" ? (
           agregat.loading ? (
             <StateBox icon="⏳" title="Memuat dashboard…" />
           ) : agregat.error ? (
             <StateBox icon="⚠️" title="Gagal memuat dashboard" msg={agregat.error} />
           ) : agregat.data ? (
-            <ScLaporanAgregatPage laporan={agregat.data} />
+            <ScLaporanAgregatPage laporan={agregat.data} sectionAktif={sectionAktif} onSectionChange={setSectionAktif} />
           ) : (
             <StateBox
               icon="📊"
