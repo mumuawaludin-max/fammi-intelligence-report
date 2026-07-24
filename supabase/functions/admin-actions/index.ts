@@ -422,7 +422,13 @@ async function handleScApproval(admin, body) {
     }
   }
 
-  const { error } = await admin.from("sc_hasil").update({ status }).eq("id", id);
+  // approved_at: titik nol "Perjalanan 30 hari" di laporan individu -- WAJIB diisi di sini
+  // (saat status benar-benar jadi 'disetujui'), bukan di generate-sc-individu (draf belum tentu
+  // pernah disetujui, dan bisa di-generate ulang berkali-kali sebelum akhirnya disetujui).
+  const patchSc: Record<string, unknown> = { status };
+  if (status === "disetujui") patchSc.approved_at = new Date().toISOString();
+
+  const { error } = await admin.from("sc_hasil").update(patchSc).eq("id", id);
   if (error) return { ok: false, error: error.message };
 
   // Begitu laporan SC tayang, staf itu butuh akun Karyawan untuk membukanya sendiri (lihat

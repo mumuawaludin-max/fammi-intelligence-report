@@ -108,6 +108,7 @@ function buildJawabanMentah(row, headerKeys) {
 }
 
 const ESSAY_COLS = [
+  ['survey_q1_gambaran_lembaga', 'gambaran_lembaga'],
   ['survey_q2_kejadian_kesaharian', 'kejadian_kesaharian'],
   ['survey_q3_yang_ingin_diubah', 'yang_ingin_diubah'],
   ['survey_q4_alasan_betah', 'alasan_betah'],

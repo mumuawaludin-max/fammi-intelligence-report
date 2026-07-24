@@ -223,6 +223,11 @@ export interface LaporanIndividuSC {
   jawaban_survey?: JawabanSurveyIndividu;
   rencana_aksi?: AksiPribadi[];
   footer: ScFooter;
+  /** Kapan laporan ini disetujui AdminFammi (bukan kapan Gemini menggenerate draf-nya) --
+   * kolom sc_hasil.approved_at, disisipkan di useScIndividu/useScRespondenList (useScData.js),
+   * BUKAN bagian struktur detail jsonb asli. Titik nol "Perjalanan 30 hari" di section Komitmen
+   * 30 hari. Null untuk laporan lama yang disetujui sebelum kolom ini ditambahkan. */
+  approved_at?: string | null;
 }
 
 /* ============================================================================================

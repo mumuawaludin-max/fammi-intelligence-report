@@ -11,7 +11,10 @@
   max-width: 480px;
   margin: 0 auto;
   width: 100%;
-  padding-bottom: 24px;
+  /* Ruang bawah supaya konten terakhir tidak ketutup tombol mengambang "Baca Rencana Tindak
+     Lanjut" (beranda) -- harmless di halaman rencana (tidak punya FAB, cuma sedikit spasi
+     kosong ekstra). */
+  padding-bottom: 76px;
 }
 
 .srOnly {
@@ -1254,21 +1257,66 @@
   text-align: center;
 }
 
-.disclaimer {
-  margin: 8px 0 0;
-  padding-top: 14px;
-  border-top: 1px solid var(--line);
-  color: var(--ink-4);
-  font-size: 11.5px;
-  line-height: 1.55;
-  text-align: center;
+/* ══ Halaman Rencana Tindak Lanjut (terpisah, dibuka lewat FAB) ═══════════════ */
+.rencanaTopBar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
 }
 
-.metodologi {
-  margin: 4px 0 0;
-  color: var(--ink-4);
-  font-size: 10.5px;
-  line-height: 1.5;
-  text-align: center;
-  opacity: 0.85;
+.rencanaBackBtn {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  flex-shrink: 0;
+  border: 0;
+  border-radius: 50%;
+  background: var(--surface);
+  box-shadow: var(--shadow-card);
+  color: var(--ink);
+  font-size: 20px;
+  cursor: pointer;
+}
+
+.rencanaTitle {
+  margin: 0;
+  color: var(--ink);
+  font-family: var(--font-display);
+  font-size: 19px;
+  font-weight: 800;
+}
+
+/* ══ Tombol mengambang "Baca Rencana Tindak Lanjut" (beranda) ════════════════ */
+.fabRencana {
+  position: fixed;
+  left: 16px;
+  right: 16px;
+  bottom: 18px;
+  z-index: 30;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  max-width: 448px;
+  margin: 0 auto;
+  padding: 15px 22px;
+  border: none;
+  border-radius: 999px;
+  background: var(--purple-600);
+  color: #fff;
+  font-family: var(--font-body);
+  font-size: 14px;
+  font-weight: 800;
+  box-shadow: 0 12px 28px rgba(99, 35, 218, 0.32);
+  cursor: pointer;
+  transition: background-color var(--transition-fast), transform var(--transition-fast);
+}
+
+.fabRencana:hover {
+  background: var(--purple-700);
+}
+
+.fabRencana:active {
+  transform: scale(0.98);
 }

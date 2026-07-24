@@ -80,6 +80,9 @@ Deno.serve(async (req) => {
     if (rowErr) return json({ error: rowErr.message }, 500);
     if (!row) return json({ error: "sc_personal_id tidak ditemukan." }, 404);
 
+    const { data: sekolahRow } = await db.from("schools").select("nama").eq("id", row.sekolah_id).maybeSingle();
+    const namaLembaga = sekolahRow?.nama || row.sekolah_id;
+
     if (body.catatan && String(body.catatan).trim()) {
       const { error: fbErr } = await db.from("sc_feedback").insert({
         sekolah_id: row.sekolah_id, sc_personal_id: row.id, catatan: String(body.catatan).trim(),
@@ -118,6 +121,17 @@ Deno.serve(async (req) => {
       tipe: b.tipe, saat_ini: b.t_gambaran ?? b.mean_gambaran, harapan: b.t_harapan ?? b.mean_harapan,
     }));
 
+    // header.hook SEKARANG RUMUS, BUKAN Gemini -- instruksi eksplisit pemilik produk:
+    // 'Anda melihat {nama_lembaga} ini sebagai "{jawaban survey_q1_gambaran_lembaga}"'. Kutipan
+    // esai Q1 verbatim (satu huruf pun tidak diubah), nama_lembaga dari tabel schools (sudah
+    // final). Fallback ke header.hook Gemini kalau staf tidak mengisi Q1 (data lama sebelum
+    // kolom ini ditambahkan importer, atau memang dikosongkan) -- tidak ada jalan menyusun
+    // kalimat rumus yang jujur tanpa kutipannya, jadi Gemini boleh isi kekosongan ini.
+    const gambaranLembaga = row.essay?.gambaran_lembaga ? String(row.essay.gambaran_lembaga).trim() : "";
+    const hook = gambaranLembaga
+      ? `Anda melihat ${namaLembaga} ini sebagai "${gambaranLembaga}"`
+      : (out.header?.hook || `Anda melihat ${namaLembaga}.`);
+
     // CATATAN (Gap C audit, lihat ScLaporanIndividuPage.jsx): sejak beranda laporan individu
     // direstart total (hero ringkas + 4 section flat + Rencana Tindak Lanjut jadi halaman
     // terpisah), field header.sub_hook dan ketiga bagian_*.narasi + bagian_refleksi di bawah
@@ -130,7 +144,7 @@ Deno.serve(async (req) => {
         responden_id: row.id, nama_responden: row.nama_responden, peran_kerja: row.peran_kerja,
         unit: row.unit, jenjang: row.jenjang, organisasi_id: row.sekolah_id, periode_id: row.periode_id,
       },
-      header: out.header,
+      header: { hook, sub_hook: out.header?.sub_hook || "" },
       bagian_budaya: { narasi: out.bagian_budaya?.narasi || "", chart_data: budayaChartData, tabel_gap: (row.budaya || []).map((b: any) => ({ label: b.tipe, arah: arahDariGap(b.gap), nilai_gap: b.gap })) },
       bagian_kesejahteraan: { narasi: out.bagian_kesejahteraan?.narasi || "", indeks, kategori: null, chart_data: row.kesejahteraan || [] },
       bagian_profil_organisasi: { narasi: out.bagian_profil_organisasi?.narasi || "", chart_data: row.profil_organisasi || [] },
@@ -185,7 +199,9 @@ function periksaTeks(field: string, text: string | null | undefined, flags: { fi
 
 function computeQcFlags(out: Record<string, any>) {
   const flags: { field: string; issue: string }[] = [];
-  periksaTeks("header.hook", out.header?.hook, flags);
+  // header.hook TIDAK diperiksa di sini -- sejak header.hook jadi rumus (nama lembaga + kutipan
+  // esai Q1 verbatim), isinya bukan lagi tanggung jawab Gemini, memeriksa pola larangan
+  // wording (angka/em-dash/dst) terhadap kutipan asli staf tidak ada gunanya.
   periksaTeks("header.sub_hook", out.header?.sub_hook, flags);
   periksaTeks("bagian_budaya.narasi", out.bagian_budaya?.narasi, flags);
   periksaTeks("bagian_kesejahteraan.narasi", out.bagian_kesejahteraan?.narasi, flags);

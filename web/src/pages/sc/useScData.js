@@ -619,7 +619,7 @@ export function useScIndividu(session) {
 
       const { data, error } = await supabase
         .from("sc_hasil")
-        .select("detail, periode_id")
+        .select("detail, periode_id, approved_at")
         .eq("sc_personal_id", scRespondenId)
         .eq("status", "disetujui")
         .order("periode_id", { ascending: false })
@@ -628,7 +628,10 @@ export function useScIndividu(session) {
 
       if (!alive) return;
       if (error) { setState({ loading: false, error: error.message, data: null }); return; }
-      setState({ loading: false, error: null, data: data?.detail || null });
+      // approved_at bukan bagian LaporanIndividuSC asli (kolom sc_hasil terpisah, bukan di
+      // dalam detail jsonb) -- disisipkan di sini supaya ScLaporanIndividuPage bisa memakainya
+      // sebagai titik nol "Perjalanan 30 hari" tanpa perlu prop terpisah.
+      setState({ loading: false, error: null, data: data?.detail ? { ...data.detail, approved_at: data.approved_at } : null });
     }
 
     run();
@@ -732,7 +735,7 @@ export function useScRespondenList(session, periodeId) {
       setState((s) => ({ ...s, loading: true, error: null }));
       const { data, error } = await supabase
         .from("sc_hasil")
-        .select("detail, periode_id, sc_personal!inner(bersedia)")
+        .select("detail, periode_id, approved_at, sc_personal!inner(bersedia)")
         .eq("sekolah_id", sekolahId)
         .eq("status", "disetujui")
         .eq("sc_personal.bersedia", true);
@@ -751,7 +754,7 @@ export function useScRespondenList(session, periodeId) {
     const periode = periodeId && periodeSet.has(periodeId)
       ? periodeId
       : latestPeriode(state.rows);
-    return state.rows.filter((r) => r.periode_id === periode).map((r) => r.detail);
+    return state.rows.filter((r) => r.periode_id === periode).map((r) => ({ ...r.detail, approved_at: r.approved_at }));
   }, [state.rows, periodeId]);
 
   return { loading: state.loading, error: state.error, respondenList };

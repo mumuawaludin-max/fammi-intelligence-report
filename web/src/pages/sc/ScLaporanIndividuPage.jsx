@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { DIMENSI_PROFIL_INFO, KESEJAHTERAAN_INFO, METODOLOGI_NOTE, TIPE_BUDAYA_INFO, implikasiBudaya, toneKesejahteraan } from "./scMeta";
+import { DIMENSI_PROFIL_INFO, KESEJAHTERAAN_INFO, TIPE_BUDAYA_INFO, implikasiBudaya, toneKesejahteraan } from "./scMeta";
 import { useReveal } from "./scHooks";
 import { useScKomitmen } from "./useScData";
 import styles from "./ScLaporanIndividuPage.module.css";
@@ -232,7 +232,7 @@ function SurveyCard({ heading, teks, delay }) {
 export default function ScLaporanIndividuPage({ laporan, viewerIsOwner = false }) {
   const {
     meta, header, bagian_budaya, bagian_kesejahteraan, bagian_profil_organisasi,
-    jawaban_survey, rencana_aksi, footer,
+    jawaban_survey, rencana_aksi,
   } = laporan;
 
   const budayaItems = bagian_budaya?.chart_data || [];
@@ -244,9 +244,10 @@ export default function ScLaporanIndividuPage({ laporan, viewerIsOwner = false }
   const [expandedKes, setExpandedKes] = useState(kesejahteraanItems[0]?.kode || null);
   const [expandedAgency, setExpandedAgency] = useState("control");
   const [showReflections, setShowReflections] = useState(false);
+  const [showRencana, setShowRencana] = useState(false);
 
   const adaJawabanSurvey = jawaban_survey && (
-    jawaban_survey.betah || jawaban_survey.hal_menguras_energi || jawaban_survey.yang_ingin_disampaikan
+    jawaban_survey.betah || jawaban_survey.hal_menguras_energi || jawaban_survey.yang_ingin_diubah
   );
 
   // ── Komitmen 30 hari: hook cuma dipanggil (fetch+RLS) kalau viewerIsOwner, supaya pimpinan
@@ -327,15 +328,198 @@ export default function ScLaporanIndividuPage({ laporan, viewerIsOwner = false }
     }
   }
 
+  // Titik nol "Perjalanan 30 hari" = kapan ADMIN menyetujui laporan ini (approved_at, kolom
+  // sc_hasil terpisah, disisipkan di useScIndividu/useScRespondenList) -- BUKAN kapan staf
+  // sendiri mengunci komitmennya (yang bisa jauh lebih belakangan dari saat laporan tayang).
+  // Instruksi eksplisit pemilik produk. Fallback ke "sekarang" untuk laporan lama yang
+  // disetujui sebelum kolom approved_at ada.
   const checkIns = useMemo(() => {
-    const base = komitmen?.committed_at || null;
+    const base = laporan.approved_at || null;
     const judul = ["Refleksi dan penyesuaian awal", "Evaluasi pertengahan", "Refleksi akhir dan langkah berikutnya"];
     return [10, 20, 30].map((hari, i) => ({
       sequence: i + 1,
       date: formatTanggalID(tambahHari(base, hari)),
       title: judul[i],
     }));
-  }, [komitmen?.committed_at]);
+  }, [laporan.approved_at]);
+
+  // ── 05/06 Lingkar kontribusi + Komitmen 30 hari: HALAMAN TERPISAH, dibuka lewat tombol
+  // mengambang "Baca Rencana Tindak Lanjut" di beranda -- instruksi eksplisit pemilik produk
+  // (sebelumnya section ini inline di scroll beranda). State lokal murni tampilan (bukan
+  // routing), semua state komitmen/aksi tetap hidup di komponen ini supaya kartu pengingat di
+  // beranda (komitmenReminder) tetap bisa membaca komitmen tanpa perlu membuka halaman ini.
+  if (showRencana) {
+    return (
+      <div className={styles.page}>
+        <div className={styles.rencanaTopBar}>
+          <button
+            type="button"
+            className={styles.rencanaBackBtn}
+            onClick={() => setShowRencana(false)}
+            aria-label="Kembali ke beranda laporan"
+          >
+            ‹
+          </button>
+          <h1 className={styles.rencanaTitle}>Rencana Tindak Lanjut</h1>
+        </div>
+
+        <section className={styles.section}>
+          <SectionHead index="05" title="Mulai dari yang paling dekat dengan kendali Anda" lead="Kontribusi Anda penting, tetapi perubahan tidak dibebankan kepada Anda sendiri." />
+
+          <OrbitVisual />
+
+          <div className={styles.agencyList}>
+            {AGENCY_TERRITORIES.map((t, i) => {
+              const expanded = expandedAgency === t.key;
+              return (
+                <div className={`${styles.agencyItem} ${expanded ? styles.agencyItemOpen : ""}`} key={t.key}>
+                  <button type="button" onClick={() => setExpandedAgency(expanded ? null : t.key)} aria-expanded={expanded}>
+                    <span className={styles.agencyNumber}>{i + 1}</span>
+                    <span>
+                      <strong>{t.title}</strong>
+                    </span>
+                    <span className={`${styles.chevron} ${expanded ? styles.chevronUp : ""}`} aria-hidden="true">⌄</span>
+                  </button>
+                  {expanded && <p className={styles.agencyDesc}>{t.desc}</p>}
+                </div>
+              );
+            })}
+          </div>
+
+          {aksiList.length > 0 && (
+            <div className={styles.actionBlock}>
+              <h3 className={styles.actionTitle}>Pilih satu perubahan kecil untuk 30 hari</h3>
+              <p className={styles.actionLead}>Fokus pada tindakan yang bisa Anda kendalikan atau pengaruhi langsung.</p>
+
+              <fieldset className={styles.actionOptions}>
+                <legend className={styles.srOnly}>Pilih fokus Anda</legend>
+                {aksiList.map((aksi, i) => {
+                  const isSelected = aksi.id === selectedAksiId;
+                  return (
+                    <label className={`${styles.actionOption} ${isSelected ? styles.actionOptionSelected : ""}`} key={aksi.id}>
+                      <input
+                        type="radio"
+                        name="sc-individu-aksi"
+                        value={aksi.id}
+                        checked={isSelected}
+                        onChange={() => pilihAksi(aksi.id)}
+                        disabled={!viewerIsOwner}
+                      />
+                      <span className={styles.radioDot} aria-hidden="true" />
+                      <span>
+                        <strong>{aksi.judul}</strong>
+                        {aksi.jangka && <small>{aksi.jangka}</small>}
+                        {aksi.alasan && <em>{aksi.alasan}</em>}
+                      </span>
+                      {i === 0 && <span className={styles.recommendedMarker}>⭐ Disarankan</span>}
+                    </label>
+                  );
+                })}
+              </fieldset>
+
+              {!viewerIsOwner ? (
+                <p className={styles.gapNote}>Komitmen 30 hari hanya dapat diedit dan disimpan oleh staf pemilik laporan ini.</p>
+              ) : (
+                <>
+                  <div className={styles.composer}>
+                    <h3>Rancang komitmen Anda</h3>
+                    <p>Anda dapat menyesuaikan langkah ini dengan konteks kerja Anda sendiri.</p>
+
+                    <label>
+                      <span>Langkah pertama</span>
+                      <textarea
+                        value={langkahPertama}
+                        maxLength={180}
+                        placeholder="Apa langkah pertama yang akan Anda lakukan?"
+                        onChange={(e) => { setLangkahPertama(e.target.value); setSavedForLater(false); }}
+                      />
+                      <small>{langkahPertama.length}/180</small>
+                    </label>
+
+                    <label>
+                      <span>Frekuensi</span>
+                      <input
+                        type="text"
+                        value={frekuensi}
+                        maxLength={60}
+                        placeholder="Seberapa sering Anda akan melakukannya?"
+                        onChange={(e) => { setFrekuensi(e.target.value); setSavedForLater(false); }}
+                      />
+                    </label>
+
+                    <label>
+                      <span>Bukti kemajuan</span>
+                      <textarea
+                        value={buktiKemajuan}
+                        maxLength={180}
+                        placeholder="Apa yang menandakan langkah ini berjalan?"
+                        onChange={(e) => { setBuktiKemajuan(e.target.value); setSavedForLater(false); }}
+                      />
+                    </label>
+
+                    <label>
+                      <span>Dukungan yang saya perlukan</span>
+                      <textarea
+                        value={dukungan}
+                        maxLength={180}
+                        placeholder="Dukungan apa yang ingin Anda minta? (opsional)"
+                        onChange={(e) => { setDukungan(e.target.value); setSavedForLater(false); }}
+                      />
+                    </label>
+                  </div>
+
+                  <div className={styles.checkins}>
+                    <h3>Perjalanan 30 hari Anda</h3>
+                    {checkIns.map((c) => (
+                      <article key={c.sequence} className={styles.checkinItem}>
+                        <span>{c.sequence}</span>
+                        <div>
+                          <strong>{c.date}</strong>
+                          <p>{c.title}</p>
+                        </div>
+                      </article>
+                    ))}
+                  </div>
+
+                  <div className={styles.privacyNote}>
+                    <span aria-hidden="true">🔒</span>
+                    <p>Refleksi dan komitmen pribadi Anda hanya dapat dilihat oleh Anda.</p>
+                  </div>
+
+                  {saveError && <p className={styles.errorNote}>Gagal menyimpan: {saveError}</p>}
+                  {komitmenError && <p className={styles.errorNote}>Gagal memuat komitmen tersimpan: {komitmenError}</p>}
+
+                  {committed && (
+                    <div className={styles.commitSuccess} role="status">
+                      <span aria-hidden="true">✅</span>
+                      <div>
+                        <strong>Komitmen 30 hari tersimpan</strong>
+                        <p>Check-in pertama dijadwalkan pada {checkIns[0].date}.</p>
+                      </div>
+                    </div>
+                  )}
+
+                  <div className={styles.commitmentBar}>
+                    <button
+                      type="button"
+                      className={styles.commitBtn}
+                      onClick={kunciKomitmen}
+                      disabled={!canCommit || saving}
+                    >
+                      {saving ? "Menyimpan…" : committed ? "✓ Komitmen tersimpan" : "Saya memilih fokus ini →"}
+                    </button>
+                    <button type="button" className={styles.saveLaterBtn} onClick={simpanDraf} disabled={saving}>
+                      {savedForLater ? "Tersimpan untuk nanti" : "Simpan untuk nanti"}
+                    </button>
+                  </div>
+                </>
+              )}
+            </div>
+          )}
+        </section>
+      </div>
+    );
+  }
 
   return (
     <div className={styles.page}>
@@ -376,7 +560,7 @@ export default function ScLaporanIndividuPage({ laporan, viewerIsOwner = false }
           <button
             type="button"
             className={styles.komitmenReminderCta}
-            onClick={() => document.getElementById("sc-komitmen-section")?.scrollIntoView({ behavior: "smooth", block: "start" })}
+            onClick={() => setShowRencana(true)}
           >
             {committed ? "Lihat" : "Lanjutkan"} →
           </button>
@@ -385,7 +569,7 @@ export default function ScLaporanIndividuPage({ laporan, viewerIsOwner = false }
 
       {/* ── 01 Celah budaya ─────────────────────────────────────────────────────────── */}
       <section className={styles.section}>
-        <SectionHead index="01" title="Celah budaya yang Anda rasakan" lead="Bandingkan persepsi Anda saat ini dengan harapan Anda tentang budaya sekolah." />
+        <SectionHead index="01" title="Laporan Budaya Lembaga" lead="Bandingkan persepsi Anda saat ini dengan harapan Anda tentang budaya sekolah." />
 
         <div className={styles.legend} aria-label="Legenda celah budaya">
           <span><i className={styles.legendCurrent} /> Persepsi Anda</span>
@@ -413,7 +597,7 @@ export default function ScLaporanIndividuPage({ laporan, viewerIsOwner = false }
 
       {/* ── 02 Energi dan kesejahteraan ─────────────────────────────────────────────── */}
       <section className={styles.section}>
-        <SectionHead index="02" title="Apa yang menjaga dan menguras energi Anda" lead="Ini menggambarkan pengalaman Anda, bukan penilaian kinerja." />
+        <SectionHead index="02" title="Laporan Kesejahteraan Tim" lead="Ini menggambarkan pengalaman Anda, bukan penilaian kinerja." />
         <div className={styles.wbList}>
           {kesejahteraanItems.map((item, i) => (
             <KesejahteraanRow
@@ -468,7 +652,7 @@ export default function ScLaporanIndividuPage({ laporan, viewerIsOwner = false }
               <div className={styles.surveyList}>
                 <SurveyCard heading="Sumber energi Anda" teks={jawaban_survey.betah} delay={0} />
                 <SurveyCard heading="Hal yang menguras energi Anda" teks={jawaban_survey.hal_menguras_energi} delay={50} />
-                <SurveyCard heading="Hal yang ingin Anda sampaikan" teks={jawaban_survey.yang_ingin_disampaikan} delay={100} />
+                <SurveyCard heading="Perubahan yang Anda harapkan" teks={jawaban_survey.yang_ingin_diubah} delay={100} />
               </div>
             )}
           </>
@@ -478,7 +662,7 @@ export default function ScLaporanIndividuPage({ laporan, viewerIsOwner = false }
       {/* ── Profil organisasi (dipertahankan dari versi sebelumnya) ─────────────────── */}
       {(bagian_profil_organisasi?.chart_data?.length > 0) && (
         <section className={styles.section}>
-          <SectionHead index="04" title="Profil organisasi" />
+          <SectionHead index="04" title="Laporan Profil Organisasi" />
           <Reveal className={styles.orgGrid}>
             {bagian_profil_organisasi.chart_data.map((d) => (
               <div className={styles.orgCard} key={d.kode}>
@@ -493,164 +677,16 @@ export default function ScLaporanIndividuPage({ laporan, viewerIsOwner = false }
         </section>
       )}
 
-      {/* ── 05 Lingkar kontribusi (statis) + 06 Komitmen 30 hari ────────────────────── */}
-      <section className={styles.section}>
-        <SectionHead index="05" title="Mulai dari yang paling dekat dengan kendali Anda" lead="Kontribusi Anda penting, tetapi perubahan tidak dibebankan kepada Anda sendiri." />
-
-        <OrbitVisual />
-
-        <div className={styles.agencyList}>
-          {AGENCY_TERRITORIES.map((t, i) => {
-            const expanded = expandedAgency === t.key;
-            return (
-              <div className={`${styles.agencyItem} ${expanded ? styles.agencyItemOpen : ""}`} key={t.key}>
-                <button type="button" onClick={() => setExpandedAgency(expanded ? null : t.key)} aria-expanded={expanded}>
-                  <span className={styles.agencyNumber}>{i + 1}</span>
-                  <span>
-                    <strong>{t.title}</strong>
-                  </span>
-                  <span className={`${styles.chevron} ${expanded ? styles.chevronUp : ""}`} aria-hidden="true">⌄</span>
-                </button>
-                {expanded && <p className={styles.agencyDesc}>{t.desc}</p>}
-              </div>
-            );
-          })}
-        </div>
-
-        {aksiList.length > 0 && (
-          <div className={styles.actionBlock} id="sc-komitmen-section">
-            <h3 className={styles.actionTitle}>Pilih satu perubahan kecil untuk 30 hari</h3>
-            <p className={styles.actionLead}>Fokus pada tindakan yang bisa Anda kendalikan atau pengaruhi langsung.</p>
-
-            <fieldset className={styles.actionOptions}>
-              <legend className={styles.srOnly}>Pilih fokus Anda</legend>
-              {aksiList.map((aksi, i) => {
-                const isSelected = aksi.id === selectedAksiId;
-                return (
-                  <label className={`${styles.actionOption} ${isSelected ? styles.actionOptionSelected : ""}`} key={aksi.id}>
-                    <input
-                      type="radio"
-                      name="sc-individu-aksi"
-                      value={aksi.id}
-                      checked={isSelected}
-                      onChange={() => pilihAksi(aksi.id)}
-                      disabled={!viewerIsOwner}
-                    />
-                    <span className={styles.radioDot} aria-hidden="true" />
-                    <span>
-                      <strong>{aksi.judul}</strong>
-                      {aksi.jangka && <small>{aksi.jangka}</small>}
-                      {aksi.alasan && <em>{aksi.alasan}</em>}
-                    </span>
-                    {i === 0 && <span className={styles.recommendedMarker}>⭐ Disarankan</span>}
-                  </label>
-                );
-              })}
-            </fieldset>
-
-            {!viewerIsOwner ? (
-              <p className={styles.gapNote}>Komitmen 30 hari hanya dapat diedit dan disimpan oleh staf pemilik laporan ini.</p>
-            ) : (
-              <>
-                <div className={styles.composer}>
-                  <h3>Rancang komitmen Anda</h3>
-                  <p>Anda dapat menyesuaikan langkah ini dengan konteks kerja Anda sendiri.</p>
-
-                  <label>
-                    <span>Langkah pertama</span>
-                    <textarea
-                      value={langkahPertama}
-                      maxLength={180}
-                      placeholder="Apa langkah pertama yang akan Anda lakukan?"
-                      onChange={(e) => { setLangkahPertama(e.target.value); setSavedForLater(false); }}
-                    />
-                    <small>{langkahPertama.length}/180</small>
-                  </label>
-
-                  <label>
-                    <span>Frekuensi</span>
-                    <input
-                      type="text"
-                      value={frekuensi}
-                      maxLength={60}
-                      placeholder="Seberapa sering Anda akan melakukannya?"
-                      onChange={(e) => { setFrekuensi(e.target.value); setSavedForLater(false); }}
-                    />
-                  </label>
-
-                  <label>
-                    <span>Bukti kemajuan</span>
-                    <textarea
-                      value={buktiKemajuan}
-                      maxLength={180}
-                      placeholder="Apa yang menandakan langkah ini berjalan?"
-                      onChange={(e) => { setBuktiKemajuan(e.target.value); setSavedForLater(false); }}
-                    />
-                  </label>
-
-                  <label>
-                    <span>Dukungan yang saya perlukan</span>
-                    <textarea
-                      value={dukungan}
-                      maxLength={180}
-                      placeholder="Dukungan apa yang ingin Anda minta? (opsional)"
-                      onChange={(e) => { setDukungan(e.target.value); setSavedForLater(false); }}
-                    />
-                  </label>
-                </div>
-
-                <div className={styles.checkins}>
-                  <h3>Perjalanan 30 hari Anda</h3>
-                  {checkIns.map((c) => (
-                    <article key={c.sequence} className={styles.checkinItem}>
-                      <span>{c.sequence}</span>
-                      <div>
-                        <strong>{c.date}</strong>
-                        <p>{c.title}</p>
-                      </div>
-                    </article>
-                  ))}
-                </div>
-
-                <div className={styles.privacyNote}>
-                  <span aria-hidden="true">🔒</span>
-                  <p>Refleksi dan komitmen pribadi Anda hanya dapat dilihat oleh Anda.</p>
-                </div>
-
-                {saveError && <p className={styles.errorNote}>Gagal menyimpan: {saveError}</p>}
-                {komitmenError && <p className={styles.errorNote}>Gagal memuat komitmen tersimpan: {komitmenError}</p>}
-
-                {committed && (
-                  <div className={styles.commitSuccess} role="status">
-                    <span aria-hidden="true">✅</span>
-                    <div>
-                      <strong>Komitmen 30 hari tersimpan</strong>
-                      <p>Check-in pertama dijadwalkan pada {checkIns[0].date}.</p>
-                    </div>
-                  </div>
-                )}
-
-                <div className={styles.commitmentBar}>
-                  <button
-                    type="button"
-                    className={styles.commitBtn}
-                    onClick={kunciKomitmen}
-                    disabled={!canCommit || saving}
-                  >
-                    {saving ? "Menyimpan…" : committed ? "✓ Komitmen tersimpan" : "Saya memilih fokus ini →"}
-                  </button>
-                  <button type="button" className={styles.saveLaterBtn} onClick={simpanDraf} disabled={saving}>
-                    {savedForLater ? "Tersimpan untuk nanti" : "Simpan untuk nanti"}
-                  </button>
-                </div>
-              </>
-            )}
-          </div>
-        )}
-      </section>
-
-      <p className={styles.disclaimer}>{footer?.disclaimer}</p>
-      <p className={styles.metodologi}>{METODOLOGI_NOTE}</p>
+      {/* ── FAB "Baca Rencana Tindak Lanjut": satu-satunya jalan ke section 05/06 (Lingkar
+          Kontribusi + Komitmen 30 hari) sejak dipindah jadi halaman terpisah. Sama syarat
+          tampil dengan actionBlock di halaman rencana (ada rencana_aksi), supaya tidak ada
+          tombol menuju halaman kosong. */}
+      {aksiList.length > 0 && (
+        <button type="button" className={styles.fabRencana} onClick={() => setShowRencana(true)}>
+          Baca Rencana Tindak Lanjut
+          <span aria-hidden="true">→</span>
+        </button>
+      )}
     </div>
   );
 }
