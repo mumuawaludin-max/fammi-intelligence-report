@@ -1,0 +1,40 @@
+/**
+ * Token warna KHUSUS dashboard "Laporan Lembaga" School Culture (ketiga bagian: Budaya Kerja,
+ * Kesejahteraan Tim, Profil Organisasi) -- pengecualian yang disengaja dari token FIR biasa
+ * (lihat CLAUDE.md, paragraf "Pengecualian yang disengaja (2)"), diambil persis dari
+ * references/school-culture-redesign/src/styles.css atas instruksi eksplisit pemilik produk.
+ * Di-scope lewat class .scope (dipasang di elemen pembungkus ScSectionSelector/
+ * ScDimensiRingkasan/ScDimensiPerbandingan/ScDimensiTindakLanjut saja) supaya TIDAK menjalar ke
+ * laporan individu staf atau modul lain di luar SC.
+ *
+ * Nama berkas ini masih "scBudayaTokens" (nama lama, sebelum cakupan diperluas ke Kesejahteraan
+ * Tim dan Profil Organisasi) -- sengaja tidak diganti nama supaya tidak perlu mengubah semua
+ * import, isinya sudah generik untuk ketiga bagian.
+ */
+.scope {
+  --sc-primary: #6c2bd9;
+  --sc-heading: #3b1e77;
+  --sc-soft: #f1eaff;
+  --sc-bg: #fafaf7;
+  --sc-surface: #ffffff;
+  --sc-border: #e6e2da;
+  --sc-gold: #d9a406;
+  --sc-gold-soft: #fff7dc;
+  --sc-ink: #211c2d;
+  --sc-muted: #675f71;
+  --sc-muted-2: #8c8494;
+  --sc-shadow-sm: 0 6px 22px rgba(59, 30, 119, 0.06);
+  --sc-shadow-md: 0 18px 48px rgba(59, 30, 119, 0.09);
+  --sc-radius-sm: 10px;
+  --sc-radius-md: 16px;
+  --sc-radius-lg: 24px;
+
+  /* Tiga status kualitatif (ranking gap untuk Budaya Kerja, kategori 5-tingkat untuk
+     Kesejahteraan/Organisasi) -- dipakai pill status maupun latar kotak gap. */
+  --sc-status-attention-bg: #fbe9d2;
+  --sc-status-attention-ink: #8a4e00;
+  --sc-status-light-bg: #f2eee8;
+  --sc-status-light-ink: #5c5347;
+  --sc-status-aligned-bg: #e3f5ea;
+  --sc-status-aligned-ink: #1f7a49;
+}
