@@ -1,15 +1,8 @@
-import { useState } from "react";
 import ScLaporanAgregatPage from "./ScLaporanAgregatPage";
 import ScLaporanIndividuPage from "./ScLaporanIndividuPage";
 import ScRespondenListPage from "./ScRespondenListPage";
 import { useScAgregat, useScIndividu, useScRespondenList } from "./useScData";
 import styles from "./ScPage.module.css";
-
-/** Sub-tab khusus pimpinan, padanan item sidebar di wireframe (Dashboard / Laporan Individu). */
-const PIMPINAN_TABS = [
-  { id: "dashboard", label: "Dashboard" },
-  { id: "individu", label: "Laporan Individu" },
-];
 
 /**
  * Peran yang melihat SC sebagai laporan LEMBAGA (agregat + daftar responden), bukan laporan
@@ -44,9 +37,12 @@ function StateBox({ icon, title, msg }) {
  * ini, tampilkan status kosong yang jelas -- BUKAN jatuh balik ke data contoh (CLAUDE.md:
  * jangan menampilkan angka contoh seolah temuan nyata; lihat juga pola sama di modul Karakter/MI
  * yang menampilkan status kosong, bukan mock, saat data belum ada).
+ *
+ * Sub-tab Dashboard/Laporan Individu SENGAJA bukan state internal di sini -- diangkat ke
+ * App.jsx (prop tab, diklik lewat NavBar yang dirender App.jsx sendiri) supaya bisa dirender
+ * menyatu di baris Header (inlineNav), sejajar dengan nav modul, bukan lagi di badan halaman ini.
  */
-export default function ScPage({ session }) {
-  const [tab, setTab] = useState("dashboard");
+export default function ScPage({ session, tab = "dashboard" }) {
   const pimpinan = isPimpinanSc(session?.peran);
 
   const agregat = useScAgregat(session, null);
@@ -77,19 +73,6 @@ export default function ScPage({ session }) {
   return (
     <div className={styles.page}>
       <div className={styles.pageInner}>
-        <div className={styles.subTabs}>
-          {PIMPINAN_TABS.map((t) => (
-            <button
-              key={t.id}
-              type="button"
-              className={`${styles.subTab} ${tab === t.id ? styles.subTabActive : ""}`}
-              onClick={() => setTab(t.id)}
-            >
-              {t.label}
-            </button>
-          ))}
-        </div>
-
         {tab === "dashboard" ? (
           agregat.loading ? (
             <StateBox icon="⏳" title="Memuat dashboard…" />

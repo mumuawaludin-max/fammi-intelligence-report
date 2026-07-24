@@ -14,14 +14,17 @@ const NAV_ITEMS = [
  * activeTab: id tab yang sedang aktif.
  * onTabChange: callback(id).
  * modules: array id modul yang aktif (sesuai langganan sekolah).
+ * items: override daftar tab generik (dipakai buat sub-tab non-modul, mis. Dashboard/Laporan
+ * Individu School Culture) -- kalau diisi, dipakai apa adanya, tidak difilter oleh `modules`.
  */
 export default function NavBar({
   activeTab = "overview",
   onTabChange = () => {},
   modules = ["overview", "karakter", "screening", "mi"],
   pillNav = false,
+  items = null,
 }) {
-  const visible = NAV_ITEMS.filter((item) => modules.includes(item.id));
+  const visible = items || NAV_ITEMS.filter((item) => modules.includes(item.id));
 
   return (
     <nav className={`${styles.nav} ${pillNav ? styles.navPill : ""}`} role="navigation" aria-label="Navigasi modul">

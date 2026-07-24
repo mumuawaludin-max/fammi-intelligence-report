@@ -57,7 +57,7 @@ export const TIPE_BUDAYA_INFO = {
       "Berorientasi pada pencapaian target dan mutu lulusan",
       "Daya saing akademik dan produktivitas jadi pendorong utama",
       "Ukuran sukses dilihat dari hasil terukur, bukan sekadar proses",
-      "Pemenuhan target sekolah jadi tolok ukur keberhasilan",
+      "Pemenuhan target sekolah jadi tolak ukur keberhasilan",
     ],
   },
   Aturan: {
@@ -157,9 +157,9 @@ export const DIMENSI_PROFIL_INFO = {
   performance: {
     icon: "📈",
     label: "Kinerja/Performa",
-    deskripsi: "Tolok ukur keberhasilan yang dipakai sekolah: berkembangnya staf, lahirnya program baru, mutu lulusan, atau efisiensi biaya.",
+    deskripsi: "Tolak ukur keberhasilan yang dipakai sekolah: berkembangnya staf, lahirnya program baru, mutu lulusan, atau efisiensi biaya.",
     facets: [
-      "Tolok ukur keberhasilan sekolah bervariasi antar unit",
+      "Tolak ukur keberhasilan sekolah bervariasi antar unit",
       "Bisa dari berkembangnya staf sampai efisiensi biaya",
       "Ukuran ini menentukan apa yang dianggap berhasil",
     ],
@@ -210,7 +210,7 @@ export const KESEJAHTERAAN_INFO = {
     ],
   },
   work_life_balance: {
-    label: "Keseimbangan Kerja-Hidup",
+    label: "Work-Life Balance",
     deskripsi: "Kemampuan staf menjaga keseimbangan antara tuntutan pekerjaan dan kehidupan pribadi/keluarga.",
     facets: [
       "Staf mampu menjaga waktu untuk keluarga dan pribadi",

@@ -66,6 +66,12 @@ function OverviewTab({ overview, period }) {
 // Karyawan SENGAJA TIDAK di sini -- dia dapat shell mandiri (CwKaryawanPage, mobile-only,
 // pola sama dengan Siswa/OrangTua), bukan shell desktop generik ini. Lihat early-return di
 // bawah, sebelum kode ini pernah dipakai.
+/** Sub-tab pimpinan modul School Culture, dirender menyatu di baris Header saat modul SC aktif. */
+const SC_SUB_TABS = [
+  { id: "dashboard", label: "Dashboard" },
+  { id: "individu", label: "Laporan Individu" },
+];
+
 function isSingleModuleShellPeran(peran) {
   return peran === "KepalaSekolah" || peran === "WakilKepalaSekolah" || peran === "WaliKelas"
     || peran === "Yayasan" || peran === "Manajemen";
@@ -94,6 +100,10 @@ export default function App() {
   });
   const [period, setPeriod]       = useState({ type: "bulanan", period: "Juni 2026" });
   const [loginNotice, setLoginNotice] = useState("");
+  // Sub-tab School Culture (Dashboard/Laporan Individu) -- diangkat ke sini (bukan state
+  // internal ScPage.jsx) supaya bisa dirender menyatu di baris Header yang sama dengan nav
+  // modul (inlineNav), persis instruksi pemilik produk.
+  const [scTab, setScTab] = useState("dashboard");
   const overview = useOverviewBriefing(session);
   const isKepsekShell = isSingleModuleShellPeran(session?.peran);
   const availablePeriods = useAvailablePeriods(session);
@@ -192,6 +202,17 @@ export default function App() {
     />
   );
 
+  // Sub-tab School Culture, cuma tampil menyatu di baris Header yang sama saat modul SC aktif --
+  // lihat catatan lengkap di deklarasi state scTab.
+  const scSubNav = activeTab === "sc" ? (
+    <NavBar
+      items={SC_SUB_TABS}
+      activeTab={scTab}
+      onTabChange={setScTab}
+      pillNav
+    />
+  ) : null;
+
   return (
     <div className={styles.app}>
       <Header
@@ -203,7 +224,7 @@ export default function App() {
         onPeriodChange={setPeriod}
         showPeriod={showPeriodPicker}
         bulananOptions={bulananOptions}
-        inlineNav={isKepsekShell ? navBar : null}
+        inlineNav={isKepsekShell ? (<>{navBar}{scSubNav}</>) : null}
       />
       {!isKepsekShell && navBar}
 
@@ -235,7 +256,7 @@ export default function App() {
 
         {activeTab === "cw" && <CwPage session={session} />}
 
-        {activeTab === "sc" && <ScPage session={session} />}
+        {activeTab === "sc" && <ScPage session={session} tab={scTab} />}
 
         {activeTab === "screening" && (
           <div className={styles.placeholder}>

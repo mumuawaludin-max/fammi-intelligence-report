@@ -57,7 +57,7 @@ const RESPONDEN_1: LaporanIndividuSC = {
       { kode: "kenyamanan_bekerja", label: "Kenyamanan Bekerja", nilai: 90, kategori: "Sangat Tinggi" },
       { kode: "pengembangan_diri", label: "Pengembangan Diri", nilai: 70, kategori: "Tinggi" },
       { kode: "ekspektasi", label: "Ekspektasi Terpenuhi", nilai: 83, kategori: "Sangat Tinggi" },
-      { kode: "work_life_balance", label: "Keseimbangan Kerja-Hidup", nilai: 68, kategori: "Sedang" },
+      { kode: "work_life_balance", label: "Work-Life Balance", nilai: 68, kategori: "Sedang" },
     ],
   },
   bagian_profil_organisasi: {
@@ -89,7 +89,7 @@ const RESPONDEN_1: LaporanIndividuSC = {
       id: "sc1-balance",
       judul: "Petakan ulang jadwal minggu menjelang ujian.",
       alasan: "Keseimbangan kerja-hidup jadi subdimensi terendah Anda (68%, kategori Sedang). Memetakan lebih awal menjaga ini tidak turun saat jadwal ujian menumpuk.",
-      terkait: "Keseimbangan Kerja-Hidup",
+      terkait: "Work-Life Balance",
       jangka: "Minggu ini",
       ikon: "🗓️",
     },
@@ -146,7 +146,7 @@ const RESPONDEN_2: LaporanIndividuSC = {
       { kode: "kenyamanan_bekerja", label: "Kenyamanan Bekerja", nilai: 64, kategori: "Sedang" },
       { kode: "pengembangan_diri", label: "Pengembangan Diri", nilai: 48, kategori: "Sedang" },
       { kode: "ekspektasi", label: "Ekspektasi Terpenuhi", nilai: 40, kategori: "Rendah" },
-      { kode: "work_life_balance", label: "Keseimbangan Kerja-Hidup", nilai: 63, kategori: "Sedang" },
+      { kode: "work_life_balance", label: "Work-Life Balance", nilai: 63, kategori: "Sedang" },
     ],
   },
   bagian_profil_organisasi: {
@@ -235,7 +235,7 @@ const RESPONDEN_3: LaporanIndividuSC = {
       { kode: "kenyamanan_bekerja", label: "Kenyamanan Bekerja", nilai: 34, kategori: "Rendah" },
       { kode: "pengembangan_diri", label: "Pengembangan Diri", nilai: 51, kategori: "Sedang" },
       { kode: "ekspektasi", label: "Ekspektasi Terpenuhi", nilai: 57, kategori: "Sedang" },
-      { kode: "work_life_balance", label: "Keseimbangan Kerja-Hidup", nilai: 29, kategori: "Sangat Rendah" },
+      { kode: "work_life_balance", label: "Work-Life Balance", nilai: 29, kategori: "Sangat Rendah" },
     ],
   },
   bagian_profil_organisasi: {
@@ -267,7 +267,7 @@ const RESPONDEN_3: LaporanIndividuSC = {
       id: "sc3-batas",
       judul: "Tetapkan satu batas waktu berhenti kerja, lalu patuhi selama dua minggu.",
       alasan: "Keseimbangan kerja-hidup Anda 29% (Sangat Rendah). Batas yang jelas dan konsisten lebih membantu daripada niat mengurangi jam kerja secara umum.",
-      terkait: "Keseimbangan Kerja-Hidup",
+      terkait: "Work-Life Balance",
       jangka: "2 minggu",
       ikon: "⏰",
     },
@@ -314,10 +314,30 @@ export const MOCK_LAPORAN_AGREGAT_SC: LaporanAgregatSC = {
     narasi:
       "Secara umum staf merasakan budaya Kekeluargaan paling kuat, dengan harapan yang juga bergerak ke arah sana -- artinya arah yang diinginkan staf sudah sejalan dengan kondisi saat ini. Gap terbesar ada pada Inovasi: staf berharap ruang mencoba metode mengajar baru lebih terbuka dari kondisi sekarang.",
     chart_data: [
-      { tipe: "Kekeluargaan", saat_ini: 60, harapan: 69 },
-      { tipe: "Inovasi", saat_ini: 42, harapan: 57 },
-      { tipe: "Orientasi", saat_ini: 47, harapan: 43 },
-      { tipe: "Aturan", saat_ini: 56, harapan: 48 },
+      // status di sini DIHITUNG lewat ranking |nilai_gap| (sama seperti statusBudayaPerTipe di
+      // useScData.js) supaya QA visual konsisten dengan perilaku data asli: Inovasi (gap 15)
+      // terbesar -> "Perlu perhatian", Orientasi (gap 4) terkecil -> "Selaras", dua tengah ->
+      // "Ringan". priorityActions/phases/targetImpact SENGAJA cuma diisi untuk Inovasi (demo
+      // dimensi yang punya tindak_lanjut cocok) -- tiga dimensi lain dibiarkan kosong supaya
+      // empty-state "belum tersedia" di ScBudayaGapComparison/ScBudayaActionPlan ikut teruji.
+      { tipe: "Kekeluargaan", saat_ini: 60, harapan: 69, status: "Ringan", interpretation: "Staf sudah merasakan kedekatan yang cukup kuat, harapan bergerak searah -- tinggal dijaga konsistensinya." },
+      {
+        tipe: "Inovasi", saat_ini: 42, harapan: 57, status: "Perlu perhatian",
+        descriptor: "Kreativitas & perbaikan", interpretation: "Ruang eksperimen metode mengajar masih terbatas -- ini gap terbesar di antara keempat tipe budaya periode ini.",
+        focus: "Buka ruang eksperimen metode mengajar baru secara terjadwal, bukan insidental.",
+        priorityActions: [
+          "Alokasikan waktu rutin khusus uji coba metode/media ajar baru.",
+          "Buat jalur sederhana untuk guru mengajukan ide tanpa birokrasi panjang.",
+        ],
+        phases: [
+          { aksi: "Kumpulkan ide dari staf dan prioritaskan berdasarkan dampak.", waktu: "Minggu ini" },
+          { aksi: "Bentuk tim eksperimen kecil lintas peran dan tetapkan ukuran keberhasilan.", waktu: "Bulan ini" },
+          { aksi: "Bandingkan hasil dengan kondisi awal, dokumentasikan yang terbukti efektif.", waktu: "3 bulan" },
+        ],
+        targetImpact: "Minimal satu eksperimen metode mengajar per unit setiap bulan.",
+      },
+      { tipe: "Orientasi", saat_ini: 47, harapan: 43, status: "Selaras" },
+      { tipe: "Aturan", saat_ini: 56, harapan: 48, status: "Ringan" },
     ],
     tabel_gap: [
       { label: "Kekeluargaan", arah: "naik", nilai_gap: 9 },
@@ -336,7 +356,21 @@ export const MOCK_LAPORAN_AGREGAT_SC: LaporanAgregatSC = {
       { kode: "kenyamanan_bekerja", label: "Kenyamanan Bekerja", nilai: 73, kategori: "Tinggi" },
       { kode: "pengembangan_diri", label: "Pengembangan Diri", nilai: 58, kategori: "Sedang" },
       { kode: "ekspektasi", label: "Ekspektasi Terpenuhi", nilai: 61, kategori: "Sedang" },
-      { kode: "work_life_balance", label: "Keseimbangan Kerja-Hidup", nilai: 46, kategori: "Sedang" },
+      // priorityActions/phases/targetImpact SENGAJA cuma diisi untuk satu subdimensi (demo
+      // yang punya tindak_lanjut cocok) -- empat lain dibiarkan kosong supaya empty-state di
+      // ScDimensiTindakLanjut ikut teruji, sama pola dengan Inovasi di bagian_budaya di atas.
+      {
+        kode: "work_life_balance", label: "Work-Life Balance", nilai: 46, kategori: "Sedang", status: "Sedang",
+        priorityActions: [
+          "Tinjau ulang beban kerja dan target akademik guru jenjang SMA/SMK.",
+          "Buka sesi dengar pendapat rutin soal beban kerja.",
+        ],
+        phases: [
+          { aksi: "Audit beban mengajar dan tugas tambahan aktual vs kapasitas guru.", waktu: "Minggu ini" },
+          { aksi: "Evaluasi ulang linimasa yang paling menekan, realokasi kalau perlu.", waktu: "Bulan ini" },
+        ],
+        targetImpact: "Skor Work-Life Balance meningkat minimal 10% dalam satu periode.",
+      },
     ],
   },
   bagian_profil_organisasi: {
@@ -346,7 +380,10 @@ export const MOCK_LAPORAN_AGREGAT_SC: LaporanAgregatSC = {
       { kode: "karakter_lembaga", label: "Karakter Lembaga", nilai: 76, kategori: "Sangat Tinggi" },
       { kode: "kepemimpinan", label: "Kepemimpinan", nilai: 63, kategori: "Sedang" },
       { kode: "management", label: "Manajemen", nilai: 61, kategori: "Sedang" },
-      { kode: "sinergi", label: "Sinergi Tim", nilai: 58, kategori: "Sedang" },
+      // harapan/gap SENGAJA cuma diisi untuk satu dimensi (demo kasus importer sempat
+      // menghitungnya dari item mentah, lihat buildDimensiHarapan di scImporter.js) -- lima
+      // dimensi lain dibiarkan tanpa harapan supaya jalur "harapan belum tersedia" ikut teruji.
+      { kode: "sinergi", label: "Sinergi Tim", nilai: 58, kategori: "Sedang", harapan: 74, gap: 16 },
       { kode: "fokus", label: "Fokus Strategis", nilai: 67, kategori: "Sedang" },
       { kode: "performance", label: "Kinerja/Performa", nilai: 65, kategori: "Sedang" },
     ],
@@ -365,8 +402,8 @@ export const MOCK_LAPORAN_AGREGAT_SC: LaporanAgregatSC = {
     {
       peringkat: 1,
       action: "Tinjau ulang beban kerja dan target akademik guru jenjang SMA/SMK.",
-      trigger_desc: "Indeks kesejahteraan unit ini paling rendah (45, kategori Rendah), ditekan subdimensi Keseimbangan Kerja-Hidup.",
-      area: "Keseimbangan Kerja-Hidup · SMA/SMK",
+      trigger_desc: "Indeks kesejahteraan unit ini paling rendah (45, kategori Rendah), ditekan subdimensi Work-Life Balance.",
+      area: "Work-Life Balance · SMA/SMK",
       langkah: [
         { aksi: "Audit beban mengajar dan tugas tambahan aktual vs kapasitas guru dalam 2 minggu ke depan.", waktu: "Minggu ini" },
         { aksi: "Evaluasi ulang linimasa persiapan ujian yang paling menekan, mana yang bisa direalokasi.", waktu: "Bulan ini" },
@@ -425,7 +462,7 @@ export const MOCK_LAPORAN_AGREGAT_SC: LaporanAgregatSC = {
       { kode: "kenyamanan_bekerja", label: "Kenyamanan Bekerja", nilai: [90, 64, 34] },
       { kode: "pengembangan_diri", label: "Pengembangan Diri", nilai: [70, 48, 51] },
       { kode: "ekspektasi", label: "Ekspektasi Terpenuhi", nilai: [83, 40, 57] },
-      { kode: "work_life_balance", label: "Keseimbangan Kerja-Hidup", nilai: [68, 63, 29] },
+      { kode: "work_life_balance", label: "Work-Life Balance", nilai: [68, 63, 29] },
     ],
     donut_kategori_wellbeing: [
       { kategori: "Sangat Rendah", jumlah: 0, persen: 0 },
@@ -434,7 +471,36 @@ export const MOCK_LAPORAN_AGREGAT_SC: LaporanAgregatSC = {
       { kategori: "Tinggi", jumlah: 0, persen: 0 },
       { kategori: "Sangat Tinggi", jumlah: 1, persen: 33 },
     ],
-    heatmap: [],
+    // Section 01-D (rating bintang per tipe budaya) -- sumber SAMA dengan heatmap Fase B lama
+    // (rata-rata item mentah gambaran_<dimensi>_<tipe>), cuma sekarang disajikan per kartu tipe
+    // bukan grid. nilai_mentah skala 1-5 (raw), nilai skala 0-100 (persen) -- keduanya dari
+    // angka yang sama, tanpa round-trip pembulatan.
+    heatmap: [
+      { dimensi: "Karakter Lembaga", tipe: "Kekeluargaan", nilai: 89, nilai_mentah: 4.44 },
+      { dimensi: "Kepemimpinan", tipe: "Kekeluargaan", nilai: 80, nilai_mentah: 4.0 },
+      { dimensi: "Manajemen", tipe: "Kekeluargaan", nilai: 76, nilai_mentah: 3.81 },
+      { dimensi: "Sinergi Tim", tipe: "Kekeluargaan", nilai: 80, nilai_mentah: 4.0 },
+      { dimensi: "Fokus Strategis", tipe: "Kekeluargaan", nilai: 81, nilai_mentah: 4.06 },
+      { dimensi: "Kinerja/Performa", tipe: "Kekeluargaan", nilai: 75, nilai_mentah: 3.75 },
+      { dimensi: "Karakter Lembaga", tipe: "Inovasi", nilai: 72, nilai_mentah: 3.6 },
+      { dimensi: "Kepemimpinan", tipe: "Inovasi", nilai: 76, nilai_mentah: 3.8 },
+      { dimensi: "Manajemen", tipe: "Inovasi", nilai: 66, nilai_mentah: 3.3 },
+      { dimensi: "Sinergi Tim", tipe: "Inovasi", nilai: 70, nilai_mentah: 3.5 },
+      { dimensi: "Fokus Strategis", tipe: "Inovasi", nilai: 78, nilai_mentah: 3.9 },
+      { dimensi: "Kinerja/Performa", tipe: "Inovasi", nilai: 68, nilai_mentah: 3.4 },
+      { dimensi: "Karakter Lembaga", tipe: "Orientasi", nilai: 78, nilai_mentah: 3.9 },
+      { dimensi: "Kepemimpinan", tipe: "Orientasi", nilai: 72, nilai_mentah: 3.6 },
+      { dimensi: "Manajemen", tipe: "Orientasi", nilai: 74, nilai_mentah: 3.7 },
+      { dimensi: "Sinergi Tim", tipe: "Orientasi", nilai: 64, nilai_mentah: 3.2 },
+      { dimensi: "Fokus Strategis", tipe: "Orientasi", nilai: 82, nilai_mentah: 4.1 },
+      { dimensi: "Kinerja/Performa", tipe: "Orientasi", nilai: 76, nilai_mentah: 3.8 },
+      { dimensi: "Karakter Lembaga", tipe: "Aturan", nilai: 82, nilai_mentah: 4.1 },
+      { dimensi: "Kepemimpinan", tipe: "Aturan", nilai: 68, nilai_mentah: 3.4 },
+      { dimensi: "Manajemen", tipe: "Aturan", nilai: 84, nilai_mentah: 4.2 },
+      { dimensi: "Sinergi Tim", tipe: "Aturan", nilai: 62, nilai_mentah: 3.1 },
+      { dimensi: "Fokus Strategis", tipe: "Aturan", nilai: 72, nilai_mentah: 3.6 },
+      { dimensi: "Kinerja/Performa", tipe: "Aturan", nilai: 78, nilai_mentah: 3.9 },
+    ],
     // Ditambah beberapa titik sintetis di luar 3 responden asli supaya QA visual scatter
     // (Fase D) kelihatan sebarannya -- konsisten dengan disclaimer di atas, tetap bukan
     // statistik nyata.
@@ -466,4 +532,24 @@ export const MOCK_LAPORAN_AGREGAT_SC: LaporanAgregatSC = {
     { periode_id: "2026-04", indeks: 57 },
     { periode_id: "2026-07", indeks: 60 },
   ],
+  generated_at: "2026-07-24T09:00:00+07:00",
+  // action_owner/review_cadence/target_date/next_review SENGAJA tidak diisi -- data gap murni
+  // (lihat sc.types.ts), supaya ScDimensiTindakLanjut menampilkan "Belum ditentukan" jujur,
+  // bukan dikarang, saat QA visual lewat ?preview=sc-agregat.
+  // Section 01-E -- contoh hasil SINTESIS Gemini (sudah lewat approve briefing), BUKAN kutipan
+  // verbatim staf mana pun, lihat CeritaPegawai di sc.types.ts.
+  cerita_pegawai: {
+    saat_ini: [
+      "Beberapa staf merasa suasana kerja sehari-hari terasa hangat, saling membantu antar rekan tanpa diminta.",
+      "Ada yang menyebut sering diberi kepercayaan memegang tanggung jawab baru dan merasa didukung pimpinan saat mengelolanya.",
+      "Beberapa staf sudah bekerja sejak organisasi ini berdiri, dan merasa itu jadi bagian dari identitas mereka di sini.",
+      "Sapaan dan keramahan saat datang kerja disebut berulang sebagai hal yang membuat suasana terasa nyaman.",
+    ],
+    ingin_diubah: [
+      "Beberapa staf berharap ada perencanaan kerja yang lebih matang, tidak mendadak.",
+      "Ada keinginan agar kebiasaan kerja lama ikut beradaptasi dengan kebutuhan digital yang berkembang cepat.",
+      "Beberapa staf ingin lebih leluasa mengonfirmasi ulang pemahaman tanpa merasa sungkan.",
+      "Ada harapan apresiasi dan motivasi diberikan lebih rutin, tidak cuma sesekali.",
+    ],
+  },
 };

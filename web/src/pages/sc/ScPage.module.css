@@ -47,39 +47,6 @@
   letter-spacing: -0.3px;
 }
 
-/* ── Sub-tab pimpinan (Dashboard / Laporan Individu) ── */
-.subTabs {
-  display: flex;
-  gap: 6px;
-  padding: 5px;
-  background: var(--bg-2);
-  border-radius: 999px;
-  align-self: center;
-}
-
-.subTab {
-  padding: 8px 18px;
-  font-size: 13px;
-  font-weight: 700;
-  font-family: var(--font-body);
-  color: var(--ink-3);
-  background: transparent;
-  border: none;
-  border-radius: 999px;
-  cursor: pointer;
-  transition: background var(--transition-fast), color var(--transition-fast);
-}
-
-.subTab:hover {
-  color: var(--ink);
-}
-
-.subTabActive {
-  background: var(--surface);
-  color: var(--purple-700);
-  box-shadow: var(--shadow-card);
-}
-
 .stateBox {
   display: flex;
   flex-direction: column;
