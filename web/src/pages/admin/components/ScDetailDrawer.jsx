@@ -178,35 +178,82 @@ function ScDetailDrawerBody({ row, onClose, onSave, onRegenerate }) {
         </div>
         <div className="disp" style={{ fontSize: 18, fontWeight: 700, color: 'var(--ink)' }}>{meta.nama_responden || row?.sc_personal_id}</div>
         <div style={{ fontSize: 12, color: 'var(--ink-3)' }}>{meta.peran_kerja}{meta.unit ? ` · ${meta.unit}` : ''} · {row?.periode_id}</div>
+        {row?.bersedia === false && (
+          <div style={{ fontSize: 11.5, color: 'var(--status-warn)', background: 'var(--status-warn-bg)', padding: '6px 10px', borderRadius: 8, lineHeight: 1.5 }}>
+            🔒 Staf ini menjawab TIDAK bersedia di kolom consent. Laporan tetap boleh disetujui (staf itu sendiri tetap bisa membaca laporannya sendiri), tapi drill-down-nya tidak akan tampil di tabel Laporan Individu pimpinan.
+          </div>
+        )}
         <QcBadges qcFlags={row?.qc_flags} />
       </div>
 
       <div style={{ flex: 1, overflow: 'auto', padding: '20px 26px' }}>
+        {/* CATATAN AUDIT (Gap C): ScLaporanIndividuPage.jsx versi remake total (rombak beranda
+            + Rencana Tindak Lanjut jadi halaman terpisah) TIDAK PERNAH merender header.sub_hook
+            atau field narasi/refleksi di bawah ini ke staf -- cuma header.hook (headline hero)
+            dan jawaban_survey (section terpisah di atas) yang benar-benar tampil. Field-field
+            ini TETAP digenerate Gemini dan disunting di sini karena masih berguna untuk
+            reviewer menilai konteks/kualitas data sebelum approve, TAPI bukan lagi preview
+            akurat dari apa yang dibaca staf -- ditandai jelas di bawah supaya tidak dikira bug
+            kalau perubahan di sini tidak kelihatan di laporan staf. */}
         <Section title="Pesan pembuka">
           <Card>
             <EditableText value={d.header?.hook} onChange={(v) => patch(['header', 'hook'], v)} minHeight={44} style={{ fontWeight: 700, marginBottom: 8 }} />
+            <div style={{ fontSize: 10.5, color: 'var(--ink-4)', fontStyle: 'italic', margin: '2px 0 6px' }}>Sub-hook di bawah TIDAK tampil ke staf (cuma referensi reviewer):</div>
             <EditableText value={d.header?.sub_hook} onChange={(v) => patch(['header', 'sub_hook'], v)} minHeight={44} />
           </Card>
         </Section>
 
         <Section title="Profil budaya (4 tipe)">
           <BudayaGrid chartData={d.bagian_budaya?.chart_data} tabelGap={d.bagian_budaya?.tabel_gap} />
-          <div style={{ marginTop: 10 }}><EditableText value={d.bagian_budaya?.narasi} onChange={(v) => patch(['bagian_budaya', 'narasi'], v)} /></div>
+          <div style={{ fontSize: 10.5, color: 'var(--ink-4)', fontStyle: 'italic', margin: '10px 0 4px' }}>Narasi di bawah TIDAK tampil ke staf (cuma referensi reviewer):</div>
+          <EditableText value={d.bagian_budaya?.narasi} onChange={(v) => patch(['bagian_budaya', 'narasi'], v)} />
         </Section>
 
         <Section title={`Kesejahteraan (indeks ${d.bagian_kesejahteraan?.indeks ?? '—'} · ${d.bagian_kesejahteraan?.kategori || '—'})`}>
           <ItemGrid items={d.bagian_kesejahteraan?.chart_data} />
-          <div style={{ marginTop: 10 }}><EditableText value={d.bagian_kesejahteraan?.narasi} onChange={(v) => patch(['bagian_kesejahteraan', 'narasi'], v)} /></div>
+          <div style={{ fontSize: 10.5, color: 'var(--ink-4)', fontStyle: 'italic', margin: '10px 0 4px' }}>Narasi di bawah TIDAK tampil ke staf (cuma referensi reviewer):</div>
+          <EditableText value={d.bagian_kesejahteraan?.narasi} onChange={(v) => patch(['bagian_kesejahteraan', 'narasi'], v)} />
         </Section>
 
         <Section title="Profil organisasi (6 dimensi)">
           <ItemGrid items={d.bagian_profil_organisasi?.chart_data} />
-          <div style={{ marginTop: 10 }}><EditableText value={d.bagian_profil_organisasi?.narasi} onChange={(v) => patch(['bagian_profil_organisasi', 'narasi'], v)} /></div>
+          <div style={{ fontSize: 10.5, color: 'var(--ink-4)', fontStyle: 'italic', margin: '10px 0 4px' }}>Narasi di bawah TIDAK tampil ke staf (cuma referensi reviewer):</div>
+          <EditableText value={d.bagian_profil_organisasi?.narasi} onChange={(v) => patch(['bagian_profil_organisasi', 'narasi'], v)} />
         </Section>
 
-        <Section title="Refleksi">
+        <Section title="Refleksi (tidak tampil ke staf di versi laporan saat ini, cuma referensi reviewer)">
           <Card><EditableText value={d.bagian_refleksi} onChange={(v) => patch(['bagian_refleksi'], v)} minHeight={44} /></Card>
         </Section>
+
+        {/* Jawaban survey VERBATIM (bukan tulisan Gemini) -- READ-ONLY sengaja, bukan
+            EditableText seperti section lain di drawer ini. Satu kata pun dari jawaban staf
+            sendiri tidak boleh diubah admin lewat jalur review (lihat buildJawabanSurvey di
+            generate-sc-individu/index.ts dan aturan "APA ADANYA" di SYSTEM_INSTRUCTION_SC_INDIVIDU).
+            yang_ingin_diubah TAMPIL DUA KALI secara sengaja di laporan staf (sekali di hero
+            sebagai kutipan "Perubahan yang Anda Harapkan", sekali lagi di sini) -- di drawer
+            review ini cukup satu tempat untuk reviewer melihat keempatnya sekaligus. */}
+        {d.jawaban_survey && (
+          <Section title="Jawaban survey (verbatim, tidak bisa disunting)">
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              <Card>
+                <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--ink-3)', marginBottom: 4 }}>Betah karena</div>
+                <Prose text={d.jawaban_survey.betah} />
+              </Card>
+              <Card>
+                <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--ink-3)', marginBottom: 4 }}>Menguras energi</div>
+                <Prose text={d.jawaban_survey.hal_menguras_energi} />
+              </Card>
+              <Card>
+                <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--ink-3)', marginBottom: 4 }}>Ingin disampaikan</div>
+                <Prose text={d.jawaban_survey.yang_ingin_disampaikan} />
+              </Card>
+              <Card>
+                <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--ink-3)', marginBottom: 4 }}>Perubahan yang diharapkan (tampil juga di hero laporan)</div>
+                <Prose text={d.jawaban_survey.yang_ingin_diubah} />
+              </Card>
+            </div>
+          </Section>
+        )}
 
         {rencanaAksi.length > 0 && (
           <Section title={`Rencana aksi (${rencanaAksi.length})`}>

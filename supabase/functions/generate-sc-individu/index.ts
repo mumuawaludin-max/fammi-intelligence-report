@@ -113,6 +113,13 @@ Deno.serve(async (req) => {
       tipe: b.tipe, saat_ini: b.mean_gambaran, harapan: b.mean_harapan,
     }));
 
+    // CATATAN (Gap C audit, lihat ScLaporanIndividuPage.jsx): sejak beranda laporan individu
+    // direstart total (hero ringkas + 4 section flat + Rencana Tindak Lanjut jadi halaman
+    // terpisah), field header.sub_hook dan ketiga bagian_*.narasi + bagian_refleksi di bawah
+    // TIDAK PERNAH dirender ke staf lagi -- cuma header.hook dan jawaban_survey yang benar-benar
+    // tampil. Field ini SENGAJA TETAP digenerate (bukan dihapus dari skema Gemini) karena masih
+    // berguna sebagai konteks tinjauan admin di ScDetailDrawer.jsx sebelum approve -- kalau nanti
+    // mau dipangkas dari system instruction untuk hemat token, cek dulu tidak ada konsumer lain.
     const detail = {
       meta: {
         responden_id: row.id, nama_responden: row.nama_responden, peran_kerja: row.peran_kerja,

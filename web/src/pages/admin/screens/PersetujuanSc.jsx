@@ -166,6 +166,11 @@ export function PersetujuanSc() {
                       ⚠ QC {r.qc_flags.length}
                     </span>
                   )}
+                  {r.bersedia === false && (
+                    <span className="pill" style={{ background: 'var(--status-warn-bg)', color: 'var(--status-warn)' }} title="Staf ini menjawab TIDAK bersedia di kolom consent -- laporan tetap boleh disetujui supaya staf itu sendiri bisa membacanya, tapi drill-down-nya TIDAK akan tampil di tabel Laporan Individu pimpinan.">
+                      🔒 Tidak bersedia (individu disembunyikan)
+                    </span>
+                  )}
                   <span className="mono" style={{ marginLeft: 'auto', fontSize: 11, color: 'var(--ink-4)' }}>{String(r.id).slice(0, 8)}</span>
                 </div>
                 <div

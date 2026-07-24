@@ -375,18 +375,27 @@ async function handleImportSc(admin, body) {
 // Daftar laporan individu School Culture yang menunggu persetujuan, lewat service_role -- pola
 // identik handleListMiPending. `detail` (jsonb, seluruh LaporanIndividuSC) disertakan supaya CMS
 // bisa menampilkan preview lengkap sebelum admin menyetujui.
+// `bersedia` disertakan (join lewat FK sc_personal_id) supaya reviewer tahu SEBELUM approve
+// apakah drill-down individu staf ini akan tampil di tabel "Laporan Individu" pimpinan atau
+// tidak (lihat filter di useScRespondenList, useScData.js) -- laporannya sendiri tetap boleh
+// disetujui/tayang ke staf itu sendiri terlepas dari bersedia (consent ini cuma soal PIMPINAN
+// melihat drill-down-nya, bukan soal staf melihat laporannya sendiri).
 async function handleListScPending(admin) {
   const { data, error } = await admin
     .from("sc_hasil")
     .select(
       "id, sc_personal_id, sekolah_id, periode_id, generated_at, detail, qc_flags, " +
       "nama_responden:detail->meta->>nama_responden, peran_kerja:detail->meta->>peran_kerja, " +
-      "unit:detail->meta->>unit"
+      "unit:detail->meta->>unit, sc_personal:sc_personal_id(bersedia)"
     )
     .eq("status", "menunggu_persetujuan")
     .order("generated_at", { ascending: false });
   if (error) return { ok: false, error: error.message };
-  return { ok: true, rows: data || [] };
+  const rows = (data || []).map((r) => {
+    const { sc_personal, ...rest } = r;
+    return { ...rest, bersedia: sc_personal?.bersedia ?? null };
+  });
+  return { ok: true, rows };
 }
 
 async function handleScApproval(admin, body) {
