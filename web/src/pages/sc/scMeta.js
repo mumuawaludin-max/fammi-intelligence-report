@@ -18,7 +18,7 @@ export const TIPE_BUDAYA_INFO = {
     deskripsi:
       "Sekolah terasa seperti keluarga besar. Yang ditekankan kebersamaan, saling membantu antar guru dan staf, serta kedekatan dengan pimpinan. Pimpinan berperan sebagai pembimbing.",
     implikasiNaik:
-      "Staf ingin suasana kerja yang LEBIH dekat dan personal dari kondisi sekarang. Pertimbangkan ruang ngobrol informal antar guru, mentoring lintas jenjang, atau kegiatan kebersamaan rutin.",
+      "Staf ingin suasana kerja yang lebih dekat dan personal dari kondisi sekarang. Pertimbangkan ruang ngobrol informal antar guru, mentoring lintas jenjang, atau kegiatan kebersamaan rutin.",
     implikasiTurun:
       "Staf sudah cukup nyaman dengan kedekatan yang ada, bahkan menurutnya bisa sedikit dikurangi. Jaga sisi ini, tidak perlu ditambah lebih jauh.",
     facets: [
@@ -50,7 +50,7 @@ export const TIPE_BUDAYA_INFO = {
     deskripsi:
       "Fokus utama pada pencapaian target dan mutu lulusan. Yang dihargai daya saing akademik, produktivitas, dan pemenuhan target sekolah.",
     implikasiNaik:
-      "Staf ingin orientasi hasil yang LEBIH kuat dari sekarang -- biasanya berarti target/ekspektasi kerja masih terasa kabur atau kurang menantang bagi mereka.",
+      "Staf ingin orientasi hasil yang lebih kuat dari sekarang, biasanya berarti target atau ekspektasi kerja masih terasa kabur atau kurang menantang bagi mereka.",
     implikasiTurun:
       "Tekanan pencapaian target dirasa sudah tinggi, staf berharap ini diringankan. Ini sinyal risiko kelelahan kerja kalau dibiarkan, terutama bila berbarengan dengan indeks kesejahteraan rendah.",
     facets: [
@@ -79,8 +79,8 @@ export const TIPE_BUDAYA_INFO = {
 };
 
 const ARAH_TEKS = {
-  naik: "Staf berharap tipe budaya ini LEBIH kuat dari kondisi sekarang.",
-  turun: "Staf berharap tipe budaya ini LEBIH ringan dari kondisi sekarang.",
+  naik: "Staf berharap tipe budaya ini lebih kuat dari kondisi sekarang.",
+  turun: "Staf berharap tipe budaya ini lebih ringan dari kondisi sekarang.",
   tetap: "Harapan staf sudah sejalan dengan kondisi sekarang.",
 };
 
@@ -93,7 +93,7 @@ export function implikasiBudaya(tipe, arah) {
   if (!info) return "";
   if (arah === "naik") return info.implikasiNaik;
   if (arah === "turun") return info.implikasiTurun;
-  return "Tidak ada tindakan mendesak diperlukan untuk tipe budaya ini -- kondisi saat ini sudah sesuai harapan staf.";
+  return "Tidak ada tindakan mendesak diperlukan untuk tipe budaya ini, kondisi saat ini sudah sesuai harapan staf.";
 }
 
 export const ARAH_ICON = { naik: "↑", turun: "↓", tetap: "→" };
@@ -225,11 +225,11 @@ export const KESEJAHTERAAN_INFO = {
  * profil organisasi (skala sama). Supaya pembaca non-HR/psikolog tetap paham artinya.
  */
 const NILAI_INTERPRETASI = {
-  "Sangat Rendah": "Butuh perhatian segera -- ini area yang paling berisiko menurunkan retensi staf dan mutu layanan kalau dibiarkan.",
+  "Sangat Rendah": "Butuh perhatian segera, ini area yang paling berisiko menurunkan retensi staf dan mutu layanan kalau dibiarkan.",
   "Rendah": "Perlu jadi perhatian dalam waktu dekat, meski belum darurat.",
   "Sedang": "Dalam batas wajar, ada ruang untuk ditingkatkan tapi bukan prioritas mendesak.",
   "Tinggi": "Kondisi baik, pertahankan dengan praktik yang sudah berjalan.",
-  "Sangat Tinggi": "Ini kekuatan utama sekolah di area ini -- jadikan contoh untuk unit/jenjang lain.",
+  "Sangat Tinggi": "Ini kekuatan utama sekolah di area ini, jadikan contoh untuk unit atau jenjang lain.",
 };
 
 export function interpretasiKesejahteraan(kategori) {

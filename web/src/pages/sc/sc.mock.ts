@@ -62,7 +62,7 @@ const RESPONDEN_1: LaporanIndividuSC = {
   },
   bagian_profil_organisasi: {
     narasi:
-      "Dari sisi profil 6 dimensi, Karakter Lembaga dan Sinergi Tim jadi yang paling Anda rasakan kuat -- sejalan dengan dominasi budaya Kekeluargaan di jawaban Anda.",
+      "Dari sisi profil 6 dimensi, Karakter Lembaga dan Sinergi Tim jadi yang paling Anda rasakan kuat, sejalan dengan dominasi budaya Kekeluargaan di jawaban Anda.",
     chart_data: [
       { kode: "karakter_lembaga", label: "Karakter Lembaga", nilai: 85, kategori: "Sangat Tinggi", harapan: 88, gap: 3 },
       { kode: "kepemimpinan", label: "Kepemimpinan", nilai: 65, kategori: "Tinggi", harapan: 74, gap: 9 },
@@ -162,7 +162,7 @@ const RESPONDEN_2: LaporanIndividuSC = {
     ],
   },
   bagian_cermin:
-    "\"Perencanaan lebih matang\" -- itu satu hal yang Anda ingin ubah dari keseharian kerja bulan ini. Kalimat singkat itu sering menyimpan lebih banyak daripada kelihatannya: biasanya tandanya bukan kurang teliti, tapi proses di sekitar Anda yang belum cukup mendukung ketelitian itu.",
+    "\"Perencanaan lebih matang\", itu satu hal yang Anda ingin ubah dari keseharian kerja bulan ini. Kalimat singkat itu sering menyimpan lebih banyak daripada kelihatannya, biasanya tandanya bukan kurang teliti, tapi proses di sekitar Anda yang belum cukup mendukung ketelitian itu.",
   bagian_refleksi:
     "Prosedur mana yang menurut Anda sudah tidak perlu terlalu berlapis, dan siapa satu rekan kerja yang bisa Anda ajak bicara lebih terbuka minggu ini?",
   rencana_aksi: [
@@ -251,7 +251,7 @@ const RESPONDEN_3: LaporanIndividuSC = {
     ],
   },
   bagian_cermin:
-    "\"Persiapan acara mepet waktu\" -- itu yang paling menguras energi Anda bulan ini. Dedikasi Anda mengejar target akademik jelas terlihat dari jawaban Anda sendiri, tapi kalimat itu juga sinyal jujur bahwa ritme kerja Anda saat ini menekan, bukan cuma sibuk.",
+    "\"Persiapan acara mepet waktu\", itu yang paling menguras energi Anda bulan ini. Dedikasi Anda mengejar target akademik jelas terlihat dari jawaban Anda sendiri, tapi kalimat itu juga sinyal jujur bahwa ritme kerja Anda saat ini menekan, bukan cuma sibuk.",
   bagian_refleksi:
     "Kalau boleh menunda satu target minggu ini demi waktu istirahat yang cukup, target mana yang akan Anda pilih?",
   rencana_aksi: [
@@ -312,7 +312,7 @@ export const MOCK_LAPORAN_AGREGAT_SC: LaporanAgregatSC = {
   },
   bagian_budaya: {
     narasi:
-      "Secara umum staf merasakan budaya Kekeluargaan paling kuat, dengan harapan yang juga bergerak ke arah sana -- artinya arah yang diinginkan staf sudah sejalan dengan kondisi saat ini. Gap terbesar ada pada Inovasi: staf berharap ruang mencoba metode mengajar baru lebih terbuka dari kondisi sekarang.",
+      "Secara umum staf merasakan budaya Kekeluargaan paling kuat, dengan harapan yang juga bergerak ke arah sana, artinya arah yang diinginkan staf sudah sejalan dengan kondisi saat ini. Gap terbesar ada pada Inovasi, staf berharap ruang mencoba metode mengajar baru lebih terbuka dari kondisi sekarang.",
     chart_data: [
       // status di sini DIHITUNG lewat ranking |nilai_gap| (sama seperti statusBudayaPerTipe di
       // useScData.js) supaya QA visual konsisten dengan perilaku data asli: Inovasi (gap 15)
@@ -320,10 +320,10 @@ export const MOCK_LAPORAN_AGREGAT_SC: LaporanAgregatSC = {
       // "Ringan". priorityActions/phases/targetImpact SENGAJA cuma diisi untuk Inovasi (demo
       // dimensi yang punya tindak_lanjut cocok) -- tiga dimensi lain dibiarkan kosong supaya
       // empty-state "belum tersedia" di ScBudayaGapComparison/ScBudayaActionPlan ikut teruji.
-      { tipe: "Kekeluargaan", saat_ini: 60, harapan: 69, status: "Ringan", interpretation: "Staf sudah merasakan kedekatan yang cukup kuat, harapan bergerak searah -- tinggal dijaga konsistensinya." },
+      { tipe: "Kekeluargaan", saat_ini: 60, harapan: 69, status: "Ringan", interpretation: "Staf sudah merasakan kedekatan yang cukup kuat, harapan bergerak searah, tinggal dijaga konsistensinya." },
       {
         tipe: "Inovasi", saat_ini: 42, harapan: 57, status: "Perlu perhatian",
-        descriptor: "Kreativitas & perbaikan", interpretation: "Ruang eksperimen metode mengajar masih terbatas -- ini gap terbesar di antara keempat tipe budaya periode ini.",
+        descriptor: "Kreativitas & perbaikan", interpretation: "Ruang eksperimen metode mengajar masih terbatas, ini gap terbesar di antara keempat tipe budaya periode ini.",
         focus: "Buka ruang eksperimen metode mengajar baru secara terjadwal, bukan insidental.",
         priorityActions: [
           "Alokasikan waktu rutin khusus uji coba metode/media ajar baru.",
@@ -375,7 +375,7 @@ export const MOCK_LAPORAN_AGREGAT_SC: LaporanAgregatSC = {
   },
   bagian_profil_organisasi: {
     narasi:
-      "Karakter Lembaga jadi dimensi tertinggi (kekeluargaan yang dirasakan kuat), sementara Sinergi Tim relatif paling rendah -- staf antarjenjang belum banyak berkolaborasi lintas unit.",
+      "Karakter Lembaga jadi dimensi tertinggi (kekeluargaan yang dirasakan kuat), sementara Sinergi Tim relatif paling rendah, staf antarjenjang belum banyak berkolaborasi lintas unit.",
     chart_data: [
       { kode: "karakter_lembaga", label: "Karakter Lembaga", nilai: 76, kategori: "Sangat Tinggi" },
       { kode: "kepemimpinan", label: "Kepemimpinan", nilai: 63, kategori: "Sedang" },

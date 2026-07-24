@@ -35,9 +35,9 @@ function nilaiGap(tabelGap, tipe) {
 }
 
 /**
- * Rakit template pesan WhatsApp, POV pimpinan yang membagikan ke timnya sendiri -- fokus SATU
+ * Rakit template pesan WhatsApp, POV pimpinan yang membagikan ke timnya sendiri, fokus satu
  * dimensi terpilih saja (bukan seluruh laporan). Alur pesan: informasikan fokusnya, jelaskan
- * kenapa (implikasiBudaya, sudah menulis kalimat aksi-nya sendiri per tipe & arah gap), lalu
+ * kenapa (implikasiBudaya, sudah menulis kalimat aksinya sendiri per tipe dan arah gap), lalu
  * arahkan ke langkah konkret kalau tersedia.
  */
 function buatPesanBagikan(selected, selectedGap, selectedInfo, priorityActions) {
@@ -47,7 +47,7 @@ function buatPesanBagikan(selected, selectedGap, selectedInfo, priorityActions) 
   const implikasi = implikasiBudaya(selected.tipe, arah) || selectedInfo?.deskripsi || "";
 
   const baris = [
-    `Halo Tim, dari hasil asesmen School Culture periode ini, ada satu fokus yang ingin saya bagikan ke kita semua: *${selected.tipe}* (${selectedInfo?.ringkas || "-"}).`,
+    `Halo Tim, dari hasil asesmen Fammi School Culture & Engagement periode ini, ada satu fokus yang ingin saya bagikan ke kita semua: *${selected.tipe}* (${selectedInfo?.ringkas || "-"}).`,
     "",
     `Skor kita saat ini di angka ${formatScore(selected.saat_ini)}%, sementara harapan tim ada di ${formatScore(selected.harapan)}%` +
       (gap != null ? ` (selisih ${formatScore(gap)}%).` : "."),
