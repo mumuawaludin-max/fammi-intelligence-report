@@ -318,16 +318,19 @@ export async function runMiGenerateAction(rows, onProgress) {
     onProgress?.(i + 1, rows.length);
   }
 
-  for (const delayMs of RETRY_PASS_DELAYS_MS) {
+  for (let pass = 0; pass < RETRY_PASS_DELAYS_MS.length; pass++) {
     const gagalTransient = results
       .map((r, i) => ({ r, i }))
       .filter(({ r }) => !r.ok && isTransientGeminiError(r.error));
     if (gagalTransient.length === 0) break;
 
-    await sleep(delayMs);
+    // waiting:true dulu SEBELUM sleep -- UI (Upload.jsx) butuh tahu sedang menunggu jeda retry
+    // (bukan macet), baru sesudah sleep dilaporkan sedang mencoba ulang satu-satu.
+    onProgress?.(rows.length, rows.length, { pass: pass + 1, ofPass: RETRY_PASS_DELAYS_MS.length, sisaGagal: gagalTransient.length, waiting: true });
+    await sleep(RETRY_PASS_DELAYS_MS[pass]);
     for (const { i } of gagalTransient) {
       results[i] = await generateSatuMi(rows[i]);
-      onProgress?.(rows.length, rows.length);
+      onProgress?.(rows.length, rows.length, { pass: pass + 1, ofPass: RETRY_PASS_DELAYS_MS.length, sisaGagal: gagalTransient.length, waiting: false });
     }
   }
   return results;
@@ -440,16 +443,19 @@ export async function runScIndividuGenerateAction(personalRows, onProgress) {
     if (i < personalRows.length - 1) await sleep(600);
   }
 
-  for (const delayMs of RETRY_PASS_DELAYS_MS) {
+  for (let pass = 0; pass < RETRY_PASS_DELAYS_MS.length; pass++) {
     const gagalTransient = results
       .map((r, i) => ({ r, i }))
       .filter(({ r }) => !r.ok && isTransientGeminiError(r.error));
     if (gagalTransient.length === 0) break;
 
-    await sleep(delayMs);
+    // waiting:true dulu SEBELUM sleep -- UI (Upload.jsx) butuh tahu sedang menunggu jeda retry
+    // karena Gemini overload (bukan macet), baru sesudah sleep dilaporkan sedang mencoba ulang.
+    onProgress?.(personalRows.length, personalRows.length, { pass: pass + 1, ofPass: RETRY_PASS_DELAYS_MS.length, sisaGagal: gagalTransient.length, waiting: true });
+    await sleep(RETRY_PASS_DELAYS_MS[pass]);
     for (const { i } of gagalTransient) {
       results[i] = await generateSatuSc(personalRows[i]);
-      onProgress?.(personalRows.length, personalRows.length);
+      onProgress?.(personalRows.length, personalRows.length, { pass: pass + 1, ofPass: RETRY_PASS_DELAYS_MS.length, sisaGagal: gagalTransient.length, waiting: false });
       await sleep(600);
     }
   }

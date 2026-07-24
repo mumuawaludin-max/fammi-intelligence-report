@@ -14,6 +14,18 @@ import { periodeLabel } from '../../karakter/karakterMeta';
 const SEKOLAH_MI = '__mi__';
 const STEPS = ['Sekolah', 'Modul', 'Upload file', 'Cek & konfirmasi'];
 
+// Progress bar terlihat "macet" di 100% selama beberapa menit kalau Gemini sedang padat (503) --
+// bilah tetap penuh karena onProgress lapis retry (runMiGenerateAction/runScIndividuGenerateAction
+// di useAdminCmsData.js) memang melapor done=total selama fase ini. Tanpa pesan ini, admin tidak
+// bisa membedakan "masih jalan, cuma lambat karena retry" dari "beneran macet/error" -- itu sendiri
+// yang bikin laporan "kenapa masih error" padahal prosesnya masih berjalan di background.
+function retryStatusText(retry) {
+  if (!retry) return null;
+  return retry.waiting
+    ? `Gemini sedang padat (503), menunggu sebelum mencoba ulang ${retry.sisaGagal} yang gagal (putaran ${retry.pass}/${retry.ofPass})…`
+    : `Mencoba ulang ${retry.sisaGagal} yang sempat gagal (putaran ${retry.pass}/${retry.ofPass})…`;
+}
+
 export function Upload() {
   const { data, loading, error, runImport, runMiGenerate, runScIndividuGenerate, refetch } = useCms();
   const [step, setStep] = useState(1);
@@ -120,7 +132,7 @@ export function Upload() {
     try {
       if (isMi) {
         setMiProgress({ done: 0, total: parsed.rows.length });
-        const results = await runMiGenerate(parsed.rows, (done, total) => setMiProgress({ done, total }));
+        const results = await runMiGenerate(parsed.rows, (done, total, retry) => setMiProgress({ done, total, retry }));
         setMiProgress(null);
         setMiResults(results);
         // Tetap di langkah 4 supaya admin lihat ringkasan berhasil/gagal per siswa.
@@ -148,7 +160,7 @@ export function Upload() {
     try {
       const personalRows = await loadScPersonalIdsAction(sekolahId, periodeSc);
       setScProgress({ done: 0, total: personalRows.length });
-      const results = await runScIndividuGenerate(personalRows, (done, total) => setScProgress({ done, total }));
+      const results = await runScIndividuGenerate(personalRows, (done, total, retry) => setScProgress({ done, total, retry }));
       setScProgress(null);
       setScResults(results);
     } catch (e) {
@@ -332,6 +344,9 @@ export function Upload() {
                     <div style={{ height: '100%', width: `${Math.round((miProgress.done / miProgress.total) * 100)}%`, background: 'var(--purple-600)', transition: '.3s' }} />
                   </div>
                   <div style={{ fontSize: 12, color: 'var(--ink-3)', marginTop: 6 }}>Memproses {miProgress.done}/{miProgress.total} siswa…</div>
+                  {retryStatusText(miProgress.retry) && (
+                    <div style={{ fontSize: 12, color: 'var(--status-warn)', marginTop: 4 }}>⚠ {retryStatusText(miProgress.retry)}</div>
+                  )}
                 </div>
               )}
               <div style={{ display: 'flex', gap: 8 }}>
@@ -454,6 +469,9 @@ export function Upload() {
                         <div style={{ height: '100%', width: `${Math.round((scProgress.done / scProgress.total) * 100)}%`, background: 'var(--purple-600)', transition: '.3s' }} />
                       </div>
                       <div style={{ fontSize: 12, color: 'var(--ink-3)', marginTop: 6 }}>Memproses {scProgress.done}/{scProgress.total} staf…</div>
+                      {retryStatusText(scProgress.retry) && (
+                        <div style={{ fontSize: 12, color: 'var(--status-warn)', marginTop: 4 }}>⚠ {retryStatusText(scProgress.retry)}</div>
+                      )}
                     </div>
                   )}
                   <div style={{ display: 'flex', gap: 8 }}>
