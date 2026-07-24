@@ -86,7 +86,7 @@ const RESPONDEN_1: LaporanIndividuSC = {
     {
       id: "sc1-inovasi",
       judul: "Ajukan satu metode mengajar baru untuk diuji coba di kelas.",
-      alasan: "Harapan Anda pada ruang eksperimen mengajar 13 poin lebih tinggi dari kondisi sekarang. Memulai dari satu ide konkret lebih efektif daripada menunggu ruangnya dibuka lebih dulu.",
+      alasan: "Harapan pada ruang eksperimen mengajar 13 poin lebih tinggi dari kondisi sekarang. Memulai dari satu ide konkret lebih efektif daripada menunggu ruangnya dibuka lebih dulu.",
       terkait: "Inovasi",
       jangka: "Bulan ini",
       ikon: "💡",
@@ -94,15 +94,15 @@ const RESPONDEN_1: LaporanIndividuSC = {
     {
       id: "sc1-balance",
       judul: "Petakan ulang jadwal minggu menjelang ujian.",
-      alasan: "Work-Life Balance jadi subdimensi terendah Anda (68%, kategori Sedang). Memetakan lebih awal menjaga ini tidak turun saat jadwal ujian menumpuk.",
+      alasan: "Work-Life Balance jadi subdimensi terendah (68%, kategori Sedang). Memetakan lebih awal menjaga ini tidak turun saat jadwal ujian menumpuk.",
       terkait: "Work-Life Balance",
       jangka: "Minggu ini",
       ikon: "🗓️",
     },
     {
       id: "sc1-mentor",
-      judul: "Bagikan cara mengajar Anda ke rekan guru yang lebih baru.",
-      alasan: "Kenyamanan bekerja Anda sangat tinggi (90%). Kekuatan ini paling bernilai kalau ditularkan, bukan disimpan sendiri.",
+      judul: "Bagikan cara mengajar ke rekan guru yang lebih baru.",
+      alasan: "Kenyamanan bekerja sangat tinggi (90%). Kekuatan ini paling bernilai kalau ditularkan, bukan disimpan sendiri.",
       terkait: "Kenyamanan Bekerja",
       jangka: "3 bulan",
       ikon: "🤝",
@@ -181,7 +181,7 @@ const RESPONDEN_2: LaporanIndividuSC = {
     {
       id: "sc2-klan",
       judul: "Jadwalkan satu obrolan santai dengan rekan di luar urusan pekerjaan.",
-      alasan: "Selisih terbesar Anda ada di sisi kekeluargaan (28 poin). Kedekatan biasanya tumbuh dari percakapan kecil yang berulang.",
+      alasan: "Selisih terbesar ada di sisi kekeluargaan (28 poin). Kedekatan biasanya tumbuh dari percakapan kecil yang berulang.",
       terkait: "Kekeluargaan",
       jangka: "Minggu ini",
       ikon: "☕",
@@ -189,7 +189,7 @@ const RESPONDEN_2: LaporanIndividuSC = {
     {
       id: "sc2-ekspektasi",
       judul: "Catat tiga hal yang membuat pekerjaan terasa kurang sesuai harapan, lalu bicarakan dengan atasan.",
-      alasan: "Ekspektasi terpenuhi jadi subdimensi terendah Anda (40%, kategori Rendah). Data tertulis membuat pembicaraan lebih mudah ditindaklanjuti.",
+      alasan: "Ekspektasi terpenuhi jadi subdimensi terendah (40%, kategori Rendah). Data tertulis membuat pembicaraan lebih mudah ditindaklanjuti.",
       terkait: "Ekspektasi Terpenuhi",
       jangka: "2 minggu",
       ikon: "📋",
@@ -197,7 +197,7 @@ const RESPONDEN_2: LaporanIndividuSC = {
     {
       id: "sc2-prosedur",
       judul: "Usulkan satu langkah persetujuan administrasi yang bisa disederhanakan.",
-      alasan: "Anda merasakan prosedur berlapis paling kuat di antara semua tipe budaya (70%). Usulan spesifik dari orang yang menjalankannya biasanya paling didengar.",
+      alasan: "Prosedur berlapis dirasakan paling kuat di antara semua tipe budaya (70%). Usulan spesifik dari orang yang menjalankannya biasanya paling didengar.",
       terkait: "Aturan",
       jangka: "1 bulan",
       ikon: "✂️",
@@ -275,8 +275,8 @@ const RESPONDEN_3: LaporanIndividuSC = {
   rencana_aksi: [
     {
       id: "sc3-bicara",
-      judul: "Bicarakan beban kerja Anda dengan Kepala Sekolah minggu ini.",
-      alasan: "Kenyamanan bekerja Anda di 34% (Rendah) dan Work-Life Balance 29% (Sangat Rendah). Dua angka ini bersamaan adalah sinyal kelelahan kerja yang sebaiknya tidak ditunda.",
+      judul: "Bicarakan beban kerja dengan Kepala Sekolah minggu ini.",
+      alasan: "Kenyamanan bekerja di 34% (Rendah) dan Work-Life Balance 29% (Sangat Rendah). Dua angka ini bersamaan adalah sinyal kelelahan kerja yang sebaiknya tidak ditunda.",
       terkait: "Kenyamanan Bekerja",
       jangka: "Minggu ini",
       ikon: "🗣️",
@@ -284,7 +284,7 @@ const RESPONDEN_3: LaporanIndividuSC = {
     {
       id: "sc3-batas",
       judul: "Tetapkan satu batas waktu berhenti kerja, lalu patuhi selama dua minggu.",
-      alasan: "Work-Life Balance Anda 29% (Sangat Rendah). Batas yang jelas dan konsisten lebih membantu daripada niat mengurangi jam kerja secara umum.",
+      alasan: "Work-Life Balance di 29% (Sangat Rendah). Batas yang jelas dan konsisten lebih membantu daripada niat mengurangi jam kerja secara umum.",
       terkait: "Work-Life Balance",
       jangka: "2 minggu",
       ikon: "⏰",
@@ -292,7 +292,7 @@ const RESPONDEN_3: LaporanIndividuSC = {
     {
       id: "sc3-dukungan",
       judul: "Minta bantuan konkret ke satu rekan guru senior untuk tugas yang menumpuk.",
-      alasan: "Sinergi Tim Anda di 46% (Sedang), masih ada ruang untuk dimanfaatkan. Permintaan yang spesifik lebih mudah dipenuhi daripada keluhan umum.",
+      alasan: "Sinergi Tim di 46% (Sedang), masih ada ruang untuk dimanfaatkan. Permintaan yang spesifik lebih mudah dipenuhi daripada keluhan umum.",
       terkait: "Sinergi Tim",
       jangka: "Minggu ini",
       ikon: "🤝",
@@ -300,7 +300,7 @@ const RESPONDEN_3: LaporanIndividuSC = {
     {
       id: "sc3-jeda",
       judul: "Sisipkan jeda 15 menit tanpa layar di tengah hari kerja.",
-      alasan: "Rekan guru menyebut Anda jarang terlihat benar-benar berhenti. Jeda pendek yang rutin memulihkan fokus lebih baik daripada istirahat panjang sesekali.",
+      alasan: "Rekan guru beberapa kali menyebut pola kerja yang jarang benar-benar berhenti. Jeda pendek yang rutin memulihkan fokus lebih baik daripada istirahat panjang sesekali.",
       terkait: "Kepuasan pada Kepemimpinan",
       jangka: "Mulai hari ini",
       ikon: "🌿",
@@ -325,12 +325,12 @@ export const MOCK_LAPORAN_AGREGAT_SC: LaporanAgregatSC = {
     jumlah_responden: 68,
   },
   header: {
-    hook: "Budaya kerja sekolah Anda condong kekeluargaan, tapi kesejahteraan staf jenjang SMA/SMK perlu perhatian.",
+    hook: "Budaya kerja sekolah Anda condong kekeluargaan, tapi kesejahteraan Tim jenjang SMA/SMK perlu perhatian.",
     sub_hook: "Ringkasan dari 68 guru dan tenaga kependidikan lintas empat unit pada periode ini.",
   },
   bagian_budaya: {
     narasi:
-      "Secara umum staf merasakan budaya Kekeluargaan paling kuat, dengan harapan yang juga bergerak ke arah sana, artinya arah yang diinginkan staf sudah sejalan dengan kondisi saat ini. Gap terbesar ada pada Inovasi, staf berharap ruang mencoba metode mengajar baru lebih terbuka dari kondisi sekarang.",
+      "Secara umum Tim merasakan budaya Kekeluargaan paling kuat, dengan harapan yang juga bergerak ke arah sana, artinya arah yang diinginkan Tim sudah sejalan dengan kondisi saat ini. Gap terbesar ada pada Inovasi, Tim berharap ruang mencoba metode mengajar baru lebih terbuka dari kondisi sekarang.",
     chart_data: [
       // status di sini DIHITUNG lewat ranking |nilai_gap| (sama seperti statusBudayaPerTipe di
       // useScData.js) supaya QA visual konsisten dengan perilaku data asli: Inovasi (gap 15)
@@ -338,7 +338,7 @@ export const MOCK_LAPORAN_AGREGAT_SC: LaporanAgregatSC = {
       // "Ringan". priorityActions/phases/targetImpact SENGAJA cuma diisi untuk Inovasi (demo
       // dimensi yang punya tindak_lanjut cocok) -- tiga dimensi lain dibiarkan kosong supaya
       // empty-state "belum tersedia" di ScBudayaGapComparison/ScBudayaActionPlan ikut teruji.
-      { tipe: "Kekeluargaan", saat_ini: 60, harapan: 69, status: "Ringan", interpretation: "Staf sudah merasakan kedekatan yang cukup kuat, harapan bergerak searah, tinggal dijaga konsistensinya." },
+      { tipe: "Kekeluargaan", saat_ini: 60, harapan: 69, status: "Ringan", interpretation: "Tim sudah merasakan kedekatan yang cukup kuat, harapan bergerak searah, tinggal dijaga konsistensinya." },
       {
         tipe: "Inovasi", saat_ini: 42, harapan: 57, status: "Perlu perhatian",
         descriptor: "Kreativitas & perbaikan", interpretation: "Ruang eksperimen metode mengajar masih terbatas, ini gap terbesar di antara keempat tipe budaya periode ini.",
@@ -348,7 +348,7 @@ export const MOCK_LAPORAN_AGREGAT_SC: LaporanAgregatSC = {
           "Buat jalur sederhana untuk guru mengajukan ide tanpa birokrasi panjang.",
         ],
         phases: [
-          { aksi: "Kumpulkan ide dari staf dan prioritaskan berdasarkan dampak.", waktu: "Minggu ini" },
+          { aksi: "Kumpulkan ide dari Tim dan prioritaskan berdasarkan dampak.", waktu: "Minggu ini" },
           { aksi: "Bentuk tim eksperimen kecil lintas peran dan tetapkan ukuran keberhasilan.", waktu: "Bulan ini" },
           { aksi: "Bandingkan hasil dengan kondisi awal, dokumentasikan yang terbukti efektif.", waktu: "3 bulan" },
         ],
@@ -406,7 +406,7 @@ export const MOCK_LAPORAN_AGREGAT_SC: LaporanAgregatSC = {
   },
   bagian_profil_organisasi: {
     narasi:
-      "Karakter Lembaga jadi dimensi tertinggi (kekeluargaan yang dirasakan kuat), sementara Sinergi Tim relatif paling rendah, staf antarjenjang belum banyak berkolaborasi lintas unit.",
+      "Karakter Lembaga jadi dimensi tertinggi (kekeluargaan yang dirasakan kuat), sementara Sinergi Tim relatif paling rendah, Tim antarjenjang belum banyak berkolaborasi lintas unit.",
     chart_data: [
       { kode: "karakter_lembaga", label: "Karakter Lembaga", nilai: 76, kategori: "Sangat Tinggi" },
       { kode: "kepemimpinan", label: "Kepemimpinan", nilai: 63, kategori: "Sedang" },
@@ -468,7 +468,7 @@ export const MOCK_LAPORAN_AGREGAT_SC: LaporanAgregatSC = {
   ],
   footer: {
     disclaimer:
-      "Laporan ini adalah hasil pengolahan jawaban asesmen seluruh staf yang mengisi pada periode berjalan dan bersifat rahasia. Gunakan sebagai bahan pengambilan keputusan sekolah, bukan alat evaluasi individu staf tertentu.",
+      "Laporan ini adalah hasil pengolahan jawaban asesmen seluruh Tim yang mengisi pada periode berjalan dan bersifat rahasia. Gunakan sebagai bahan pengambilan keputusan sekolah, bukan alat evaluasi individu anggota Tim tertentu.",
   },
   // Dihitung tangan dari 3 responden MOCK_LAPORAN_INDIVIDU_SC di atas -- cuma untuk QA visual
   // komponen ScAnalisisCharts.jsx (Fase B), BUKAN representasi statistik nyata (n=3 terlalu
@@ -552,9 +552,9 @@ export const MOCK_LAPORAN_AGREGAT_SC: LaporanAgregatSC = {
   // Fase D item 12 -- contoh hasil pengelompokan Gemini (sudah lewat approve briefing di CMS),
   // ringkasan diparafrasekan, bukan kutipan verbatim.
   tema_esai: [
-    { tema: "Beban kerja jelang ujian", ringkasan: "Beberapa staf menyebut jadwal jadi sangat padat menjelang periode ujian, sampai sulit mengambil waktu istirahat yang cukup.", jumlah_mention: 5 },
+    { tema: "Beban kerja jelang ujian", ringkasan: "Beberapa anggota Tim menyebut jadwal jadi sangat padat menjelang periode ujian, sampai sulit mengambil waktu istirahat yang cukup.", jumlah_mention: 5 },
     { tema: "Ingin ruang kolaborasi lintas jenjang", ringkasan: "Ada keinginan berulang untuk lebih sering bertukar praktik mengajar dengan rekan dari jenjang lain, bukan cuma dalam forum formal.", jumlah_mention: 4 },
-    { tema: "Apresiasi atas dukungan pimpinan", ringkasan: "Beberapa staf menyampaikan rasa terbantu dengan keterbukaan pimpinan mendengarkan keluhan sehari-hari.", jumlah_mention: 3 },
+    { tema: "Apresiasi atas dukungan pimpinan", ringkasan: "Beberapa anggota Tim menyampaikan rasa terbantu dengan keterbukaan pimpinan mendengarkan keluhan sehari-hari.", jumlah_mention: 3 },
   ],
   // Fase E item 14 -- 3 periode sintetis buat QA visual ScTrenLineChart (data asli baru akan
   // punya ini kalau sekolahnya sudah lewat 2+ periode assessment).
@@ -571,15 +571,15 @@ export const MOCK_LAPORAN_AGREGAT_SC: LaporanAgregatSC = {
   // verbatim staf mana pun, lihat CeritaPegawai di sc.types.ts.
   cerita_pegawai: {
     saat_ini: [
-      "Beberapa staf merasa suasana kerja sehari-hari terasa hangat, saling membantu antar rekan tanpa diminta.",
+      "Beberapa anggota Tim merasa suasana kerja sehari-hari terasa hangat, saling membantu antar rekan tanpa diminta.",
       "Ada yang menyebut sering diberi kepercayaan memegang tanggung jawab baru dan merasa didukung pimpinan saat mengelolanya.",
-      "Beberapa staf sudah bekerja sejak organisasi ini berdiri, dan merasa itu jadi bagian dari identitas mereka di sini.",
+      "Beberapa anggota Tim sudah bekerja sejak organisasi ini berdiri, dan merasa itu jadi bagian dari identitas mereka di sini.",
       "Sapaan dan keramahan saat datang kerja disebut berulang sebagai hal yang membuat suasana terasa nyaman.",
     ],
     ingin_diubah: [
-      "Beberapa staf berharap ada perencanaan kerja yang lebih matang, tidak mendadak.",
+      "Beberapa anggota Tim berharap ada perencanaan kerja yang lebih matang, tidak mendadak.",
       "Ada keinginan agar kebiasaan kerja lama ikut beradaptasi dengan kebutuhan digital yang berkembang cepat.",
-      "Beberapa staf ingin lebih leluasa mengonfirmasi ulang pemahaman tanpa merasa sungkan.",
+      "Beberapa anggota Tim ingin lebih leluasa mengonfirmasi ulang pemahaman tanpa merasa sungkan.",
       "Ada harapan apresiasi dan motivasi diberikan lebih rutin, tidak cuma sesekali.",
     ],
   },

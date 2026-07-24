@@ -163,6 +163,11 @@ export interface ScMeta {
   organisasi_id: string;
   /** Format "YYYY-MM". */
   periode_id: string;
+  /** Nama sekolah/lembaga (tabel schools.nama) -- dipakai frontend menyusun kalimat header
+   * (ScLaporanIndividuPage.jsx) yang perlu tahu siapa yang membuka laporan (pemilik vs
+   * drill-down pimpinan) untuk memilih sapaan "Anda"/"Tim" yang tepat. Opsional: laporan lama
+   * yang digenerate sebelum field ini ada tetap valid, frontend jatuh ke header.hook statis. */
+  nama_lembaga?: string;
 }
 
 /** Satu langkah tindak lanjut pribadi -- ASUMSI, sama alasannya dengan AksiPribadi di cw.types.ts. */
@@ -186,6 +191,9 @@ export interface JawabanSurveyIndividu {
   hal_menguras_energi?: string;
   yang_ingin_disampaikan?: string;
   yang_ingin_diubah?: string;
+  /** Q1 verbatim, "gambaran lembaga saat ini" -- dipakai frontend menyusun kalimat header
+   * bersama meta.nama_lembaga (lihat catatan di sana). */
+  gambaran_lembaga?: string;
 }
 
 /** Komitmen 30 hari milik staf (tabel sc_komitmen, migration 20260726100000) -- fitur tulis

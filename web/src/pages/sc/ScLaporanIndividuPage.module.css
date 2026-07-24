@@ -476,20 +476,6 @@
   font-weight: 750;
 }
 
-.wbSignal {
-  flex: 0 0 auto;
-  color: var(--ink-3);
-  font-size: 9.5px;
-  font-style: normal;
-  font-weight: 800;
-  letter-spacing: 0.03em;
-  text-transform: uppercase;
-}
-
-.wbSignalWarn {
-  color: var(--status-warn, #D69219);
-}
-
 .wbScoreRow {
   display: flex;
   align-items: baseline;

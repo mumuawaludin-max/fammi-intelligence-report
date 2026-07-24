@@ -9,22 +9,22 @@
  * footer kedua laporan (agregat & individu) supaya pembaca tahu dasar instrumennya tanpa perlu
  * dokumen terpisah. Bukan fitur interaktif, cuma satu kalimat transparansi. */
 export const METODOLOGI_NOTE =
-  "Instrumen: asesmen budaya kerja (kerangka nilai bersaing, kondisi sekarang vs harapan staf) dan kesejahteraan staf School Culture. Skor sudah final dari pipeline pengolahan Fammi; laporan ini menata dan merangkai narasinya, bukan menghitung ulang.";
+  "Instrumen: asesmen budaya kerja (kerangka nilai bersaing, kondisi sekarang vs harapan Tim) dan kesejahteraan Tim School Culture. Skor sudah final dari pipeline pengolahan Fammi; laporan ini menata dan merangkai narasinya, bukan menghitung ulang.";
 
 export const TIPE_BUDAYA_INFO = {
   Kekeluargaan: {
     icon: "🤝",
     ringkas: "Hangat & kekeluargaan",
     deskripsi:
-      "Sekolah terasa seperti keluarga besar. Yang ditekankan kebersamaan, saling membantu antar guru dan staf, serta kedekatan dengan pimpinan. Pimpinan berperan sebagai pembimbing.",
+      "Sekolah terasa seperti keluarga besar. Yang ditekankan kebersamaan, saling membantu antar guru dan Tim, serta kedekatan dengan pimpinan. Pimpinan berperan sebagai pembimbing.",
     implikasiNaik:
-      "Staf ingin suasana kerja yang lebih dekat dan personal dari kondisi sekarang. Pertimbangkan ruang ngobrol informal antar guru, mentoring lintas jenjang, atau kegiatan kebersamaan rutin.",
+      "Tim ingin suasana kerja yang lebih dekat dan personal dari kondisi sekarang. Pertimbangkan ruang ngobrol informal antar guru, mentoring lintas jenjang, atau kegiatan kebersamaan rutin.",
     implikasiTurun:
-      "Staf sudah cukup nyaman dengan kedekatan yang ada, bahkan menurutnya bisa sedikit dikurangi. Jaga sisi ini, tidak perlu ditambah lebih jauh.",
+      "Tim sudah cukup nyaman dengan kedekatan yang ada, bahkan menurutnya bisa sedikit dikurangi. Jaga sisi ini, tidak perlu ditambah lebih jauh.",
     facets: [
       "Suasana kerja terasa hangat dan saling membantu",
       "Pimpinan berperan sebagai pembimbing, bukan cuma atasan",
-      "Kedekatan personal antar staf jadi perekat utama",
+      "Kedekatan personal antar Tim jadi perekat utama",
       "Loyalitas dan kebersamaan dihargai lebih dari kompetisi",
     ],
   },
@@ -34,7 +34,7 @@ export const TIPE_BUDAYA_INFO = {
     deskripsi:
       "Sekolah mendorong metode mengajar dan ide baru. Yang dihargai kreativitas guru, kelincahan menyesuaikan kurikulum, dan keberanian mencoba pendekatan belajar baru.",
     implikasiNaik:
-      "Staf merasa ruang mencoba metode baru masih terbatas. Pertimbangkan waktu khusus untuk uji coba pendekatan mengajar, jalur pengajuan ide yang sederhana, dan apresiasi untuk ide yang dicoba.",
+      "Tim merasa ruang mencoba metode baru masih terbatas. Pertimbangkan waktu khusus untuk uji coba pendekatan mengajar, jalur pengajuan ide yang sederhana, dan apresiasi untuk ide yang dicoba.",
     implikasiTurun:
       "Ruang eksperimen sudah dirasa cukup, bahkan mungkin terlalu banyak perubahan mendadak. Pertimbangkan menstabilkan metode yang sudah berjalan baik.",
     facets: [
@@ -50,9 +50,9 @@ export const TIPE_BUDAYA_INFO = {
     deskripsi:
       "Fokus utama pada pencapaian target dan mutu lulusan. Yang dihargai daya saing akademik, produktivitas, dan pemenuhan target sekolah.",
     implikasiNaik:
-      "Staf ingin orientasi hasil yang lebih kuat dari sekarang, biasanya berarti target atau ekspektasi kerja masih terasa kabur atau kurang menantang bagi mereka.",
+      "Tim ingin orientasi hasil yang lebih kuat dari sekarang, biasanya berarti target atau ekspektasi kerja masih terasa kabur atau kurang menantang bagi mereka.",
     implikasiTurun:
-      "Tekanan pencapaian target dirasa sudah tinggi, staf berharap ini diringankan. Ini sinyal risiko kelelahan kerja kalau dibiarkan, terutama bila berbarengan dengan indeks kesejahteraan rendah.",
+      "Tekanan pencapaian target dirasa sudah tinggi, Tim berharap ini diringankan. Ini sinyal risiko kelelahan kerja kalau dibiarkan, terutama bila berbarengan dengan indeks kesejahteraan rendah.",
     facets: [
       "Berorientasi pada pencapaian target dan mutu lulusan",
       "Daya saing akademik dan produktivitas jadi pendorong utama",
@@ -66,9 +66,9 @@ export const TIPE_BUDAYA_INFO = {
     deskripsi:
       "Sekolah berjalan di atas prosedur, tata tertib, dan jalur koordinasi yang jelas. Yang dihargai konsistensi, kedisiplinan, dan keandalan proses administrasi.",
     implikasiNaik:
-      "Staf merasa proses kerja masih kurang terstruktur, ingin prosedur yang lebih jelas dan konsisten.",
+      "Tim merasa proses kerja masih kurang terstruktur, ingin prosedur yang lebih jelas dan konsisten.",
     implikasiTurun:
-      "Staf merasa prosedur dan persetujuan berlapis sudah memberatkan, berharap alurnya disederhanakan. Perhatikan supaya penyederhanaan tidak mengorbankan hal yang memang wajib ketat (mis. keamanan anak).",
+      "Tim merasa prosedur dan persetujuan berlapis sudah memberatkan, berharap alurnya disederhanakan. Perhatikan supaya penyederhanaan tidak mengorbankan hal yang memang wajib ketat (mis. keamanan anak).",
     facets: [
       "Sekolah berjalan di atas prosedur dan tata tertib yang jelas",
       "Konsistensi dan kedisiplinan proses sangat dijaga",
@@ -79,9 +79,9 @@ export const TIPE_BUDAYA_INFO = {
 };
 
 const ARAH_TEKS = {
-  naik: "Staf berharap tipe budaya ini lebih kuat dari kondisi sekarang.",
-  turun: "Staf berharap tipe budaya ini lebih ringan dari kondisi sekarang.",
-  tetap: "Harapan staf sudah sejalan dengan kondisi sekarang.",
+  naik: "Tim berharap tipe budaya ini lebih kuat dari kondisi sekarang.",
+  turun: "Tim berharap tipe budaya ini lebih ringan dari kondisi sekarang.",
+  tetap: "Harapan Tim sudah sejalan dengan kondisi sekarang.",
 };
 
 export function arahTeks(arah) {
@@ -93,7 +93,7 @@ export function implikasiBudaya(tipe, arah) {
   if (!info) return "";
   if (arah === "naik") return info.implikasiNaik;
   if (arah === "turun") return info.implikasiTurun;
-  return "Tidak ada tindakan mendesak diperlukan untuk tipe budaya ini, kondisi saat ini sudah sesuai harapan staf.";
+  return "Tidak ada tindakan mendesak diperlukan untuk tipe budaya ini, kondisi saat ini sudah sesuai harapan Tim.";
 }
 
 export const ARAH_ICON = { naik: "↑", turun: "↓", tetap: "→" };
@@ -107,9 +107,9 @@ export const DIMENSI_PROFIL_INFO = {
   karakter_lembaga: {
     icon: "🏫",
     label: "Karakter Lembaga",
-    deskripsi: "Ciri khas keseharian sekolah yang paling terasa oleh staf, gabungan dari keempat tipe budaya.",
+    deskripsi: "Ciri khas keseharian sekolah yang paling terasa oleh Tim, gabungan dari keempat tipe budaya.",
     facets: [
-      "Ciri khas keseharian sekolah terasa oleh semua staf",
+      "Ciri khas keseharian sekolah terasa oleh seluruh Tim",
       "Gabungan dari keempat tipe budaya yang berjalan bersama",
       "Identitas sekolah tercermin jelas dalam interaksi harian",
     ],
@@ -117,7 +117,7 @@ export const DIMENSI_PROFIL_INFO = {
   kepemimpinan: {
     icon: "🧭",
     label: "Kepemimpinan",
-    deskripsi: "Bagaimana gaya pimpinan sekolah dirasakan staf sehari-hari, dari sisi pembimbingan sampai penekanan pencapaian.",
+    deskripsi: "Bagaimana gaya pimpinan sekolah dirasakan Tim sehari-hari, dari sisi pembimbingan sampai penekanan pencapaian.",
     facets: [
       "Gaya pimpinan terasa langsung dalam interaksi sehari-hari",
       "Rentang dari sisi membimbing sampai menekankan pencapaian",
@@ -127,10 +127,10 @@ export const DIMENSI_PROFIL_INFO = {
   management: {
     icon: "🗂️",
     label: "Manajemen",
-    deskripsi: "Bagaimana staf dikelola dalam keseharian kerja: kerja sama tim, ruang inisiatif, target, dan aturan kerja.",
+    deskripsi: "Bagaimana Tim dikelola dalam keseharian kerja: kerja sama tim, ruang inisiatif, target, dan aturan kerja.",
     facets: [
       "Kerja sama tim jadi bagian dari pengelolaan harian",
-      "Ruang inisiatif staf diberi tempat dalam pengelolaan",
+      "Ruang inisiatif Tim diberi tempat dalam pengelolaan",
       "Target dan aturan kerja berjalan berdampingan",
     ],
   },
@@ -139,7 +139,7 @@ export const DIMENSI_PROFIL_INFO = {
     label: "Sinergi Tim",
     deskripsi: "Perekat yang menyatukan sekolah: rasa saling percaya, semangat berkembang bersama, komitmen target, dan ketertiban.",
     facets: [
-      "Rasa saling percaya jadi perekat antarstaf",
+      "Rasa saling percaya jadi perekat antar Tim",
       "Semangat berkembang bersama terasa di keseharian",
       "Komitmen pada target dan ketertiban berjalan seiring",
     ],
@@ -157,10 +157,10 @@ export const DIMENSI_PROFIL_INFO = {
   performance: {
     icon: "📈",
     label: "Kinerja/Performa",
-    deskripsi: "Tolak ukur keberhasilan yang dipakai sekolah: berkembangnya staf, lahirnya program baru, mutu lulusan, atau efisiensi biaya.",
+    deskripsi: "Tolak ukur keberhasilan yang dipakai sekolah: berkembangnya Tim, lahirnya program baru, mutu lulusan, atau efisiensi biaya.",
     facets: [
       "Tolak ukur keberhasilan sekolah bervariasi antar unit",
-      "Bisa dari berkembangnya staf sampai efisiensi biaya",
+      "Bisa dari berkembangnya Tim sampai efisiensi biaya",
       "Ukuran ini menentukan apa yang dianggap berhasil",
     ],
   },
@@ -175,25 +175,25 @@ export const DIMENSI_PROFIL_INFO = {
 export const KESEJAHTERAAN_INFO = {
   kepuasan_kepemimpinan: {
     label: "Kepuasan pada Kepemimpinan",
-    deskripsi: "Sejauh mana staf merasa didengar, dibimbing, dan diperlakukan adil oleh pimpinan sekolah sehari-hari.",
+    deskripsi: "Sejauh mana Tim merasa didengar, dibimbing, dan diperlakukan adil oleh pimpinan sekolah sehari-hari.",
     facets: [
-      "Staf merasa didengar oleh pimpinan sekolah",
+      "Tim merasa didengar oleh pimpinan sekolah",
       "Pembimbingan dan arahan dirasa jelas dan adil",
-      "Kepercayaan antara staf dan pimpinan terjaga",
+      "Kepercayaan antara Tim dan pimpinan terjaga",
     ],
   },
   kenyamanan_bekerja: {
     label: "Kenyamanan Bekerja",
-    deskripsi: "Rasa aman dan nyaman staf dengan lingkungan, fasilitas, dan suasana kerja sehari-hari di sekolah.",
+    deskripsi: "Rasa aman dan nyaman Tim dengan lingkungan, fasilitas, dan suasana kerja sehari-hari di sekolah.",
     facets: [
       "Lingkungan dan fasilitas kerja terasa aman dan layak",
       "Suasana harian di sekolah dirasa nyaman",
-      "Staf merasa betah menjalani rutinitas kerja",
+      "Tim merasa betah menjalani rutinitas kerja",
     ],
   },
   pengembangan_diri: {
     label: "Pengembangan Diri",
-    deskripsi: "Ruang bagi staf untuk belajar hal baru, naik kompetensi, dan berkembang dalam kariernya di sekolah.",
+    deskripsi: "Ruang bagi Tim untuk belajar hal baru, naik kompetensi, dan berkembang dalam kariernya di sekolah.",
     facets: [
       "Ada ruang belajar hal baru dan naik kompetensi",
       "Jenjang karier di sekolah terasa terbuka",
@@ -202,7 +202,7 @@ export const KESEJAHTERAAN_INFO = {
   },
   ekspektasi: {
     label: "Ekspektasi Terpenuhi",
-    deskripsi: "Sejauh mana kenyataan bekerja di sekolah ini sesuai dengan yang staf bayangkan sebelum bergabung.",
+    deskripsi: "Sejauh mana kenyataan bekerja di sekolah ini sesuai dengan yang Tim bayangkan sebelum bergabung.",
     facets: [
       "Realita kerja sesuai bayangan awal bergabung",
       "Peran dan tanggung jawab sesuai yang dijanjikan",
@@ -211,9 +211,9 @@ export const KESEJAHTERAAN_INFO = {
   },
   work_life_balance: {
     label: "Work-Life Balance",
-    deskripsi: "Kemampuan staf menjaga keseimbangan antara tuntutan pekerjaan dan kehidupan pribadi/keluarga.",
+    deskripsi: "Kemampuan Tim menjaga keseimbangan antara tuntutan pekerjaan dan kehidupan pribadi/keluarga.",
     facets: [
-      "Staf mampu menjaga waktu untuk keluarga dan pribadi",
+      "Tim mampu menjaga waktu untuk keluarga dan pribadi",
       "Beban kerja tidak mengorbankan kehidupan di luar sekolah",
       "Waktu istirahat dan cuti dirasa cukup",
     ],
@@ -225,7 +225,7 @@ export const KESEJAHTERAAN_INFO = {
  * profil organisasi (skala sama). Supaya pembaca non-HR/psikolog tetap paham artinya.
  */
 const NILAI_INTERPRETASI = {
-  "Sangat Rendah": "Butuh perhatian segera, ini area yang paling berisiko menurunkan retensi staf dan mutu layanan kalau dibiarkan.",
+  "Sangat Rendah": "Butuh perhatian segera, ini area yang paling berisiko menurunkan retensi Tim dan mutu layanan kalau dibiarkan.",
   "Rendah": "Perlu jadi perhatian dalam waktu dekat, meski belum darurat.",
   "Sedang": "Dalam batas wajar, ada ruang untuk ditingkatkan tapi bukan prioritas mendesak.",
   "Tinggi": "Kondisi baik, pertahankan dengan praktik yang sudah berjalan.",

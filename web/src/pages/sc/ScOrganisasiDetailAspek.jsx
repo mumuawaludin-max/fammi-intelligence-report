@@ -48,7 +48,7 @@ export function ScOrganisasiDetailAspek({ sectionIndex, items, heatmapCells = []
       <ScLaporanReveal className={styles.heading}>
         <span className={styles.index}>{sectionIndex}</span>
         <h2>Penilaian Detail Terhadap Setiap Aspek</h2>
-        <p>Penilaian pegawai untuk setiap aspek dalam profil organisasi</p>
+        <p>Penilaian Tim untuk setiap aspek dalam profil organisasi</p>
       </ScLaporanReveal>
 
       {!adaData ? (

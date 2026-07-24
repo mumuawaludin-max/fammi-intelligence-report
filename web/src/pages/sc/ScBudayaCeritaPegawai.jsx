@@ -18,19 +18,19 @@ export function ScBudayaCeritaPegawai({ sectionIndex, ceritaPegawai }) {
     <section className={`${tokens.scope} ${styles.section}`}>
       <ScLaporanReveal className={styles.heading}>
         <span className={styles.index}>{sectionIndex}</span>
-        <h2>Cerita dari Para Pegawai</h2>
-        <p>Bagaimana para pegawai memandang kondisi saat ini dan apa yang ingin diubah</p>
+        <h2>Cerita dari Tim</h2>
+        <p>Bagaimana Tim memandang kondisi saat ini dan apa yang ingin diubah</p>
       </ScLaporanReveal>
 
       {!adaData ? (
         <p className={styles.gapNote}>
-          Cerita dari para pegawai belum tersedia untuk periode ini. Sintesis ini butuh draf briefing
+          Cerita dari Tim belum tersedia untuk periode ini. Sintesis ini butuh draf briefing
           digenerate ulang dan disetujui setelah section ini ditambahkan.
         </p>
       ) : (
         <div className={styles.grid}>
           <ScLaporanReveal className={styles.card}>
-            <p className={styles.cardEyebrow}>Cerita Pegawai tentang</p>
+            <p className={styles.cardEyebrow}>Cerita Tim tentang</p>
             <h3>Gambaran Tempat Kerja Saat Ini</h3>
             {saatIni.length > 0 ? (
               <ul className={styles.list}>
@@ -42,7 +42,7 @@ export function ScBudayaCeritaPegawai({ sectionIndex, ceritaPegawai }) {
           </ScLaporanReveal>
 
           <ScLaporanReveal className={styles.card} delay={0.06}>
-            <p className={styles.cardEyebrow}>Cerita Pegawai tentang</p>
+            <p className={styles.cardEyebrow}>Cerita Tim tentang</p>
             <h3>Ingin Mengubah Suasana Kerja</h3>
             {inginDiubah.length > 0 ? (
               <ul className={styles.list}>

@@ -49,7 +49,7 @@ export function ScKesejahteraanHero({
               <ScIconBadge icon="kesejahteraan" size="sm" tone="plain" />
               <div>
                 <dt>Responden</dt>
-                <dd>{jumlahResponden} pegawai</dd>
+                <dd>{jumlahResponden} anggota Tim</dd>
               </div>
             </div>
           </dl>

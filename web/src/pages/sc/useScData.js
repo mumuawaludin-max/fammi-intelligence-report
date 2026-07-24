@@ -502,7 +502,7 @@ export function useScAgregat(session, periodeId) {
         peringkat: i + 1,
         action: r.title,
         trigger_desc: r.teaser || r.mengapa_data || r.title,
-        area: r.fokus === "budaya" ? "Budaya Kerja" : "Kesejahteraan Staf",
+        area: r.fokus === "budaya" ? "Budaya Kerja" : "Kesejahteraan Tim",
         // Fase E item 13: waktu (jangka per langkah, mis. "Minggu ini"/"Bulan ini") dulu
         // dibuang di sini (cuma k.aksi diambil) -- sekarang dipertahankan supaya ScTimeline
         // di ScLaporanAgregatPage.jsx bisa menampilkan visual 30-60-90 per langkah, bukan
@@ -519,18 +519,18 @@ export function useScAgregat(session, periodeId) {
       header: {
         hook: briefingAtPeriode?.teks
           || `Budaya kerja sekolah Anda paling condong ke ${dominan?.tipe || "—"} periode ini.`,
-        sub_hook: `Ringkasan dari ${sekolah.jumlah_responden || 0} staf pada periode ${periodeLabel(periode)}.`,
+        sub_hook: `Ringkasan dari ${sekolah.jumlah_responden || 0} anggota Tim pada periode ${periodeLabel(periode)}.`,
       },
       bagian_budaya: {
         narasi: gapTop
-          ? `Budaya yang paling terasa saat ini adalah ${dominan?.tipe} (${dominan?.mean_gambaran}%). Selisih terbesar antara kondisi sekarang dan harapan staf ada pada ${gapTop.tipe} (${gapTop.gap > 0 ? "+" : ""}${gapTop.gap} poin).`
+          ? `Budaya yang paling terasa saat ini adalah ${dominan?.tipe} (${dominan?.mean_gambaran}%). Selisih terbesar antara kondisi sekarang dan harapan Tim ada pada ${gapTop.tipe} (${gapTop.gap > 0 ? "+" : ""}${gapTop.gap} poin).`
           : "",
         chart_data: chartBudaya,
         tabel_gap: tabelGap,
       },
       bagian_kesejahteraan: {
         narasi: kesTertinggi && kesTerendah
-          ? `Indeks kesejahteraan gabungan staf berada di sekitar ${indeksKesejahteraan}%. ${kesTertinggi.label} jadi subdimensi terkuat (${kesTertinggi.nilai}%), sementara ${kesTerendah.label} paling perlu diperhatikan (${kesTerendah.nilai}%).`
+          ? `Indeks kesejahteraan gabungan Tim berada di sekitar ${indeksKesejahteraan}%. ${kesTertinggi.label} jadi subdimensi terkuat (${kesTertinggi.nilai}%), sementara ${kesTerendah.label} paling perlu diperhatikan (${kesTerendah.nilai}%).`
           : "",
         indeks: indeksKesejahteraan,
         kategori: kategoriDariNilai(indeksKesejahteraan),
@@ -573,7 +573,7 @@ export function useScAgregat(session, periodeId) {
         jumlah_responden_dianalisis: personalAtPeriode.length,
       },
       footer: {
-        disclaimer: "Laporan ini adalah hasil pengolahan jawaban asesmen seluruh staf yang mengisi pada periode berjalan dan bersifat rahasia. Gunakan sebagai bahan pengambilan keputusan sekolah, bukan alat evaluasi individu staf tertentu.",
+        disclaimer: "Laporan ini adalah hasil pengolahan jawaban asesmen seluruh Tim yang mengisi pada periode berjalan dan bersifat rahasia. Gunakan sebagai bahan pengambilan keputusan sekolah, bukan alat evaluasi individu anggota Tim tertentu.",
       },
       tema_esai: briefingAtPeriode?.tema_esai || [],
       cerita_pegawai: briefingAtPeriode?.cerita_pegawai || null,

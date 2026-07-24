@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { DIMENSI_PROFIL_INFO, KESEJAHTERAAN_INFO, TIPE_BUDAYA_INFO, implikasiBudaya, toneKesejahteraan } from "./scMeta";
+import { DIMENSI_PROFIL_INFO, KESEJAHTERAAN_INFO, TIPE_BUDAYA_INFO, implikasiBudaya } from "./scMeta";
 import { useReveal } from "./scHooks";
 import { useScKomitmen } from "./useScData";
 import styles from "./ScLaporanIndividuPage.module.css";
@@ -42,11 +42,6 @@ function formatScore(v) {
   return v == null ? "--" : Math.round(v);
 }
 
-/** Padanan signalLabel referensi (strength/attention/steady), dipetakan dari `kategori` yang
- * sudah final lewat toneKesejahteraan (scMeta.js) -- BUKAN ambang baru, cuma relabel kategori
- * kualitatif yang sudah ada supaya konsisten dengan bahasa "sinyal" di seluruh halaman ini. */
-const SIGNAL_LABEL = { baik: "Kekuatan", netral: "Cukup terjaga", waspada: "Perlu diamati" };
-
 const WELLBEING_ICON = {
   kepuasan_kepemimpinan: "🛡️",
   kenyamanan_bekerja: "💗",
@@ -56,23 +51,32 @@ const WELLBEING_ICON = {
 };
 
 /** Tiga langkah kontribusi peran -- copy STATIS (padanan TIPE_BUDAYA_INFO/KESEJAHTERAAN_INFO),
- * bukan dihitung per laporan. Skema data tidak punya field granular per-langkah untuk ini. */
-const ROLE_CONTRIBUTION_STEPS = [
-  { icon: "🚩", title: "Fokus strategi", detail: "Arah utama sekolah yang menjadi panduan bersama." },
-  { icon: "📋", title: "Prioritas unit", detail: "Pilihan kerja unit Anda yang paling mendukung arah itu." },
-  { icon: "🗓️", title: "Kebiasaan kerja", detail: "Keputusan harian yang benar-benar ada di tangan Anda." },
-];
+ * bukan dihitung per laporan. Skema data tidak punya field granular per-langkah untuk ini.
+ * Fungsi (bukan konstanta) supaya sapaan "Anda"/"Tim" menyesuaikan siapa yang membuka laporan --
+ * pemilik sendiri vs drill-down pimpinan (viewerIsOwner). Kata "staf"/"pegawai" sengaja dihindari
+ * di seluruh laporan ini, "Tim" dipakai sebagai gantinya (instruksi eksplisit pemilik produk). */
+function roleContributionSteps(viewerIsOwner) {
+  const p = viewerIsOwner ? "Anda" : "Tim";
+  return [
+    { icon: "🚩", title: "Fokus strategi", detail: "Arah utama sekolah yang menjadi panduan bersama." },
+    { icon: "📋", title: "Prioritas unit", detail: `Pilihan kerja unit ${p} yang paling mendukung arah itu.` },
+    { icon: "🗓️", title: "Kebiasaan kerja", detail: `Keputusan harian yang benar-benar ada di tangan ${p}.` },
+  ];
+}
 
 /** Lingkar kontribusi -- penjelas KONSEP statis (kendali/pengaruh/sistem), bukan kategorisasi
  * rencana_aksi asli. Skema AksiPribadi (sc.types.ts) tidak punya field locus, jadi memaksa tiap
  * rencana_aksi masuk salah satu dari tiga kelompok ini berarti FIR mengarang klasifikasi yang
  * tidak ada di data -- dihindari sesuai CLAUDE.md ("FIR tidak menghitung apa pun"). Rencana aksi
  * asli tetap tampil apa adanya di bagian "Komitmen 30 hari" tepat di bawah penjelas ini. */
-const AGENCY_TERRITORIES = [
-  { key: "control", title: "Dalam kendali saya", desc: "Langkah yang bisa langsung Anda putuskan dan jalankan sendiri, tanpa menunggu orang lain." },
-  { key: "influence", title: "Bisa saya pengaruhi", desc: "Butuh percakapan atau kerja sama dengan rekan/pimpinan, tapi Anda bisa mendorongnya." },
-  { key: "system", title: "Membutuhkan dukungan sistem", desc: "Perubahan yang perlu dibawa ke ruang keputusan lembaga, bukan tanggung jawab satu orang." },
-];
+function agencyTerritories(viewerIsOwner) {
+  const p = viewerIsOwner ? "Anda" : "Tim";
+  return [
+    { key: "control", title: "Dalam kendali saya", desc: `Langkah yang bisa langsung ${p} putuskan dan jalankan sendiri, tanpa menunggu pihak lain.` },
+    { key: "influence", title: "Bisa saya pengaruhi", desc: `Butuh percakapan atau kerja sama dengan rekan/pimpinan, tapi ${p} bisa mendorongnya.` },
+    { key: "system", title: "Membutuhkan dukungan sistem", desc: "Perubahan yang perlu dibawa ke ruang keputusan lembaga, bukan tanggung jawab satu orang." },
+  ];
+}
 
 const BULAN_ID = ["Januari", "Februari", "Maret", "April", "Mei", "Juni", "Juli", "Agustus", "September", "Oktober", "November", "Desember"];
 function formatTanggalID(date) {
@@ -87,12 +91,13 @@ function tambahHari(dariIso, jumlahHari) {
  * per dimensi -- ganti tampilan dua-bar lama, sumber angka SAMA PERSIS (saat_ini/harapan/tabel_gap
  * yang sudah final dari upstream). Interpretasi pakai implikasiBudaya() (scMeta.js), template statis
  * per tipe+arah yang sudah ada, bukan narasi baru per laporan. */
-function BudayaGapRow({ dim, gapRow, expanded, onToggle, delay }) {
+function BudayaGapRow({ dim, gapRow, expanded, onToggle, delay, viewerIsOwner }) {
   const info = TIPE_BUDAYA_INFO[dim.tipe];
   const cur = Math.max(0, Math.min(100, dim.saat_ini ?? 0));
   const tgt = Math.max(0, Math.min(100, dim.harapan ?? 0));
   const gap = gapRow?.nilai_gap;
   const interpretasi = implikasiBudaya(dim.tipe, gapRow?.arah);
+  const p = viewerIsOwner ? "Anda" : "Tim";
 
   return (
     <Reveal delay={delay} className={styles.gapItem}>
@@ -106,11 +111,11 @@ function BudayaGapRow({ dim, gapRow, expanded, onToggle, delay }) {
       </button>
 
       <span className={styles.gapValues}>
-        <span><strong>{formatScore(dim.saat_ini)}%</strong> Persepsi Anda</span>
-        <span><strong>{formatScore(dim.harapan)}%</strong> Harapan Anda</span>
+        <span><strong>{formatScore(dim.saat_ini)}%</strong> Persepsi {p}</span>
+        <span><strong>{formatScore(dim.harapan)}%</strong> Harapan {p}</span>
       </span>
 
-      <svg className={styles.dumbbell} viewBox="0 0 100 14" role="img" aria-label={`${dim.tipe}: persepsi Anda ${formatScore(dim.saat_ini)} persen, harapan Anda ${formatScore(dim.harapan)} persen`}>
+      <svg className={styles.dumbbell} viewBox="0 0 100 14" role="img" aria-label={`${dim.tipe}: persepsi ${formatScore(dim.saat_ini)} persen, harapan ${formatScore(dim.harapan)} persen`}>
         <line x1="0" y1="7" x2="100" y2="7" className={styles.dumbbellTrack} />
         <line x1={cur} y1="7" x2={tgt} y2="7" className={styles.dumbbellGapLine} />
         <circle cx={cur} cy="7" r="4.4" className={styles.dumbbellCurrent} />
@@ -133,9 +138,8 @@ function BudayaGapRow({ dim, gapRow, expanded, onToggle, delay }) {
  * sengaja membatasi baca agregat sekolah hanya ke peran pimpinan, staf (Karyawan) tidak berhak
  * baca tabel itu sama sekali (lihat audit redesign). Bukan data belum lengkap, tapi memang
  * diblokir arsitektur privasi yang sudah ada -- FIR tidak melonggarkannya lewat redesign ini. */
-function KesejahteraanRow({ item, expanded, onToggle, delay }) {
+function KesejahteraanRow({ item, expanded, onToggle, delay, viewerIsOwner }) {
   const info = KESEJAHTERAAN_INFO[item.kode];
-  const tone = toneKesejahteraan(item.kategori);
   const label = labelKesejahteraan(item.kode, item.label);
 
   return (
@@ -145,11 +149,10 @@ function KesejahteraanRow({ item, expanded, onToggle, delay }) {
         <span className={styles.wbBody}>
           <span className={styles.wbTop}>
             <strong>{label}</strong>
-            <em className={`${styles.wbSignal} ${tone === "waspada" ? styles.wbSignalWarn : ""}`}>{SIGNAL_LABEL[tone]}</em>
           </span>
           <span className={styles.wbScoreRow}>
             <span className={styles.wbScore}>{formatScore(item.nilai)}%</span>
-            <span className={styles.wbScoreLabel}>Respons Anda</span>
+            <span className={styles.wbScoreLabel}>{viewerIsOwner ? "Respons Anda" : "Respons Tim"}</span>
           </span>
           <div className={styles.barTrackSlim}>
             <div className={styles.barFillSlim} style={{ width: `${Math.max(0, Math.min(100, item.nilai ?? 0))}%` }} />
@@ -249,6 +252,12 @@ export default function ScLaporanIndividuPage({ laporan, viewerIsOwner = false }
   const adaJawabanSurvey = jawaban_survey && (
     jawaban_survey.betah || jawaban_survey.hal_menguras_energi || jawaban_survey.yang_ingin_diubah
   );
+
+  // Judul hero dirakit di frontend (bukan backend) supaya bisa POV-aware saat render --
+  // header.hook dari backend dipakai sebagai fallback untuk laporan lama / Q1 kosong.
+  const heroHeadline = (jawaban_survey?.gambaran_lembaga && meta?.nama_lembaga)
+    ? `${viewerIsOwner ? "Anda" : "Tim"} melihat ${meta.nama_lembaga} ini sebagai "${jawaban_survey.gambaran_lembaga}"`
+    : header.hook;
 
   // ── Komitmen 30 hari: hook cuma dipanggil (fetch+RLS) kalau viewerIsOwner, supaya pimpinan
   // yang drill-down tidak memicu request yang toh akan ditolak RLS.
@@ -364,12 +373,12 @@ export default function ScLaporanIndividuPage({ laporan, viewerIsOwner = false }
         </div>
 
         <section className={styles.section}>
-          <SectionHead index="05" title="Mulai dari yang paling dekat dengan kendali Anda" lead="Kontribusi Anda penting, tetapi perubahan tidak dibebankan kepada Anda sendiri." />
+          <SectionHead index="05" title={`Mulai dari yang paling dekat dengan kendali ${viewerIsOwner ? "Anda" : "Tim"}`} lead={viewerIsOwner ? "Kontribusi Anda penting, tetapi perubahan tidak dibebankan kepada Anda sendiri." : "Kontribusi Tim penting, tetapi perubahan tidak dibebankan kepada Tim sendiri."} />
 
           <OrbitVisual />
 
           <div className={styles.agencyList}>
-            {AGENCY_TERRITORIES.map((t, i) => {
+            {agencyTerritories(viewerIsOwner).map((t, i) => {
               const expanded = expandedAgency === t.key;
               return (
                 <div className={`${styles.agencyItem} ${expanded ? styles.agencyItemOpen : ""}`} key={t.key}>
@@ -389,10 +398,10 @@ export default function ScLaporanIndividuPage({ laporan, viewerIsOwner = false }
           {aksiList.length > 0 && (
             <div className={styles.actionBlock}>
               <h3 className={styles.actionTitle}>Pilih satu perubahan kecil untuk 30 hari</h3>
-              <p className={styles.actionLead}>Fokus pada tindakan yang bisa Anda kendalikan atau pengaruhi langsung.</p>
+              <p className={styles.actionLead}>{viewerIsOwner ? "Fokus pada tindakan yang bisa Anda kendalikan atau pengaruhi langsung." : "Fokus pada tindakan yang bisa Tim kendalikan atau pengaruhi langsung."}</p>
 
               <fieldset className={styles.actionOptions}>
-                <legend className={styles.srOnly}>Pilih fokus Anda</legend>
+                <legend className={styles.srOnly}>{viewerIsOwner ? "Pilih fokus Anda" : "Pilih fokus Tim"}</legend>
                 {aksiList.map((aksi, i) => {
                   const isSelected = aksi.id === selectedAksiId;
                   return (
@@ -418,7 +427,7 @@ export default function ScLaporanIndividuPage({ laporan, viewerIsOwner = false }
               </fieldset>
 
               {!viewerIsOwner ? (
-                <p className={styles.gapNote}>Komitmen 30 hari hanya dapat diedit dan disimpan oleh staf pemilik laporan ini.</p>
+                <p className={styles.gapNote}>Komitmen 30 hari hanya dapat diedit dan disimpan oleh Tim pemilik laporan ini.</p>
               ) : (
                 <>
                   <div className={styles.composer}>
@@ -526,7 +535,7 @@ export default function ScLaporanIndividuPage({ laporan, viewerIsOwner = false }
       {/* ── 00 Pembuka personal ─────────────────────────────────────────────────────── */}
       <Reveal className={styles.hero}>
         <p className={styles.heroGreet}>Halo, <strong>{meta.nama_responden}</strong></p>
-        <h1 className={styles.heroHook}>{header.hook}</h1>
+        <h1 className={styles.heroHook}>{heroHeadline}</h1>
 
         <div className={styles.chips}>
           {meta.peran_kerja && <span className={styles.chip}>{meta.peran_kerja}</span>}
@@ -569,11 +578,11 @@ export default function ScLaporanIndividuPage({ laporan, viewerIsOwner = false }
 
       {/* ── 01 Celah budaya ─────────────────────────────────────────────────────────── */}
       <section className={styles.section}>
-        <SectionHead index="01" title="Laporan Budaya Lembaga" lead="Bandingkan persepsi Anda saat ini dengan harapan Anda tentang budaya sekolah." />
+        <SectionHead index="01" title="Laporan Budaya Lembaga" lead={viewerIsOwner ? "Bandingkan persepsi Anda saat ini dengan harapan Anda tentang budaya sekolah." : "Bandingkan persepsi Tim saat ini dengan harapan Tim tentang budaya sekolah."} />
 
         <div className={styles.legend} aria-label="Legenda celah budaya">
-          <span><i className={styles.legendCurrent} /> Persepsi Anda</span>
-          <span><i className={styles.legendTarget} /> Harapan Anda</span>
+          <span><i className={styles.legendCurrent} /> Persepsi {viewerIsOwner ? "Anda" : "Tim"}</span>
+          <span><i className={styles.legendTarget} /> Harapan {viewerIsOwner ? "Anda" : "Tim"}</span>
         </div>
 
         <div className={styles.gapList}>
@@ -585,19 +594,20 @@ export default function ScLaporanIndividuPage({ laporan, viewerIsOwner = false }
               expanded={expandedBudaya === dim.tipe}
               onToggle={() => setExpandedBudaya((cur) => (cur === dim.tipe ? null : dim.tipe))}
               delay={i * 40}
+              viewerIsOwner={viewerIsOwner}
             />
           ))}
         </div>
 
         <div className={styles.note}>
           <span aria-hidden="true">ℹ️</span>
-          <p>Gap tidak sepenuhnya menjadi tanggung jawab Anda. Bagian berikutnya membantu memisahkan kontribusi pribadi dari kebutuhan dukungan sistem.</p>
+          <p>{viewerIsOwner ? "Gap tidak sepenuhnya menjadi tanggung jawab Anda. Bagian berikutnya membantu memisahkan kontribusi pribadi dari kebutuhan dukungan sistem." : "Gap tidak sepenuhnya menjadi tanggung jawab Tim. Bagian berikutnya membantu memisahkan kontribusi pribadi dari kebutuhan dukungan sistem."}</p>
         </div>
       </section>
 
       {/* ── 02 Energi dan kesejahteraan ─────────────────────────────────────────────── */}
       <section className={styles.section}>
-        <SectionHead index="02" title="Laporan Kesejahteraan Tim" lead="Ini menggambarkan pengalaman Anda, bukan penilaian kinerja." />
+        <SectionHead index="02" title="Laporan Kesejahteraan Tim" lead={viewerIsOwner ? "Ini menggambarkan pengalaman Anda, bukan penilaian kinerja." : "Ini menggambarkan pengalaman Tim, bukan penilaian kinerja."} />
         <div className={styles.wbList}>
           {kesejahteraanItems.map((item, i) => (
             <KesejahteraanRow
@@ -606,6 +616,7 @@ export default function ScLaporanIndividuPage({ laporan, viewerIsOwner = false }
               expanded={expandedKes === item.kode}
               onToggle={() => setExpandedKes((cur) => (cur === item.kode ? null : item.kode))}
               delay={i * 35}
+              viewerIsOwner={viewerIsOwner}
             />
           ))}
         </div>
@@ -613,9 +624,9 @@ export default function ScLaporanIndividuPage({ laporan, viewerIsOwner = false }
 
       {/* ── 03 Kontribusi peran (statis) ────────────────────────────────────────────── */}
       <section className={styles.section}>
-        <SectionHead index="03" title="Kontribusi peran Anda" lead="Peran Anda paling berdampak saat tiga hal ini saling terhubung." />
+        <SectionHead index="03" title={`Kontribusi peran ${viewerIsOwner ? "Anda" : "Tim"}`} lead={viewerIsOwner ? "Peran Anda paling berdampak saat tiga hal ini saling terhubung." : "Peran Tim paling berdampak saat tiga hal ini saling terhubung."} />
         <div className={styles.roleList}>
-          {ROLE_CONTRIBUTION_STEPS.map((step, i) => (
+          {roleContributionSteps(viewerIsOwner).map((step, i) => (
             <Reveal delay={i * 60} className={styles.roleStep} key={step.title}>
               <span className={styles.roleNumber}>{i + 1}</span>
               <span className={styles.roleIcon} aria-hidden="true">{step.icon}</span>

@@ -143,6 +143,12 @@ Deno.serve(async (req) => {
       meta: {
         responden_id: row.id, nama_responden: row.nama_responden, peran_kerja: row.peran_kerja,
         unit: row.unit, jenjang: row.jenjang, organisasi_id: row.sekolah_id, periode_id: row.periode_id,
+        // Dipakai frontend (ScLaporanIndividuPage.jsx) menyusun ULANG kalimat header di sisi
+        // render, bukan cuma memakai `header.hook` yang statis -- supaya sapaannya bisa
+        // menyesuaikan siapa yang membuka laporan (pemilik sendiri vs drill-down pimpinan),
+        // sesuatu yang tidak bisa dilakukan kalau kalimatnya sudah dipanggang jadi satu string
+        // di sini saat generate.
+        nama_lembaga: namaLembaga,
       },
       header: { hook, sub_hook: out.header?.sub_hook || "" },
       bagian_budaya: { narasi: out.bagian_budaya?.narasi || "", chart_data: budayaChartData, tabel_gap: (row.budaya || []).map((b: any) => ({ label: b.tipe, arah: arahDariGap(b.gap), nilai_gap: b.gap })) },
@@ -253,5 +259,8 @@ function buildJawabanSurvey(essay: Record<string, any> | null | undefined) {
     hal_menguras_energi: ambil("hal_menguras_energi"),
     yang_ingin_disampaikan: ambil("yang_ingin_disampaikan"),
     yang_ingin_diubah: ambil("yang_ingin_diubah"),
+    // Q1 verbatim -- dipakai frontend menyusun kalimat header (lihat catatan di meta.nama_lembaga
+    // di atas), bukan cuma bahan formula sekali-jadi di sini.
+    gambaran_lembaga: ambil("gambaran_lembaga"),
   };
 }

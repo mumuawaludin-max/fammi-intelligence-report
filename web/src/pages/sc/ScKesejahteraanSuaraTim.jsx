@@ -34,7 +34,7 @@ export function ScKesejahteraanSuaraTim({ sectionIndex, temaEsai, aspekLabel, ac
           <ScIconBadge icon="quote" size="md" tone="plain" className={styles.quoteIcon} />
           <div>
             <p className={styles.quoteText}>{tema.ringkasan}</p>
-            <p className={styles.quoteAttr}>Sintesis dari jawaban staf, anonim, tema &ldquo;{tema.tema}&rdquo;</p>
+            <p className={styles.quoteAttr}>Sintesis dari jawaban Tim, anonim, tema &ldquo;{tema.tema}&rdquo;</p>
           </div>
         </ScLaporanReveal>
       )}
