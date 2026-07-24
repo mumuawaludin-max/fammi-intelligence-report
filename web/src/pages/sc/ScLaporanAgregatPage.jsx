@@ -6,18 +6,10 @@ import { ScDimensiTindakLanjut } from "./ScDimensiTindakLanjut";
 import { ScBudayaPerbandinganDumbbell } from "./ScBudayaPerbandinganDumbbell";
 import { ScBudayaDetailAspek } from "./ScBudayaDetailAspek";
 import { ScBudayaCeritaPegawai } from "./ScBudayaCeritaPegawai";
-import { TIPE_BUDAYA_INFO, KESEJAHTERAAN_INFO, DIMENSI_PROFIL_INFO, METODOLOGI_NOTE } from "./scMeta";
+import { TIPE_BUDAYA_INFO, KESEJAHTERAAN_INFO, DIMENSI_PROFIL_INFO } from "./scMeta";
 import styles from "./ScLaporanAgregatPage.module.css";
 
 const BUDAYA_TINDAK_LANJUT_ID = "sc-budaya-tindak-lanjut";
-
-const BULAN = ["Januari", "Februari", "Maret", "April", "Mei", "Juni", "Juli", "Agustus", "September", "Oktober", "November", "Desember"];
-
-function periodeLabel(periodeId) {
-  if (!periodeId) return "";
-  const [y, m] = String(periodeId).split("-").map(Number);
-  return `${BULAN[m - 1] || ""} ${y}`.trim();
-}
 
 /** Item dengan value tertinggi dari daftar {key,value}. */
 function tertinggiDari(items) {
@@ -53,8 +45,7 @@ function facetsUntuk(info, tipe, icon) {
  * TIDAK termasuk restart ini -- reference tidak pernah mendesain laporan individu sama sekali.
  */
 export default function ScLaporanAgregatPage({ laporan }) {
-  const { meta, bagian_budaya, bagian_kesejahteraan, bagian_profil_organisasi, footer, analisis, cerita_pegawai } = laporan;
-  const periodLabelTeks = periodeLabel(meta.periode_id);
+  const { bagian_budaya, bagian_kesejahteraan, bagian_profil_organisasi, analisis, cerita_pegawai } = laporan;
 
   const [sectionAktif, setSectionAktif] = useState("budaya");
 
@@ -226,10 +217,6 @@ export default function ScLaporanAgregatPage({ laporan }) {
           />
         </>
       )}
-
-      <p className={styles.disclaimer}>{footer.disclaimer}</p>
-      <p className={styles.metodologi}>{METODOLOGI_NOTE}</p>
-      <p className={styles.periodeNote}>Periode: {periodLabelTeks} · {meta.jumlah_responden} responden</p>
     </div>
   );
 }
