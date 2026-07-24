@@ -2,6 +2,7 @@ import { useState } from "react";
 import { KATEGORI_NILAI_COLOR } from "./scColors";
 import { DIMENSI_PROFIL_INFO, KESEJAHTERAAN_INFO, METODOLOGI_NOTE } from "./scMeta";
 import { useReveal } from "./scHooks";
+import ScRencanaTindakLanjutPage from "./ScRencanaTindakLanjutPage";
 import styles from "./ScLaporanIndividuPage.module.css";
 
 /** Label TAMPILAN subdimensi kesejahteraan, selalu ikut KESEJAHTERAAN_INFO (scMeta.js) --
@@ -120,9 +121,9 @@ function SurveyCard({ heading, teks, delay }) {
  * REMAKE TOTAL atas instruksi eksplisit pemilik produk (screenshot referensi): hero sapaan +
  * hook + kutipan harapan perubahan, lalu 4 section flat (Budaya Lembaga/Kesejahteraan Tim/Profil
  * Organisasi/Jawaban Survey Anda) -- BUKAN lagi hero indeks besar + sorotan cepat + radar + dialog
- * per kartu dari versi sebelumnya. Section "Rencana Aksi" SENGAJA dihapus (instruksi eksplisit
- * pemilik produk, screenshot tidak menampilkannya) -- rencana_aksi tetap ada di data (dipakai CMS
- * approval), cuma tidak lagi dirender di laporan ini.
+ * per kartu dari versi sebelumnya. Section "Rencana Aksi" tidak lagi inline di beranda (instruksi
+ * eksplisit pemilik produk, screenshot pertama tidak menampilkannya) -- dipindah ke halaman detail
+ * ScRencanaTindakLanjutPage yang dibuka lewat tombol mengambang di bawah, bukan dihapus dari alur.
  *
  * Warna dan animasi mengikuti token/hook FIR yang sama dipakai laporan individu lain (Karakter/MI):
  * --purple-600/--ink/--surface/--bg, plus useReveal untuk reveal-on-scroll -- BUKAN token khusus
@@ -132,15 +133,20 @@ function SurveyCard({ heading, teks, delay }) {
 export default function ScLaporanIndividuPage({ laporan }) {
   const {
     meta, header, bagian_budaya, bagian_kesejahteraan, bagian_profil_organisasi,
-    jawaban_survey, footer,
+    jawaban_survey, rencana_aksi, footer,
   } = laporan;
 
   const kesejahteraanItems = bagian_kesejahteraan?.chart_data || [];
   const [kesExpanded, setKesExpanded] = useState(() => kesejahteraanItems[0]?.kode || null);
+  const [showRencana, setShowRencana] = useState(false);
 
   const adaJawabanSurvey = jawaban_survey && (
     jawaban_survey.betah || jawaban_survey.hal_menguras_energi || jawaban_survey.yang_ingin_disampaikan
   );
+
+  if (showRencana) {
+    return <ScRencanaTindakLanjutPage laporan={laporan} onBack={() => setShowRencana(false)} />;
+  }
 
   return (
     <div className={styles.page}>
@@ -220,6 +226,13 @@ export default function ScLaporanIndividuPage({ laporan }) {
 
       <p className={styles.disclaimer}>{footer?.disclaimer}</p>
       <p className={styles.metodologi}>{METODOLOGI_NOTE}</p>
+
+      {rencana_aksi?.length > 0 && (
+        <button type="button" className={styles.fabRencana} onClick={() => setShowRencana(true)}>
+          Baca Rencana Tindak Lanjut
+          <span aria-hidden="true">→</span>
+        </button>
+      )}
     </div>
   );
 }

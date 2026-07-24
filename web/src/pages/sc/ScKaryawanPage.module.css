@@ -22,6 +22,10 @@
   flex-direction: column;
   background: var(--cw-bg);
   overflow: hidden;
+  /* Jadikan .phone containing block untuk descendant position:fixed (tombol mengambang laporan
+     individu) -- tanpa ini, fixed akan mengacu ke viewport browser penuh, bukan bingkai "HP" ini,
+     dan melebar salah di desktop. Trik translateZ(0) tidak mengubah tampilan apa pun. */
+  transform: translateZ(0);
 }
 
 @media (min-width: 480px) {
