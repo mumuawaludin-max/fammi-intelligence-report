@@ -1261,17 +1261,29 @@ function tunggu(ms: number) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
+/** Backoff eksponensial per percobaan: 2s, 4s, 8s, 16s (attempt 1..4, dipanggil sebelum
+ * percobaan berikutnya). Dipisah jadi fungsi supaya kedua titik retry (503/429 dan MAX_TOKENS)
+ * di bawah konsisten, bukan dua angka yang bisa diam-diam berbeda kalau salah satu diubah. */
+function backoffMs(attempt: number) {
+  return Math.min(2 ** attempt * 1000, 16000);
+}
+
 /**
  * callGemini -- WAJIB retry untuk error 503 ("model sedang padat", UNAVAILABLE), yang sering
- * transient dan hilang sendiri dalam beberapa detik, bukan indikasi permintaan salah. Tanpa
- * retry ini, generate massal (mis. 15+ staf berurutan lewat Upload.jsx) bisa gagal semua kalau
- * kebetulan menabrak satu jendela padat Gemini, padahal mengulang beberapa detik kemudian
- * biasanya berhasil. Cuma 503/429 (rate limit) yang di-retry -- error lain (400 payload salah,
- * 401/403 API key salah) percuma diulang, langsung dilempar supaya kelihatan jelas.
+ * transient dan hilang sendiri, bukan indikasi permintaan salah. Tanpa retry ini, generate
+ * massal (mis. 15+ staf berurutan lewat Upload.jsx) bisa gagal semua kalau kebetulan menabrak
+ * satu jendela padat Gemini, padahal mengulang beberapa saat kemudian biasanya berhasil. Cuma
+ * 503/429 (rate limit) yang di-retry -- error lain (400 payload salah, 401/403 API key salah)
+ * percuma diulang, langsung dilempar supaya kelihatan jelas.
+ *
+ * MAX_ATTEMPT=5 + backoff eksponensial (2s/4s/8s/16s, total ~30 detik menunggu di sini saja)
+ * -- sebelumnya cuma 3 percobaan/1.5s+3s (~4.5 detik), terlalu pendek untuk jendela padat Gemini
+ * yang pesannya sendiri bilang "Spikes... usually temporary" (bisa belasan detik-menitan, bukan
+ * cuma sedetik dua). 30 detik masih jauh di bawah batas waktu eksekusi Edge Function Supabase.
  */
 export async function callGemini(apiKey: string, model: string, systemInstruction: string, prompt: string) {
   const RETRYABLE = new Set([429, 503]);
-  const MAX_ATTEMPT = 3;
+  const MAX_ATTEMPT = 5;
   let lastErr: Error | null = null;
 
   for (let attempt = 1; attempt <= MAX_ATTEMPT; attempt++) {
@@ -1298,7 +1310,7 @@ export async function callGemini(apiKey: string, model: string, systemInstructio
       const bodyText = await res.text();
       lastErr = new Error(`Gemini API error ${res.status}: ${bodyText}`);
       if (RETRYABLE.has(res.status) && attempt < MAX_ATTEMPT) {
-        await tunggu(attempt * 1500); // 1.5s, lalu 3s
+        await tunggu(backoffMs(attempt));
         continue;
       }
       throw lastErr;
@@ -1315,7 +1327,7 @@ export async function callGemini(apiKey: string, model: string, systemInstructio
     if (candidate?.finishReason === "MAX_TOKENS") {
       lastErr = new Error("Gemini terpotong karena melebihi batas token (finishReason MAX_TOKENS) -- coba lagi.");
       if (attempt < MAX_ATTEMPT) {
-        await tunggu(attempt * 1500);
+        await tunggu(backoffMs(attempt));
         continue;
       }
       throw lastErr;

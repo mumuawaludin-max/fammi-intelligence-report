@@ -283,30 +283,52 @@ export async function addYayasanAction({ nama }) {
   return data;
 }
 
+async function generateSatuMi(row) {
+  try {
+    const { data, error } = await supabase.functions.invoke('generate-mi', { body: { row } });
+    if (error) {
+      return { ok: false, nama: row.nama_siswa, error: await edgeErrorDetail(error, 'generate-mi gagal dipanggil.') };
+    }
+    if (!data?.ok) {
+      return { ok: false, nama: row.nama_siswa, error: data?.error || 'Gagal tanpa keterangan.' };
+    }
+    return { ok: true, nama: row.nama_siswa, top_1: data.top_1 };
+  } catch (e) {
+    return { ok: false, nama: row.nama_siswa, error: String(e?.message || e) };
+  }
+}
+
 /**
  * Generate laporan MI: satu panggilan Edge Function generate-mi PER SISWA (5 panggilan Gemini
  * per siswa, ~15-30 detik, jadi tidak bisa sekelas sekaligus dalam satu request). onProgress
  * dipanggil tiap siswa selesai supaya UI bisa menampilkan bilah kemajuan. Tidak berhenti di
  * siswa yang gagal -- kumpulkan hasil per siswa, lapor ringkasannya di akhir. Tiap panggilan
  * menulis satu baris mi_hasil berstatus menunggu_persetujuan (lihat generate-mi).
+ *
+ * Retry berputar sama seperti runScIndividuGenerateAction (lihat komentar di sana) -- 5
+ * panggilan Gemini internal generate-mi per siswa sama-sama bisa kena jendela padat 503/429,
+ * jendela padat yang lebih lama dari retry internal satu panggilan butuh putaran ulang di
+ * level batch ini, bukan cuma sekali seperti sebelumnya (yang sebelumnya malah tidak ada sama
+ * sekali di MI).
  */
 export async function runMiGenerateAction(rows, onProgress) {
   const results = [];
   for (let i = 0; i < rows.length; i++) {
-    const row = rows[i];
-    try {
-      const { data, error } = await supabase.functions.invoke('generate-mi', { body: { row } });
-      if (error) {
-        results.push({ ok: false, nama: row.nama_siswa, error: await edgeErrorDetail(error, 'generate-mi gagal dipanggil.') });
-      } else if (!data?.ok) {
-        results.push({ ok: false, nama: row.nama_siswa, error: data?.error || 'Gagal tanpa keterangan.' });
-      } else {
-        results.push({ ok: true, nama: row.nama_siswa, top_1: data.top_1 });
-      }
-    } catch (e) {
-      results.push({ ok: false, nama: row.nama_siswa, error: String(e?.message || e) });
-    }
+    results.push(await generateSatuMi(rows[i]));
     onProgress?.(i + 1, rows.length);
+  }
+
+  for (const delayMs of RETRY_PASS_DELAYS_MS) {
+    const gagalTransient = results
+      .map((r, i) => ({ r, i }))
+      .filter(({ r }) => !r.ok && isTransientGeminiError(r.error));
+    if (gagalTransient.length === 0) break;
+
+    await sleep(delayMs);
+    for (const { i } of gagalTransient) {
+      results[i] = await generateSatuMi(rows[i]);
+      onProgress?.(rows.length, rows.length);
+    }
   }
   return results;
 }
@@ -399,11 +421,17 @@ async function generateSatuSc(p) {
  * selesai. Tidak berhenti di staf yang gagal, kumpulkan hasil per staf.
  *
  * Dua lapis penanganan 503 Gemini ("model sedang padat"): callGemini() di server sudah retry
- * sendiri (lihat _shared/geminiPrompt.ts), tapi kalau permintaan ditembak beruntun tanpa jeda
- * (16 staf berturut-turut) itu sendiri bisa memicu overload baru. Di sini ditambah (1) jeda
- * kecil ANTAR staf supaya tidak membanjiri API, dan (2) SATU putaran retry di akhir khusus
- * staf yang gagalnya kelihatan transient (503/429), dengan jeda lebih panjang.
+ * sendiri dengan backoff eksponensial (lihat _shared/geminiPrompt.ts), tapi kalau permintaan
+ * ditembak beruntun tanpa jeda (16 staf berturut-turut) itu sendiri bisa memicu overload baru,
+ * dan kalau jendela padatnya kebetulan lebih lama dari total waktu retry SATU panggilan
+ * (~35 detik), retry di dalam satu panggilan itu saja tidak cukup. Di sini ditambah (1) jeda
+ * kecil ANTAR staf supaya tidak membanjiri API, dan (2) BEBERAPA putaran retry di akhir khusus
+ * staf yang gagalnya kelihatan transient (503/429), dengan jeda antar-putaran yang makin
+ * panjang (5s, 15s, 30s) -- satu putaran saja (perilaku lama) terbukti tidak cukup kalau
+ * jendela padat Gemini kebetulan menutupi hampir seluruh proses generate massal.
  */
+const RETRY_PASS_DELAYS_MS = [5000, 15000, 30000];
+
 export async function runScIndividuGenerateAction(personalRows, onProgress) {
   const results = [];
   for (let i = 0; i < personalRows.length; i++) {
@@ -412,15 +440,17 @@ export async function runScIndividuGenerateAction(personalRows, onProgress) {
     if (i < personalRows.length - 1) await sleep(600);
   }
 
-  const gagalTransient = results
-    .map((r, i) => ({ r, i }))
-    .filter(({ r }) => !r.ok && isTransientGeminiError(r.error));
-  if (gagalTransient.length > 0) {
-    for (let j = 0; j < gagalTransient.length; j++) {
-      const { i } = gagalTransient[j];
-      await sleep(3000);
+  for (const delayMs of RETRY_PASS_DELAYS_MS) {
+    const gagalTransient = results
+      .map((r, i) => ({ r, i }))
+      .filter(({ r }) => !r.ok && isTransientGeminiError(r.error));
+    if (gagalTransient.length === 0) break;
+
+    await sleep(delayMs);
+    for (const { i } of gagalTransient) {
       results[i] = await generateSatuSc(personalRows[i]);
       onProgress?.(personalRows.length, personalRows.length);
+      await sleep(600);
     }
   }
   return results;
