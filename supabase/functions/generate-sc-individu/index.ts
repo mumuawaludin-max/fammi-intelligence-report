@@ -124,6 +124,7 @@ Deno.serve(async (req) => {
       bagian_profil_organisasi: { narasi: out.bagian_profil_organisasi?.narasi || "", chart_data: row.profil_organisasi || [] },
       bagian_cermin: buildCermin(row.essay, out.cermin_konteks),
       bagian_refleksi: out.bagian_refleksi || "",
+      jawaban_survey: buildJawabanSurvey(row.essay),
       rencana_aksi: (out.rencana_aksi || []).map((a: any, i: number) => ({
         id: `${row.id}-aksi-${i + 1}`, judul: a.judul, alasan: a.alasan,
         terkait: a.terkait, jangka: a.jangka, ikon: a.ikon || "🎯",
@@ -206,4 +207,23 @@ function buildCermin(essay: Record<string, any> | null | undefined, konteks: str
   const kutipan = [betah, menguras].filter(Boolean).map((t) => `"${t}"`).join(" ");
   const konteksBersih = (konteks || "").trim();
   return [kutipan, konteksBersih].filter(Boolean).join(" ");
+}
+
+/**
+ * Empat jawaban esai VERBATIM, satu field per pertanyaan survey -- BEDA dari buildCermin() di
+ * atas yang membaurkan sebagian jawaban ini jadi satu paragraf gabungan dengan konteks Gemini.
+ * Dipakai laporan individu remake total (section "Jawaban Survey Anda" + kartu "Perubahan yang
+ * Anda harapkan" di hero) supaya tiap jawaban tampil apa adanya per pertanyaan, tidak diringkas.
+ */
+function buildJawabanSurvey(essay: Record<string, any> | null | undefined) {
+  function ambil(field: string) {
+    const v = essay?.[field];
+    return v ? String(v).trim() : undefined;
+  }
+  return {
+    betah: ambil("alasan_betah"),
+    hal_menguras_energi: ambil("hal_menguras_energi"),
+    yang_ingin_disampaikan: ambil("yang_ingin_disampaikan"),
+    yang_ingin_diubah: ambil("yang_ingin_diubah"),
+  };
 }

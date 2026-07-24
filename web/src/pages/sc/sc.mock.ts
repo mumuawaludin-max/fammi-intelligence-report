@@ -76,6 +76,12 @@ const RESPONDEN_1: LaporanIndividuSC = {
     "\"Ketika rapat kerja, semua saling membantu untuk mensukseskan acara.\" Momen kecil seperti ini yang Anda ceritakan sendiri bulan ini, dan justru momen sederhana begitu yang paling menunjukkan kehangatan Kekeluargaan yang Anda rasakan di SD.",
   bagian_refleksi:
     "Apa satu hal kecil yang bisa Anda lakukan bulan ini supaya ruang mencoba metode mengajar baru terasa lebih terbuka di jenjang Anda?",
+  jawaban_survey: {
+    betah: "Rekan-rekan guru satu jenjang saling terbuka dan gampang diajak diskusi kalau ada murid yang butuh perhatian khusus.",
+    hal_menguras_energi: "Kadang harus menunggu cukup lama untuk dapat kepastian jadwal kegiatan tambahan, jadi susah menyiapkan materi jauh-jauh hari.",
+    yang_ingin_disampaikan: "Semoga ide-ide metode mengajar dari guru yang lebih muda juga dikasih ruang untuk dicoba, bukan cuma dari yang senior saja.",
+    yang_ingin_diubah: "Jadwal kegiatan menjelang ujian bisa dipetakan lebih awal, supaya persiapan mengajar tidak keteteran.",
+  },
   rencana_aksi: [
     {
       id: "sc1-inovasi",
@@ -165,6 +171,12 @@ const RESPONDEN_2: LaporanIndividuSC = {
     "\"Perencanaan lebih matang\", itu satu hal yang Anda ingin ubah dari keseharian kerja bulan ini. Kalimat singkat itu sering menyimpan lebih banyak daripada kelihatannya, biasanya tandanya bukan kurang teliti, tapi proses di sekitar Anda yang belum cukup mendukung ketelitian itu.",
   bagian_refleksi:
     "Prosedur mana yang menurut Anda sudah tidak perlu terlalu berlapis, dan siapa satu rekan kerja yang bisa Anda ajak bicara lebih terbuka minggu ini?",
+  jawaban_survey: {
+    betah: "Pekerjaan di tata usaha ini stabil dan saya merasa dibutuhkan untuk kelancaran administrasi sekolah sehari-hari.",
+    hal_menguras_energi: "Informasi soal perubahan jadwal atau kebijakan sering mendadak, jadi harus buru-buru menyesuaikan dokumen yang sudah disiapkan.",
+    yang_ingin_disampaikan: "Mohon keputusan penting terkait administrasi bisa disampaikan lebih awal, supaya tim TU punya waktu cukup untuk menyiapkan berkasnya.",
+    yang_ingin_diubah: "Perencanaan kegiatan lembaga bisa dibuat lebih matang, tidak mendadak, supaya persiapan administrasinya lebih tertata.",
+  },
   rencana_aksi: [
     {
       id: "sc2-klan",
@@ -254,6 +266,12 @@ const RESPONDEN_3: LaporanIndividuSC = {
     "\"Persiapan acara mepet waktu\", itu yang paling menguras energi Anda bulan ini. Dedikasi Anda mengejar target akademik jelas terlihat dari jawaban Anda sendiri, tapi kalimat itu juga sinyal jujur bahwa ritme kerja Anda saat ini menekan, bukan cuma sibuk.",
   bagian_refleksi:
     "Kalau boleh menunda satu target minggu ini demi waktu istirahat yang cukup, target mana yang akan Anda pilih?",
+  jawaban_survey: {
+    betah: "Melihat murid-murid lulus dengan hasil yang baik dan diterima di sekolah/kampus pilihan mereka jadi kepuasan tersendiri.",
+    hal_menguras_energi: "Persiapan acara sekolah yang waktunya mepet, jadi harus dikebut di luar jam kerja normal.",
+    yang_ingin_disampaikan: "Semoga target akademik yang ditetapkan bisa lebih realistis dengan kapasitas guru yang ada saat ini.",
+    yang_ingin_diubah: "Beban kerja menjelang acara-acara besar sekolah perlu dibagi lebih rata, tidak menumpuk di beberapa guru saja.",
+  },
   rencana_aksi: [
     {
       id: "sc3-bicara",

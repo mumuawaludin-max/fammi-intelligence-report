@@ -1,7 +1,6 @@
-/* Laporan individu SC -- MOBILE-FIRST. UI/UX identik dengan
-   pages/cw/CwLaporanIndividuPage.module.css atas instruksi eksplisit pemilik produk. Bentuk
-   kartu, radius, dan pola (hero gelap + tombol bulat, grid 2x2, segmented bar, callout, list
-   task) mengikuti benchmark aplikasi mobile di design-reference; warna memakai token FIR. */
+/* Laporan individu SC -- MOBILE-FIRST, REMAKE TOTAL (screenshot referensi pemilik produk).
+   Warna dan animasi mengikuti token/hook FIR standar (--purple-600/--ink/--surface/--bg,
+   useReveal), BUKAN token --sc-* yang cuma dipakai dashboard "Laporan Lembaga" pimpinan. */
 
 .page {
   display: flex;
@@ -32,909 +31,408 @@
   }
 }
 
-/* ══ Sapaan ═══════════════════════════════════════════════════════════════════ */
-.greet {
-  display: flex;
-  align-items: flex-start;
-  gap: 13px;
+/* ══ Hero ═════════════════════════════════════════════════════════════════════ */
+.hero {
+  padding: 22px 20px;
+  border-radius: var(--radius-xl);
+  background: var(--surface);
+  box-shadow: var(--shadow-card);
 }
 
-.avatar {
-  width: 46px;
-  height: 46px;
-  flex-shrink: 0;
-  border-radius: 16px;
-  background: linear-gradient(135deg, var(--purple-600), var(--purple-700));
-  color: var(--surface);
-  font-family: var(--font-display);
-  font-size: 19px;
-  font-weight: 800;
-  display: grid;
-  place-items: center;
-}
-
-.greetBody {
-  flex: 1;
-  min-width: 0;
-}
-
-.greetHalo {
-  font-size: 12.5px;
+.heroGreet {
+  margin: 0 0 6px;
   color: var(--ink-3);
-  margin: 0;
+  font-size: 14px;
 }
 
-.greetNama {
-  font-family: var(--font-display);
-  font-size: 19px;
-  font-weight: 800;
+.heroGreet strong {
   color: var(--ink);
-  margin: 1px 0 0;
+  font-weight: 800;
+}
+
+.heroHook {
+  margin: 0 0 16px;
+  color: var(--ink);
+  font-family: var(--font-display);
+  font-size: 22px;
+  font-weight: 700;
+  line-height: 1.3;
   letter-spacing: -0.3px;
-  line-height: 1.2;
 }
 
 .chips {
   display: flex;
   flex-wrap: wrap;
-  gap: 6px;
-  margin-top: 8px;
+  gap: 8px;
+  margin-bottom: 18px;
 }
 
 .chip {
-  font-size: 10.5px;
-  font-weight: 700;
+  padding: 6px 14px;
+  border: 1.5px solid var(--line);
+  border-radius: 999px;
   color: var(--ink-2);
-  background: var(--surface);
-  border: 1px solid var(--line);
-  padding: 4px 10px;
-  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 700;
 }
 
-.periodePill {
-  flex-shrink: 0;
-  font-size: 10.5px;
-  font-weight: 800;
-  color: var(--purple-700);
+.heroQuote {
+  position: relative;
+  padding: 16px 18px 16px 22px;
+  border-radius: var(--radius-lg);
   background: var(--purple-050);
-  padding: 5px 11px;
-  border-radius: 999px;
 }
 
-/* ══ Kartu pembuka ════════════════════════════════════════════════════════════ */
-.hookCard {
-  background: var(--surface);
-  border: 1px solid var(--line);
-  border-radius: 20px;
-  padding: 17px 18px;
-}
-
-.hookText {
-  font-family: var(--font-display);
-  font-size: 16px;
-  font-weight: 800;
-  line-height: 1.4;
-  color: var(--ink);
-  margin: 0;
-  letter-spacing: -0.2px;
-}
-
-.hookSub {
-  font-size: 12.5px;
-  line-height: 1.6;
-  color: var(--ink-3);
-  margin: 8px 0 0;
-}
-
-/* ══ Hero indeks ══════════════════════════════════════════════════════════════ */
-.hero {
-  background: var(--ink);
-  border-radius: 26px;
-  padding: 24px 20px 20px;
-}
-
-.heroTop {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 6px;
-  width: 100%;
-  background: none;
-  border: none;
-  font-family: var(--font-body);
-  cursor: pointer;
-  padding: 0 0 20px;
-}
-
-.heroLabel {
-  font-size: 12.5px;
-  color: var(--ink-4);
-}
-
-.heroValue {
-  font-family: var(--font-display);
-  font-size: 46px;
-  font-weight: 800;
-  color: var(--surface);
-  line-height: 1.05;
-  letter-spacing: -1.5px;
-}
-
-.heroBadge {
-  font-size: 11px;
-  font-weight: 800;
-  color: var(--surface);
-  padding: 4px 13px;
-  border-radius: 999px;
-  margin-top: 2px;
-}
-
-.heroActions {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 8px;
-  background: rgba(255, 255, 255, 0.07);
-  border-radius: 20px;
-  padding: 14px 8px;
-}
-
-.heroAction {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 7px;
-  background: none;
-  border: none;
-  font-family: var(--font-body);
-  cursor: pointer;
-  padding: 0;
-}
-
-.heroActionIcon {
-  width: 42px;
-  height: 42px;
-  border-radius: 50%;
-  display: grid;
-  place-items: center;
-  font-size: 17px;
-  background: rgba(255, 255, 255, 0.12);
-  transition: transform var(--transition-fast);
-}
-
-.heroActionIconUtama {
+.heroQuote::before {
+  content: "";
+  position: absolute;
+  left: 8px;
+  top: 14px;
+  bottom: 14px;
+  width: 3px;
+  border-radius: 2px;
   background: var(--purple-600);
 }
 
-.heroAction:hover .heroActionIcon,
-.heroAction:focus-visible .heroActionIcon {
-  transform: translateY(-2px);
-}
-
-.heroActionLabel {
-  font-size: 10.5px;
-  font-weight: 700;
-  color: rgba(255, 255, 255, 0.82);
-  text-align: center;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .heroAction:hover .heroActionIcon,
-  .heroAction:focus-visible .heroActionIcon {
-    transform: none;
-  }
-}
-
-/* ══ Sorotan cepat ════════════════════════════════════════════════════════════ */
-.sorotanGrid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 11px;
-}
-
-.sorotanCard {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 3px;
-  text-align: left;
-  font-family: var(--font-body);
-  background: var(--surface);
-  border: 1px solid var(--line);
-  border-radius: 20px;
-  padding: 15px 16px;
-  cursor: pointer;
-  transition: transform var(--transition-fast), border-color var(--transition-fast),
-              box-shadow var(--transition-fast);
-}
-
-.sorotanCard:hover,
-.sorotanCard:focus-visible {
-  transform: translateY(-2px);
-  border-color: var(--purple-300);
-  box-shadow: var(--shadow-card);
-  outline: none;
-}
-
-.sorotanIkon {
-  width: 32px;
-  height: 32px;
-  border-radius: 11px;
-  display: grid;
-  place-items: center;
-  font-size: 14px;
+.heroQuoteHeading {
+  margin: 0 0 6px;
+  color: var(--purple-700);
+  font-size: 13px;
   font-weight: 800;
+}
+
+.heroQuoteText {
+  margin: 0;
   color: var(--ink-2);
-  margin-bottom: 7px;
-}
-
-.sorotanLabel {
-  font-size: 10.5px;
-  font-weight: 700;
-  color: var(--ink-4);
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-}
-
-.sorotanNilai {
   font-size: 13.5px;
+  line-height: 1.6;
+}
+
+.quoteMark {
+  display: block;
+  margin-bottom: -6px;
+  color: var(--purple-300);
+  font-family: var(--font-display);
+  font-size: 30px;
   font-weight: 800;
-  color: var(--ink);
-  line-height: 1.35;
+  line-height: 1;
 }
 
-.sorotanSub {
-  font-size: 11px;
-  color: var(--ink-3);
-}
-
-/* ══ Section ══════════════════════════════════════════════════════════════════ */
+/* ══ Section heading ══════════════════════════════════════════════════════════ */
 .section {
   display: flex;
   flex-direction: column;
-  gap: 12px;
-  scroll-margin-top: 16px;
+  gap: 14px;
 }
 
 .sectionHead {
   display: flex;
-  align-items: baseline;
-  justify-content: space-between;
+  align-items: center;
   gap: 10px;
+}
+
+.sectionMarker {
+  width: 12px;
+  height: 12px;
+  border-radius: 4px;
+  background: var(--purple-600);
+  flex-shrink: 0;
 }
 
 .sectionTitle {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-family: var(--font-display);
-  font-size: 16.5px;
-  font-weight: 800;
-  color: var(--ink);
   margin: 0;
-  letter-spacing: -0.2px;
-}
-
-.countBadge {
-  font-family: var(--font-body);
-  font-size: 10.5px;
+  color: var(--ink);
+  font-family: var(--font-display);
+  font-size: 17px;
   font-weight: 800;
-  color: var(--surface);
-  background: var(--purple-600);
-  min-width: 19px;
-  height: 19px;
-  padding: 0 6px;
-  border-radius: 999px;
-  display: grid;
-  place-items: center;
 }
 
-.sectionHint {
-  font-size: 10.5px;
-  font-weight: 700;
-  color: var(--ink-4);
-  white-space: nowrap;
-}
-
-/* ══ Grid budaya 2x2 ══════════════════════════════════════════════════════════ */
-.budayaGrid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 11px;
+/* ══ Budaya Lembaga ═══════════════════════════════════════════════════════════ */
+.budayaList {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
 }
 
 .budayaCard {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  text-align: left;
-  font-family: var(--font-body);
-  border: none;
-  border-radius: 20px;
-  padding: 15px 16px 16px;
-  cursor: pointer;
-  transition: transform var(--transition-fast), box-shadow var(--transition-fast);
-  animation: cardIn 0.45s cubic-bezier(0.2, 0.8, 0.3, 1) backwards;
-}
-
-.budayaCard:hover,
-.budayaCard:focus-visible {
-  transform: translateY(-3px);
-  box-shadow: 0 10px 22px rgba(33, 27, 46, 0.14);
-  outline: none;
-}
-
-@keyframes cardIn {
-  from { opacity: 0; transform: translateY(12px) scale(0.97); }
-  to { opacity: 1; transform: none; }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .budayaCard {
-    animation: none;
-  }
-  .budayaCard:hover,
-  .budayaCard:focus-visible {
-    transform: none;
-  }
-}
-
-.budayaIkon {
-  width: 34px;
-  height: 34px;
-  border-radius: 12px;
-  display: grid;
-  place-items: center;
-  font-size: 16px;
-  margin-bottom: 11px;
-}
-
-.budayaNama {
-  font-family: var(--font-display);
-  font-size: 15px;
-  font-weight: 800;
-  line-height: 1.2;
-  letter-spacing: -0.2px;
-}
-
-.budayaRingkas {
-  font-size: 10px;
-  font-weight: 700;
-  opacity: 0.66;
-  line-height: 1.35;
-  margin-top: 3px;
-}
-
-.budayaNilai {
-  font-family: var(--font-display);
-  font-size: 22px;
-  font-weight: 800;
-  margin-top: 10px;
-  letter-spacing: -0.5px;
-}
-
-.budayaGap {
-  font-size: 10px;
-  font-weight: 700;
-  opacity: 0.72;
-  margin-top: 2px;
-}
-
-/* ══ Kartu radar ══════════════════════════════════════════════════════════════ */
-.radarCard {
-  display: block;
-  width: 100%;
-  text-align: left;
-  font-family: var(--font-body);
-  background: var(--surface);
-  border: 1px solid var(--line);
-  border-radius: 20px;
   padding: 16px 18px;
-  cursor: pointer;
-  transition: transform var(--transition-fast), border-color var(--transition-fast);
-}
-
-.radarCard:hover,
-.radarCard:focus-visible {
-  transform: translateY(-2px);
-  border-color: var(--purple-300);
-  outline: none;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .radarCard:hover,
-  .radarCard:focus-visible {
-    transform: none;
-  }
-}
-
-.radarWrap {
-  display: flex;
-  justify-content: center;
-  padding: 2px 0 8px;
-}
-
-.radarHint {
-  font-size: 11px;
-  line-height: 1.6;
-  color: var(--ink-3);
-  margin: 0;
-  padding-top: 12px;
-  border-top: 1px solid var(--line);
-}
-
-.radarCta {
-  font-weight: 800;
-  color: var(--purple-600);
-  white-space: nowrap;
-}
-
-/* ══ Callout kuning ═══════════════════════════════════════════════════════════ */
-.info {
-  background: var(--status-warn-bg);
-  border-radius: 18px;
-  padding: 14px 16px;
-}
-
-.infoJudul {
-  font-size: 12.5px;
-  font-weight: 800;
-  color: #8A6210;
-  margin: 0 0 5px;
-}
-
-.infoTeks {
-  font-size: 12.5px;
-  line-height: 1.6;
-  color: #8A6210;
-  margin: 0;
-}
-
-/* ══ Segmented bar + grid subdimensi ══════════════════════════════════════════ */
-.segmentBar {
-  display: flex;
-  gap: 4px;
-  height: 12px;
-}
-
-.segment {
-  height: 100%;
-  border-radius: 99px;
-  min-width: 8px;
-}
-
-.subGrid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 11px;
-}
-
-.subCard {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 5px;
-  text-align: left;
-  font-family: var(--font-body);
+  border-radius: var(--radius-lg);
   background: var(--surface);
-  border: 1px solid var(--line);
-  border-radius: 18px;
-  padding: 14px 15px;
-  cursor: pointer;
-  transition: transform var(--transition-fast), border-color var(--transition-fast),
-              box-shadow var(--transition-fast);
-}
-
-.subCard:hover,
-.subCard:focus-visible {
-  transform: translateY(-2px);
-  border-color: var(--purple-300);
   box-shadow: var(--shadow-card);
-  outline: none;
 }
 
-@media (prefers-reduced-motion: reduce) {
-  .subCard:hover,
-  .subCard:focus-visible,
-  .sorotanCard:hover,
-  .sorotanCard:focus-visible {
-    transform: none;
-  }
-}
-
-.subTop {
-  display: flex;
-  align-items: center;
-  gap: 7px;
-  min-width: 0;
-  width: 100%;
-}
-
-.subDot {
-  width: 9px;
-  height: 9px;
-  border-radius: 50%;
-  flex-shrink: 0;
-}
-
-.subLabel {
-  font-size: 11.5px;
-  font-weight: 700;
-  color: var(--ink-2);
-  line-height: 1.35;
-}
-
-.subNilai {
-  font-family: var(--font-display);
-  font-size: 21px;
-  font-weight: 800;
+.budayaTitle {
+  margin: 0 0 14px;
   color: var(--ink);
-  letter-spacing: -0.5px;
-}
-
-.subKategori {
-  font-size: 10.5px;
+  font-size: 14px;
   font-weight: 800;
 }
 
-/* Baris harapan/gap opsional di kartu dimensi profil organisasi -- cuma muncul kalau data
-   harapan-nya tersedia (lihat withDimensiHarapan di scImporter.js), laporan lama tanpa field
-   ini tetap tampil rapi tanpa baris ini. */
-.subGapLine {
-  font-size: 10px;
-  color: var(--ink-4);
-  margin-top: 1px;
-}
-
-/* ══ Daftar rencana aksi ══════════════════════════════════════════════════════ */
-.aksiList {
-  display: flex;
-  flex-direction: column;
-  gap: 9px;
-}
-
-.aksiRow {
+.budayaCompare {
   display: grid;
-  grid-template-columns: 42px minmax(0, 1fr) 10px;
+  grid-template-columns: 1fr auto 1fr;
   align-items: center;
   gap: 12px;
-  width: 100%;
-  text-align: left;
-  font-family: var(--font-body);
-  background: var(--surface);
-  border: 1px solid var(--line);
-  border-radius: 18px;
-  padding: 13px 15px;
-  cursor: pointer;
-  transition: transform var(--transition-fast), border-color var(--transition-fast),
-              box-shadow var(--transition-fast);
 }
 
-.aksiRow:hover,
-.aksiRow:focus-visible {
-  transform: translateY(-2px);
-  border-color: var(--purple-300);
-  box-shadow: var(--shadow-card);
-  outline: none;
-}
-
-.aksiIkon {
-  width: 42px;
-  height: 42px;
-  border-radius: 14px;
-  background: var(--purple-050);
-  display: grid;
-  place-items: center;
-  font-size: 17px;
-}
-
-.aksiBody {
+.budayaSide {
   min-width: 0;
 }
 
-.aksiJudul {
-  display: block;
-  font-size: 13px;
-  font-weight: 700;
-  color: var(--ink);
-  line-height: 1.45;
-}
-
-.aksiMeta {
+.budayaSideTop {
   display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 7px;
-  margin-top: 6px;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 6px;
+  margin-bottom: 6px;
 }
 
-.aksiTag {
-  font-size: 10px;
-  font-weight: 800;
-  color: var(--purple-700);
-  background: var(--purple-050);
-  padding: 3px 9px;
-  border-radius: 999px;
-}
-
-.aksiJangka {
-  font-size: 10.5px;
-  color: var(--ink-4);
-  font-weight: 600;
-}
-
-.aksiChevron {
-  font-size: 17px;
-  color: var(--ink-4);
-  transition: transform var(--transition-fast), color var(--transition-fast);
-}
-
-.aksiRow:hover .aksiChevron {
-  color: var(--purple-600);
-  transform: translateX(2px);
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .aksiRow:hover,
-  .aksiRow:focus-visible {
-    transform: none;
-  }
-  .aksiRow:hover .aksiChevron {
-    transform: none;
-  }
-}
-
-/* ══ Cermin & refleksi ════════════════════════════════════════════════════════ */
-.cermin {
-  position: relative;
-  background: var(--surface);
-  border: 1px solid var(--line);
-  border-radius: 20px;
-  padding: 18px 18px 18px 20px;
-}
-
-.cerminKutip {
-  position: absolute;
-  top: 6px;
-  left: 14px;
-  font-family: var(--font-display);
-  font-size: 40px;
-  font-weight: 800;
-  color: var(--purple-100);
-  line-height: 1;
-}
-
-.cerminTeks {
-  position: relative;
-  font-size: 13px;
-  line-height: 1.65;
-  color: var(--ink-2);
-  margin: 0;
-}
-
-.refleksi {
-  background: var(--purple-050);
-  border-radius: 20px;
-  padding: 17px 18px;
-}
-
-.refleksiLabel {
-  font-size: 10.5px;
-  font-weight: 800;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  color: var(--purple-600);
-  margin: 0 0 6px;
-}
-
-.refleksiTeks {
-  font-size: 13.5px;
-  line-height: 1.6;
-  font-weight: 600;
-  color: var(--purple-700);
-  margin: 0;
-}
-
-/* ══ Footer ═══════════════════════════════════════════════════════════════════ */
-.disclaimer {
-  font-size: 11px;
-  color: var(--ink-4);
-  line-height: 1.55;
-  text-align: center;
-  padding-top: 14px;
-  border-top: 1px solid var(--line-warm);
-  margin: 0;
-}
-
-/* Fase E item 15: catatan metodologi/status instrumen, terusan disclaimer di atasnya. */
-.metodologi {
-  font-size: 10px;
-  color: var(--ink-4);
-  opacity: 0.85;
-  line-height: 1.5;
-  text-align: center;
-  margin: 6px 0 0;
-}
-
-/* ══ Isi dialog ═══════════════════════════════════════════════════════════════ */
-.dialogSectionTitle {
-  font-size: 11px;
-  font-weight: 800;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  color: var(--ink-4);
-  margin: 0 0 9px;
-}
-
-.dialogText {
-  font-size: 13.5px;
-  line-height: 1.65;
-  color: var(--ink-2);
-  margin: 0;
-}
-
-.dialogFootnote {
+.budayaSideTop span {
+  color: var(--ink-3);
   font-size: 11.5px;
-  line-height: 1.6;
-  color: var(--ink-4);
-  margin: 0;
-  padding-top: 14px;
-  border-top: 1px solid var(--line);
+  font-weight: 650;
 }
 
-.dialogStats {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 9px;
-  margin-bottom: 13px;
+.budayaSideTop strong {
+  color: var(--ink);
+  font-size: 15px;
+  font-weight: 800;
 }
 
-.dialogStat {
+.barTrack {
+  height: 8px;
+  border-radius: 999px;
+  background: var(--bg-2);
+  overflow: hidden;
+}
+
+.barFill {
+  height: 100%;
+  border-radius: 999px;
+  background: var(--ink);
+  transition: width 500ms ease;
+}
+
+.barFillHarapan {
+  background: var(--purple-600);
+}
+
+.compareSep {
+  display: inline-grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: var(--ink);
+  color: var(--surface);
+  font-size: 14px;
+  font-weight: 800;
+}
+
+/* ══ Kesejahteraan Tim ════════════════════════════════════════════════════════ */
+.kesList {
   display: flex;
   flex-direction: column;
   gap: 4px;
+  padding: 6px 18px;
+  border-radius: var(--radius-lg);
   background: var(--surface);
-  border: 1px solid var(--line);
-  border-radius: 14px;
-  padding: 12px 13px;
+  box-shadow: var(--shadow-card);
 }
 
-.dialogStatValue {
-  font-family: var(--font-display);
-  font-size: 17px;
-  font-weight: 800;
-  color: var(--ink);
-  line-height: 1.15;
+.kesRow {
+  padding: 14px 0;
+  border-bottom: 1px solid var(--line);
 }
 
-.dialogStatLabel {
-  font-size: 10px;
-  color: var(--ink-3);
-  line-height: 1.35;
+.kesRow:last-child {
+  border-bottom: none;
 }
 
-.callout {
+.kesRowHead {
   display: flex;
+  align-items: center;
   gap: 10px;
-  align-items: flex-start;
-  border-radius: 14px;
-  padding: 13px 15px;
+  width: 100%;
+  padding: 0;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  font: inherit;
+  text-align: left;
 }
 
-.calloutIcon {
+.chevron {
+  color: var(--ink-3);
+  font-size: 13px;
+  transition: transform 200ms ease;
+}
+
+.chevronUp {
+  transform: rotate(180deg);
+  color: var(--purple-600);
+}
+
+.kesLabel {
+  flex: 1;
+  min-width: 0;
+  color: var(--ink);
+  font-size: 13.5px;
+  font-weight: 700;
+}
+
+.kesNilai {
+  color: var(--ink);
   font-size: 14px;
-  line-height: 1.5;
-  flex-shrink: 0;
+  font-weight: 800;
 }
 
-.calloutText {
-  font-size: 12.5px;
-  line-height: 1.6;
-  margin: 0;
-  font-weight: 600;
+.barTrackSlim {
+  height: 6px;
+  margin-top: 8px;
+  border-radius: 999px;
+  background: var(--bg-2);
+  overflow: hidden;
 }
 
-.callout_baik { background: var(--status-safe-bg); }
-.callout_baik .calloutText { color: #1B6B4A; }
+.barFillSlim {
+  height: 100%;
+  border-radius: 999px;
+  transition: width 500ms ease;
+}
 
-.callout_waspada { background: var(--status-alert-bg); }
-.callout_waspada .calloutText { color: #9E2F40; }
+.kesDetail {
+  margin-top: 12px;
+  padding-left: 22px;
+}
 
-.callout_netral { background: var(--surface); border: 1px solid var(--line); }
-.callout_netral .calloutText { color: var(--ink-2); }
-
-.callout_aksi { background: var(--purple-050); }
-.callout_aksi .calloutText { color: var(--purple-700); }
-
-.langkahList {
-  list-style: none;
+.facetList {
+  display: grid;
+  gap: 8px;
   margin: 0;
   padding: 0;
-  display: flex;
-  flex-direction: column;
+  list-style: none;
+}
+
+.facetList li {
+  position: relative;
+  padding-left: 14px;
+  color: var(--ink-3);
+  font-size: 12.5px;
+  line-height: 1.5;
+}
+
+.facetList li::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 6px;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--purple-300);
+}
+
+/* ══ Profil Organisasi ════════════════════════════════════════════════════════ */
+.orgGrid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
   gap: 10px;
 }
 
-.langkahItem {
+.orgCard {
   display: flex;
-  gap: 11px;
-  align-items: flex-start;
+  align-items: center;
+  gap: 10px;
+  padding: 14px 14px;
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+  box-shadow: var(--shadow-card);
 }
 
-.langkahIkon {
+.orgIcon {
+  font-size: 20px;
   flex-shrink: 0;
-  width: 26px;
-  height: 26px;
-  border-radius: 9px;
-  background: var(--purple-050);
-  display: grid;
-  place-items: center;
-  font-size: 13px;
 }
 
-.langkahText {
-  font-size: 12.5px;
-  line-height: 1.55;
-  color: var(--ink-2);
-}
-
-.langkahJangka {
+.orgLabel {
   display: block;
-  font-size: 10.5px;
-  color: var(--ink-4);
-  margin-top: 2px;
+  color: var(--ink-3);
+  font-size: 11px;
+  font-weight: 650;
 }
 
-.axisList {
+.orgNilai {
+  display: block;
+  color: var(--ink);
+  font-size: 15px;
+  font-weight: 800;
+}
+
+/* ══ Jawaban Survey Anda ══════════════════════════════════════════════════════ */
+.surveyList {
   display: flex;
   flex-direction: column;
-  gap: 9px;
+  gap: 12px;
 }
 
-.axisRow {
-  display: flex;
-  gap: 11px;
-  align-items: flex-start;
+.surveyCard {
+  padding: 18px 20px;
+  border-radius: var(--radius-lg);
   background: var(--surface);
-  border: 1px solid var(--line);
-  border-radius: 14px;
-  padding: 11px 13px;
+  box-shadow: var(--shadow-card);
 }
 
-.axisIcon {
-  font-size: 16px;
-  line-height: 1.3;
+.surveyCard .quoteMark {
+  color: var(--purple-300);
 }
 
-.axisTitle {
-  font-size: 12.5px;
+.surveyHeading {
+  margin: 0 0 8px;
+  color: var(--purple-700);
+  font-size: 13px;
   font-weight: 800;
-  color: var(--ink);
+}
+
+.surveyText {
   margin: 0;
+  color: var(--ink-2);
+  font-size: 13.5px;
+  line-height: 1.65;
 }
 
-.axisRingkas {
-  font-size: 10.5px;
-  font-weight: 600;
-  color: var(--ink-4);
-  margin-left: 6px;
-}
-
-.axisMeta {
-  font-size: 11px;
+/* ══ Catatan kosong & footer ══════════════════════════════════════════════════ */
+.gapNote {
+  padding: 14px 16px;
+  border-radius: var(--radius-lg);
+  background: var(--bg-2);
   color: var(--ink-3);
-  margin: 3px 0 0;
+  font-size: 12.5px;
+  font-style: italic;
+  text-align: center;
 }
 
-/* ══ Layar lebih besar: tetap terpusat & nyaman, bukan melebar penuh ══════════ */
-@media (min-width: 700px) {
-  .page {
-    gap: 26px;
-  }
-  .budayaGrid,
-  .subGrid {
-    grid-template-columns: repeat(4, 1fr);
-  }
-  .heroValue {
-    font-size: 52px;
+.disclaimer {
+  margin: 8px 0 0;
+  padding-top: 14px;
+  border-top: 1px solid var(--line);
+  color: var(--ink-4);
+  font-size: 11.5px;
+  line-height: 1.55;
+  text-align: center;
+}
+
+.metodologi {
+  margin: 4px 0 0;
+  color: var(--ink-4);
+  font-size: 10.5px;
+  line-height: 1.5;
+  text-align: center;
+  opacity: 0.85;
+}
+
+@media (min-width: 640px) {
+  .budayaCompare {
+    gap: 20px;
   }
 }

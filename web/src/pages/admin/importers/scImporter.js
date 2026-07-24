@@ -52,7 +52,7 @@ const KESEJAHTERAAN_LABEL = {
   kenyamanan_bekerja: 'Kenyamanan Bekerja',
   pengembangan_diri: 'Pengembangan Diri',
   ekspektasi: 'Ekspektasi Terpenuhi',
-  work_life_balance: 'Keseimbangan Kerja-Hidup',
+  work_life_balance: 'Work-Life Balance',
 };
 const KESEJAHTERAAN_KODE = Object.keys(KESEJAHTERAAN_LABEL);
 
