@@ -104,13 +104,18 @@ Deno.serve(async (req) => {
 
     const indeks = rataRata((row.kesejahteraan || []).map((k: any) => k.nilai));
 
-    // sc_personal.budaya (jsonb) pakai nama kolom mean_gambaran/mean_harapan (persis kolom
-    // sheet Personal) -- FE (ScRadarChart/ScLaporanIndividuPage/ScDetailDrawer) menunggu bentuk
-    // RadarBudayaPoint {tipe, saat_ini, harapan} (sc.types.ts). WAJIB dipetakan ulang di sini,
-    // bukan diteruskan mentah, kalau tidak seluruh kartu budaya tampil "--%" (bug nyata yang
-    // sempat terjadi: chart_data sempat diisi row.budaya apa adanya).
+    // sc_personal.budaya (jsonb) punya DUA pasang angka per tipe (lihat buildBudayaPersonal di
+    // scImporter.js): mean_gambaran/mean_harapan (rata-rata mentah Likert 1-5 per staf -- angka
+    // SATU digit, mis. "4") dan t_gambaran/t_harapan (konversi T-score dari kolom t_konversi_*
+    // sheet Personal -- angka DUA digit/puluhan, skala yang sebanding dipakai seluruh laporan
+    // ini). WAJIB pakai t_gambaran/t_harapan untuk saat_ini/harapan yang ditampilkan -- pakai
+    // mean_ langsung bikin kartu budaya laporan individu tampil "4%" alih-alih angka puluhan
+    // yang benar (bug nyata, ditemukan dari laporan produksi). Sheet Lembaga (agregat pimpinan,
+    // buildBudayaLembaga) TIDAK punya kolom t_konversi_ sama sekali (t_gambaran/t_harapan selalu
+    // null di situ) -- itu levelnya sendiri, sengaja tidak disentuh perbaikan ini, kolom
+    // gambaran_/harapan_ Lembaga memang skala berbeda dari mean_ Personal.
     const budayaChartData = (row.budaya || []).map((b: any) => ({
-      tipe: b.tipe, saat_ini: b.mean_gambaran, harapan: b.mean_harapan,
+      tipe: b.tipe, saat_ini: b.t_gambaran ?? b.mean_gambaran, harapan: b.t_harapan ?? b.mean_harapan,
     }));
 
     // CATATAN (Gap C audit, lihat ScLaporanIndividuPage.jsx): sejak beranda laporan individu
