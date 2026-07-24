@@ -64,17 +64,19 @@ function roleContributionSteps(viewerIsOwner) {
   ];
 }
 
-/** Lingkar kontribusi -- penjelas KONSEP statis (kendali/pengaruh/sistem), bukan kategorisasi
- * rencana_aksi asli. Skema AksiPribadi (sc.types.ts) tidak punya field locus, jadi memaksa tiap
- * rencana_aksi masuk salah satu dari tiga kelompok ini berarti FIR mengarang klasifikasi yang
- * tidak ada di data -- dihindari sesuai CLAUDE.md ("FIR tidak menghitung apa pun"). Rencana aksi
- * asli tetap tampil apa adanya di bagian "Komitmen 30 hari" tepat di bawah penjelas ini. */
+/** Lingkar kontribusi -- judul + definisi konsep tiga area (kendali/pengaruh/sistem), TETAP
+ * statis (konsepnya sendiri tidak berubah per orang). Konten di dalam tiap area (mengapa_fokus +
+ * tiga langkah konkret) sekarang DINAMIS, digenerate Gemini per orang (laporan.lingkar_kontribusi,
+ * lihat sc.types.ts LingkarKontribusiArea) -- instruksi eksplisit pemilik produk supaya tidak
+ * generik antarorang. `fallbackDesc` di sini cuma dipakai kalau laporan belum punya field itu
+ * (laporan lama sebelum fitur ini ditambahkan). Bukan kategorisasi ulang rencana_aksi -- rencana
+ * aksi asli tetap tampil terpisah apa adanya di bagian "Komitmen 30 hari" di bawah ini. */
 function agencyTerritories(viewerIsOwner) {
   const p = viewerIsOwner ? "Anda" : "Tim";
   return [
-    { key: "control", title: "Dalam kendali saya", desc: `Langkah yang bisa langsung ${p} putuskan dan jalankan sendiri, tanpa menunggu pihak lain.` },
-    { key: "influence", title: "Bisa saya pengaruhi", desc: `Butuh percakapan atau kerja sama dengan rekan/pimpinan, tapi ${p} bisa mendorongnya.` },
-    { key: "system", title: "Membutuhkan dukungan sistem", desc: "Perubahan yang perlu dibawa ke ruang keputusan lembaga, bukan tanggung jawab satu orang." },
+    { key: "control", title: "Dalam kendali saya", fallbackDesc: `Langkah yang bisa langsung ${p} putuskan dan jalankan sendiri, tanpa menunggu pihak lain.` },
+    { key: "influence", title: "Bisa saya pengaruhi", fallbackDesc: `Butuh percakapan atau kerja sama dengan rekan/pimpinan, tapi ${p} bisa mendorongnya.` },
+    { key: "system", title: "Membutuhkan dukungan sistem", fallbackDesc: "Perubahan yang perlu dibawa ke ruang keputusan lembaga, bukan tanggung jawab satu orang." },
   ];
 }
 
@@ -235,7 +237,7 @@ function SurveyCard({ heading, teks, delay }) {
 export default function ScLaporanIndividuPage({ laporan, viewerIsOwner = false }) {
   const {
     meta, header, bagian_budaya, bagian_kesejahteraan, bagian_profil_organisasi,
-    jawaban_survey, rencana_aksi,
+    jawaban_survey, rencana_aksi, lingkar_kontribusi,
   } = laporan;
 
   const budayaItems = bagian_budaya?.chart_data || [];
@@ -380,6 +382,7 @@ export default function ScLaporanIndividuPage({ laporan, viewerIsOwner = false }
           <div className={styles.agencyList}>
             {agencyTerritories(viewerIsOwner).map((t, i) => {
               const expanded = expandedAgency === t.key;
+              const area = (lingkar_kontribusi || []).find((a) => a.locus === t.key);
               return (
                 <div className={`${styles.agencyItem} ${expanded ? styles.agencyItemOpen : ""}`} key={t.key}>
                   <button type="button" onClick={() => setExpandedAgency(expanded ? null : t.key)} aria-expanded={expanded}>
@@ -389,7 +392,43 @@ export default function ScLaporanIndividuPage({ laporan, viewerIsOwner = false }
                     </span>
                     <span className={`${styles.chevron} ${expanded ? styles.chevronUp : ""}`} aria-hidden="true">⌄</span>
                   </button>
-                  {expanded && <p className={styles.agencyDesc}>{t.desc}</p>}
+                  {expanded && (
+                    area ? (
+                      <div className={styles.agencyDetail}>
+                        <div className={styles.agencyMengapa}>
+                          <p className={styles.agencyMengapaLabel}>{`Mengapa Ini Menjadi Fokus ${viewerIsOwner ? "Anda" : "Tim"}`}</p>
+                          <p>{area.mengapa_fokus}</p>
+                        </div>
+                        {area.langkah?.length > 0 && (
+                          <div className={styles.agencyLangkah}>
+                            <p className={styles.agencyLangkahLabel}>{`Tiga Hal yang Bisa ${viewerIsOwner ? "Anda" : "Tim"} Lakukan`}</p>
+                            {area.langkah.map((l, li) => (
+                              <div className={styles.langkahItem} key={li}>
+                                <span className={styles.langkahNumber} aria-hidden="true">{li + 1}</span>
+                                <div>
+                                  <strong>{l.judul}</strong>
+                                  {l.instruksi && <p className={styles.langkahInstruksi}>{l.instruksi}</p>}
+                                  {l.contoh?.length > 0 && (
+                                    <ul className={styles.langkahContoh}>
+                                      {l.contoh.map((c, ci) => <li key={ci}>{c}</li>)}
+                                    </ul>
+                                  )}
+                                  {l.tujuan && (
+                                    <p className={styles.langkahTujuan}>
+                                      <span aria-hidden="true">🎯</span> <span className={styles.langkahTujuanLabel}>Tujuan</span><br />
+                                      {l.tujuan}
+                                    </p>
+                                  )}
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    ) : (
+                      <p className={styles.agencyDesc}>{t.fallbackDesc}</p>
+                    )
+                  )}
                 </div>
               );
             })}

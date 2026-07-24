@@ -893,6 +893,117 @@
   line-height: 1.55;
 }
 
+/* ── Konten dinamis Gemini per area (mengapa_fokus + langkah), kerangka kalimat eksplisit
+   pemilik produk -- fallback ke .agencyDesc di atas kalau laporan belum punya field ini. */
+.agencyDetail {
+  display: grid;
+  gap: 10px;
+  margin: 0 12px 14px 12px;
+}
+
+.agencyMengapa {
+  padding: 12px 14px;
+  border-radius: 14px;
+  background: var(--purple-050);
+}
+
+.agencyMengapaLabel {
+  margin: 0 0 4px;
+  color: var(--purple-600);
+  font-size: 10.5px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.agencyMengapa p {
+  margin: 0;
+  color: var(--ink-2);
+  font-size: 12.5px;
+  line-height: 1.55;
+}
+
+.agencyLangkah {
+  padding: 4px 14px 6px;
+  border-radius: 14px;
+  background: var(--bg-2);
+}
+
+.agencyLangkahLabel {
+  margin: 8px 0 2px;
+  color: var(--ink-3);
+  font-size: 10.5px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.langkahItem {
+  display: grid;
+  grid-template-columns: 22px 1fr;
+  gap: 10px;
+  padding: 10px 0;
+  border-top: 1px solid var(--line-warm);
+}
+
+.langkahItem:first-of-type {
+  border-top: 0;
+}
+
+.langkahNumber {
+  display: grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  margin-top: 1px;
+  border-radius: 50%;
+  background: var(--surface);
+  color: var(--ink-2);
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.langkahItem strong {
+  display: block;
+  color: var(--ink);
+  font-size: 12.5px;
+  line-height: 1.4;
+}
+
+.langkahInstruksi {
+  margin: 4px 0 4px;
+  color: var(--ink-3);
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.langkahContoh {
+  margin: 0 0 6px;
+  padding-left: 16px;
+  color: var(--ink-2);
+  font-size: 12px;
+  line-height: 1.55;
+}
+
+.langkahContoh li + li {
+  margin-top: 2px;
+}
+
+.langkahTujuan {
+  margin: 0;
+  padding: 8px 10px;
+  border-radius: 10px;
+  background: var(--surface-soft);
+  color: var(--ink-3);
+  font-size: 11.5px;
+  line-height: 1.5;
+}
+
+.langkahTujuanLabel {
+  color: var(--purple-600);
+  font-weight: 800;
+}
+
 /* ══ Komitmen 30 hari ═════════════════════════════════════════════════════════ */
 .actionBlock {
   margin-top: 4px;

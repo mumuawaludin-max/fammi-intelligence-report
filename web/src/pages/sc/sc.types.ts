@@ -180,6 +180,28 @@ export interface AksiPribadi {
   ikon: string;
 }
 
+/** Satu langkah konkret di dalam satu area Lingkar Kontribusi (lihat LingkarKontribusiArea) --
+ * kerangka kalimat instruksi eksplisit pemilik produk (referensi screenshot 2026-07):
+ * judul aksi, kalimat ajakan konkret, daftar contoh singkat, lalu tujuannya. */
+export interface LangkahLingkarKontribusi {
+  judul: string;
+  instruksi: string;
+  contoh: string[];
+  tujuan: string;
+}
+
+/** Satu area Lingkar Kontribusi (kendali/pengaruh/sistem) BERISI KONTEN DINAMIS Gemini,
+ * dipersonalisasi dari data budaya/kesejahteraan/profil_organisasi orang ini -- BEDA dari
+ * `agencyTerritories()` di ScLaporanIndividuPage.jsx yang cuma judul+definisi konsep statis
+ * (tiga area itu sendiri tetap konsep tetap, bukan hasil klasifikasi FIR). Opsional: laporan
+ * lama sebelum field ini ditambahkan tetap valid, komponen fallback ke definisi statis. */
+export interface LingkarKontribusiArea {
+  locus: "control" | "influence" | "system";
+  mengapa_fokus: string;
+  /** Selalu 3 item (instruksi prompt Gemini), tapi dirender apa adanya, bukan dipaksa. */
+  langkah: LangkahLingkarKontribusi[];
+}
+
 /** Empat jawaban esai VERBATIM (satu huruf pun tidak diubah dari isian staf sendiri), dipetakan
  * langsung dari sc_personal.essay -- BEDA dari bagian_cermin (yang membaurkan sebagian jawaban
  * ini dengan konteks tulisan Gemini jadi satu paragraf). Dipakai laporan individu REMAKE TOTAL
@@ -230,6 +252,9 @@ export interface LaporanIndividuSC {
    * Anda" versi verbatim ini. */
   jawaban_survey?: JawabanSurveyIndividu;
   rencana_aksi?: AksiPribadi[];
+  /** Opsional: cuma terisi untuk laporan yang digenerate ulang sesudah field ini ditambahkan --
+   * laporan lama tetap valid, section "Lingkar Kontribusi" fallback ke definisi konsep statis. */
+  lingkar_kontribusi?: LingkarKontribusiArea[];
   footer: ScFooter;
   /** Kapan laporan ini disetujui AdminFammi (bukan kapan Gemini menggenerate draf-nya) --
    * kolom sc_hasil.approved_at, disisipkan di useScIndividu/useScRespondenList (useScData.js),

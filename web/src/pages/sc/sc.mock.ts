@@ -108,6 +108,80 @@ const RESPONDEN_1: LaporanIndividuSC = {
       ikon: "🤝",
     },
   ],
+  lingkar_kontribusi: [
+    {
+      locus: "control",
+      mengapa_fokus: "Kenyamanan bekerja sudah sangat tinggi (90%), tapi Work-Life Balance jadi subdimensi terendah (68%, kategori Sedang), terutama menjelang periode ujian.",
+      langkah: [
+        {
+          judul: "Petakan beban kerja pribadi setiap awal pekan",
+          instruksi: "Setiap Senin pagi, tuliskan:",
+          contoh: ["Tugas mengajar dan administrasi minggu ini.", "Kegiatan tambahan yang sudah pasti jadwalnya.", "Waktu istirahat yang ingin dijaga tetap ada."],
+          tujuan: "Supaya beban kerja terlihat jelas dari awal, bukan menumpuk mendadak menjelang ujian.",
+        },
+        {
+          judul: "Coba satu ide metode mengajar baru di kelas sendiri",
+          instruksi: "Pilih satu topik dalam dua minggu ke depan, lalu:",
+          contoh: ["Rancang satu pendekatan mengajar berbeda dari biasanya.", "Coba di satu kelas kecil dulu.", "Catat reaksi murid dan hasil belajarnya."],
+          tujuan: "Memulai ruang eksperimen dari langkah kecil yang tidak perlu menunggu persetujuan siapa pun.",
+        },
+        {
+          judul: "Sisihkan satu slot istirahat tetap setiap hari",
+          instruksi: "Tentukan satu jam tertentu, lalu:",
+          contoh: ["Blokir waktu itu di jadwal pribadi.", "Hindari menjadwalkan kegiatan tambahan di jam itu.", "Gunakan untuk benar-benar berhenti sejenak, bukan menyelesaikan tugas lain."],
+          tujuan: "Menjaga Work-Life Balance tidak makin turun saat periode ujian mendekat.",
+        },
+      ],
+    },
+    {
+      locus: "influence",
+      mengapa_fokus: "Harapan terhadap ruang mencoba metode mengajar baru (Inovasi) 13 poin lebih tinggi dari kondisi sekarang, gap terbesar di antara keempat tipe budaya.",
+      langkah: [
+        {
+          judul: "Ajukan ide metode mengajar dalam forum jenjang",
+          instruksi: "Pada pertemuan rutin guru jenjang berikutnya, sampaikan:",
+          contoh: ["Satu metode yang ingin dicoba beserta alasannya.", "Dukungan yang dibutuhkan dari rekan sejenjang.", "Rencana waktu uji coba."],
+          tujuan: "Membuka ruang eksperimen lewat percakapan langsung, bukan menunggu kebijakan turun.",
+        },
+        {
+          judul: "Ajak guru yang lebih muda ikut mengusulkan ide",
+          instruksi: "Sebelum forum berikutnya, tanyakan ke satu-dua rekan lebih muda:",
+          contoh: ["Ide mengajar yang ingin mereka coba.", "Kendala yang mereka rasakan selama ini.", "Kesediaan mereka ikut menyampaikan di forum."],
+          tujuan: "Menindaklanjuti harapan supaya ide dari guru yang lebih muda juga diberi ruang, bukan cuma dari yang senior.",
+        },
+        {
+          judul: "Bicarakan jadwal kegiatan tambahan dengan koordinator jenjang",
+          instruksi: "Sampaikan langsung ke koordinator:",
+          contoh: ["Kesulitan menyiapkan materi karena jadwal sering mendadak.", "Usulan kepastian jadwal minimal satu minggu di depan."],
+          tujuan: "Mendorong perubahan lewat percakapan dua arah, bukan cuma menyimpan keluhan sendiri.",
+        },
+      ],
+    },
+    {
+      locus: "system",
+      mengapa_fokus: "Gap Kepemimpinan pada profil organisasi (65% menuju harapan 74%) menunjukkan masih ada jarak antara gaya pembimbingan yang dirasakan dan yang diharapkan.",
+      langkah: [
+        {
+          judul: "Sampaikan pola jadwal mendadak ke pimpinan sekolah",
+          instruksi: "Lewat jalur yang sudah ada (rapat/laporan rutin), sampaikan:",
+          contoh: ["Pola jadwal kegiatan tambahan yang sering berubah mendadak.", "Dampaknya pada kesiapan mengajar.", "Usulan jalur konfirmasi jadwal yang lebih awal."],
+          tujuan: "Mendokumentasikan pola berulang supaya bisa dipertimbangkan jadi kebijakan, bukan cuma keluhan sesaat.",
+        },
+        {
+          judul: "Usulkan ruang eksperimen metode mengajar jadi agenda resmi",
+          instruksi: "Sampaikan ke pimpinan lewat forum yang sesuai:",
+          contoh: ["Data bahwa harapan terhadap ruang inovasi 13 poin lebih tinggi dari kondisi sekarang.", "Usulan waktu khusus rutin untuk uji coba metode mengajar."],
+          tujuan: "Membawa kebutuhan ini ke level keputusan lembaga, bukan tanggung jawab satu guru.",
+        },
+        {
+          judul: "Dokumentasikan hasil uji coba metode mengajar pribadi",
+          instruksi: "Setelah mencoba metode baru, catat:",
+          contoh: ["Hasil belajar murid yang teramati.", "Kendala yang muncul.", "Rekomendasi untuk jenjang lain."],
+          tujuan: "Menyediakan bukti konkret yang bisa dipakai pimpinan sebagai dasar kebijakan yang lebih luas.",
+        },
+      ],
+    },
+  ],
   footer: { disclaimer: DISCLAIMER_INDIVIDU },
 };
 
@@ -201,6 +275,80 @@ const RESPONDEN_2: LaporanIndividuSC = {
       terkait: "Aturan",
       jangka: "1 bulan",
       ikon: "✂️",
+    },
+  ],
+  lingkar_kontribusi: [
+    {
+      locus: "control",
+      mengapa_fokus: "Selisih terbesar ada di sisi Kekeluargaan (28 poin) dan prosedur berlapis (Aturan) dirasakan paling berat di antara semua tipe budaya (70%).",
+      langkah: [
+        {
+          judul: "Mulai satu obrolan singkat di luar urusan kerja",
+          instruksi: "Setiap hari, luangkan waktu untuk:",
+          contoh: ["Menyapa satu rekan dari unit berbeda.", "Menanyakan kabar di luar topik pekerjaan.", "Mendengarkan tanpa buru-buru pindah ke urusan tugas."],
+          tujuan: "Menumbuhkan kedekatan personal secara bertahap, sesuai gap kekeluargaan yang paling besar.",
+        },
+        {
+          judul: "Catat langkah persetujuan yang terasa berlapis",
+          instruksi: "Selama dua minggu, tuliskan setiap kali:",
+          contoh: ["Dokumen atau permintaan harus melewati lebih dari dua persetujuan.", "Berapa lama prosesnya berjalan.", "Bagian mana yang terasa bisa dipercepat."],
+          tujuan: "Punya data konkret sebelum mengusulkan penyederhanaan prosedur.",
+        },
+        {
+          judul: "Sederhanakan satu tugas administrasi sendiri",
+          instruksi: "Pilih satu tugas rutin, lalu:",
+          contoh: ["Buat versi checklist atau template yang lebih ringkas.", "Coba pakai versi itu selama satu minggu.", "Bandingkan waktu yang terpakai sebelum dan sesudah."],
+          tujuan: "Mengurangi beban prosedural yang memang berada dalam kendali sendiri, tanpa menunggu kebijakan baru.",
+        },
+      ],
+    },
+    {
+      locus: "influence",
+      mengapa_fokus: "Ekspektasi Terpenuhi jadi subdimensi terendah (40%, kategori Rendah), menandakan ada jarak antara bayangan sebelum bergabung dan kenyataan kerja sehari-hari.",
+      langkah: [
+        {
+          judul: "Ajak diskusi terbuka dengan atasan langsung",
+          instruksi: "Jadwalkan satu percakapan empat mata, sampaikan:",
+          contoh: ["Tiga hal yang terasa berbeda dari bayangan awal bergabung.", "Bagian mana yang masih bisa diselaraskan.", "Dukungan yang dibutuhkan untuk menyelaraskannya."],
+          tujuan: "Membuat kesenjangan ekspektasi terlihat jelas, bukan dipendam sendiri.",
+        },
+        {
+          judul: "Usulkan penyederhanaan satu langkah persetujuan",
+          instruksi: "Bawa catatan prosedur berlapis ke rekan atau atasan terkait, sampaikan:",
+          contoh: ["Langkah yang paling sering memperlambat.", "Usulan alternatif yang lebih ringkas.", "Dampaknya kalau disederhanakan."],
+          tujuan: "Mendorong perubahan lewat percakapan langsung dengan pihak yang berwenang atas prosedur itu.",
+        },
+        {
+          judul: "Bentuk kebiasaan sapa lintas unit bersama rekan lain",
+          instruksi: "Ajak satu-dua rekan untuk:",
+          contoh: ["Bergantian menyapa unit lain di waktu istirahat.", "Membuat obrolan ringan jadi kebiasaan bersama, bukan usaha sendirian."],
+          tujuan: "Memperkuat kedekatan lintas unit lebih cepat lewat kerja sama, bukan sendirian.",
+        },
+      ],
+    },
+    {
+      locus: "system",
+      mengapa_fokus: "Manajemen jadi dimensi profil organisasi terendah (45%), sejalan dengan Aturan yang dirasakan paling dominan dan paling ingin diringankan.",
+      langkah: [
+        {
+          judul: "Sampaikan pola prosedur berlapis lewat jalur resmi",
+          instruksi: "Lewat rapat atau laporan rutin, sampaikan:",
+          contoh: ["Daftar langkah persetujuan yang tercatat selama dua minggu.", "Waktu rata-rata yang terpakai.", "Usulan langkah yang bisa disederhanakan."],
+          tujuan: "Membawa data konkret ke ruang keputusan lembaga, bukan sekadar keluhan lisan.",
+        },
+        {
+          judul: "Usulkan tinjauan ulang alur administrasi unit",
+          instruksi: "Ajukan lewat pimpinan unit atau forum terkait:",
+          contoh: ["Alur administrasi yang berjalan saat ini.", "Titik-titik yang paling sering memperlambat.", "Manfaat kalau ditinjau ulang secara berkala."],
+          tujuan: "Mendorong perbaikan sistem administrasi, bukan tanggung jawab satu orang menanggung semua langkahnya.",
+        },
+        {
+          judul: "Minta kejelasan ekspektasi peran secara tertulis",
+          instruksi: "Ajukan permintaan ke atasan atau bagian kepegawaian:",
+          contoh: ["Uraian tugas dan tanggung jawab yang berlaku saat ini.", "Perbandingan dengan yang dijanjikan saat bergabung."],
+          tujuan: "Menjadikan kejelasan ekspektasi sebagai bagian dari sistem, bukan interpretasi masing-masing orang.",
+        },
+      ],
     },
   ],
   footer: { disclaimer: DISCLAIMER_INDIVIDU },
@@ -304,6 +452,80 @@ const RESPONDEN_3: LaporanIndividuSC = {
       terkait: "Kepuasan pada Kepemimpinan",
       jangka: "Mulai hari ini",
       ikon: "🌿",
+    },
+  ],
+  lingkar_kontribusi: [
+    {
+      locus: "control",
+      mengapa_fokus: "Work-Life Balance berada di 29% (Sangat Rendah) dan Kenyamanan Bekerja di 34% (Rendah), dua angka terendah di seluruh laporan ini.",
+      langkah: [
+        {
+          judul: "Tetapkan satu batas waktu berhenti kerja setiap hari",
+          instruksi: "Pilih satu jam tetap, lalu:",
+          contoh: ["Tentukan jam berhenti kerja yang sama setiap hari kerja.", "Matikan notifikasi terkait pekerjaan setelah jam itu.", "Catat berapa hari berhasil dipatuhi dalam satu minggu."],
+          tujuan: "Membangun batas yang jelas dan konsisten, karena niat mengurangi jam kerja secara umum jarang bertahan tanpa batas konkret.",
+        },
+        {
+          judul: "Sisipkan jeda tanpa layar di tengah hari kerja",
+          instruksi: "Setiap hari, luangkan 15 menit untuk:",
+          contoh: ["Menjauh dari layar dan meja kerja.", "Berjalan sebentar atau sekadar duduk tanpa pekerjaan.", "Kembali bekerja setelah waktu itu selesai, bukan lebih cepat."],
+          tujuan: "Memulihkan fokus lewat jeda pendek yang rutin, lebih membantu daripada istirahat panjang sesekali.",
+        },
+        {
+          judul: "Petakan sumber ketidaknyamanan kerja harian",
+          instruksi: "Selama satu minggu, catat:",
+          contoh: ["Momen yang membuat kerja terasa tidak nyaman.", "Apakah berulang atau kejadian sesekali.", "Bagian yang bisa diubah sendiri."],
+          tujuan: "Memisahkan sumber ketidaknyamanan yang bisa diatasi sendiri dari yang butuh pihak lain.",
+        },
+      ],
+    },
+    {
+      locus: "influence",
+      mengapa_fokus: "Sinergi Tim berada di 46% (Sedang), masih ada ruang dimanfaatkan, terutama karena kerja sebagai Pimpinan Unit banyak bersinggungan dengan rekan lintas peran.",
+      langkah: [
+        {
+          judul: "Bicarakan beban kerja dengan Kepala Sekolah",
+          instruksi: "Jadwalkan percakapan singkat minggu ini, sampaikan:",
+          contoh: ["Kondisi Kenyamanan Bekerja dan Work-Life Balance saat ini.", "Bagian pekerjaan yang paling menyita waktu di luar jam kerja.", "Dukungan yang dibutuhkan untuk meringankannya."],
+          tujuan: "Kenyamanan bekerja yang rendah dan Work-Life Balance yang sangat rendah adalah sinyal kelelahan kerja yang sebaiknya tidak ditunda.",
+        },
+        {
+          judul: "Bagi tugas menumpuk dengan rekan yang tepat",
+          instruksi: "Pilih satu tugas yang menumpuk, lalu:",
+          contoh: ["Sampaikan permintaan bantuan yang spesifik, bukan keluhan umum.", "Sepakati bagian yang bisa dibagi.", "Tentukan tenggat waktu bersama."],
+          tujuan: "Permintaan yang spesifik lebih mudah dipenuhi daripada keluhan umum, sekaligus memperkuat Sinergi Tim.",
+        },
+        {
+          judul: "Ajak rekan sesama Pimpinan Unit berbagi cara mengatur beban",
+          instruksi: "Pada pertemuan rutin antarunit, tanyakan:",
+          contoh: ["Cara rekan lain mengatur waktu dan prioritas.", "Praktik yang bisa saling ditiru antarunit."],
+          tujuan: "Memperkuat kerja sama lintas unit sekaligus menemukan cara baru mengelola beban kerja.",
+        },
+      ],
+    },
+    {
+      locus: "system",
+      mengapa_fokus: "Orientasi pada hasil dirasakan turun 16 poin dari harapan (75% menuju 59%), menandakan tekanan pencapaian target dirasa sudah tinggi dan berharap diringankan.",
+      langkah: [
+        {
+          judul: "Sampaikan pola tekanan target ke forum pimpinan",
+          instruksi: "Lewat rapat pimpinan unit, sampaikan:",
+          contoh: ["Data bahwa harapan terhadap orientasi hasil justru lebih rendah dari kondisi sekarang.", "Dampaknya pada Kenyamanan Bekerja dan Work-Life Balance.", "Usulan penyesuaian ekspektasi target."],
+          tujuan: "Menjadikan tekanan pencapaian target sebagai bahan diskusi kebijakan, bukan ditanggung sendiri sebagai Pimpinan Unit.",
+        },
+        {
+          judul: "Usulkan mekanisme berbagi beban antarunit",
+          instruksi: "Ajukan ke pimpinan sekolah:",
+          contoh: ["Kondisi Sinergi Tim yang masih di kategori Sedang.", "Usulan forum rutin berbagi beban kerja antarunit."],
+          tujuan: "Risiko kelelahan kerja lebih baik diatasi lewat mekanisme sistem, bukan cuma inisiatif satu Pimpinan Unit.",
+        },
+        {
+          judul: "Dokumentasikan dampak beban kerja pada kenyamanan",
+          instruksi: "Selama satu bulan, catat secara ringkas:",
+          contoh: ["Hari dengan beban kerja paling berat.", "Efeknya pada kondisi fisik atau fokus.", "Pola yang berulang dari waktu ke waktu."],
+          tujuan: "Menyediakan bukti konkret yang bisa dipakai lembaga untuk mempertimbangkan kebijakan beban kerja.",
+        },
+      ],
     },
   ],
   footer: { disclaimer: DISCLAIMER_INDIVIDU },

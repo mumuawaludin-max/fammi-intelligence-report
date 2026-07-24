@@ -358,6 +358,17 @@ Keluarkan HANYA JSON valid, satu objek (bukan array), tanpa markdown fence:
   "bagian_refleksi": "1 kalimat ajakan renungan/pertanyaan terbuka untuk orang ini",
   "rencana_aksi": [
     { "judul": "kalimat aksi, diawali kata kerja, maks 12 kata", "alasan": "1-2 kalimat kenapa disarankan untuk ORANG INI", "terkait": "label subdimensi/tipe budaya sumber saran", "jangka": "mis. Minggu ini / Bulan ini / 3 bulan", "ikon": "1 emoji relevan" }
+  ],
+  "lingkar_kontribusi": [
+    {
+      "locus": "control",
+      "mengapa_fokus": "1-2 kalimat kenapa area KENDALI ini relevan buat ORANG INI, berpijak data budaya/kesejahteraan/profil_organisasi-nya",
+      "langkah": [
+        { "judul": "judul langkah, maks 8 kata", "instruksi": "1 kalimat ajakan konkret, mis. 'Setiap awal pekan, tuliskan:'", "contoh": ["2-4 butir contoh konkret, kalimat pendek"], "tujuan": "1 kalimat tujuan/manfaat langkah ini" }
+      ]
+    },
+    { "locus": "influence", "mengapa_fokus": "...", "langkah": [ "... 3 item, struktur sama seperti locus control" ] },
+    { "locus": "system", "mengapa_fokus": "...", "langkah": [ "... 3 item, struktur sama seperti locus control" ] }
   ]
 }
 
@@ -366,13 +377,39 @@ keputusan pimpinan, ringan (bukan program besar), ada kemenangan cepat di item p
 harus terasa realistis untuk peran_kerja orang ini (Guru/Tenaga Kependidikan/Pimpinan Unit
 punya keseharian kerja yang beda, sesuaikan framing-nya, jangan generik).
 
-KHUSUS "judul" dan "alasan" di rencana_aksi: JANGAN menyapa dengan "Anda" atau kata ganti orang
-kedua/pertama apa pun -- field ini juga tampil ke pimpinan saat drill-down ke laporan orang lain,
-beda dari field naratif lain di atas (hook/narasi/cermin_konteks/refleksi) yang memang laporan
-PRIBADI dan boleh menyapa "Anda". Tulis "judul" sebagai kalimat perintah langsung (mis. "Ajak
-diskusi singkat dengan rekan sejenjang", bukan "Anda bisa mengajak..."), dan "alasan" dalam
-bentuk penjelasan netral tanpa kata ganti orang (mis. "Cocok karena gap terbesar ada pada ruang
-mencoba metode baru", bukan "Ini cocok untuk Anda karena...").
+lingkar_kontribusi: TEPAT TIGA objek, satu per locus (control/influence/system, urutan ini),
+masing-masing WAJIB TEPAT TIGA item di "langkah". Ini kerangka "Lingkar Kontribusi" yang memisah
+apa yang bisa langsung dikerjakan sendiri, apa yang perlu didorong lewat orang lain, dan apa yang
+butuh keputusan lembaga -- BUKAN kategorisasi ulang rencana_aksi di atas, ini konten baru dan
+independen, boleh membahas hal yang beda dari rencana_aksi.
+- locus "control": langkah yang bisa LANGSUNG diputuskan dan dijalankan sendiri, tanpa menunggu
+  pihak lain.
+- locus "influence": langkah yang butuh percakapan atau kerja sama dengan rekan/pimpinan, tapi
+  orang ini bisa mendorongnya lewat inisiatifnya sendiri.
+- locus "system": persoalan yang solusinya ada di level keputusan lembaga (bukan tanggung jawab
+  satu orang) -- TAPI "langkah" di sini tetap harus sesuatu yang BISA dimulai orang ini sendiri
+  (menyuarakan, mendokumentasikan pola, mengusulkan lewat jalur yang ada), BUKAN cuma menyalahkan
+  sistem tanpa arah tindakan.
+- "mengapa_fokus" WAJIB menyebut area/pola SPESIFIK dari data orang ini (tipe budaya, subdimensi
+  kesejahteraan, atau dimensi profil organisasi yang relevan) -- dilarang keras kalimat generik
+  yang bisa berlaku untuk siapa saja tanpa mengubah kata sedikit pun. Tiga locus untuk satu orang
+  harus terasa berbeda satu sama lain (bukan variasi kata dari satu ide yang sama), dan orang yang
+  profil datanya beda harus menghasilkan mengapa_fokus/langkah yang benar-benar beda pula, bukan
+  cuma template yang diisi ulang.
+- Tiga "langkah" per locus WAJIB konkret dan bisa dibayangkan persis kejadiannya (siapa, kapan,
+  melakukan apa) -- ikuti pola contoh skema: "instruksi" satu kalimat ajakan, "contoh" 2-4 butir
+  pendek yang menjabarkan instruksi itu, "tujuan" satu kalimat kenapa langkah ini berguna. Jangan
+  pakai kategori umum seperti "tingkatkan komunikasi" atau "lakukan evaluasi".
+
+KHUSUS "judul"/"alasan" di rencana_aksi DAN SELURUH field lingkar_kontribusi
+("mengapa_fokus" dan "judul"/"instruksi"/"contoh"/"tujuan" di dalam "langkah"): JANGAN menyapa
+dengan "Anda" atau kata ganti orang kedua/pertama apa pun -- field-field ini juga tampil ke
+pimpinan saat drill-down ke laporan orang lain, beda dari field naratif lain di atas
+(hook/narasi/cermin_konteks/refleksi) yang memang laporan PRIBADI dan boleh menyapa "Anda". Tulis
+kalimat aksi sebagai perintah langsung (mis. "Ajak diskusi singkat dengan rekan sejenjang", bukan
+"Anda bisa mengajak..."), dan kalimat penjelasan dalam bentuk netral tanpa kata ganti orang (mis.
+"Cocok karena gap terbesar ada pada ruang mencoba metode baru", bukan "Ini cocok untuk Anda
+karena...").
 
 
 ## BAHASA
@@ -402,7 +439,8 @@ export function buildUserPromptScIndividu({
 
 Peran kerja: ${peranKerja || "tidak disebut"}. Unit: ${unit || "tidak disebut"}.
 Sapa orang ini dengan "Anda" di field naratif pribadi (hook/narasi/cermin_konteks/refleksi),
-tapi JANGAN di rencana_aksi.judul/alasan (lihat aturan POV-netral di system instruction).
+tapi JANGAN di rencana_aksi.judul/alasan atau field mana pun di lingkar_kontribusi (lihat aturan
+POV-netral di system instruction).
 ${arahanBlok}
 Data kuantitatif orang ini (sudah final, jangan hitung ulang):
 ${fakta}

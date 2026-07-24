@@ -161,6 +161,7 @@ Deno.serve(async (req) => {
         id: `${row.id}-aksi-${i + 1}`, judul: a.judul, alasan: a.alasan,
         terkait: a.terkait, jangka: a.jangka, ikon: a.ikon || "🎯",
       })),
+      lingkar_kontribusi: buildLingkarKontribusi(out.lingkar_kontribusi),
       footer: { disclaimer: DISCLAIMER_INDIVIDU },
     };
 
@@ -218,6 +219,14 @@ function computeQcFlags(out: Record<string, any>) {
     periksaTeks(`rencana_aksi[${i}].judul`, a?.judul, flags);
     periksaTeks(`rencana_aksi[${i}].alasan`, a?.alasan, flags);
   });
+  (out.lingkar_kontribusi || []).forEach((area: any, i: number) => {
+    periksaTeks(`lingkar_kontribusi[${i}].mengapa_fokus`, area?.mengapa_fokus, flags);
+    (area?.langkah || []).forEach((l: any, j: number) => {
+      periksaTeks(`lingkar_kontribusi[${i}].langkah[${j}].judul`, l?.judul, flags);
+      periksaTeks(`lingkar_kontribusi[${i}].langkah[${j}].instruksi`, l?.instruksi, flags);
+      periksaTeks(`lingkar_kontribusi[${i}].langkah[${j}].tujuan`, l?.tujuan, flags);
+    });
+  });
   return flags;
 }
 
@@ -241,6 +250,37 @@ function buildCermin(essay: Record<string, any> | null | undefined, konteks: str
   const kutipan = [betah, menguras].filter(Boolean).map((t) => `"${t}"`).join(" ");
   const konteksBersih = (konteks || "").trim();
   return [kutipan, konteksBersih].filter(Boolean).join(" ");
+}
+
+/**
+ * Lingkar Kontribusi (kendali/pengaruh/sistem) -- konten Gemini baru per locus, kerangka kalimat
+ * eksplisit pemilik produk (mengapa_fokus + 3 langkah, tiap langkah instruksi/contoh/tujuan).
+ * WAJIB tepat tiga entri locus, satu per LOCUS_VALID -- entri locus lain/ganda/kurang lengkap
+ * dibuang diam-diam, frontend (ScLaporanIndividuPage.jsx) fallback ke definisi statis kalau locus
+ * tertentu tidak ketemu di sini (laporan lama sebelum field ini ada, atau Gemini gagal isi satu
+ * locus). Tidak men-hard-fail seluruh generate cuma karena bagian tambahan ini kurang lengkap.
+ */
+const LOCUS_VALID = new Set(["control", "influence", "system"]);
+function buildLingkarKontribusi(raw: any) {
+  if (!Array.isArray(raw)) return [];
+  const seen = new Set<string>();
+  const areas: any[] = [];
+  for (const area of raw) {
+    if (!area || !LOCUS_VALID.has(area.locus) || seen.has(area.locus)) continue;
+    const langkah = Array.isArray(area.langkah)
+      ? area.langkah
+        .filter((l: any) => l && l.judul && l.instruksi && l.tujuan)
+        .map((l: any) => ({
+          judul: l.judul, instruksi: l.instruksi,
+          contoh: Array.isArray(l.contoh) ? l.contoh.filter(Boolean) : [],
+          tujuan: l.tujuan,
+        }))
+      : [];
+    if (langkah.length === 0 || !area.mengapa_fokus) continue;
+    seen.add(area.locus);
+    areas.push({ locus: area.locus, mengapa_fokus: area.mengapa_fokus, langkah });
+  }
+  return areas;
 }
 
 /**
