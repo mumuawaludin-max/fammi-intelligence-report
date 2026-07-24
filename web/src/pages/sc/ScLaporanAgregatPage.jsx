@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { ScSectionSelector } from "./ScSectionSelector";
 import { ScDimensiRingkasan } from "./ScDimensiRingkasan";
 import { ScDimensiPerbandingan } from "./ScDimensiPerbandingan";
 import { ScDimensiTindakLanjut } from "./ScDimensiTindakLanjut";
@@ -23,6 +24,18 @@ function tertinggiDari(items) {
   return (items || []).reduce((acc, d) => (acc == null || (d.value ?? 0) > (acc.value ?? 0) ? d : acc), null);
 }
 
+const SECTIONS = [
+  { key: "budaya", number: "01", icon: "budaya", label: "Laporan Budaya Kerja" },
+  { key: "kesejahteraan", number: "02", icon: "kesejahteraan", label: "Laporan Kesejahteraan Tim" },
+  { key: "organisasi", number: "03", icon: "organisasi", label: "Laporan Profil Organisasi" },
+];
+
+/** Ambil N facet singkat tentang SATU tipe/kode yang sedang dipilih (bukan satu per tipe) --
+ * dipetakan ke bentuk {icon,title,detail} yang diharapkan ScDimensiRingkasan. */
+function facetsUntuk(info, tipe, icon) {
+  return (info?.facets || []).map((detail) => ({ icon, title: "", detail }));
+}
+
 /**
  * ScLaporanAgregatPage -- dashboard "Laporan Lembaga" School Culture, RESTART TOTAL mengikuti
  * design-references/wireframe-original.png (bukan lagi versi polished nav-strip+dumbbell+tab)
@@ -39,15 +52,11 @@ function tertinggiDari(items) {
  * Laporan individu staf (ScLaporanIndividuPage.jsx/ScKaryawanPage.jsx/ScRespondenListPage.jsx)
  * TIDAK termasuk restart ini -- reference tidak pernah mendesain laporan individu sama sekali.
  */
-export default function ScLaporanAgregatPage({ laporan, sectionAktif: sectionAktifProp, onSectionChange }) {
+export default function ScLaporanAgregatPage({ laporan }) {
   const { meta, bagian_budaya, bagian_kesejahteraan, bagian_profil_organisasi, footer, analisis, cerita_pegawai } = laporan;
   const periodLabelTeks = periodeLabel(meta.periode_id);
 
-  // Terkontrol dari ScPage (filter di nav bar) kalau prop dikirim; fallback state lokal untuk
-  // pemanggil lama yang belum diupdate (mis. ScAgregatPreview.jsx, QA visual lepas-login).
-  const [sectionAktifLokal, setSectionAktifLokal] = useState("budaya");
-  const sectionAktif = sectionAktifProp ?? sectionAktifLokal;
-  const setSectionAktif = onSectionChange ?? setSectionAktifLokal;
+  const [sectionAktif, setSectionAktif] = useState("budaya");
 
   // ── Budaya Kerja (4 tipe) ──────────────────────────────────────────────────────────────
   const budayaItems = useMemo(
@@ -65,9 +74,10 @@ export default function ScLaporanAgregatPage({ laporan, sectionAktif: sectionAkt
     setSectionAktif("budaya");
     document.getElementById(BUDAYA_TINDAK_LANJUT_ID)?.scrollIntoView({ behavior: "smooth", block: "start" });
   }
-  const budayaMeaningItems = useMemo(
-    () => bagian_budaya.chart_data.map((d) => ({ key: d.tipe, icon: d.tipe, detail: TIPE_BUDAYA_INFO[d.tipe]?.deskripsi })).filter((m) => m.detail),
-    [bagian_budaya.chart_data]
+  const budayaSelectedKey = budayaKey || budayaDominan?.key;
+  const budayaMeaningFacets = useMemo(
+    () => facetsUntuk(TIPE_BUDAYA_INFO[budayaSelectedKey], budayaSelectedKey, budayaSelectedKey),
+    [budayaSelectedKey]
   );
   const budayaTindakLanjut = useMemo(() => bagian_budaya.chart_data.map((d) => ({
     key: d.tipe, label: d.tipe,
@@ -82,9 +92,10 @@ export default function ScLaporanAgregatPage({ laporan, sectionAktif: sectionAkt
   );
   const kesejahteraanDominan = useMemo(() => tertinggiDari(kesejahteraanItems), [kesejahteraanItems]);
   const [kesejahteraanKey, setKesejahteraanKey] = useState(() => kesejahteraanDominan?.key || null);
-  const kesejahteraanMeaningItems = useMemo(
-    () => bagian_kesejahteraan.chart_data.map((k) => ({ key: k.kode, icon: k.kode, detail: KESEJAHTERAAN_INFO[k.kode]?.deskripsi })).filter((m) => m.detail),
-    [bagian_kesejahteraan.chart_data]
+  const kesejahteraanSelectedKey = kesejahteraanKey || kesejahteraanDominan?.key;
+  const kesejahteraanMeaningFacets = useMemo(
+    () => facetsUntuk(KESEJAHTERAAN_INFO[kesejahteraanSelectedKey], kesejahteraanSelectedKey, kesejahteraanSelectedKey),
+    [kesejahteraanSelectedKey]
   );
   // target/gapValue SENGAJA tidak diisi -- kesejahteraan tidak punya konsep "harapan staf" di
   // data (cuma nilai + kategori), beda dari budaya yang punya pasangan mean_gambaran/harapan.
@@ -104,9 +115,10 @@ export default function ScLaporanAgregatPage({ laporan, sectionAktif: sectionAkt
   );
   const organisasiDominan = useMemo(() => tertinggiDari(organisasiItems), [organisasiItems]);
   const [organisasiKey, setOrganisasiKey] = useState(() => organisasiDominan?.key || null);
-  const organisasiMeaningItems = useMemo(
-    () => bagian_profil_organisasi.chart_data.map((d) => ({ key: d.kode, icon: d.kode, detail: DIMENSI_PROFIL_INFO[d.kode]?.deskripsi })).filter((m) => m.detail),
-    [bagian_profil_organisasi.chart_data]
+  const organisasiSelectedKey = organisasiKey || organisasiDominan?.key;
+  const organisasiMeaningFacets = useMemo(
+    () => facetsUntuk(DIMENSI_PROFIL_INFO[organisasiSelectedKey], organisasiSelectedKey, organisasiSelectedKey),
+    [organisasiSelectedKey]
   );
   const organisasiPerbandingan = useMemo(() => bagian_profil_organisasi.chart_data.map((d) => ({
     key: d.kode, label: d.label, current: d.nilai, target: d.harapan, gapValue: d.gap, status: d.status || d.kategori,
@@ -121,6 +133,8 @@ export default function ScLaporanAgregatPage({ laporan, sectionAktif: sectionAkt
 
   return (
     <div className={styles.page}>
+      <ScSectionSelector sections={SECTIONS} active={sectionAktif} onSelect={setSectionAktif} />
+
       {sectionAktif === "budaya" && (
         <>
           <ScDimensiRingkasan
@@ -133,7 +147,7 @@ export default function ScLaporanAgregatPage({ laporan, sectionAktif: sectionAkt
             selectedKey={budayaKey}
             onSelect={setBudayaKey}
             meaningTitle="Itu artinya lembaga Anda:"
-            meaningItems={budayaMeaningItems}
+            meaningFacets={budayaMeaningFacets}
           />
           <ScBudayaPerbandinganDumbbell
             sectionIndex="01-B"
@@ -167,7 +181,7 @@ export default function ScLaporanAgregatPage({ laporan, sectionAktif: sectionAkt
             selectedKey={kesejahteraanKey}
             onSelect={setKesejahteraanKey}
             meaningTitle="Itu artinya untuk tim Anda:"
-            meaningItems={kesejahteraanMeaningItems}
+            meaningFacets={kesejahteraanMeaningFacets}
           />
           <ScDimensiPerbandingan
             sectionIndex="02-B"
@@ -196,7 +210,7 @@ export default function ScLaporanAgregatPage({ laporan, sectionAktif: sectionAkt
             selectedKey={organisasiKey}
             onSelect={setOrganisasiKey}
             meaningTitle="Itu artinya lembaga Anda:"
-            meaningItems={organisasiMeaningItems}
+            meaningFacets={organisasiMeaningFacets}
           />
           <ScDimensiPerbandingan
             sectionIndex="03-B"
