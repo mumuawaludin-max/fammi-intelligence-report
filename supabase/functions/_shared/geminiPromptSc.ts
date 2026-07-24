@@ -254,6 +254,31 @@ Aturan WAJIB untuk tema esai:
   "tema_esai": [] (array kosong) -- jangan memaksakan tema dari data yang tidak cukup.
 
 
+## TUGAS KETIGA: "CERITA DARI PARA PEGAWAI" (kalau data esai Q2/Q3 disertakan)
+
+Kalau permintaan menyertakan blok "Jawaban esai Q2 (gambaran tempat kerja saat ini)" dan/atau
+"Jawaban esai Q3 (yang ingin diubah)", kamu JUGA bertugas mensintesis dua daftar kalimat pendek
+lepas (BUKAN dikelompokkan jadi tema seperti tugas kedua di atas) -- satu daftar untuk Q2, satu
+untuk Q3. Ini beda dari tema_esai: di sini setiap kalimat berdiri sendiri (tidak ada nama tema
+atau jumlah_mention), meniru ragam suara staf apa adanya, bukan pola yang berulang.
+
+Aturan WAJIB, JAUH LEBIH KETAT dari tema_esai karena bentuknya lebih dekat ke kutipan:
+- DILARANG KERAS menyalin/menempel kalimat dari jawaban staf manapun, sekalipun cuma sepotong.
+  Setiap kalimat yang kamu keluarkan WAJIB kalimat baru buatanmu sendiri yang mensintesis POLA
+  UMUM dari beberapa jawaban, bukan menulis ulang satu jawaban tertentu dengan kata-kata beda
+  tipis (parafrase dekat tetap berisiko -- buat SATU kalimat generik yang mewakili beberapa
+  jawaban serupa, jangan satu kalimat per satu staf).
+- DILARANG menyebut detail yang bisa mengidentifikasi satu orang: nama program/proyek spesifik,
+  jabatan spesifik yang jarang (mis. "koordinator ekskul robotik"), angka tahun masuk kerja,
+  atau kombinasi detail apa pun yang cuma cocok untuk satu staf. Tulis di level pola umum saja
+  (mis. "Beberapa staf merasa dipercaya memegang tanggung jawab baru" -- BUKAN detail proyek apa).
+- Maksimal 5 kalimat per daftar (Q2 dan Q3 masing-masing), cuma tulis kalau memang ada pola yang
+  didukung beberapa jawaban -- satu jawaban unik yang berdiri sendiri TIDAK cukup untuk jadi satu
+  kalimat di sini (beda dari laporan individu yang boleh personal).
+- Kalau data esai Q2/Q3 tidak disertakan, atau tidak ada pola yang cukup didukung banyak jawaban,
+  kembalikan array kosong untuk daftar itu -- jangan memaksakan.
+
+
 ## SKEMA OUTPUT WAJIB
 
 Keluarkan HANYA JSON valid:
@@ -262,7 +287,11 @@ Keluarkan HANYA JSON valid:
   "catatan_internal": "opsional, cuma untuk reviewer Fammi, konteks tambahan yang tidak perlu tampil ke sekolah",
   "tema_esai": [
     { "tema": "nama tema singkat, maks 6 kata", "ringkasan": "1-2 kalimat pola yang muncul, PARAFRASE bukan kutipan verbatim", "jumlah_mention": 0 }
-  ]
+  ],
+  "cerita_pegawai": {
+    "saat_ini": ["kalimat sintesis pola dari jawaban Q2, maks 5"],
+    "ingin_diubah": ["kalimat sintesis pola dari jawaban Q3, maks 5"]
+  }
 }
 `;
 
@@ -394,10 +423,11 @@ function ringkasSc(lembagaRow: Record<string, any>) {
 }
 
 export function buildUserPromptSc({
-  role, sekolahNama, periode_id, lembagaRow, unitRows, arahanReviewer, tipe, esaiTeks,
+  role, sekolahNama, periode_id, lembagaRow, unitRows, arahanReviewer, tipe, esaiTeks, esaiQ2Teks, esaiQ3Teks,
 }: {
   role: string; sekolahNama: string; periode_id: string; lembagaRow: Record<string, any>;
-  unitRows?: Record<string, any>[]; arahanReviewer?: string[]; tipe: string; esaiTeks?: string[];
+  unitRows?: Record<string, any>[]; arahanReviewer?: string[]; tipe: string;
+  esaiTeks?: string[]; esaiQ2Teks?: string[]; esaiQ3Teks?: string[];
 }) {
   const fakta = JSON.stringify(ringkasSc(lembagaRow), null, 2);
   const unitBlok = unitRows && unitRows.length > 1
@@ -412,6 +442,14 @@ export function buildUserPromptSc({
   // SYSTEM_INSTRUCTION_SC_BRIEFING).
   const esaiBlok = esaiTeks && esaiTeks.length > 0
     ? `\nJawaban esai staf (anonim, digabung lintas tiga pertanyaan -- yang ingin diubah, hal menguras energi, yang ingin disampaikan), buat "tema_esai":\n${esaiTeks.map((t) => `- ${t}`).join("\n")}\n`
+    : "";
+  // Q2/Q3 MURNI (bukan digabung Q5/Q6, beda tujuan dari esaiBlok di atas) -- untuk "cerita_pegawai",
+  // dua daftar terpisah karena tampil sebagai dua kolom terpisah di UI (01-E).
+  const esaiQ2Blok = esaiQ2Teks && esaiQ2Teks.length > 0
+    ? `\nJawaban esai Q2 staf (anonim, "gambaran tempat kerja saat ini"), buat "cerita_pegawai.saat_ini":\n${esaiQ2Teks.map((t) => `- ${t}`).join("\n")}\n`
+    : "";
+  const esaiQ3Blok = esaiQ3Teks && esaiQ3Teks.length > 0
+    ? `\nJawaban esai Q3 staf (anonim, "yang ingin diubah"), buat "cerita_pegawai.ingin_diubah":\n${esaiQ3Teks.map((t) => `- ${t}`).join("\n")}\n`
     : "";
   const tugas = tipe === "briefing"
     ? "Tulis BRIEFING naratif untuk data ini."
@@ -434,7 +472,7 @@ ASAL DATA, WAJIB DIPAHAMI SEBELUM MENULIS APA PUN:
 ${arahanBlok}
 Data kuantitatif AGREGAT untuk ${sekolahNama} periode ${periode_id}:
 ${fakta}
-${unitBlok}${esaiBlok}`;
+${unitBlok}${esaiBlok}${esaiQ2Blok}${esaiQ3Blok}`;
 }
 
 /**
@@ -476,11 +514,14 @@ export async function generateAndInsertDraftSc(
   // ketiga pertanyaan (lihat SYSTEM_INSTRUCTION_SC_BRIEFING untuk kenapa digabung, bukan
   // dipisah per pertanyaan).
   let esaiTeks: string[] | undefined;
+  let esaiQ2Teks: string[] | undefined;
+  let esaiQ3Teks: string[] | undefined;
   if (tipe === "briefing") {
     const { data: essayRows } = await db
       .from("sc_personal").select("essay")
       .eq("sekolah_id", sekolah_id).eq("periode_id", periode_id);
-    esaiTeks = (essayRows || [])
+    const essays = essayRows || [];
+    esaiTeks = essays
       .flatMap((r: any) => [
         r.essay?.survey_q3_yang_ingin_diubah,
         r.essay?.survey_q5_hal_menguras_energi,
@@ -488,21 +529,35 @@ export async function generateAndInsertDraftSc(
       ])
       .map((t: any) => (t == null ? "" : String(t).trim()))
       .filter((t: string) => t.length > 0);
+    // Section "01-E" (Cerita dari Para Pegawai): Q2/Q3 MURNI, dua daftar terpisah -- beda
+    // tujuan dari esaiTeks di atas (yang gabungan Q3+Q5+Q6 untuk tema_esai). Q3 dipakai DUA
+    // KALI di sini (sekali gabungan untuk tema_esai, sekali sendiri untuk cerita_pegawai) --
+    // bukan duplikasi keliru, dua fitur beda bentuk keluaran yang sama-sama butuh Q3.
+    esaiQ2Teks = essays.map((r: any) => r.essay?.survey_q2_kejadian_kesaharian)
+      .map((t: any) => (t == null ? "" : String(t).trim())).filter((t: string) => t.length > 0);
+    esaiQ3Teks = essays.map((r: any) => r.essay?.survey_q3_yang_ingin_diubah)
+      .map((t: any) => (t == null ? "" : String(t).trim())).filter((t: string) => t.length > 0);
   }
 
   const prompt = buildUserPromptSc({
     role, sekolahNama: sekolah_nama || sekolah_id, periode_id, lembagaRow: wholeSchoolRow,
-    unitRows: lembagaRows, arahanReviewer, tipe, esaiTeks,
+    unitRows: lembagaRows, arahanReviewer, tipe, esaiTeks, esaiQ2Teks, esaiQ3Teks,
   });
 
   if (tipe === "briefing") {
     const hasil = await callGemini(apiKey, model, SYSTEM_INSTRUCTION_SC_BRIEFING, prompt);
     if (!hasil || !hasil.gambaran) throw new Error("Gemini tidak mengembalikan draf yang valid.");
 
+    const ceritaPegawai = hasil.cerita_pegawai;
+    const ceritaValid = ceritaPegawai
+      && (Array.isArray(ceritaPegawai.saat_ini) && ceritaPegawai.saat_ini.length > 0
+        || Array.isArray(ceritaPegawai.ingin_diubah) && ceritaPegawai.ingin_diubah.length > 0);
+
     const { error: insErr } = await db.from("briefing").insert({
       sekolah_id, modul: "sc", scope: "sekolah", scope_id: sekolah_id, periode_id,
       teks: hasil.gambaran, sumber: ["School Culture"], catatan_internal: hasil.catatan_internal || null,
       tema_esai: Array.isArray(hasil.tema_esai) && hasil.tema_esai.length > 0 ? hasil.tema_esai : null,
+      cerita_pegawai: ceritaValid ? ceritaPegawai : null,
       status: "menunggu_persetujuan",
     });
     if (insErr) throw new Error(insErr.message);
