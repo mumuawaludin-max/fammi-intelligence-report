@@ -168,6 +168,11 @@ export interface ScMeta {
    * drill-down pimpinan) untuk memilih sapaan "Anda"/"Tim" yang tepat. Opsional: laporan lama
    * yang digenerate sebelum field ini ada tetap valid, frontend jatuh ke header.hook statis. */
   nama_lembaga?: string;
+  /** Perumus laporan ini: "excel" = JSON siap pakai dari kolom laporan_json sheet Personal
+   * (Gemini tidak dipanggil), "gemini" = dirumuskan Edge Function saat generate. Dipakai badge
+   * di layar Persetujuan School Culture. Opsional: laporan lama sebelum field ini ada tetap
+   * valid, badge-nya cukup tidak tampil. */
+  sumber?: "excel" | "gemini";
 }
 
 /** Satu langkah tindak lanjut pribadi -- ASUMSI, sama alasannya dengan AksiPribadi di cw.types.ts. */

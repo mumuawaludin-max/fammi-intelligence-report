@@ -33,6 +33,49 @@ function parseBersedia(v) {
   return teks.startsWith('ya');
 }
 
+/**
+ * Kolom "laporan_json" (opsional, satu sel per responden di sheet Personal): laporan individu
+ * yang SUDAH dirumuskan di hulu, di luar FIR. Kalau terisi dan valid, generate-sc-individu
+ * memakainya apa adanya dan tidak memanggil Gemini sama sekali untuk responden itu (lihat
+ * migration 20260728100000 untuk latar belakangnya).
+ *
+ * Sengaja TOLERAN, tiga alasan konkret dari perilaku nyata model saat menulis JSON ke Excel:
+ * (1) keluaran kadang terbungkus pagar markdown ```json ... ``` walau diminta polos, jadi pagar
+ * itu dilucuti dulu daripada seluruh baris dianggap rusak; (2) Excel bisa mengembalikan sel
+ * sebagai objek/angka, bukan string, jadi objek yang sudah berbentuk benar diterima apa adanya;
+ * (3) satu sel rusak TIDAK boleh menggagalkan import 16 orang -- baris itu cukup jatuh kembali ke
+ * jalur Gemini dan diberi peringatan yang menyebut nama respondennya.
+ *
+ * Validasi bentuk sengaja MINIMAL dan sama persis dengan yang dipakai generate-sc-individu
+ * (header + rencana_aksi array) -- kalau ditambah di sini tapi tidak di sana (atau sebaliknya),
+ * dua lapis itu bisa diam-diam beda pendapat soal apa yang "valid".
+ */
+function parsePregenLaporan(v) {
+  if (v && typeof v === 'object' && !Array.isArray(v)) return validasiBentukLaporan(v);
+
+  const teks = String(v ?? '').trim();
+  if (!teks) return { value: null };
+
+  const bersih = teks.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/i, '').trim();
+  let parsed;
+  try {
+    parsed = JSON.parse(bersih);
+  } catch {
+    return { value: null, error: 'isinya bukan JSON yang valid' };
+  }
+  return validasiBentukLaporan(parsed);
+}
+
+function validasiBentukLaporan(obj) {
+  if (!obj || typeof obj !== 'object' || Array.isArray(obj)) {
+    return { value: null, error: 'JSON-nya bukan objek' };
+  }
+  if (!obj.header || !Array.isArray(obj.rencana_aksi)) {
+    return { value: null, error: 'tidak ada field "header" atau "rencana_aksi" (harus array)' };
+  }
+  return { value: obj };
+}
+
 /** Kunci tipe budaya di kolom xlsx (huruf kecil) -> label produk yang dipakai UI (scMeta.js).
  * Label ini SUDAH bukan istilah OCAI mentah (Klan/Adhokrasi/Pasar/Hierarki) -- sesuai instruksi
  * pemilik produk, label yang dipakai persis yang ada di data olahan sekolah sendiri. */
@@ -66,17 +109,10 @@ const KESEJAHTERAAN_LABEL = {
 const KESEJAHTERAAN_KODE = Object.keys(KESEJAHTERAAN_LABEL);
 
 /** 6 dimensi x 4 tipe budaya = kolom jawaban Likert 1-5 mentah di sheet Personal, disimpan
- * ke jawaban_mentah untuk audit/regenerasi, tidak pernah ditampilkan langsung. */
+ * ke jawaban_mentah untuk audit/regenerasi, tidak pernah ditampilkan langsung. Nama kolom
+ * aslinya dicari lewat prefix (findRawItemCol di bawah), bukan daftar tetap, karena akhiran
+ * tiap kolom berisi deskripsi butir yang beda-beda. */
 const DIMENSI_ITEM_PREFIX = ['karakter', 'leadership', 'manajemen', 'sinergi', 'fokus', 'performance'];
-function rawItemCols(prefixGambaranHarapan) {
-  const cols = [];
-  DIMENSI_ITEM_PREFIX.forEach((dim) => {
-    TIPE_KODE.forEach((tipe) => {
-      cols.push(`${prefixGambaranHarapan}_${dim}_${tipe}`); // prefix persis, sufiks bebas dicari lewat startsWith di bawah
-    });
-  });
-  return cols;
-}
 
 /** Cari SEMUA kolom yang diawali "gambaran_<dimensi>_<tipe>" atau "harapan_<dimensi>_<tipe>"
  * apa pun akhiran deskripsinya (mis. "gambaran_karakter_kekeluargaan_seperti_keluarga") --
@@ -265,12 +301,24 @@ export async function parseScWorkbook(file, { sekolahId, periodeId }) {
 
   const headerKeys = Object.keys(personalRaw[0]);
   const badRows = [];
+  // Peringatan laporan_json TERPISAH dari badRows: badRows menggagalkan import (data inti tidak
+  // terbaca), sedangkan laporan_json yang rusak cuma membuat baris itu jatuh ke jalur Gemini --
+  // import tetap boleh jalan. Dibedakan supaya satu sel JSON salah ketik tidak memblokir seluruh
+  // data asesmen yang sebenarnya sudah benar.
+  const pregenWarnings = [];
+  let pregenCount = 0;
 
   const personalRows = personalRaw.map((r, i) => {
     const nama = getField(r, 'identitas_nama');
     if (!String(nama || '').trim()) {
       badRows.push(`Personal baris ${i + 2} (identitas_nama kosong)`);
       return null;
+    }
+    const pregen = parsePregenLaporan(getField(r, 'laporan_json'));
+    if (pregen.error) {
+      pregenWarnings.push(`${String(nama).trim()} (baris ${i + 2}): ${pregen.error}`);
+    } else if (pregen.value) {
+      pregenCount++;
     }
     return {
       sekolah_id: sekolahId,
@@ -292,6 +340,7 @@ export async function parseScWorkbook(file, { sekolahId, periodeId }) {
       ),
       kesejahteraan: buildKodeLabelNilai(r, KESEJAHTERAAN_KODE, KESEJAHTERAAN_LABEL, ''),
       essay: buildEssay(r),
+      pregen_laporan: pregen.value,
     };
   }).filter(Boolean);
 
@@ -318,7 +367,10 @@ export async function parseScWorkbook(file, { sekolahId, periodeId }) {
 
   return {
     ok: true,
-    preview,
+    // pregen* dilaporkan ke UI (Upload.jsx) supaya admin tahu SEBELUM konfirmasi: berapa orang
+    // yang laporannya sudah siap pakai dari Excel (tidak perlu Gemini), dan baris mana yang
+    // JSON-nya tidak terbaca sehingga akan jatuh kembali ke Gemini.
+    preview: { ...preview, pregenCount, pregenWarnings },
     rows: { personalRows, lembagaRows },
   };
 }

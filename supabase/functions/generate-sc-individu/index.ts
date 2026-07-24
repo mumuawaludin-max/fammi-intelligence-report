@@ -75,7 +75,7 @@ Deno.serve(async (req) => {
     const db = createClient(SUPABASE_URL, SERVICE_ROLE_KEY);
     const { data: row, error: rowErr } = await db
       .from("sc_personal")
-      .select("id, sekolah_id, periode_id, nama_responden, peran_kerja, unit, jenjang, budaya, kesejahteraan, profil_organisasi, essay")
+      .select("id, sekolah_id, periode_id, nama_responden, peran_kerja, unit, jenjang, budaya, kesejahteraan, profil_organisasi, essay, pregen_laporan")
       .eq("id", scPersonalId).maybeSingle();
     if (rowErr) return json({ error: rowErr.message }, 500);
     if (!row) return json({ error: "sc_personal_id tidak ditemukan." }, 404);
@@ -94,22 +94,45 @@ Deno.serve(async (req) => {
       .order("created_at", { ascending: false }).limit(10);
     const arahanReviewer = (feedbackRows || []).map((r: any) => r.catatan).filter(Boolean);
 
-    const prompt = buildUserPromptScIndividu({
-      namaResponden: row.nama_responden, peranKerja: row.peran_kerja, unit: row.unit,
-      budaya: row.budaya || [], kesejahteraan: row.kesejahteraan || [],
-      profilOrganisasi: row.profil_organisasi || [], essay: row.essay || {}, arahanReviewer,
-    });
+    // JALUR PINTAS: laporan siap pakai dari Excel (kolom "laporan_json" di sheet Personal ->
+    // sc_personal.pregen_laporan, lihat migration 20260728100000 dan scImporter.js). Kalau ada
+    // dan bentuknya valid, dipakai APA ADANYA dan Gemini tidak dipanggil sama sekali untuk
+    // responden ini. Dibuat karena jendela 503 Gemini yang berjam-jam berkali-kali menggagalkan
+    // generate massal (lihat riwayat retry/fallback/timeout di _shared/geminiPrompt.ts).
+    //
+    // Validasi bentuknya SENGAJA sama persis dengan validasi keluaran Gemini di bawah -- dari
+    // sini ke bawah kedua jalur tidak dibedakan lagi, termasuk QC otomatis dan gerbang
+    // persetujuan admin ('menunggu_persetujuan'), supaya jalur Excel tidak diam-diam lebih
+    // longgar standarnya daripada jalur Gemini.
+    const pregen = row.pregen_laporan;
+    const pakaiPregen = !!(pregen && typeof pregen === "object" && pregen.header && Array.isArray(pregen.rencana_aksi));
+
     let out;
-    try {
-      out = await callGemini(GEMINI_API_KEY, GEMINI_MODEL, SYSTEM_INSTRUCTION_SC_INDIVIDU, prompt);
-    } catch (geminiErr: any) {
-      // Log eksplisit -- SEBELUMNYA error dari callGemini() cuma dilempar ke catch terluar dan
-      // dibalas sebagai JSON ke klien, tapi TIDAK PERNAH tercatat di Supabase Function Logs
-      // (yang cuma menangkap Boot/Shutdown dari infra, bukan console output kita). Tanpa baris
-      // ini, admin tidak bisa tahu APAKAH kegagalan berulang sungguh Gemini 503, API key
-      // salah, model tidak ada, atau sebab lain -- cuma bisa menebak dari pola waktu.
-      console.error(`generate-sc-individu gagal untuk sc_personal_id=${scPersonalId} (${row.nama_responden}): ${geminiErr?.message || geminiErr}`);
-      throw geminiErr;
+    if (pakaiPregen) {
+      out = pregen;
+      console.log(`generate-sc-individu: pakai laporan siap pakai dari Excel untuk ${row.nama_responden} (Gemini dilewati).`);
+    } else {
+      if (pregen) {
+        // Kolomnya terisi TAPI bentuknya tidak valid -- jangan diam-diam jatuh ke Gemini tanpa
+        // jejak, admin perlu tahu kolom Excel-nya perlu diperbaiki.
+        console.warn(`generate-sc-individu: pregen_laporan untuk ${row.nama_responden} ada tapi bentuknya tidak valid, jatuh ke Gemini.`);
+      }
+      const prompt = buildUserPromptScIndividu({
+        namaResponden: row.nama_responden, peranKerja: row.peran_kerja, unit: row.unit,
+        budaya: row.budaya || [], kesejahteraan: row.kesejahteraan || [],
+        profilOrganisasi: row.profil_organisasi || [], essay: row.essay || {}, arahanReviewer,
+      });
+      try {
+        out = await callGemini(GEMINI_API_KEY, GEMINI_MODEL, SYSTEM_INSTRUCTION_SC_INDIVIDU, prompt);
+      } catch (geminiErr: any) {
+        // Log eksplisit -- SEBELUMNYA error dari callGemini() cuma dilempar ke catch terluar dan
+        // dibalas sebagai JSON ke klien, tapi TIDAK PERNAH tercatat di Supabase Function Logs
+        // (yang cuma menangkap Boot/Shutdown dari infra, bukan console output kita). Tanpa baris
+        // ini, admin tidak bisa tahu APAKAH kegagalan berulang sungguh Gemini 503, API key
+        // salah, model tidak ada, atau sebab lain -- cuma bisa menebak dari pola waktu.
+        console.error(`generate-sc-individu gagal untuk sc_personal_id=${scPersonalId} (${row.nama_responden}): ${geminiErr?.message || geminiErr}`);
+        throw geminiErr;
+      }
     }
     if (!out || !out.header || !Array.isArray(out.rencana_aksi)) {
       console.error(`generate-sc-individu: Gemini balas JSON tapi skema tidak valid untuk sc_personal_id=${scPersonalId} (${row.nama_responden}). Keys: ${out ? Object.keys(out).join(", ") : "null"}`);
@@ -161,6 +184,10 @@ Deno.serve(async (req) => {
         // sesuatu yang tidak bisa dilakukan kalau kalimatnya sudah dipanggang jadi satu string
         // di sini saat generate.
         nama_lembaga: namaLembaga,
+        // Jejak perumus laporan ini: 'excel' = JSON siap pakai dari kolom laporan_json,
+        // 'gemini' = dirumuskan Edge Function ini saat itu juga. Dipakai badge di layar
+        // Persetujuan School Culture supaya reviewer tahu apa yang sedang ditinjaunya.
+        sumber: pakaiPregen ? "excel" : "gemini",
       },
       header: { hook, sub_hook: out.header?.sub_hook || "" },
       bagian_budaya: { narasi: out.bagian_budaya?.narasi || "", chart_data: budayaChartData, tabel_gap: (row.budaya || []).map((b: any) => ({ label: b.tipe, arah: arahDariGap(b.gap), nilai_gap: b.gap })) },
@@ -188,7 +215,7 @@ Deno.serve(async (req) => {
     });
     if (insErr) return json({ error: insErr.message }, 500);
 
-    return json({ ok: true, nama: row.nama_responden });
+    return json({ ok: true, nama: row.nama_responden, sumber: pakaiPregen ? "excel" : "gemini" });
   } catch (e: any) {
     // Jaring pengaman terluar -- menangkap error DI LUAR blok callGemini di atas (mis. koneksi
     // DB, RPC gagal), yang sebelumnya juga tidak pernah tercatat di Function Logs.

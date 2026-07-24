@@ -389,7 +389,7 @@ async function handleListScPending(admin) {
     .select(
       "id, sc_personal_id, sekolah_id, periode_id, generated_at, detail, qc_flags, " +
       "nama_responden:detail->meta->>nama_responden, peran_kerja:detail->meta->>peran_kerja, " +
-      "unit:detail->meta->>unit, sc_personal:sc_personal_id(bersedia)"
+      "unit:detail->meta->>unit, sumber:detail->meta->>sumber, sc_personal:sc_personal_id(bersedia)"
     )
     .eq("status", "menunggu_persetujuan")
     .order("generated_at", { ascending: false });

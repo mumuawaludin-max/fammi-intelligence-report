@@ -161,6 +161,11 @@ export function PersetujuanSc() {
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
                   <span className="pill" style={{ background: mc.bg, color: mc.ink }}>SC</span>
                   {r.peran_kerja && <span className="pill" style={{ background: 'var(--purple-050)', color: 'var(--purple-700)' }}>{r.peran_kerja}</span>}
+                  {r.sumber === 'excel' && (
+                    <span className="pill" style={{ background: 'var(--status-safe-bg)', color: 'var(--status-safe)' }} title="Laporan ini datang siap pakai dari kolom laporan_json di file Excel, bukan dirumuskan Gemini saat generate. Tetap wajib ditinjau seperti biasa sebelum disetujui.">
+                      📄 Dari Excel
+                    </span>
+                  )}
                   {Array.isArray(r.qc_flags) && r.qc_flags.length > 0 && (
                     <span className="pill" style={{ background: 'var(--status-warn-bg)', color: 'var(--status-warn)' }} title={r.qc_flags.map((f) => f.issue).join(', ')}>
                       ⚠ QC {r.qc_flags.length}

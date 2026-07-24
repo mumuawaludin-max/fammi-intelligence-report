@@ -392,6 +392,28 @@ export function Upload() {
                 </div>
               ))}
             </div>
+
+            {/* Kolom "laporan_json" (opsional): laporan siap pakai dari hulu. Ditampilkan SEBELUM
+                konfirmasi supaya admin tahu berapa orang yang tidak perlu Gemini sama sekali, dan
+                baris mana yang JSON-nya perlu diperbaiki dulu kalau tidak mau jatuh ke Gemini. */}
+            {isSc && (parsed.preview.pregenCount > 0 || parsed.preview.pregenWarnings?.length > 0) && (
+              <div style={{ marginTop: 10, padding: '10px 14px', background: parsed.preview.pregenWarnings?.length > 0 ? 'var(--status-warn-bg)' : 'var(--status-safe-bg)', borderRadius: 10 }}>
+                <div style={{ fontSize: 12.5, fontWeight: 700, color: parsed.preview.pregenWarnings?.length > 0 ? 'var(--status-warn)' : 'var(--status-safe)' }}>
+                  📄 {parsed.preview.pregenCount} dari {parsed.rows.personalRows.length} responden punya laporan siap pakai di kolom laporan_json
+                </div>
+                <div style={{ fontSize: 11.5, color: 'var(--ink-2)', marginTop: 4, lineHeight: 1.5 }}>
+                  Yang siap pakai langsung dipakai apa adanya tanpa memanggil Gemini. Sisanya tetap digenerate Gemini seperti biasa. Semuanya tetap masuk antrian persetujuan.
+                </div>
+                {parsed.preview.pregenWarnings?.length > 0 && (
+                  <div style={{ marginTop: 8, display: 'flex', flexDirection: 'column', gap: 3 }}>
+                    <div style={{ fontSize: 11.5, fontWeight: 700, color: 'var(--status-warn)' }}>JSON tidak terbaca, akan jatuh ke Gemini:</div>
+                    {parsed.preview.pregenWarnings.map((w, i) => (
+                      <div key={i} style={{ fontSize: 11.5, color: 'var(--ink-2)' }}>⚠ {w}</div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
           </div>
 
           {isSc && scImported ? (
