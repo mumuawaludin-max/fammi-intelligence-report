@@ -3,7 +3,7 @@ import ScRadarChart from "./ScRadarChart";
 import ScDetailDialog from "./ScDetailDialog";
 import { KATEGORI_NILAI_COLOR } from "./scColors";
 import {
-  TIPE_BUDAYA_INFO, DIMENSI_PROFIL_INFO, arahTeks, ARAH_ICON, interpretasiKesejahteraan, METODOLOGI_NOTE,
+  TIPE_BUDAYA_INFO, DIMENSI_PROFIL_INFO, KESEJAHTERAAN_INFO, arahTeks, ARAH_ICON, interpretasiKesejahteraan, METODOLOGI_NOTE,
 } from "./scMeta";
 import { useReveal, useCountUp } from "./scHooks";
 import styles from "./ScLaporanIndividuPage.module.css";
@@ -26,6 +26,26 @@ function periodeLabel(periodeId) {
 
 function fmtGap(n) {
   return n == null ? "—" : `${n > 0 ? "+" : ""}${n}`;
+}
+
+/** Label TAMPILAN subdimensi kesejahteraan, selalu ikut KESEJAHTERAAN_INFO (scMeta.js) --
+ * beberapa baris sc_lembaga/sc_personal lama masih menyimpan label istilah sebelum wording
+ * diperbarui (mis. "Keseimbangan Kerja-Hidup"). HANYA dipakai untuk teks yang dibaca pengguna,
+ * BUKAN untuk mengganti field .label pada objek subdimensi itu sendiri -- pencocokan
+ * `rencana_aksi[].terkait` di bawah tetap membandingkan label ASLI dari data supaya tidak putus. */
+function labelKesejahteraan(kode, labelAsli) {
+  return KESEJAHTERAAN_INFO[kode]?.label || labelAsli;
+}
+
+/** `rencana_aksi[].terkait` cuma teks bebas (tidak ada kode), jadi tidak bisa dinormalisasi
+ * lewat KESEJAHTERAAN_INFO seperti di atas -- alias eksplisit untuk istilah lama yang diketahui
+ * masih tersimpan di data lama, HANYA untuk tampilan, bukan untuk pencocokan `a.terkait ===
+ * subdimensiDipilih.label` yang tetap membandingkan teks asli. */
+const TERKAIT_ALIAS = {
+  "Keseimbangan Kerja-Hidup": "Work-Life Balance",
+};
+function labelTerkait(raw) {
+  return TERKAIT_ALIAS[raw] || raw;
 }
 
 function inisial(nama) {
@@ -217,13 +237,13 @@ export default function ScLaporanIndividuPage({ laporan }) {
           <button type="button" className={styles.sorotanCard} onClick={() => terkuat && setSubdimensiDipilih(terkuat)}>
             <span className={styles.sorotanIkon} style={{ background: "var(--status-safe-bg)" }}>✓</span>
             <span className={styles.sorotanLabel}>Kekuatan Anda</span>
-            <span className={styles.sorotanNilai}>{terkuat?.label}</span>
+            <span className={styles.sorotanNilai}>{terkuat && labelKesejahteraan(terkuat.kode, terkuat.label)}</span>
             <span className={styles.sorotanSub}>{terkuat?.nilai}% · {terkuat?.kategori}</span>
           </button>
           <button type="button" className={styles.sorotanCard} onClick={() => terlemah && setSubdimensiDipilih(terlemah)}>
             <span className={styles.sorotanIkon} style={{ background: "var(--status-warn-bg)" }}>!</span>
             <span className={styles.sorotanLabel}>Perlu perhatian</span>
-            <span className={styles.sorotanNilai}>{terlemah?.label}</span>
+            <span className={styles.sorotanNilai}>{terlemah && labelKesejahteraan(terlemah.kode, terlemah.label)}</span>
             <span className={styles.sorotanSub}>{terlemah?.nilai}% · {terlemah?.kategori}</span>
           </button>
         </div>
@@ -311,7 +331,7 @@ export default function ScLaporanIndividuPage({ laporan }) {
                 >
                   <span className={styles.subTop}>
                     <span className={styles.subDot} style={{ background: warna }} />
-                    <span className={styles.subLabel}>{it.label}</span>
+                    <span className={styles.subLabel}>{labelKesejahteraan(it.kode, it.label)}</span>
                   </span>
                   <span className={styles.subNilai}>{it.nilai}%</span>
                   <span className={styles.subKategori} style={{ color: warna }}>{it.kategori}</span>
@@ -466,7 +486,7 @@ export default function ScLaporanIndividuPage({ laporan }) {
           <ScDetailDialog
             icon="💚"
             eyebrow="Kesejahteraan"
-            title={subdimensiDipilih.label}
+            title={labelKesejahteraan(subdimensiDipilih.kode, subdimensiDipilih.label)}
             subtitle={`${subdimensiDipilih.nilai}% · ${subdimensiDipilih.kategori}`}
             onClose={() => setSubdimensiDipilih(null)}
           >
@@ -548,7 +568,7 @@ export default function ScLaporanIndividuPage({ laporan }) {
           icon={aksiDipilih.ikon}
           eyebrow={`Rencana Aksi · ${aksiDipilih.jangka}`}
           title={aksiDipilih.judul}
-          subtitle={`Terkait: ${aksiDipilih.terkait}`}
+          subtitle={`Terkait: ${labelTerkait(aksiDipilih.terkait)}`}
           onClose={() => setAksiDipilih(null)}
         >
           <DialogSection title="Kenapa ini disarankan untuk Anda">
@@ -589,8 +609,8 @@ export default function ScLaporanIndividuPage({ laporan }) {
           <DialogSection title="Yang menopang dan yang menekan">
             <DialogStats
               items={[
-                { value: `${terkuat?.nilai}%`, label: `Terkuat: ${terkuat?.label}`, color: "var(--cw-nilai-sangat-tinggi)" },
-                { value: `${terlemah?.nilai}%`, label: `Terlemah: ${terlemah?.label}`, color: "var(--cw-nilai-rendah)" },
+                { value: `${terkuat?.nilai}%`, label: `Terkuat: ${terkuat ? labelKesejahteraan(terkuat.kode, terkuat.label) : ""}`, color: "var(--cw-nilai-sangat-tinggi)" },
+                { value: `${terlemah?.nilai}%`, label: `Terlemah: ${terlemah ? labelKesejahteraan(terlemah.kode, terlemah.label) : ""}`, color: "var(--cw-nilai-rendah)" },
                 { value: bagian_kesejahteraan.indeks, label: "Indeks gabungan", color: KATEGORI_NILAI_COLOR[bagian_kesejahteraan.kategori] || "var(--ink-4)" },
               ]}
             />
@@ -665,7 +685,7 @@ function AksiRow({ aksi, delay, onClick }) {
       <span className={styles.aksiBody}>
         <span className={styles.aksiJudul}>{aksi.judul}</span>
         <span className={styles.aksiMeta}>
-          <span className={styles.aksiTag}>{aksi.terkait}</span>
+          <span className={styles.aksiTag}>{labelTerkait(aksi.terkait)}</span>
           <span className={styles.aksiJangka}>{aksi.jangka}</span>
         </span>
       </span>

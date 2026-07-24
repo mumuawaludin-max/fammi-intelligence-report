@@ -89,15 +89,22 @@ export default function ScLaporanAgregatPage({ laporan }) {
   })), [bagian_budaya.chart_data]);
 
   // ── Kesejahteraan Tim (5 subdimensi) ──────────────────────────────────────────────────
+  // Label tampilan SELALU ikut KESEJAHTERAAN_INFO (scMeta.js), bukan k.label mentah -- baris
+  // sc_lembaga lama di Supabase masih menyimpan label istilah lama ("Keseimbangan Kerja-Hidup")
+  // dari pipeline impor sebelum wording diperbarui ke "Work-Life Balance". Ini relabeling
+  // tampilan murni (bukan menghitung ulang skor/kategori), scMeta.js jadi satu-satunya sumber
+  // kebenaran nama tampilan per kode subdimensi.
   const kesejahteraanItems = useMemo(
-    () => bagian_kesejahteraan.chart_data.map((k) => ({ key: k.kode, label: k.label, icon: k.kode, value: k.nilai, kategori: k.kategori })),
+    () => bagian_kesejahteraan.chart_data.map((k) => ({
+      key: k.kode, label: KESEJAHTERAAN_INFO[k.kode]?.label || k.label, icon: k.kode, value: k.nilai, kategori: k.kategori,
+    })),
     [bagian_kesejahteraan.chart_data]
   );
   const kesejahteraanDominan = useMemo(() => tertinggiDari(kesejahteraanItems), [kesejahteraanItems]);
   const [kesejahteraanKey, setKesejahteraanKey] = useState(() => kesejahteraanDominan?.key || null);
   const kesejahteraanSelectedKey = kesejahteraanKey || kesejahteraanDominan?.key;
   const kesejahteraanTindakLanjut = useMemo(() => bagian_kesejahteraan.chart_data.map((k) => ({
-    key: k.kode, label: k.label,
+    key: k.kode, label: KESEJAHTERAAN_INFO[k.kode]?.label || k.label,
     focus: KESEJAHTERAAN_INFO[k.kode]?.deskripsi,
     steps: k.phases, indicators: k.indicators, warnings: k.warnings,
   })), [bagian_kesejahteraan.chart_data]);
