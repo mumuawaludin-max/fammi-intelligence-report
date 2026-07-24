@@ -3,7 +3,7 @@ import { motion, useReducedMotion } from "motion/react";
 import { ScLaporanReveal } from "./ScLaporanReveal";
 import { ScIconBadge } from "./scIconBadge";
 import { ScShareDialog } from "./ScShareDialog";
-import { TIPE_BUDAYA_INFO } from "./scMeta";
+import { TIPE_BUDAYA_INFO, implikasiBudaya } from "./scMeta";
 import tokens from "./scBudayaTokens.module.css";
 import styles from "./ScBudayaPerbandinganDumbbell.module.css";
 
@@ -34,23 +34,33 @@ function nilaiGap(tabelGap, tipe) {
   return (tabelGap || []).find((g) => g.label === tipe)?.nilai_gap;
 }
 
-/** Rakit template pesan WhatsApp, fokus SATU dimensi terpilih saja (bukan seluruh laporan). */
+/**
+ * Rakit template pesan WhatsApp, POV pimpinan yang membagikan ke timnya sendiri -- fokus SATU
+ * dimensi terpilih saja (bukan seluruh laporan). Alur pesan: informasikan fokusnya, jelaskan
+ * kenapa (implikasiBudaya, sudah menulis kalimat aksi-nya sendiri per tipe & arah gap), lalu
+ * arahkan ke langkah konkret kalau tersedia.
+ */
 function buatPesanBagikan(selected, selectedGap, selectedInfo, priorityActions) {
   if (!selected) return "";
   const gap = selectedGap != null ? Math.abs(selectedGap) : null;
+  const arah = selectedGap == null || selectedGap === 0 ? "tetap" : selectedGap > 0 ? "naik" : "turun";
+  const implikasi = implikasiBudaya(selected.tipe, arah) || selectedInfo?.deskripsi || "";
+
   const baris = [
-    "*Prioritas Intervensi Budaya Kerja*",
+    `Halo Tim, dari hasil asesmen School Culture periode ini, ada satu fokus yang ingin saya bagikan ke kita semua: *${selected.tipe}* (${selectedInfo?.ringkas || "-"}).`,
     "",
-    `Dimensi: *${selected.tipe}* (${selectedInfo?.ringkas || "-"})`,
-    `Skor saat ini ${formatScore(selected.saat_ini)}%, harapan staf ${formatScore(selected.harapan)}%` +
-      (gap != null ? `, gap ${formatScore(gap)}%.` : "."),
-    "",
-    "*Interpretasi*",
-    selected.interpretation || selectedInfo?.deskripsi || "Belum ada interpretasi spesifik untuk periode ini.",
+    `Skor kita saat ini di angka ${formatScore(selected.saat_ini)}%, sementara harapan tim ada di ${formatScore(selected.harapan)}%` +
+      (gap != null ? ` (selisih ${formatScore(gap)}%).` : "."),
   ];
+  if (implikasi) baris.push("", implikasi);
+
   if (priorityActions?.length > 0) {
-    baris.push("", "*Langkah yang disarankan*", priorityActions.map((a, i) => `${i + 1}. ${a}`).join("\n"));
+    baris.push("", "*Arah fokus kita ke depan:*", priorityActions.map((a, i) => `${i + 1}. ${a}`).join("\n"));
+  } else {
+    baris.push("", "Langkah konkretnya akan kita bahas bersama di pertemuan berikutnya.");
   }
+
+  baris.push("", "Mohon dukungan dan masukan semua pihak supaya perubahan ini benar-benar terasa. Terima kasih!");
   return baris.join("\n");
 }
 
