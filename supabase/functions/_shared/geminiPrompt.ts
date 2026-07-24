@@ -1296,15 +1296,27 @@ export async function callGemini(apiKey: string, model: string, systemInstructio
   // ditangkap try/catch pemanggil, bukan mati mendadak tanpa pesan.
   const MAX_ATTEMPT = 3;
   const FETCH_TIMEOUT_MS = 12000;
+  // FALLBACK MODEL untuk jendela 503 yang berkepanjangan -- log produksi (2026-07) menunjukkan
+  // SELURUH panggilan ke model utama ditolak 503 "high demand" terus-menerus, lebih lama dari
+  // total anggaran retry satu panggilan. Mengulang model yang sama berkali-kali percuma di
+  // kondisi itu; percobaan TERAKHIR dialihkan ke model cadangan (kapasitasnya terpisah per
+  // model di sisi Google, jadi model lain sering masih longgar saat satu model padat).
+  // Bisa dioverride lewat secret GEMINI_MODEL_FALLBACK; string kosong = matikan fallback.
+  const fallbackModel = (globalThis as any).Deno?.env?.get?.("GEMINI_MODEL_FALLBACK") ?? "gemini-2.5-flash";
+  // Rencana model per percobaan: 2x model utama, lalu 1x cadangan (kalau ada dan beda).
+  const modelPlan = fallbackModel && fallbackModel !== model
+    ? [model, model, fallbackModel]
+    : [model, model, model];
   let lastErr: Error | null = null;
 
   for (let attempt = 1; attempt <= MAX_ATTEMPT; attempt++) {
+    const attemptModel = modelPlan[attempt - 1];
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
     let res: Response;
     try {
       res = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`,
+        `https://generativelanguage.googleapis.com/v1beta/models/${attemptModel}:generateContent?key=${apiKey}`,
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -1340,7 +1352,7 @@ export async function callGemini(apiKey: string, model: string, systemInstructio
 
     if (!res.ok) {
       const bodyText = await res.text();
-      lastErr = new Error(`Gemini API error ${res.status}: ${bodyText}`);
+      lastErr = new Error(`Gemini API error ${res.status} (model ${attemptModel}): ${bodyText}`);
       if (RETRYABLE.has(res.status) && attempt < MAX_ATTEMPT) {
         await tunggu(backoffMs(attempt));
         continue;

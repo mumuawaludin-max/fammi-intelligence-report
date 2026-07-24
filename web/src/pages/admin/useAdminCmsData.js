@@ -438,7 +438,11 @@ async function generateSatuSc(p) {
  * panjang (5s, 15s, 30s) -- satu putaran saja (perilaku lama) terbukti tidak cukup kalau
  * jendela padat Gemini kebetulan menutupi hampir seluruh proses generate massal.
  */
-const RETRY_PASS_DELAYS_MS = [5000, 15000, 30000];
+// Putaran keempat (60 detik) ditambahkan setelah log produksi menunjukkan jendela 503 Gemini
+// bisa menutupi seluruh tiga putaran pertama (5+15+30 detik) -- dikombinasikan dengan fallback
+// model di callGemini() (_shared/geminiPrompt.ts), putaran yang lebih renggang ini memberi
+// kesempatan jendela padatnya lewat betulan, bukan cuma menembak ulang di tengah badai.
+const RETRY_PASS_DELAYS_MS = [5000, 15000, 30000, 60000];
 
 export async function runScIndividuGenerateAction(personalRows, onProgress) {
   const results = [];
