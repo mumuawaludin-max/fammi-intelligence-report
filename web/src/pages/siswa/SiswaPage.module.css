@@ -17,7 +17,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  font-family: "Plus Jakarta Sans", sans-serif;
+  font-family: var(--font-body);
   color: var(--s-ink);
   overflow: hidden;
 }
@@ -71,7 +71,7 @@
 }
 
 .sLogo {
-  font-family: "Space Grotesk", sans-serif;
+  font-family: var(--font-display);
   font-weight: 800;
   font-size: 17px;
   color: #fff;
@@ -228,7 +228,7 @@
   color: rgba(245, 242, 252, 0.38);
   font-size: 10.5px;
   font-weight: 600;
-  font-family: "Plus Jakarta Sans", sans-serif;
+  font-family: var(--font-body);
   transition: color 0.18s;
 }
 .sNavBtn:hover {

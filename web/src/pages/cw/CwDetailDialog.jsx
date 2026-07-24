@@ -5,8 +5,9 @@ import styles from "./CwDetailDialog.module.css";
  * CwDetailDialog -- modal drill-down generik untuk CW, dipakai CwRespondenListPage untuk
  * menampilkan laporan individu satu responden. Polanya sama dengan DetailDialog milik Karakter
  * (pages/karakter/DetailDialog.jsx), tapi dibuat salinan lokal khusus CW alih-alih diimpor
- * lintas-modul, supaya CW tetap pakai token standar FIR (Karakter versi ini hardcode Montserrat
- * + latar abu, pengecualian yang disengaja khusus modul itu -- lihat CLAUDE.md).
+ * lintas-modul (Karakter tetap punya latar abu khusus untuk modulnya sendiri, lihat
+ * KarakterViews.module.css/YayasanView.module.css; font sudah sama-sama token global sejak
+ * pengecualian Montserrat dicabut, lihat CLAUDE.md).
  */
 export default function CwDetailDialog({ icon, eyebrow, title, subtitle, onClose, children }) {
   useEffect(() => {

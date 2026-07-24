@@ -17,8 +17,6 @@
 }
 
 .dialog {
-  --font-body: "Montserrat", sans-serif;
-  --font-display: "Montserrat", sans-serif;
   font-family: var(--font-body);
   width: 100%;
   max-width: 560px;

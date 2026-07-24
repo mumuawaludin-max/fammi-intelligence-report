@@ -208,6 +208,27 @@ function KesejahteraanRow({ item, expanded, onToggle, delay }) {
   );
 }
 
+/** Visual orbit dekoratif untuk section "Lingkar Kontribusi" -- murni ilustrasi konsep (kendali
+ * makin dekat ke pusat), TIDAK merepresentasikan data apa pun, jadi aman dianimasikan bebas tanpa
+ * menyalahi "jangan mengarang data". Tiga titik bernomor mengorbit terus-menerus (loop) di jalur
+ * elipsnya masing-masing lewat CSS motion path (offset-path), kecepatan beda per cincin supaya
+ * terasa seperti sistem, bukan sekadar berputar bareng. Menghormati prefers-reduced-motion lewat
+ * CSS murni (module.css), tidak perlu JS terpisah karena animasinya cuma dekoratif, bukan reveal
+ * konten yang perlu disinkronkan ke viewport seperti useReveal. */
+function OrbitVisual() {
+  return (
+    <div className={styles.orbit} aria-hidden="true">
+      <span className={`${styles.orbitRing} ${styles.orbitRing1}`} />
+      <span className={`${styles.orbitRing} ${styles.orbitRing2}`} />
+      <span className={`${styles.orbitRing} ${styles.orbitRing3}`} />
+      <span className={styles.orbitCenter}>👤</span>
+      <span className={`${styles.orbitDot} ${styles.orbitDot1}`}>1</span>
+      <span className={`${styles.orbitDot} ${styles.orbitDot2}`}>2</span>
+      <span className={`${styles.orbitDot} ${styles.orbitDot3}`}>3</span>
+    </div>
+  );
+}
+
 /** Satu kartu jawaban esai verbatim -- kutipan asli staf sendiri, bukan sintesis Gemini. */
 function SurveyCard({ heading, teks, delay }) {
   if (!teks) return null;
@@ -392,7 +413,10 @@ export default function ScLaporanIndividuPage({ laporan, viewerIsOwner = false }
           </div>
         )}
 
-        {jawaban_survey?.yang_ingin_diubah && (
+        {/* Kutipan esai pribadi juga -- sumbernya sama dengan Refleksi Pribadi (jawaban_survey),
+            jadi ikut disembunyikan total dari drill-down pimpinan supaya konsisten: bukan cuma
+            3 dari 4 jawaban esai yang privat. */}
+        {viewerIsOwner && jawaban_survey?.yang_ingin_diubah && (
           <div className={styles.heroQuote}>
             <span className={styles.quoteMark} aria-hidden="true">&ldquo;</span>
             <p className={styles.heroQuoteHeading}>Perubahan yang Anda harapkan</p>
@@ -400,6 +424,28 @@ export default function ScLaporanIndividuPage({ laporan, viewerIsOwner = false }
           </div>
         )}
       </Reveal>
+
+      {/* ── Pengingat komitmen aktif/draf: sengaja di dekat paling atas (bukan cuma di bawah
+          section 06) supaya jadi reminder tiap buka laporan, bukan cuma sekali muncul saat
+          menyimpan. Cuma untuk pemilik laporan sendiri -- komitmen tidak pernah tampil ke
+          pimpinan sama sekali (lihat gating fetch di useScKomitmen di bawah). */}
+      {viewerIsOwner && komitmen && (
+        <Reveal delay={0.04} className={styles.komitmenReminder}>
+          <span className={styles.komitmenReminderIcon} aria-hidden="true">{committed ? "✅" : "📝"}</span>
+          <span className={styles.komitmenReminderBody}>
+            <span className={styles.komitmenReminderEyebrow}>{committed ? "Komitmen 30 hari Anda" : "Draf komitmen tersimpan"}</span>
+            <strong className={styles.komitmenReminderTitle}>{komitmen.aksi_judul}</strong>
+            {committed && <span className={styles.komitmenReminderMeta}>Check-in berikutnya: {checkIns[0].date}</span>}
+          </span>
+          <button
+            type="button"
+            className={styles.komitmenReminderCta}
+            onClick={() => document.getElementById("sc-komitmen-section")?.scrollIntoView({ behavior: "smooth", block: "start" })}
+          >
+            {committed ? "Lihat" : "Lanjutkan"} →
+          </button>
+        </Reveal>
+      )}
 
       {/* ── 01 Celah budaya ─────────────────────────────────────────────────────────── */}
       <section className={styles.section}>
@@ -461,8 +507,12 @@ export default function ScLaporanIndividuPage({ laporan, viewerIsOwner = false }
           ))}
         </div>
 
-        {/* ── Refleksi privat: tersembunyi default, toggle eksplisit ───────────────── */}
-        {adaJawabanSurvey && (
+        {/* ── Refleksi privat: SELALU disembunyikan total dari drill-down pimpinan
+            (viewerIsOwner false) -- ini berbeda dari perilaku RLS sc_hasil_baca yang tadinya
+            mengizinkan baca, instruksi eksplisit pemilik produk mempersempitnya jadi cuma
+            tampil untuk pemilik laporan sendiri di layar ini. Tersembunyi default (toggle)
+            bahkan untuk pemilik sendiri. */}
+        {viewerIsOwner && adaJawabanSurvey && (
           <>
             <button
               type="button"
@@ -472,8 +522,8 @@ export default function ScLaporanIndividuPage({ laporan, viewerIsOwner = false }
             >
               <span aria-hidden="true">🔒</span>
               <span>
-                <strong>Refleksi pribadi {viewerIsOwner ? "Anda" : meta.nama_responden}</strong>
-                <small>{viewerIsOwner ? "Hanya dapat dilihat oleh Anda" : "Jawaban asli staf ini"}</small>
+                <strong>Refleksi pribadi Anda</strong>
+                <small>Hanya dapat dilihat oleh Anda</small>
               </span>
               <span className={`${styles.chevron} ${showReflections ? styles.chevronUp : ""}`} aria-hidden="true">⌄</span>
             </button>
@@ -511,6 +561,8 @@ export default function ScLaporanIndividuPage({ laporan, viewerIsOwner = false }
       <section className={styles.section}>
         <SectionHead index="05" title="Mulai dari yang paling dekat dengan kendali Anda" lead="Kontribusi Anda penting, tetapi perubahan tidak dibebankan kepada Anda sendiri." />
 
+        <OrbitVisual />
+
         <div className={styles.agencyList}>
           {AGENCY_TERRITORIES.map((t, i) => {
             const expanded = expandedAgency === t.key;
@@ -530,7 +582,7 @@ export default function ScLaporanIndividuPage({ laporan, viewerIsOwner = false }
         </div>
 
         {aksiList.length > 0 && (
-          <div className={styles.actionBlock}>
+          <div className={styles.actionBlock} id="sc-komitmen-section">
             <h3 className={styles.actionTitle}>Pilih satu perubahan kecil untuk 30 hari</h3>
             <p className={styles.actionLead}>Fokus pada tindakan yang bisa Anda kendalikan atau pengaruhi langsung.</p>
 

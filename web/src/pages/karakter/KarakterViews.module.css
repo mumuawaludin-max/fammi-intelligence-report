@@ -1,10 +1,9 @@
 /* Dipakai oleh WaliKelasView dan KepsekView — wajib bagus di mobile maupun desktop.
-   Font Montserrat dan latar abu muda sengaja disamakan dengan Laporan Bakat (MI Page
-   Individu, lihat SiswaPage.jsx T.bg #EDEDF0 + MONT) atas instruksi eksplisit pemilik
-   produk. Di-scope lewat custom property lokal supaya MI/halaman lain tidak ikut berubah. */
+   Latar abu muda sengaja disamakan dengan Laporan Bakat (MI Page Individu, lihat
+   SiswaPage.jsx T.bg #EDEDF0) atas instruksi eksplisit pemilik produk. Font TIDAK lagi
+   di-override lokal -- satu font global (Google Sans Flex, tokens.css) untuk seluruh
+   aplikasi, pengecualian Montserrat sebelumnya sudah dicabut. */
 .page {
-  --font-body: "Montserrat", sans-serif;
-  --font-display: "Montserrat", sans-serif;
   font-family: var(--font-body);
   /* Minimal medium: teks yang tidak menyetel bobot sendiri tidak boleh setipis 400. */
   font-weight: 500;

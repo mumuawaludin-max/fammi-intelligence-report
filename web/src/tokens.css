@@ -4,23 +4,17 @@
    Jangan menambah warna atau font di luar berkas ini.
    ============================================================ */
 
-/* --- Google Fonts via @fontsource --- */
-@import "@fontsource/plus-jakarta-sans/400.css";
-@import "@fontsource/plus-jakarta-sans/500.css";
-@import "@fontsource/plus-jakarta-sans/600.css";
-@import "@fontsource/plus-jakarta-sans/700.css";
-@import "@fontsource/plus-jakarta-sans/800.css";
-@import "@fontsource/space-grotesk/400.css";
-@import "@fontsource/space-grotesk/500.css";
-@import "@fontsource/space-grotesk/600.css";
-@import "@fontsource/space-grotesk/700.css";
-@import "@fontsource/jetbrains-mono/400.css";
+/* --- Google Sans Flex via @fontsource (variable, sumbu wght saja) --- */
+@import "@fontsource-variable/google-sans-flex/wght.css";
 
 :root {
-  /* ---- Font families ---- */
-  --font-body:    "Plus Jakarta Sans", system-ui, sans-serif;
-  --font-display: "Space Grotesk", system-ui, sans-serif;
-  --font-mono:    "JetBrains Mono", ui-monospace, monospace;
+  /* ---- Font families ----
+     Satu font untuk seluruh aplikasi, TANPA pengecualian (instruksi eksplisit pemilik
+     produk, menggantikan seluruh pengecualian Montserrat yang tadinya berlaku untuk
+     modul Karakter dan Laporan Bakat -- lihat CLAUDE.md). */
+  --font-body:    "Google Sans Flex Variable", system-ui, sans-serif;
+  --font-display: "Google Sans Flex Variable", system-ui, sans-serif;
+  --font-mono:    "Google Sans Flex Variable", ui-monospace, monospace;
 
   /* ---- Ungu utama ---- */
   --purple-050: #F4EFFD;

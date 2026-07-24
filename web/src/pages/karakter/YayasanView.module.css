@@ -1,9 +1,8 @@
 /* Yayasan: desktop-only, tidak perlu breakpoint mobile.
-   Font Montserrat + latar abu muda disamakan dengan Laporan Bakat (MI Page Individu),
-   di-scope lokal lewat custom property supaya tidak menjalar ke halaman lain. */
+   Latar abu muda disamakan dengan Laporan Bakat (MI Page Individu). Font TIDAK lagi
+   di-override lokal -- satu font global (Google Sans Flex, tokens.css) untuk seluruh
+   aplikasi, pengecualian Montserrat sebelumnya sudah dicabut. */
 .page {
-  --font-body: "Montserrat", sans-serif;
-  --font-display: "Montserrat", sans-serif;
   font-family: var(--font-body);
   display: flex;
   flex-direction: column;

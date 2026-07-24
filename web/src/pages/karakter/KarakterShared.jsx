@@ -1131,7 +1131,7 @@ export function Donut({ value, size = 116, label }) {
           transform={`rotate(-90 ${size / 2} ${size / 2})`} style={{ transition: "stroke-dasharray 0.7s ease" }}
         />
         <text x="50%" y="50%" textAnchor="middle" dominantBaseline="central"
-          fontFamily="Montserrat, sans-serif" fontSize={size * 0.24} fontWeight={800} fill="var(--ink)">
+          fontFamily="'Google Sans Flex Variable', sans-serif" fontSize={size * 0.24} fontWeight={800} fill="var(--ink)">
           {v == null ? "—" : `${v}%`}
         </text>
       </svg>
@@ -1333,10 +1333,10 @@ export function TrendChart({ points, aspek, aspekPrefix = "rata_input_guru_" }) 
         {coords.map((c) => (
           <g key={c.periode}>
             <circle cx={c.x} cy={c.y} r={hc === c ? 6 : 4} fill="var(--purple-600)" stroke="#EDEDF0" strokeWidth={2} />
-            <text x={c.x} y={c.y - 12} textAnchor="middle" fontSize={11} fontWeight={800} fill="var(--purple-700)" fontFamily="Montserrat, sans-serif">
+            <text x={c.x} y={c.y - 12} textAnchor="middle" fontSize={11} fontWeight={800} fill="var(--purple-700)" fontFamily="'Google Sans Flex Variable', sans-serif">
               {c.rata}%
             </text>
-            <text x={c.x} y={h - 2} textAnchor="middle" fontSize={9.5} fontWeight={600} fill="var(--ink-3)" fontFamily="Montserrat, sans-serif">
+            <text x={c.x} y={h - 2} textAnchor="middle" fontSize={9.5} fontWeight={600} fill="var(--ink-3)" fontFamily="'Google Sans Flex Variable', sans-serif">
               {periodeLabel(c.periode)}
             </text>
           </g>

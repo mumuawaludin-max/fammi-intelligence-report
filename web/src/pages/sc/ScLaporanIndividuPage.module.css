@@ -209,6 +209,77 @@
   background: var(--purple-600);
 }
 
+/* ══ Pengingat komitmen aktif/draf ════════════════════════════════════════════ */
+.komitmenReminder {
+  display: grid;
+  grid-template-columns: 40px 1fr auto;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 16px;
+  border: 1px solid var(--purple-300);
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+  box-shadow: var(--shadow-card);
+}
+
+.komitmenReminderIcon {
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: var(--purple-050);
+  font-size: 18px;
+}
+
+.komitmenReminderBody {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.komitmenReminderEyebrow {
+  color: var(--purple-600);
+  font-size: 10.5px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.komitmenReminderTitle {
+  overflow: hidden;
+  color: var(--ink);
+  font-size: 13.5px;
+  font-weight: 750;
+  line-height: 1.35;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.komitmenReminderMeta {
+  color: var(--ink-3);
+  font-size: 11px;
+}
+
+.komitmenReminderCta {
+  flex-shrink: 0;
+  min-height: 44px;
+  padding: 0 14px;
+  border: 0;
+  border-radius: 10px;
+  background: var(--purple-050);
+  color: var(--purple-700);
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 800;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.komitmenReminderCta:hover {
+  background: var(--purple-100);
+}
+
 .heroQuote {
   position: relative;
   padding: 16px 18px 16px 22px;
@@ -782,6 +853,114 @@
 }
 
 /* ══ Lingkar kontribusi ═══════════════════════════════════════════════════════ */
+/* ══ Orbit dekoratif (Lingkar Kontribusi) ═══════════════════════════════════════ */
+.orbit {
+  position: relative;
+  height: 220px;
+  margin: 20px -6px 18px;
+}
+
+.orbitRing {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  border-radius: 50%;
+  transform: translate(-50%, -50%) rotate(-8deg);
+}
+
+.orbitRing1 {
+  width: 150px;
+  height: 88px;
+  border: 2px solid var(--purple-600);
+}
+
+.orbitRing2 {
+  width: 230px;
+  height: 142px;
+  border: 1.5px dashed var(--purple-300);
+}
+
+.orbitRing3 {
+  width: 300px;
+  max-width: 100%;
+  height: 190px;
+  border: 1.5px dashed var(--purple-100);
+  opacity: 0.7;
+}
+
+.orbitCenter {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  display: grid;
+  place-items: center;
+  width: 62px;
+  height: 62px;
+  border-radius: 50%;
+  background: var(--purple-600);
+  color: #fff;
+  font-size: 26px;
+  transform: translate(-50%, -50%);
+  box-shadow: 0 14px 28px rgba(99, 35, 218, 0.24);
+}
+
+.orbitDot {
+  position: absolute;
+  z-index: 2;
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  color: #fff;
+  font-size: 12px;
+  font-weight: 800;
+  /* Posisi diam (fallback kalau browser tidak dukung offset-path) -- kira-kira di tepi cincinnya
+     masing-masing, supaya tetap masuk akal secara visual meski tanpa animasi. */
+  top: 8%;
+  left: 24%;
+}
+
+.orbitDot1 {
+  background: var(--purple-600);
+  offset-path: ellipse(75px 44px at 50% 50%);
+  offset-rotate: 0deg;
+  animation: orbit-spin 9s linear infinite;
+}
+
+.orbitDot2 {
+  top: 66%;
+  left: 19%;
+  background: #9C72E5;
+  offset-path: ellipse(115px 71px at 50% 50%);
+  offset-rotate: 0deg;
+  animation: orbit-spin 14s linear infinite reverse;
+}
+
+.orbitDot3 {
+  top: 82%;
+  left: 9%;
+  color: var(--purple-600);
+  background: var(--purple-050);
+  offset-path: ellipse(150px 95px at 50% 50%);
+  offset-rotate: 0deg;
+  animation: orbit-spin 20s linear infinite;
+}
+
+@keyframes orbit-spin {
+  from { offset-distance: 0%; }
+  to { offset-distance: 100%; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .orbitDot1,
+  .orbitDot2,
+  .orbitDot3 {
+    animation: none;
+    offset-distance: 0%;
+  }
+}
+
 .agencyList {
   display: grid;
   gap: 10px;

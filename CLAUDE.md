@@ -37,9 +37,13 @@ Fammi Intelligence Report adalah dashboard sekolah berbasis peran. Ia membaca ha
 ## Design token, pakai persis nilai ini
 
 Font:
-- Teks utama: Plus Jakarta Sans, bobot 400 sampai 800.
-- Angka display dan judul tegas: Space Grotesk.
-- Monospace bila perlu: JetBrains Mono.
+- Satu font untuk seluruh aplikasi, tanpa kecuali: **Google Sans Flex** (variable font,
+  paket `@fontsource-variable/google-sans-flex`, sumbu `wght` saja). Dipakai untuk teks
+  utama, angka display/judul tegas, maupun monospace -- `--font-body`, `--font-display`,
+  `--font-mono` di `tokens.css` ketiganya menunjuk font yang sama. Instruksi eksplisit dan
+  berulang dari pemilik produk (2026-07): mengganti seluruh font sebelumnya (Plus Jakarta
+  Sans, Space Grotesk, JetBrains Mono, dan pengecualian Montserrat di bawah), tidak ada lagi
+  pengecualian font per modul.
 
 Warna inti:
 - Ungu utama `#6323DA`. Skala: ungu-050 `#F4EFFD`, ungu-100 `#EDE6FB`, ungu-300 `#B79CF0`, ungu-600 `#6323DA`, ungu-700 `#5418C2`.
@@ -54,7 +58,9 @@ Warna status, dipakai hemat sebagai penanda kecil:
 
 Radius: 12, 16, 22, 28. Bayangan kartu lembut, bayangan hero kebiruan ungu tipis. Jangan menambah warna di luar token ini.
 
-**Pengecualian yang disengaja**: laporan MI Individu (`BakatView` di `web/src/pages/siswa/SiswaPage.jsx`) dan seluruh laporan modul Karakter untuk Wali Kelas/Kepala Sekolah/Yayasan (`web/src/pages/karakter/`) memakai **Montserrat** dan latar abu muda `#EDEDF0`, bukan token di atas. Ini instruksi eksplisit dan berulang dari pemilik produk supaya modul Karakter senada dengan laporan MI Individu, di-scope lewat custom property CSS lokal (`--font-body`/`--font-display` didefinisikan ulang di `.page`) supaya tidak menjalar ke halaman lain (Header, NavBar, LoginPage, MIPage agregat tetap pakai token biasa). Jangan "perbaiki" balik ke token dengan alasan aturan ini.
+**Pengecualian yang disengaja**: laporan MI Individu (`BakatView` di `web/src/pages/siswa/SiswaPage.jsx`) dan seluruh laporan modul Karakter untuk Wali Kelas/Kepala Sekolah/Yayasan (`web/src/pages/karakter/`) memakai latar abu muda `#EDEDF0`, bukan token `--bg` biasa. Ini instruksi eksplisit dari pemilik produk supaya modul Karakter senada dengan laporan MI Individu. Jangan "perbaiki" balik ke token dengan alasan aturan ini. **Font TIDAK lagi jadi bagian pengecualian ini** -- sebelumnya kedua modul ini memakai Montserrat lewat override lokal (`--font-body`/`--font-display` didefinisikan ulang di `.page`), tapi pengecualian font itu sudah dicabut (2026-07): kedua modul sekarang ikut token global Google Sans Flex seperti seluruh aplikasi lain, override lokalnya sudah dihapus dari kode.
+
+**Pengecualian yang disengaja (2)**: seluruh dashboard "Laporan Lembaga" modul School Culture (`ScSectionSelector`/`ScDimensiRingkasan`/`ScDimensiPerbandingan`/`ScDimensiTindakLanjut`, dirakit di `ScLaporanAgregatPage.jsx`, `web/src/pages/sc/`) memakai palet warna berbeda dari token di atas: primary `#6C2BD9`, heading `#3B1E77`, soft surface `#F1EAFF`, background `#FAFAF7`, border `#E6E2DA`, gold accent `#D9A406`. Halaman ini di-restart total mengikuti `references/school-culture-redesign/design-references/wireframe-original.png` atas instruksi eksplisit pemilik produk: tiga kartu gelap (01 Budaya Kerja/02 Kesejahteraan Tim/03 Profil Organisasi) jadi filter tampilan, tiap bagian punya struktur identik A (ringkasan+skor)/B (perbandingan saat ini vs harapan)/C (tindak lanjut per dimensi) -- BUKAN nav-strip+dumbbell+tab dari versi "polished" reference yang sempat dibangun lebih dulu lalu dihapus total. Palet di-scope lewat `web/src/pages/sc/scBudayaTokens.module.css` (class `.scope`, custom property `--sc-*`, nama berkas peninggalan sebelum cakupan diperluas) supaya tidak menjalar ke laporan individu staf (`ScLaporanIndividuPage.jsx`/`ScKaryawanPage.jsx`, tetap token biasa -- reference tidak pernah mendesain laporan individu) atau modul lain. Bagian ini juga satu-satunya tempat di FIR yang memakai `@phosphor-icons/react` dan `motion` alih-alih emoji + `scHooks.js` -- juga instruksi eksplisit, jangan "perbaiki" balik ke sistem ikon/animasi biasa dengan alasan konsistensi. Section lama (Angka Kunci, Prioritas Perbaikan lintas-fokus, Perbandingan Antarunit, seluruh insight Fase B-D-E: pie/stacked-bar/strip-plot/donut/heatmap/scatter/tema-esai/tren) SUDAH DIHAPUS dari halaman ini secara sengaja -- jangan dikembalikan tanpa instruksi baru.
 
 ## Inventaris komponen
 

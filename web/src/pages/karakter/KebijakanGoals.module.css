@@ -1,6 +1,6 @@
 /* Board Kebijakan Kepala Sekolah, layout meniru lampiran (Short/Long-Term Goals bento).
    Warna: ungu Fammi untuk short, oranye hangat untuk long, plus satu kartu aksen tiap baris.
-   Font ikut Montserrat dari scope .page modul Karakter. */
+   Font ikut token global (Google Sans Flex) dari scope .page modul Karakter. */
 
 .goals {
   display: flex;
