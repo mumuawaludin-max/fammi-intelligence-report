@@ -370,8 +370,21 @@ export const MOCK_LAPORAN_AGREGAT_SC: LaporanAgregatSC = {
     indeks: 60,
     kategori: "Sedang",
     chart_data: [
-      { kode: "kepuasan_kepemimpinan", label: "Kepuasan pada Kepemimpinan", nilai: 62, kategori: "Sedang" },
-      { kode: "kenyamanan_bekerja", label: "Kenyamanan Bekerja", nilai: 73, kategori: "Tinggi" },
+      {
+        kode: "kepuasan_kepemimpinan", label: "Kepuasan pada Kepemimpinan", nilai: 62, kategori: "Sedang",
+        // items: contoh breakdown butir mentah b1-b3 -- rata-rata sesungguhnya dihitung
+        // driverItemsKesejahteraan() di useScData.js dari sc_personal.jawaban_mentah, bukan
+        // dikarang di sini, cuma dummy QA visual sama seperti angka lain di berkas ini.
+        items: [
+          { label: "Puas cara kerja pimpinan", nilai: 3.1 },
+          { label: "Percaya keputusan pimpinan", nilai: 3.2 },
+          { label: "Informasi terbuka", nilai: 3.0 },
+        ],
+      },
+      { kode: "kenyamanan_bekerja", label: "Kenyamanan Bekerja", nilai: 73, kategori: "Tinggi", items: [
+        { label: "Nyaman bekerja", nilai: 3.7 },
+        { label: "Terbiasa kerjasama", nilai: 3.6 },
+      ] },
       { kode: "pengembangan_diri", label: "Pengembangan Diri", nilai: 58, kategori: "Sedang" },
       { kode: "ekspektasi", label: "Ekspektasi Terpenuhi", nilai: 61, kategori: "Sedang" },
       // priorityActions/phases/targetImpact SENGAJA cuma diisi untuk satu subdimensi (demo

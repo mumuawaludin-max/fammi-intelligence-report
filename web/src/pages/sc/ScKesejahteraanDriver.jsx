@@ -14,16 +14,25 @@ const TONE_LABEL = {
   waspada: "Yang perlu diperbaiki",
 };
 
+function Stars({ rating }) {
+  const filled = Math.round(Math.max(0, Math.min(5, rating ?? 0)));
+  return (
+    <span className={styles.stars} aria-hidden="true">
+      {Array.from({ length: 5 }).map((_, i) => (
+        <span key={i} className={i < filled ? styles.starFilled : styles.starEmpty}>★</span>
+      ))}
+    </span>
+  );
+}
+
 /**
- * ScKesejahteraanDriver -- padanan "02-B" desain baru. BEDA dari referensi screenshot yang
- * menampilkan rincian sub-driver per aspek (mis. "Bisa menjaga keseimbangan" 70/20/10% + skor
- * 1-5 + tren vs periode lalu) -- rincian sub-driver itu TIDAK ADA di skema data manapun sekarang
- * (bagian_kesejahteraan.chart_data cuma satu skor+kategori per aspek, bukan pecahan per
- * pertanyaan/respons). Jadi di sini "apa yang membentuk pengalaman kerja tim" ditampilkan JUJUR
- * dari skor final tiap aspek (bar proporsional + kategori), bukan mengarang rincian yang belum
- * ada sumbernya (CLAUDE.md butir: jangan menampilkan angka contoh seolah temuan nyata). Kartu
- * "Yang perlu dijaga/diperbaiki" pakai facets (scMeta.js) yang memang sudah tervalidasi sebagai
- * teks generik, bukan temuan periode ini.
+ * ScKesejahteraanDriver -- padanan "02-B". Kartu utama menampilkan skor aspek terpilih (bar
+ * proporsional + kategori + interpretasi) PLUS breakdown butir mentah nyata (`selected.items`,
+ * rata-rata b1-b13 per subdimensi -- lihat driverItemsKesejahteraan di useScData.js) kalau
+ * tersedia. Sebelumnya breakdown ini tidak ada sumbernya sama sekali dan sengaja tidak dikarang;
+ * sekarang datanya nyata (dari sheet Personal), jadi ditampilkan apa adanya -- laporan lama yang
+ * belum punya field ini tetap tampil rapi tanpa blok ini (graceful fallback). Kartu "Yang perlu
+ * dijaga/diperbaiki" tetap pakai facets (scMeta.js, teks generik bukan temuan periode ini).
  */
 export function ScKesejahteraanDriver({ sectionIndex, items, selectedKey, onSelect }) {
   const selected = items.find((it) => it.key === selectedKey) || items[0];
@@ -80,6 +89,23 @@ export function ScKesejahteraanDriver({ sectionIndex, items, selectedKey, onSele
                 {interpretasiKesejahteraan(selected.kategori) || "Belum ada interpretasi untuk aspek ini pada periode ini."}
               </p>
             </div>
+
+            {selected.items?.length > 0 && (
+              <div className={styles.driverBlock}>
+                <p className={styles.blockTitle}>Faktor Pendorong</p>
+                <div className={styles.driverList}>
+                  {selected.items.map((it, i) => (
+                    <div className={styles.driverRow} key={i}>
+                      <span className={styles.driverLabel}>{it.label}</span>
+                      <span className={styles.driverValue}>
+                        <Stars rating={it.nilai} />
+                        <span className={styles.driverNumber}>{formatScore(it.nilai)} dari 5</span>
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
           </ScLaporanReveal>
         )}
 

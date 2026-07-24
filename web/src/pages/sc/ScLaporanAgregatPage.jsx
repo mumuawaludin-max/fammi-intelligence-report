@@ -97,6 +97,7 @@ export default function ScLaporanAgregatPage({ laporan }) {
   const kesejahteraanItems = useMemo(
     () => bagian_kesejahteraan.chart_data.map((k) => ({
       key: k.kode, label: KESEJAHTERAAN_INFO[k.kode]?.label || k.label, icon: k.kode, value: k.nilai, kategori: k.kategori,
+      items: k.items,
     })),
     [bagian_kesejahteraan.chart_data]
   );

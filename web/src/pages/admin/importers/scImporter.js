@@ -24,6 +24,15 @@ function pct(v) {
   return Number.isFinite(n) ? Math.round(n * 100) / 100 : null;
 }
 
+/** Kolom "bersedia" (izin tampil di drill-down individu pimpinan): sengaja dicocokkan lewat
+ * prefix "ya" (bukan menyamakan persis "Ya, saya bersedia") supaya tetap kebaca kalau sekolah
+ * lain sedikit beda redaksi jawabannya -- default FALSE kalau kosong/tidak jelas, privasi lebih
+ * diutamakan daripada menganggap bersedia padahal tidak jelas. */
+function parseBersedia(v) {
+  const teks = String(v || '').trim().toLowerCase();
+  return teks.startsWith('ya');
+}
+
 /** Kunci tipe budaya di kolom xlsx (huruf kecil) -> label produk yang dipakai UI (scMeta.js).
  * Label ini SUDAH bukan istilah OCAI mentah (Klan/Adhokrasi/Pasar/Hierarki) -- sesuai instruksi
  * pemilik produk, label yang dipakai persis yang ada di data olahan sekolah sendiri. */
@@ -274,6 +283,7 @@ export async function parseScWorkbook(file, { sekolahId, periodeId }) {
       jenjang: getField(r, 'demografi_jenjang') || null,
       peran_kerja: getField(r, 'demografi_peran') || null,
       lama_kerja: getField(r, 'demografi_lama_kerja') || null,
+      bersedia: parseBersedia(getField(r, 'bersedia')),
       jawaban_mentah: buildJawabanMentah(r, headerKeys),
       budaya: buildBudayaPersonal(r),
       profil_organisasi: withDimensiHarapan(

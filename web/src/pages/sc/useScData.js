@@ -173,10 +173,80 @@ function heatmapDimensiTipe(personalRows) {
       cells.push({
         dimensi: DIMENSI_KODE_LABEL[dimKode], tipe: TIPE_LABEL_LIST[j],
         nilai: mean != null ? Math.round((mean / 5) * 100) : null,
+        // Skala 1-5 mentah (belum dikonversi ke persen) -- dipakai 01-D (rating bintang) supaya
+        // tidak ada round-trip persen->5 yang bikin selisih pembulatan, BUKAN angka baru, cuma
+        // rata-rata yang sama ditulis di skala aslinya.
+        nilai_mentah: mean != null ? Math.round(mean * 100) / 100 : null,
       });
     });
   });
   return cells;
+}
+
+/** Grup butir mentah b1..b13 (survey_bN_...) per subdimensi kesejahteraan -- URUTAN NOMOR butir
+ * yang menentukan kelompok (instrumen b1..b13 sama untuk semua sekolah pemakai template ini),
+ * BUKAN teks deskripsi kolom (yang boleh beda redaksi per sekolah, makanya dicari lewat regex
+ * nomor, bukan disamakan persis ke teks NF). Diverifikasi ke angka final sc_lembaga Nurul Fikri:
+ * b1-3 rata-rata -> kepuasan_kepemimpinan (85,38%), b4-5 -> kenyamanan_bekerja (92,5%),
+ * b6-8 -> pengembangan_diri (86,81%), b9-11 -> ekspektasi (87,94%), b12-13 -> work_life_balance
+ * (84,38%) -- cocok persis dengan sheet Lembaga contoh. */
+const KESEJAHTERAAN_B_GROUPS = {
+  kepuasan_kepemimpinan: [1, 2, 3],
+  kenyamanan_bekerja: [4, 5],
+  pengembangan_diri: [6, 7, 8],
+  ekspektasi: [9, 10, 11],
+  work_life_balance: [12, 13],
+};
+
+/** Cari nama kolom asli "survey_b<nomor>_..." di jawaban_mentah lewat nomor butir, bukan teks
+ * deskripsinya -- pola sama cariItemMentah() di atas. */
+function cariKolomB(headerKeys, nomor) {
+  const re = new RegExp(`^survey_b${nomor}_`, "i");
+  return headerKeys.find((k) => re.test(k.trim()));
+}
+
+/** Ubah nama kolom mentah jadi label tampilan generik: "survey_b1_puas_cara_kerja_pimpinan" ->
+ * "Puas cara kerja pimpinan". Dipakai apa adanya (bukan dikarang) supaya label tetap benar kalau
+ * sekolah lain pakai redaksi kolom yang berbeda dari NF. */
+function labelDariKolomB(kolom) {
+  const teks = kolom.replace(/^survey_b\d+_/i, '').replace(/_/g, ' ').trim();
+  return teks.length > 0 ? teks.charAt(0).toUpperCase() + teks.slice(1) : kolom;
+}
+
+/**
+ * Rata-rata tiap butir mentah b1..b13 lintas seluruh responden periode ini, dikelompokkan per
+ * subdimensi kesejahteraan (KESEJAHTERAAN_B_GROUPS) -- breakdown "Puas dengan Cara Kerja 4.25
+ * dari 5" dkk di 02-B. Rata-rata dipakai dari SEMUA responden yang terimpor periode ini (bukan
+ * cuma yang bersedia drill-down individu -- consent "bersedia" cuma menyaring tampilan PER-ORANG,
+ * bukan ikut serta di agregat, lihat migration 20260725110000). Sama prinsipnya dengan
+ * heatmapDimensiTipe di bawah: cuma rata-rata sederhana dari angka mentah yang sudah tersimpan,
+ * bukan skor baru.
+ */
+function driverItemsKesejahteraan(personalRows) {
+  const headerKeys = new Set();
+  personalRows.forEach((p) => Object.keys(p.jawaban_mentah || {}).forEach((k) => headerKeys.add(k)));
+  const headerList = [...headerKeys];
+
+  const result = {};
+  Object.entries(KESEJAHTERAAN_B_GROUPS).forEach(([kode, nomorList]) => {
+    result[kode] = nomorList
+      .map((nomor) => {
+        const kolom = cariKolomB(headerList, nomor);
+        if (!kolom) return null;
+        const nilai = personalRows
+          .map((p) => {
+            const v = p.jawaban_mentah?.[kolom];
+            const n = v == null ? NaN : parseFloat(String(v).replace(',', '.'));
+            return Number.isFinite(n) ? n : null;
+          })
+          .filter((n) => n != null);
+        if (nilai.length === 0) return null;
+        const mean = nilai.reduce((a, b) => a + b, 0) / nilai.length;
+        return { label: labelDariKolomB(kolom), nilai: Math.round(mean * 100) / 100 };
+      })
+      .filter(Boolean);
+  });
+  return result;
 }
 
 /**
@@ -223,6 +293,44 @@ function terapkanPrivasiUnit(rows) {
   }];
 }
 
+/**
+ * Redesign dashboard agregat (Budaya Kerja, references/school-culture-redesign/): status
+ * 3-tingkat per tipe budaya DIHITUNG dari RANKING gap absolut antar 4 tipe yang sudah final --
+ * tipe dengan gap terbesar dapat "Perlu perhatian" (paling butuh intervensi), gap terkecil dapat
+ * "Selaras" (paling dekat harapan), dua di tengah "Ringan". Ini ranking angka yang sudah ada,
+ * BUKAN skor/ambang baru -- konsisten dengan gapTerbesar() yang lebih dulu melakukan hal serupa
+ * (CLAUDE.md butir 3: FIR tidak menghitung apa pun -- mengurutkan bukan menghitung).
+ */
+function statusBudayaPerTipe(budaya) {
+  const sorted = [...(budaya || [])]
+    .map((b) => ({ tipe: b.tipe, gap: Math.abs((b.mean_harapan ?? 0) - (b.mean_gambaran ?? 0)) }))
+    .sort((a, b) => b.gap - a.gap);
+  const byTipe = {};
+  sorted.forEach((d, i) => {
+    if (i === 0) byTipe[d.tipe] = "Perlu perhatian";
+    else if (i === sorted.length - 1) byTipe[d.tipe] = "Selaras";
+    else byTipe[d.tipe] = "Ringan";
+  });
+  return byTipe;
+}
+
+/** Best-effort: cocokkan satu baris tindak_lanjut (fokus tertentu) ke satu dimensi/subdimensi
+ * lewat kemunculan labelnya di title/teaser/mengapa_data/mengapa_perspektif -- tidak ada kolom
+ * eksplisit "dimensi ini" di tindak_lanjut (cuma fokus budaya/kesejahteraan), jadi ini heuristik
+ * teks, BUKAN pencocokan terjamin. Kalau tidak ketemu, dimensi itu TETAP tanpa priorityActions/
+ * phases/targetImpact (data gap jujur) -- tidak dipaksa memakai baris yang mungkin tidak relevan.
+ * TIDAK ADA nilai fokus='organisasi' di skema tindak_lanjut manapun sekarang (cuma
+ * budaya/kesejahteraan) -- Profil Organisasi karena itu SELALU data gap untuk bagian ini, lihat
+ * pemanggilnya di useScAgregat (tidak pernah memanggil fungsi ini untuk domain organisasi). */
+function cocokkanTlKeLabel(tlAtPeriode, fokus, label) {
+  const rows = tlAtPeriode.filter((r) => r.fokus === fokus);
+  const t = label.toLowerCase();
+  return rows.find((r) => {
+    const teks = [r.title, r.teaser, r.mengapa_data, r.mengapa_perspektif].filter(Boolean).join(" ").toLowerCase();
+    return teks.includes(t);
+  }) || null;
+}
+
 /** peran FIR (PascalCase) -> target_role tindak_lanjut/briefing (snake_case) yang dipakai
  * generate-tindak-lanjut/geminiPromptSc.ts. WakilKepalaSekolah dan AdminFammi ikut
  * kepala_sekolah (cakupannya identik/superset per CLAUDE.md). */
@@ -264,7 +372,7 @@ export function useScAgregat(session, periodeId) {
           .eq("sekolah_id", sekolahId),
         supabase
           .from("briefing")
-          .select("teks, tema_esai, periode_id")
+          .select("teks, tema_esai, cerita_pegawai, periode_id, created_at")
           .eq("sekolah_id", sekolahId)
           .eq("modul", "sc")
           .eq("scope", "sekolah")
@@ -342,8 +450,50 @@ export function useScAgregat(session, periodeId) {
     const { terendah: dimTerendah, tertinggi: dimTertinggi } = ekstrem(sekolah.profil_organisasi);
     const indeksKesejahteraan = rataRata((sekolah.kesejahteraan || []).map((k) => k.nilai));
 
-    const chartBudaya = (sekolah.budaya || []).map((b) => ({ tipe: b.tipe, saat_ini: b.mean_gambaran, harapan: b.mean_harapan }));
+    const statusByTipe = statusBudayaPerTipe(sekolah.budaya);
+    const chartBudaya = (sekolah.budaya || []).map((b) => {
+      const cocok = cocokkanTlKeLabel(tlAtPeriode, "budaya", b.tipe);
+      return {
+        tipe: b.tipe, saat_ini: b.mean_gambaran, harapan: b.mean_harapan,
+        status: statusByTipe[b.tipe],
+        priorityActions: cocok ? (cocok.konkret || []).map((k) => k.aksi).filter(Boolean) : undefined,
+        phases: cocok ? (cocok.konkret || []).map((k) => ({ aksi: k.aksi, waktu: k.waktu || null })).filter((k) => k.aksi) : undefined,
+        targetImpact: cocok?.manfaat?.sekolah || cocok?.manfaat?.pimpinan || undefined,
+      };
+    });
     const tabelGap = (sekolah.budaya || []).map((b) => ({ label: b.tipe, arah: arahDariGap(b.gap), nilai_gap: b.gap }));
+
+    // Kesejahteraan Tim (redesain dashboard, 5 subdimensi): kategori 5-tingkat yang sudah final
+    // dipakai LANGSUNG sebagai "status" tampilan (tidak ada konsep target/harapan terpisah di
+    // data kesejahteraan, beda dari budaya) -- priorityActions/steps/targetImpact best-effort
+    // dicocokkan ke tindak_lanjut fokus='kesejahteraan' lewat nama subdimensi, sama pola dengan
+    // budaya di atas. `items`: breakdown butir mentah b1-b13, lihat driverItemsKesejahteraan.
+    const driverItemsByKode = driverItemsKesejahteraan(personalAtPeriode);
+    const chartKesejahteraan = (sekolah.kesejahteraan || []).map((k) => {
+      const cocok = cocokkanTlKeLabel(tlAtPeriode, "kesejahteraan", k.label);
+      const items = driverItemsByKode[k.kode];
+      return {
+        ...k,
+        status: k.kategori,
+        items: items && items.length > 0 ? items : undefined,
+        priorityActions: cocok ? (cocok.konkret || []).map((c) => c.aksi).filter(Boolean) : undefined,
+        phases: cocok ? (cocok.konkret || []).map((c) => ({ aksi: c.aksi, waktu: c.waktu || null })).filter((c) => c.aksi) : undefined,
+        targetImpact: cocok?.manfaat?.sekolah || cocok?.manfaat?.pimpinan || undefined,
+      };
+    });
+
+    // Profil Organisasi (redesain dashboard, 6 dimensi): SAMA seperti kesejahteraan untuk
+    // status (kategori final dipakai langsung) dan harapan/gap (opsional dari Fase A, ADA kalau
+    // importer sempat menghitungnya dari item mentah -- lihat DimensiProfil di sc.types.ts).
+    // priorityActions/steps/targetImpact SENGAJA TIDAK PERNAH dicocokkan ke tindak_lanjut --
+    // skema tindak_lanjut cuma punya fokus 'budaya'/'kesejahteraan', tidak ada 'organisasi' sama
+    // sekali (lihat FOKUS_OK di geminiPromptSc.ts), jadi bagian tindak lanjut utk Profil
+    // Organisasi SELALU data gap sampai pipeline Gemini diperluas -- bukan bug, memang belum ada
+    // sumber datanya.
+    const chartOrganisasi = (sekolah.profil_organisasi || []).map((d) => ({
+      ...d,
+      status: d.kategori,
+    }));
 
     const prioritasPerbaikan = tlAtPeriode
       .sort((a, b) => (a.type === "perlu_perhatian" ? -1 : 1) - (b.type === "perlu_perhatian" ? -1 : 1))
@@ -384,13 +534,13 @@ export function useScAgregat(session, periodeId) {
           : "",
         indeks: indeksKesejahteraan,
         kategori: kategoriDariNilai(indeksKesejahteraan),
-        chart_data: sekolah.kesejahteraan || [],
+        chart_data: chartKesejahteraan,
       },
       bagian_profil_organisasi: {
         narasi: dimTertinggi && dimTerendah
           ? `${dimTertinggi.label} jadi dimensi profil organisasi tertinggi (${dimTertinggi.nilai}%), sementara ${dimTerendah.label} relatif paling rendah (${dimTerendah.nilai}%).`
           : "",
-        chart_data: sekolah.profil_organisasi || [],
+        chart_data: chartOrganisasi,
       },
       perbandingan_antarunit: {
         narasi: unitRows.length > 0
@@ -426,6 +576,7 @@ export function useScAgregat(session, periodeId) {
         disclaimer: "Laporan ini adalah hasil pengolahan jawaban asesmen seluruh staf yang mengisi pada periode berjalan dan bersifat rahasia. Gunakan sebagai bahan pengambilan keputusan sekolah, bukan alat evaluasi individu staf tertentu.",
       },
       tema_esai: briefingAtPeriode?.tema_esai || [],
+      cerita_pegawai: briefingAtPeriode?.cerita_pegawai || null,
       // Fase E item 14: tren indeks kesejahteraan lintas SEMUA periode yang punya sc_lembaga
       // level sekolah (bukan per unit) -- data ini sudah kebaca lengkap di lembagaRows (query di
       // atas TIDAK difilter periode), cuma belum pernah dirangkum jadi seri waktu. Kalau baru
@@ -434,6 +585,11 @@ export function useScAgregat(session, periodeId) {
         .filter((r) => !r.unit)
         .map((r) => ({ periode_id: r.periode_id, indeks: rataRata((r.kesejahteraan || []).map((k) => k.nilai)) }))
         .sort((a, b) => (a.periode_id > b.periode_id ? 1 : -1)),
+      // Redesign dashboard agregat (Budaya Kerja): kapan briefing periode ini disetujui, padanan
+      // generatedAt reference. action_owner/review_cadence/target_date/next_review SENGAJA tidak
+      // dicantumkan sama sekali (bukan diisi null) -- data gap murni, tidak ada konsep ini di
+      // skema manapun sekarang, lihat sc.types.ts dan audit redesign SC.
+      generated_at: briefingAtPeriode?.created_at || null,
       availablePeriods,
     };
   }, [state.raw, periodeId, sekolahId]);
@@ -487,6 +643,12 @@ export function useScIndividu(session) {
  * (tab "Laporan Individu" sisi pimpinan) untuk drill-down per staf. `detail` sudah persis bentuk
  * LaporanIndividuSC (lihat useScIndividu), jadi array ini bisa langsung dipakai sebagai
  * respondenList apa adanya.
+ *
+ * Difilter `sc_personal.bersedia = true` (join lewat FK sc_hasil.sc_personal_id) -- staf yang
+ * menjawab TIDAK bersedia di kolom consent sheet Personal tidak boleh drill-down-nya muncul di
+ * tabel pimpinan, meski laporannya sudah digenerate & disetujui. Agregat sc_lembaga TIDAK ikut
+ * difilter ini (itu sudah final dari hulu, mencakup semua responden) -- yang dibatasi cuma
+ * tampilan PER-ORANG di tab ini.
  */
 export function useScRespondenList(session, periodeId) {
   const [state, setState] = useState({ loading: true, error: null, rows: [] });
@@ -499,9 +661,10 @@ export function useScRespondenList(session, periodeId) {
       setState((s) => ({ ...s, loading: true, error: null }));
       const { data, error } = await supabase
         .from("sc_hasil")
-        .select("detail, periode_id")
+        .select("detail, periode_id, sc_personal!inner(bersedia)")
         .eq("sekolah_id", sekolahId)
-        .eq("status", "disetujui");
+        .eq("status", "disetujui")
+        .eq("sc_personal.bersedia", true);
 
       if (!alive) return;
       if (error) { setState({ loading: false, error: error.message, rows: [] }); return; }

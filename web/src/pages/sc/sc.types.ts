@@ -85,6 +85,12 @@ export interface SubdimensiKesejahteraan {
   nilai: number;
   kategori: KategoriNilai;
   status?: KategoriNilai;
+  /** Breakdown butir mentah (b1-b13 di sheet Personal) yang membentuk skor subdimensi ini,
+   * rata-rata lintas seluruh responden periode ini (lihat driverItemsKesejahteraan di
+   * useScData.js). Skala 1-5 (bukan persen) supaya bisa dipakai rating bintang langsung, sama
+   * pola dengan nilai_mentah di HeatmapCell. Opsional: laporan lama sebelum field ini ada, atau
+   * sekolah yang jawaban_mentah-nya tidak punya kolom b1-b13, tetap valid tanpa breakdown ini. */
+  items?: { label: string; nilai: number }[];
   /** Diisi dari prioritas_perbaikan yang fokus='kesejahteraan' dan cocok temanya, kalau ada. */
   priorityActions?: string[];
   phases?: LangkahTimeline[];
