@@ -1,0 +1,162 @@
+.section {
+  padding: 40px 0;
+  border-top: 1px solid var(--sc-border);
+}
+
+.heading {
+  max-width: 680px;
+  margin: 0 auto 30px;
+  text-align: center;
+}
+
+.heading h2 {
+  margin: 12px 0 8px;
+  color: var(--sc-heading);
+  font-size: clamp(24px, 2.8vw, 30px);
+  font-weight: 760;
+  letter-spacing: -0.02em;
+}
+
+.heading p {
+  margin: 0;
+  color: var(--sc-muted);
+  font-size: 14px;
+}
+
+.index {
+  display: inline-flex;
+  align-items: center;
+  min-height: 28px;
+  padding: 0 10px;
+  border-radius: 8px;
+  color: white;
+  background: var(--sc-primary);
+  font-size: 12px;
+  font-weight: 780;
+}
+
+.gapNote {
+  padding: 14px 16px;
+  border-radius: 12px;
+  background: var(--sc-bg);
+  color: var(--sc-muted-2);
+  font-size: 12px;
+  font-style: italic;
+  text-align: center;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 18px;
+}
+
+.card {
+  overflow: hidden;
+  border: 1px solid var(--sc-border);
+  border-radius: var(--sc-radius-md);
+  background: var(--sc-surface);
+  box-shadow: var(--sc-shadow-sm);
+}
+
+.cardHeader {
+  padding: 18px 20px;
+  background: var(--sc-primary);
+  color: white;
+}
+
+.cardHeaderTop {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 8px;
+}
+
+.cardHeader h3 {
+  margin: 0;
+  color: white;
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.badge {
+  flex-shrink: 0;
+  padding: 3px 11px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.9);
+  color: var(--sc-primary);
+  font-size: 11px;
+  font-weight: 780;
+  white-space: nowrap;
+}
+
+.cardScore {
+  display: block;
+  color: white;
+  font-size: 28px;
+  font-weight: 780;
+  letter-spacing: -0.02em;
+}
+
+.rows {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 20px;
+}
+
+.row {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.rowLabel {
+  color: var(--sc-muted);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.rowValue {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.stars {
+  display: inline-flex;
+  gap: 1px;
+  font-size: 14px;
+  line-height: 1;
+}
+
+.starFilled {
+  color: var(--sc-gold);
+}
+
+.starEmpty {
+  color: var(--sc-border);
+}
+
+.rowNumber {
+  color: var(--sc-heading);
+  font-size: 11.5px;
+  font-weight: 700;
+}
+
+@media (max-width: 760px) {
+  .section {
+    padding: 32px 0;
+  }
+
+  .grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 560px) {
+  .grid {
+    grid-template-columns: 1fr;
+  }
+}

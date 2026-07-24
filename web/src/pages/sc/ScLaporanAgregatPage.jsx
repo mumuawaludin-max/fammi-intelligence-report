@@ -1,7 +1,6 @@
 import { useMemo, useState } from "react";
 import { ScSectionSelector } from "./ScSectionSelector";
 import { ScDimensiRingkasan } from "./ScDimensiRingkasan";
-import { ScDimensiPerbandingan } from "./ScDimensiPerbandingan";
 import { ScDimensiTindakLanjut } from "./ScDimensiTindakLanjut";
 import { ScBudayaPerbandinganDumbbell } from "./ScBudayaPerbandinganDumbbell";
 import { ScBudayaDetailAspek } from "./ScBudayaDetailAspek";
@@ -9,6 +8,7 @@ import { ScBudayaCeritaPegawai } from "./ScBudayaCeritaPegawai";
 import { ScKesejahteraanHero } from "./ScKesejahteraanHero";
 import { ScKesejahteraanDriver } from "./ScKesejahteraanDriver";
 import { ScKesejahteraanSuaraTim } from "./ScKesejahteraanSuaraTim";
+import { ScOrganisasiDetailAspek } from "./ScOrganisasiDetailAspek";
 import { TIPE_BUDAYA_INFO, KESEJAHTERAAN_INFO, DIMENSI_PROFIL_INFO, headlineKesejahteraan } from "./scMeta";
 import styles from "./ScLaporanAgregatPage.module.css";
 
@@ -116,9 +116,6 @@ export default function ScLaporanAgregatPage({ laporan }) {
     () => facetsUntuk(DIMENSI_PROFIL_INFO[organisasiSelectedKey], organisasiSelectedKey, organisasiSelectedKey),
     [organisasiSelectedKey]
   );
-  const organisasiPerbandingan = useMemo(() => bagian_profil_organisasi.chart_data.map((d) => ({
-    key: d.kode, label: d.label, current: d.nilai, target: d.harapan, gapValue: d.gap, status: d.status || d.kategori,
-  })), [bagian_profil_organisasi.chart_data]);
   // steps/indicators/warnings SELALU undefined -- tidak ada fokus='organisasi' di tindak_lanjut
   // manapun sekarang, lihat catatan di useScData.js.
   const organisasiTindakLanjut = useMemo(() => bagian_profil_organisasi.chart_data.map((d) => ({
@@ -205,11 +202,10 @@ export default function ScLaporanAgregatPage({ laporan }) {
             meaningTitle="Itu artinya lembaga Anda:"
             meaningFacets={organisasiMeaningFacets}
           />
-          <ScDimensiPerbandingan
+          <ScOrganisasiDetailAspek
             sectionIndex="03-B"
-            title="Perbandingan Kondisi Saat ini & Harapan ke Depan"
-            subtitle="Penilaian staf atas kondisi saat ini dibandingkan dengan harapan ke depan, kalau tersedia"
-            items={organisasiPerbandingan}
+            items={bagian_profil_organisasi.chart_data}
+            heatmapCells={analisis?.heatmap || []}
           />
           <ScDimensiTindakLanjut
             sectionIndex="03-C"
