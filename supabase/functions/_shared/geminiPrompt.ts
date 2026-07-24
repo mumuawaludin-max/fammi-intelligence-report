@@ -1294,19 +1294,28 @@ export async function callGemini(apiKey: string, model: string, systemInstructio
   // percobaan x 12 detik timeout + backoff 2s+4s = maksimal ~42 detik) sengaja jauh di bawah
   // ~75 detik yang teramati, supaya function SELALU sempat melempar error yang jelas dan
   // ditangkap try/catch pemanggil, bukan mati mendadak tanpa pesan.
-  const MAX_ATTEMPT = 3;
-  const FETCH_TIMEOUT_MS = 12000;
-  // FALLBACK MODEL untuk jendela 503 yang berkepanjangan -- log produksi (2026-07) menunjukkan
-  // SELURUH panggilan ke model utama ditolak 503 "high demand" terus-menerus, lebih lama dari
-  // total anggaran retry satu panggilan. Mengulang model yang sama berkali-kali percuma di
-  // kondisi itu; percobaan TERAKHIR dialihkan ke model cadangan (kapasitasnya terpisah per
-  // model di sisi Google, jadi model lain sering masih longgar saat satu model padat).
-  // Bisa dioverride lewat secret GEMINI_MODEL_FALLBACK; string kosong = matikan fallback.
+  // ANGGARAN WAKTU, kalibrasi ketiga (2026-07, dari log produksi berlapis):
+  // - Tanpa timeout sama sekali (awal): koneksi menggantung membuat function dibunuh platform
+  //   diam-diam di ~75 detik tanpa error apa pun.
+  // - Timeout 12 detik x 3 percobaan (kalibrasi kedua): TERLALU PENDEK -- begitu jendela 503
+  //   lewat, request DITERIMA Gemini tapi generate laporan penuh (JSON panjang, maxOutputTokens
+  //   8192) memang wajar butuh 15-30+ detik, jadi percobaan yang sebenarnya berhasil ikut
+  //   diaborsi sendiri ("Gemini API timeout dalam 12 detik" di log).
+  // - Sekarang: 2 percobaan x 30 detik. 30 detik cukup lega untuk generasi laporan terpanjang,
+  //   dan total terburuk (30 + backoff 2 + 30 = ~62 detik) tetap di bawah ~75 detik yang
+  //   terbukti jadi batas hidup function di platform ini.
+  const MAX_ATTEMPT = 2;
+  const FETCH_TIMEOUT_MS = 30000;
+  // FALLBACK MODEL -- log produksi menunjukkan jendela 503 "high demand" bisa menutupi seluruh
+  // retry ke model yang sama; kapasitas per model terpisah di sisi Google, jadi percobaan kedua
+  // langsung pindah model cadangan (bukan mengulang model yang sedang padat). Ini juga berlaku
+  // untuk timeout: model yang lambat karena kepadatan tidak diberi kesempatan kedua, cadangan
+  // yang lebih longgar yang dicoba. Override lewat secret GEMINI_MODEL_FALLBACK; string kosong =
+  // matikan fallback (kedua percobaan ke model utama).
   const fallbackModel = (globalThis as any).Deno?.env?.get?.("GEMINI_MODEL_FALLBACK") ?? "gemini-2.5-flash";
-  // Rencana model per percobaan: 2x model utama, lalu 1x cadangan (kalau ada dan beda).
   const modelPlan = fallbackModel && fallbackModel !== model
-    ? [model, model, fallbackModel]
-    : [model, model, model];
+    ? [model, fallbackModel]
+    : [model, model];
   let lastErr: Error | null = null;
 
   for (let attempt = 1; attempt <= MAX_ATTEMPT; attempt++) {
