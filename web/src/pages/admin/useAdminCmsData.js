@@ -33,7 +33,7 @@ export function useAdminCmsData() {
         yayasanRes, schoolsRes, modulesRes, summaryRes, aspekRes,
         briefingRes, tlRes, importLogRes, profilesRes,
         kelasSummaryRes, tlKelasAllRes, tlSekolahYayasanRes, scheduleRes,
-        scLembagaRes, tlScRes,
+        scLembagaRes, tlScRes, briefingScRes,
       ] = await Promise.all([
         supabase.from('yayasan').select('id, nama'),
         supabase.from('schools').select('id, nama, yayasan_id, aktif'),
@@ -60,9 +60,13 @@ export function useAdminCmsData() {
         // seluruh sekolah) tapi belum ada tindak_lanjut modul='sc' untuk periode itu.
         supabase.from('sc_lembaga').select('sekolah_id, periode_id, unit').is('unit', null),
         supabase.from('tindak_lanjut').select('sekolah_id, periode_id, target_role').eq('modul', 'sc').eq('scope', 'sekolah').in('status', ['menunggu_persetujuan', 'disetujui']),
+        // Padanan tlScRes tapi untuk briefing -- briefingRes di atas SENGAJA cuma menunggu_persetujuan
+        // (dipakai pendingBySchool/antrian), tidak cocok dipakai di sini karena briefing yang SUDAH
+        // disetujui harus tetap dianggap "sudah ada", bukan disuruh generate ulang terus-menerus.
+        supabase.from('briefing').select('sekolah_id, periode_id').eq('modul', 'sc').eq('scope', 'sekolah').in('status', ['menunggu_persetujuan', 'disetujui']),
       ]);
 
-      const firstError = [yayasanRes, schoolsRes, modulesRes, summaryRes, aspekRes, briefingRes, tlRes, importLogRes, profilesRes, kelasSummaryRes, tlKelasAllRes, tlSekolahYayasanRes, scheduleRes, scLembagaRes, tlScRes]
+      const firstError = [yayasanRes, schoolsRes, modulesRes, summaryRes, aspekRes, briefingRes, tlRes, importLogRes, profilesRes, kelasSummaryRes, tlKelasAllRes, tlSekolahYayasanRes, scheduleRes, scLembagaRes, tlScRes, briefingScRes]
         .find((r) => r.error);
       if (firstError) throw new Error(firstError.error.message);
 
@@ -175,12 +179,31 @@ export function useAdminCmsData() {
       const tlScKeySet = new Set(
         (tlScRes.data || []).map((r) => `${r.sekolah_id}|${r.periode_id}|${r.target_role}`)
       );
+      // Bug nyata yang ditemukan: rekomendasi ini SEBELUMNYA cuma cek tindak_lanjut, tidak pernah
+      // cek briefing sama sekali -- begitu tindak_lanjut role=manajemen sudah ada, baris (sekolah,
+      // periode) itu hilang dari daftar "perlu digenerate" SELAMANYA, padahal briefing (narasi
+      // "Cerita dari Tim" dkk) belum pernah digenerate sama sekali. Admin tidak pernah tahu harus
+      // buka "Trigger manual" > Tipe=Briefing secara terpisah. Sekarang baris ini tetap muncul
+      // kalau SALAH SATU (tindak_lanjut ATAU briefing) masih belum ada, dan generateSc/
+      // generateSemuaLevel (Gemini.jsx) memicu KEDUANYA sekaligus.
+      const briefingScKeySet = new Set(
+        (briefingScRes.data || []).map((r) => `${r.sekolah_id}|${r.periode_id}`)
+      );
       const rekomendasiSc = [];
       (scLembagaRes.data || []).forEach((r) => {
         const info = sekolahInfoById[r.sekolah_id];
         if (!info) return;
-        if (!tlScKeySet.has(`${r.sekolah_id}|${r.periode_id}|manajemen`)) {
-          rekomendasiSc.push({ sekolahId: r.sekolah_id, sekolahNama: info.nama, yayasanId: info.yay || null, periodeId: r.periode_id });
+        const adaTindakLanjut = tlScKeySet.has(`${r.sekolah_id}|${r.periode_id}|manajemen`);
+        const adaBriefing = briefingScKeySet.has(`${r.sekolah_id}|${r.periode_id}`);
+        if (!adaTindakLanjut || !adaBriefing) {
+          rekomendasiSc.push({
+            sekolahId: r.sekolah_id, sekolahNama: info.nama, yayasanId: info.yay || null, periodeId: r.periode_id,
+            // Dipakai Gemini.jsx supaya generateSc/generateSemuaLevel cuma memicu tipe yang
+            // memang belum ada -- tanpa ini, sekolah yang tindak_lanjut-nya sudah disetujui
+            // tapi briefing-nya belum akan ikut memicu tindak_lanjut lagi (duplikat butuh
+            // approve ulang percuma) setiap kali admin generate cuma untuk melengkapi briefing.
+            butuhTindakLanjut: !adaTindakLanjut, butuhBriefing: !adaBriefing,
+          });
         }
       });
       rekomendasiSc.sort(byNamaPeriodeDesc);

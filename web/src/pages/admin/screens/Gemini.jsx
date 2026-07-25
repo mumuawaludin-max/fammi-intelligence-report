@@ -128,14 +128,26 @@ export function Gemini() {
     }
   }
 
+  // Bug nyata yang ditemukan: sebelumnya cuma memicu tindak_lanjut role=manajemen -- briefing
+  // (narasi "Cerita dari Tim" dkk di dashboard Laporan Lembaga) TIDAK PERNAH ikut ter-generate
+  // dari panel ini, admin harus tahu buka "Trigger manual" > Tipe=Briefing secara terpisah
+  // (yang jarang disadari). Sekarang panel "Rekomendasi School Culture" memicu KEDUANYA sekaligus.
   async function generateSc(r) {
     const key = `sc|${r.sekolahId}|${r.periodeId}`;
     setBusyKey(key);
     try {
-      await triggerGeminiJob({
-        scope: 'sekolah', scopeId: r.sekolahId, sekolahId: r.sekolahId, modul: 'sc',
-        tipe: 'tindak_lanjut', periodeId: r.periodeId, role: 'manajemen',
-      });
+      if (r.butuhTindakLanjut !== false) {
+        await triggerGeminiJob({
+          scope: 'sekolah', scopeId: r.sekolahId, sekolahId: r.sekolahId, modul: 'sc',
+          tipe: 'tindak_lanjut', periodeId: r.periodeId, role: 'manajemen',
+        });
+      }
+      if (r.butuhBriefing !== false) {
+        await triggerGeminiJob({
+          scope: 'sekolah', scopeId: r.sekolahId, sekolahId: r.sekolahId, modul: 'sc',
+          tipe: 'briefing', periodeId: r.periodeId, role: 'manajemen',
+        });
+      }
     } finally {
       setBusyKey(null);
     }
@@ -143,15 +155,25 @@ export function Gemini() {
 
   // Batch untuk panel Kepala Sekolah / Yayasan / School Culture: generate semua (sekolah,
   // periode) sekaligus. modul default 'karakter' supaya pemanggil lama tidak perlu berubah.
+  // Untuk modul='sc', tiap item memicu DUA panggilan (tindak_lanjut + briefing) -- lihat catatan
+  // di generateSc di atas, alasan yang sama.
   async function generateSemuaLevel(panel, items, role, modul = 'karakter') {
     setBatchSimple({ panel, done: 0, total: items.length });
     try {
       for (let i = 0; i < items.length; i++) {
         const r = items[i];
-        await triggerGeminiJob({
-          scope: 'sekolah', scopeId: r.sekolahId, sekolahId: r.sekolahId, modul,
-          tipe: 'tindak_lanjut', periodeId: r.periodeId, role,
-        });
+        if (r.butuhTindakLanjut !== false) {
+          await triggerGeminiJob({
+            scope: 'sekolah', scopeId: r.sekolahId, sekolahId: r.sekolahId, modul,
+            tipe: 'tindak_lanjut', periodeId: r.periodeId, role,
+          });
+        }
+        if (modul === 'sc' && r.butuhBriefing !== false) {
+          await triggerGeminiJob({
+            scope: 'sekolah', scopeId: r.sekolahId, sekolahId: r.sekolahId, modul,
+            tipe: 'briefing', periodeId: r.periodeId, role,
+          });
+        }
         setBatchSimple({ panel, done: i + 1, total: items.length });
       }
     } finally {
