@@ -557,13 +557,14 @@ export const MOCK_LAPORAN_AGREGAT_SC: LaporanAgregatSC = {
     narasi:
       "Secara umum Tim merasakan budaya Kekeluargaan paling kuat, dengan harapan yang juga bergerak ke arah sana, artinya arah yang diinginkan Tim sudah sejalan dengan kondisi saat ini. Gap terbesar ada pada Inovasi, Tim berharap ruang mencoba metode mengajar baru lebih terbuka dari kondisi sekarang.",
     chart_data: [
-      // status di sini DIHITUNG lewat ranking |nilai_gap| (sama seperti statusBudayaPerTipe di
-      // useScData.js) supaya QA visual konsisten dengan perilaku data asli: Inovasi (gap 15)
-      // terbesar -> "Perlu perhatian", Orientasi (gap 4) terkecil -> "Selaras", dua tengah ->
-      // "Ringan". priorityActions/phases/targetImpact SENGAJA cuma diisi untuk Inovasi (demo
-      // dimensi yang punya tindak_lanjut cocok) -- tiga dimensi lain dibiarkan kosong supaya
-      // empty-state "belum tersedia" di ScBudayaGapComparison/ScBudayaActionPlan ikut teruji.
-      { tipe: "Kekeluargaan", saat_ini: 60, harapan: 69, status: "Ringan", interpretation: "Tim sudah merasakan kedekatan yang cukup kuat, harapan bergerak searah, tinggal dijaga konsistensinya." },
+      // status di sini pakai AMBANG TETAP atas |nilai_gap| (sama seperti statusBudayaPerTipe di
+      // useScData.js, diputuskan pemilik produk 2026-08): |gap|>5 "Perlu perhatian", 1-5
+      // "Ringan", <1 "Selaras" -- supaya QA visual konsisten dengan perilaku data asli.
+      // Kekeluargaan (9) dan Aturan (8) sama-sama >5 jadi "Perlu perhatian" juga (bukan cuma
+      // Inovasi seperti versi ranking lama). priorityActions/phases/targetImpact SENGAJA cuma
+      // diisi untuk Inovasi (demo dimensi yang punya tindak_lanjut cocok) -- tiga dimensi lain
+      // dibiarkan kosong supaya empty-state "belum tersedia" ikut teruji.
+      { tipe: "Kekeluargaan", saat_ini: 60, harapan: 69, status: "Perlu perhatian", interpretation: "Tim sudah merasakan kedekatan yang cukup kuat, harapan bergerak searah, tinggal dijaga konsistensinya." },
       {
         tipe: "Inovasi", saat_ini: 42, harapan: 57, status: "Perlu perhatian",
         descriptor: "Kreativitas & perbaikan", interpretation: "Ruang eksperimen metode mengajar masih terbatas, ini gap terbesar di antara keempat tipe budaya periode ini.",
@@ -584,13 +585,16 @@ export const MOCK_LAPORAN_AGREGAT_SC: LaporanAgregatSC = {
         ],
         warnings: ["Kalau ide baru cuma didorong tanpa waktu khusus, gurunya justru merasa dibebani di luar jam mengajar biasa."],
       },
-      { tipe: "Orientasi", saat_ini: 47, harapan: 43, status: "Selaras" },
-      { tipe: "Aturan", saat_ini: 56, harapan: 48, status: "Ringan" },
+      { tipe: "Orientasi", saat_ini: 47, harapan: 47, status: "Selaras" },
+      { tipe: "Aturan", saat_ini: 56, harapan: 48, status: "Perlu perhatian" },
     ],
     tabel_gap: [
       { label: "Kekeluargaan", arah: "naik", nilai_gap: 9 },
       { label: "Inovasi", arah: "naik", nilai_gap: 15 },
-      { label: "Orientasi", arah: "turun", nilai_gap: -4 },
+      // Diturunkan dari -4 (dulu contoh kategori "Selaras" versi ranking lama) jadi 0 supaya
+      // tetap benar-benar <1 di bawah ambang baru -- satu-satunya cara "Selaras" muncul lagi
+      // untuk QA visual sekarang gap-nya harus genuinely kecil, bukan cuma "terkecil dari 4".
+      { label: "Orientasi", arah: "tetap", nilai_gap: 0 },
       { label: "Aturan", arah: "turun", nilai_gap: -8 },
     ],
   },

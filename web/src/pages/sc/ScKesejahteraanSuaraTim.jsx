@@ -25,8 +25,8 @@ export function ScKesejahteraanSuaraTim({ sectionIndex, temaEsai, aspekLabel, ac
     <section className={`${tokens.scope} ${styles.section}`}>
       <ScLaporanReveal className={styles.heading}>
         <span className={styles.index}>{sectionIndex}</span>
-        <h2>Suara tim, diterjemahkan menjadi arah tindakan</h2>
-        <p>Komentar anonim dirangkum menjadi tema utama dan tindak lanjut yang dapat dipantau.</p>
+        <h2>Analisa Keseluruhan Suara Tim Lainnya</h2>
+        <p>Analisa ini diambil dari berbagai isian atau komentar dalam screening, yang dirangkum menjadi tema utama dan tindak lanjut yang dapat dipantau.</p>
       </ScLaporanReveal>
 
       {tema && (

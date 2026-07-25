@@ -294,22 +294,22 @@ function terapkanPrivasiUnit(rows) {
 }
 
 /**
- * Redesign dashboard agregat (Budaya Kerja, references/school-culture-redesign/): status
- * 3-tingkat per tipe budaya DIHITUNG dari RANKING gap absolut antar 4 tipe yang sudah final --
- * tipe dengan gap terbesar dapat "Perlu perhatian" (paling butuh intervensi), gap terkecil dapat
- * "Selaras" (paling dekat harapan), dua di tengah "Ringan". Ini ranking angka yang sudah ada,
- * BUKAN skor/ambang baru -- konsisten dengan gapTerbesar() yang lebih dulu melakukan hal serupa
- * (CLAUDE.md butir 3: FIR tidak menghitung apa pun -- mengurutkan bukan menghitung).
+ * Redesign dashboard agregat (Budaya Kerja): status 3-tingkat per tipe budaya, DIPUTUSKAN
+ * pemilik produk (2026-08) pakai AMBANG TETAP atas |gap| -- versi sebelumnya pakai ranking
+ * relatif antar 4 tipe (gap terbesar selalu "Perlu perhatian", terkecil selalu "Selaras"),
+ * cacatnya nyata: satu tipe SELALU dapat label itu walau keempat gap-nya sama-sama kecil,
+ * memberi kesan ada masalah padahal tidak ada. Ambang baru: |gap| > 5 = "Perlu perhatian",
+ * 1-5 = "Ringan", <1 = "Selaras". Pakai `b.gap` (field final upstream, angka yang SAMA PERSIS
+ * ditampilkan di ScBudayaPerbandinganDumbbell lewat tabelGap), bukan dihitung ulang dari
+ * mean_gambaran/mean_harapan, supaya status selalu konsisten dengan angka yang dilihat pengguna.
  */
 function statusBudayaPerTipe(budaya) {
-  const sorted = [...(budaya || [])]
-    .map((b) => ({ tipe: b.tipe, gap: Math.abs((b.mean_harapan ?? 0) - (b.mean_gambaran ?? 0)) }))
-    .sort((a, b) => b.gap - a.gap);
   const byTipe = {};
-  sorted.forEach((d, i) => {
-    if (i === 0) byTipe[d.tipe] = "Perlu perhatian";
-    else if (i === sorted.length - 1) byTipe[d.tipe] = "Selaras";
-    else byTipe[d.tipe] = "Ringan";
+  (budaya || []).forEach((b) => {
+    const gap = Math.abs(b.gap ?? 0);
+    if (gap > 5) byTipe[b.tipe] = "Perlu perhatian";
+    else if (gap >= 1) byTipe[b.tipe] = "Ringan";
+    else byTipe[b.tipe] = "Selaras";
   });
   return byTipe;
 }
