@@ -5,22 +5,13 @@ import { ScDimensiTindakLanjut } from "./ScDimensiTindakLanjut";
 import { ScBudayaPerbandinganDumbbell } from "./ScBudayaPerbandinganDumbbell";
 import { ScBudayaDetailAspek } from "./ScBudayaDetailAspek";
 import { ScBudayaCeritaPegawai } from "./ScBudayaCeritaPegawai";
-import { ScKesejahteraanHero } from "./ScKesejahteraanHero";
 import { ScKesejahteraanDriver } from "./ScKesejahteraanDriver";
 import { ScKesejahteraanSuaraTim } from "./ScKesejahteraanSuaraTim";
 import { ScOrganisasiDetailAspek } from "./ScOrganisasiDetailAspek";
-import { TIPE_BUDAYA_INFO, KESEJAHTERAAN_INFO, DIMENSI_PROFIL_INFO, headlineKesejahteraan } from "./scMeta";
+import { TIPE_BUDAYA_INFO, KESEJAHTERAAN_INFO, DIMENSI_PROFIL_INFO } from "./scMeta";
 import styles from "./ScLaporanAgregatPage.module.css";
 
 const BUDAYA_TINDAK_LANJUT_ID = "sc-budaya-tindak-lanjut";
-
-const BULAN = ["Januari", "Februari", "Maret", "April", "Mei", "Juni", "Juli", "Agustus", "September", "Oktober", "November", "Desember"];
-
-function periodeLabel(periodeId) {
-  if (!periodeId) return "";
-  const [y, m] = String(periodeId).split("-").map(Number);
-  return `${BULAN[m - 1] || ""} ${y}`.trim();
-}
 
 /** Item dengan value tertinggi dari daftar {key,value}. */
 function tertinggiDari(items) {
@@ -57,7 +48,6 @@ function facetsUntuk(info, tipe, icon) {
  */
 export default function ScLaporanAgregatPage({ laporan }) {
   const { meta, bagian_budaya, bagian_kesejahteraan, bagian_profil_organisasi, analisis, cerita_pegawai, tema_esai } = laporan;
-  const periodLabelTeks = periodeLabel(meta.periode_id);
 
   const [sectionAktif, setSectionAktif] = useState("budaya");
 
@@ -111,6 +101,10 @@ export default function ScLaporanAgregatPage({ laporan }) {
   })), [bagian_kesejahteraan.chart_data]);
   const kesejahteraanSelected = kesejahteraanItems.find((it) => it.key === kesejahteraanSelectedKey);
   const kesejahteraanAksiTerpilih = kesejahteraanTindakLanjut.find((t) => t.key === kesejahteraanSelectedKey)?.steps || [];
+  const kesejahteraanMeaningFacets = useMemo(
+    () => facetsUntuk(KESEJAHTERAAN_INFO[kesejahteraanSelectedKey], kesejahteraanSelectedKey, kesejahteraanSelectedKey),
+    [kesejahteraanSelectedKey]
+  );
 
   // ── Profil Organisasi (6 dimensi) ─────────────────────────────────────────────────────
   const organisasiItems = useMemo(
@@ -147,7 +141,7 @@ export default function ScLaporanAgregatPage({ laporan }) {
             items={budayaItems}
             selectedKey={budayaKey}
             onSelect={setBudayaKey}
-            meaningTitle="Itu artinya lembaga Anda:"
+            namaLembaga={meta.organisasi_nama}
             meaningFacets={budayaMeaningFacets}
           />
           <ScBudayaPerbandinganDumbbell
@@ -172,14 +166,17 @@ export default function ScLaporanAgregatPage({ laporan }) {
 
       {sectionAktif === "kesejahteraan" && (
         <>
-          <ScKesejahteraanHero
-            headline={headlineKesejahteraan(bagian_kesejahteraan.kategori)}
-            narasi={bagian_kesejahteraan.narasi}
-            periodLabel={periodLabelTeks}
-            jumlahResponden={meta.jumlah_responden}
+          <ScDimensiRingkasan
+            sectionIndex="02-A"
+            sectionTitle="Laporan Kesejahteraan Tim"
+            subtitle="Kondisi Kesejahteraan di Lembaga Anda bisa dilihat dari 5 Aspek"
+            dominantPrefix="Nilai Tertinggi:"
+            dominant={kesejahteraanDominan}
             items={kesejahteraanItems}
-            selectedKey={kesejahteraanSelectedKey}
+            selectedKey={kesejahteraanKey}
             onSelect={setKesejahteraanKey}
+            namaLembaga={meta.organisasi_nama}
+            meaningFacets={kesejahteraanMeaningFacets}
           />
           <ScKesejahteraanDriver
             sectionIndex="02-B"
@@ -207,7 +204,7 @@ export default function ScLaporanAgregatPage({ laporan }) {
             items={organisasiItems}
             selectedKey={organisasiKey}
             onSelect={setOrganisasiKey}
-            meaningTitle="Itu artinya lembaga Anda:"
+            namaLembaga={meta.organisasi_nama}
             meaningFacets={organisasiMeaningFacets}
           />
           <ScOrganisasiDetailAspek

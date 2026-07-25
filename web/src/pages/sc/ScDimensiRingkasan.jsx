@@ -14,12 +14,19 @@ function formatScore(value) {
  * memakainya) + panel "artinya" DINAMIS mengikuti kartu skor yang sedang dipilih (bukan grid
  * statis semua dimensi sekaligus) -- supaya jelas keempat kartu "artinya" itu semuanya
  * menjelaskan SATU dimensi yang sama, tidak membingungkan pembaca soal dimensi mana yang
- * sedang dibahas. Generik, dipakai untuk ketiga bagian (Budaya Kerja/Kesejahteraan Tim/Profil
- * Organisasi), beda cuma datanya.
+ * sedang dibahas. Generik, dipakai untuk KETIGA bagian (Budaya Kerja/Kesejahteraan Tim/Profil
+ * Organisasi) -- section Kesejahteraan Tim sebelumnya sempat pakai ScKesejahteraanHero
+ * (ring+stepper) sendiri, disatukan ke sini lagi atas instruksi eksplisit pemilik produk supaya
+ * ketiga section punya struktur "A" yang benar-benar identik.
+ *
+ * Judul panel "artinya" DINAMIS per kartu yang dipilih, formatnya "{label} artinya bagi
+ * {namaLembaga} adalah:" (mis. "Kekeluargaan artinya bagi Yayasan Pendidikan Nurul Fikri
+ * adalah:") -- instruksi eksplisit pemilik produk, label dulu baru nama lembaga, bukan kalimat
+ * generik "Itu artinya lembaga Anda:" yang dipakai sebelumnya.
  */
 export function ScDimensiRingkasan({
   sectionIndex, sectionTitle, subtitle, dominantPrefix, dominant,
-  items, selectedKey, onSelect, meaningTitle, meaningFacets,
+  items, selectedKey, onSelect, namaLembaga, meaningFacets,
 }) {
   const reduceMotion = useReducedMotion();
   const selectedItem = items.find((it) => it.key === selectedKey);
@@ -60,7 +67,7 @@ export function ScDimensiRingkasan({
         <div className={styles.meaningBlock}>
           <ScLaporanReveal>
             <p className={styles.meaningTitle}>
-              {meaningTitle} <strong className={styles.meaningTitleHighlight}>{selectedItem.label}</strong>
+              <strong className={styles.meaningTitleHighlight}>{selectedItem.label}</strong> artinya bagi {namaLembaga} adalah:
             </p>
             <p className={styles.meaningHint}>Ingin tahu makna dimensi lain? Tinggal ketuk salah satu skor di atas.</p>
           </ScLaporanReveal>
