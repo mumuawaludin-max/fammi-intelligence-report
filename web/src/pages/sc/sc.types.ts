@@ -160,6 +160,11 @@ export interface ScMeta {
   unit?: string;
   /** Jenjang penempatan, mis. "SD", "SMP", "SMA/SMK", "Non-Jenjang (TU, Kantor Yayasan)". */
   jenjang?: string;
+  /** Raw dari kolom demografi_jenis_kelamin sheet Personal, mis. "Laki-laki"/"Perempuan" --
+   * dipakai frontend cuma untuk menyusun sapaan "Bapak"/"Ibu" di header (ScLaporanIndividuPage.jsx),
+   * bukan ditampilkan apa adanya. Opsional: laporan lama sebelum field ini ada jatuh ke "Halo, Nama"
+   * tanpa sapaan gender. */
+  jenis_kelamin?: string;
   organisasi_id: string;
   /** Format "YYYY-MM". */
   periode_id: string;

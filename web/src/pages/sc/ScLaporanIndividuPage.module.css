@@ -167,20 +167,9 @@
 
 .heroQuote {
   position: relative;
-  padding: 16px 18px 16px 22px;
+  padding: 16px 18px;
   border-radius: var(--radius-lg);
   background: var(--purple-050);
-}
-
-.heroQuote::before {
-  content: "";
-  position: absolute;
-  left: 8px;
-  top: 14px;
-  bottom: 14px;
-  width: 3px;
-  border-radius: 2px;
-  background: var(--purple-600);
 }
 
 .heroQuoteHeading {
@@ -264,12 +253,11 @@
 }
 
 .legendCurrent {
-  background: var(--purple-600);
+  background: var(--ink-4);
 }
 
 .legendTarget {
-  border: 2px solid var(--purple-600);
-  background: var(--surface);
+  background: var(--purple-600);
 }
 
 .gapList {
@@ -292,7 +280,7 @@
 
 .gapHead {
   display: grid;
-  grid-template-columns: 34px 1fr 18px;
+  grid-template-columns: 34px 1fr 26px;
   align-items: center;
   gap: 10px;
   width: 100%;
@@ -329,14 +317,21 @@
 }
 
 .chevron {
-  color: var(--ink-3);
-  font-size: 14px;
-  transition: transform 200ms ease;
+  display: grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: var(--purple-050);
+  color: var(--purple-600);
+  font-size: 15px;
+  font-weight: 800;
+  transition: transform 200ms ease, background 200ms ease;
 }
 
 .chevronUp {
   transform: rotate(180deg);
-  color: var(--purple-600);
+  background: var(--purple-100);
 }
 
 .gapValues {
@@ -383,15 +378,15 @@
 }
 
 .dumbbell .dumbbellCurrent {
-  fill: var(--purple-600);
+  fill: var(--ink-4);
   stroke: var(--surface);
-  stroke-width: 1.5;
+  stroke-width: 1;
 }
 
 .dumbbell .dumbbellTarget {
-  fill: var(--surface);
-  stroke: var(--purple-600);
-  stroke-width: 2;
+  fill: var(--purple-600);
+  stroke: var(--surface);
+  stroke-width: 1;
 }
 
 .gapInsight {
@@ -439,7 +434,7 @@
 
 .wbHead {
   display: grid;
-  grid-template-columns: 40px 1fr 18px;
+  grid-template-columns: 40px 1fr 26px;
   align-items: center;
   gap: 10px;
   width: 100%;
@@ -616,7 +611,7 @@
 /* ══ Refleksi privat ══════════════════════════════════════════════════════════ */
 .reflectionToggle {
   display: grid;
-  grid-template-columns: 32px 1fr 18px;
+  grid-template-columns: 32px 1fr 26px;
   align-items: center;
   gap: 10px;
   width: 100%;
@@ -851,7 +846,7 @@
 
 .agencyItem > button {
   display: grid;
-  grid-template-columns: 32px 1fr 18px;
+  grid-template-columns: 32px 1fr 26px;
   align-items: center;
   gap: 10px;
   width: 100%;

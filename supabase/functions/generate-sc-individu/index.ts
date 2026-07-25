@@ -75,7 +75,7 @@ Deno.serve(async (req) => {
     const db = createClient(SUPABASE_URL, SERVICE_ROLE_KEY);
     const { data: row, error: rowErr } = await db
       .from("sc_personal")
-      .select("id, sekolah_id, periode_id, nama_responden, peran_kerja, unit, jenjang, budaya, kesejahteraan, profil_organisasi, essay, pregen_laporan")
+      .select("id, sekolah_id, periode_id, nama_responden, peran_kerja, unit, jenjang, jenis_kelamin, budaya, kesejahteraan, profil_organisasi, essay, pregen_laporan")
       .eq("id", scPersonalId).maybeSingle();
     if (rowErr) return json({ error: rowErr.message }, 500);
     if (!row) return json({ error: "sc_personal_id tidak ditemukan." }, 404);
@@ -177,7 +177,8 @@ Deno.serve(async (req) => {
     const detail = {
       meta: {
         responden_id: row.id, nama_responden: row.nama_responden, peran_kerja: row.peran_kerja,
-        unit: row.unit, jenjang: row.jenjang, organisasi_id: row.sekolah_id, periode_id: row.periode_id,
+        unit: row.unit, jenjang: row.jenjang, jenis_kelamin: row.jenis_kelamin || null,
+        organisasi_id: row.sekolah_id, periode_id: row.periode_id,
         // Dipakai frontend (ScLaporanIndividuPage.jsx) menyusun ULANG kalimat header di sisi
         // render, bukan cuma memakai `header.hook` yang statis -- supaya sapaannya bisa
         // menyesuaikan siapa yang membuka laporan (pemilik sendiri vs drill-down pimpinan),

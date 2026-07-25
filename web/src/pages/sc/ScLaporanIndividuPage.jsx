@@ -11,6 +11,16 @@ function labelKesejahteraan(kode, labelAsli) {
   return KESEJAHTERAAN_INFO[kode]?.label || labelAsli;
 }
 
+/** Sapaan "Bapak"/"Ibu" dari kolom demografi_jenis_kelamin (raw string dari Excel, mis.
+ * "Laki-laki"/"Perempuan"/"L"/"P") -- cuma dicek huruf pertama supaya toleran ke variasi
+ * penulisan. String kosong kalau datanya kosong/tidak dikenali, laporan lama tetap "Halo, Nama". */
+function sapaanFromJenisKelamin(jenisKelamin) {
+  const huruf = String(jenisKelamin || "").trim().charAt(0).toLowerCase();
+  if (huruf === "l") return "Bapak";
+  if (huruf === "p") return "Ibu";
+  return "";
+}
+
 /** Reveal halus saat elemen masuk viewport -- animasi "benchmark Fammi" yang sama dipakai
  * seluruh laporan individu FIR (Karakter/MI), cuma salinan lokal SC (lihat scHooks.js).
  * SENGAJA tetap CSS transition + useReveal, BUKAN framer-motion/@phosphor-icons -- dua library
@@ -120,8 +130,8 @@ function BudayaGapRow({ dim, gapRow, expanded, onToggle, delay, viewerIsOwner })
       <svg className={styles.dumbbell} viewBox="0 0 100 14" role="img" aria-label={`${dim.tipe}: persepsi ${formatScore(dim.saat_ini)} persen, harapan ${formatScore(dim.harapan)} persen`}>
         <line x1="0" y1="7" x2="100" y2="7" className={styles.dumbbellTrack} />
         <line x1={cur} y1="7" x2={tgt} y2="7" className={styles.dumbbellGapLine} />
-        <circle cx={cur} cy="7" r="4.4" className={styles.dumbbellCurrent} />
-        <circle cx={tgt} cy="7" r="4.4" className={styles.dumbbellTarget} />
+        <circle cx={cur} cy="7" r="2.2" className={styles.dumbbellCurrent} />
+        <circle cx={tgt} cy="7" r="2.2" className={styles.dumbbellTarget} />
       </svg>
 
       {expanded && interpretasi && (
@@ -573,12 +583,12 @@ export default function ScLaporanIndividuPage({ laporan, viewerIsOwner = false }
     <div className={styles.page}>
       {/* ── 00 Pembuka personal ─────────────────────────────────────────────────────── */}
       <Reveal className={styles.hero}>
-        <p className={styles.heroGreet}>Halo, <strong>{meta.nama_responden}</strong></p>
+        <p className={styles.heroGreet}>Halo, <strong>{[sapaanFromJenisKelamin(meta.jenis_kelamin), meta.nama_responden].filter(Boolean).join(" ")}</strong></p>
         <h1 className={styles.heroHook}>{heroHeadline}</h1>
 
         <div className={styles.chips}>
-          {meta.peran_kerja && <span className={styles.chip}>{meta.peran_kerja}</span>}
-          {meta.unit && <span className={styles.chip}>{meta.unit}</span>}
+          {meta.peran_kerja && <span className={styles.chip}>Peran: {meta.peran_kerja}</span>}
+          {meta.unit && <span className={styles.chip}>Unit: {meta.unit}</span>}
         </div>
 
         {/* Kutipan esai pribadi juga -- sumbernya sama dengan Refleksi Pribadi (jawaban_survey),
