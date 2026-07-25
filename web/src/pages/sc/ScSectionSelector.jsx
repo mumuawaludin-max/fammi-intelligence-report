@@ -9,16 +9,12 @@ import styles from "./ScSectionSelector.module.css";
  * produk untuk kembali ke bentuk wireframe: tiga kartu gelap besar (01/02/03) yang jadi filter
  * utama tampilan di bawahnya, bukan nav sekunder.
  */
-export function ScSectionSelector({ sections, active, onSelect }) {
+export function ScSectionSelector({ sections, active, onSelect, namaLembaga }) {
   return (
     <section className={`${tokens.scope} ${styles.section}`}>
       <ScLaporanReveal className={styles.heading}>
-        <h1>Laporan School Culture Lembaga Anda</h1>
-        <p>
-          Laporan School Culture
-          <br />
-          terdiri dari tiga bagian utama
-        </p>
+        <h1>Laporan School Culture {namaLembaga || "Lembaga Anda"}</h1>
+        <p>Laporan School Culture terdiri dari tiga bagian utama</p>
       </ScLaporanReveal>
 
       <ScLaporanReveal className={styles.grid} delay={0.08}>

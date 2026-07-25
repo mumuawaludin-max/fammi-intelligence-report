@@ -128,7 +128,7 @@ export default function ScLaporanAgregatPage({ laporan }) {
 
   return (
     <div className={styles.page}>
-      <ScSectionSelector sections={SECTIONS} active={sectionAktif} onSelect={setSectionAktif} />
+      <ScSectionSelector sections={SECTIONS} active={sectionAktif} onSelect={setSectionAktif} namaLembaga={meta.organisasi_nama} />
 
       {sectionAktif === "budaya" && (
         <>
