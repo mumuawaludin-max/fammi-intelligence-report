@@ -540,7 +540,7 @@ export async function generateAndInsertDraftSc(
 ) {
   const { data: lembagaRows, error: lembagaErr } = await db
     .from("sc_lembaga")
-    .select("unit, jumlah_responden, budaya, profil_organisasi, kesejahteraan")
+    .select("unit, jumlah_responden, budaya, profil_organisasi, kesejahteraan, pregen_briefing, pregen_tindak_lanjut")
     .eq("sekolah_id", sekolah_id)
     .eq("periode_id", periode_id);
   if (lembagaErr) throw new Error(lembagaErr.message);
@@ -548,6 +548,18 @@ export async function generateAndInsertDraftSc(
     throw new Error(`Tidak ada sc_lembaga untuk sekolah=${sekolah_id}, periode=${periode_id}. Import data School Culture dulu lewat Upload.`);
   }
   const wholeSchoolRow = lembagaRows.find((r: any) => !r.unit) || lembagaRows[0];
+
+  // JALUR PINTAS: konten agregat siap pakai dari Excel (kolom briefing_json/tindak_lanjut_json
+  // di sheet Lembaga -> sc_lembaga.pregen_briefing/pregen_tindak_lanjut, lihat migration
+  // 20260729100000 dan scImporter.js). Kalau ada dan valid, dipakai apa adanya, Gemini tidak
+  // dipanggil sama sekali -- padanan langsung pregen_laporan yang sudah dipakai laporan individu
+  // (generate-sc-individu/index.ts). pregen_tindak_lanjut dikelompokkan per target_role karena
+  // fungsi ini sendiri dipanggil satu role per panggilan (lihat generate-tindak-lanjut/index.ts).
+  const pregenBriefing = tipe === "briefing" && wholeSchoolRow.pregen_briefing?.gambaran
+    ? wholeSchoolRow.pregen_briefing
+    : null;
+  const pregenTindakLanjutRole = tipe !== "briefing" ? wholeSchoolRow.pregen_tindak_lanjut?.[role] : null;
+  const pakaiPregenTindakLanjut = Array.isArray(pregenTindakLanjutRole) && pregenTindakLanjutRole.length > 0;
 
   const { data: feedbackRows } = await db.from("gemini_feedback")
     .select("catatan")
@@ -564,7 +576,7 @@ export async function generateAndInsertDraftSc(
   let esaiTeks: string[] | undefined;
   let esaiQ2Teks: string[] | undefined;
   let esaiQ3Teks: string[] | undefined;
-  if (tipe === "briefing") {
+  if (tipe === "briefing" && !pregenBriefing) {
     const { data: essayRows } = await db
       .from("sc_personal").select("essay")
       .eq("sekolah_id", sekolah_id).eq("periode_id", periode_id);
@@ -587,14 +599,22 @@ export async function generateAndInsertDraftSc(
       .map((t: any) => (t == null ? "" : String(t).trim())).filter((t: string) => t.length > 0);
   }
 
-  const prompt = buildUserPromptSc({
-    role, sekolahNama: sekolah_nama || sekolah_id, periode_id, lembagaRow: wholeSchoolRow,
-    unitRows: lembagaRows, arahanReviewer, tipe, esaiTeks, esaiQ2Teks, esaiQ3Teks,
-  });
-
   if (tipe === "briefing") {
-    const hasil = await callGemini(apiKey, model, SYSTEM_INSTRUCTION_SC_BRIEFING, prompt);
-    if (!hasil || !hasil.gambaran) throw new Error("Gemini tidak mengembalikan draf yang valid.");
+    let hasil: any;
+    if (pregenBriefing) {
+      console.log(`generateAndInsertDraftSc: pakai briefing siap pakai dari Excel (sekolah=${sekolah_id}, periode=${periode_id}), Gemini dilewati.`);
+      hasil = pregenBriefing;
+    } else {
+      const prompt = buildUserPromptSc({
+        role, sekolahNama: sekolah_nama || sekolah_id, periode_id, lembagaRow: wholeSchoolRow,
+        unitRows: lembagaRows, arahanReviewer, tipe, esaiTeks, esaiQ2Teks, esaiQ3Teks,
+      });
+      hasil = await callGemini(apiKey, model, SYSTEM_INSTRUCTION_SC_BRIEFING, prompt);
+      if (!hasil || !hasil.gambaran) {
+        console.error(`generateAndInsertDraftSc: Gemini tidak mengembalikan briefing valid (sekolah=${sekolah_id}, periode=${periode_id}).`, hasil);
+        throw new Error("Gemini tidak mengembalikan draf yang valid.");
+      }
+    }
 
     const ceritaPegawai = hasil.cerita_pegawai;
     const ceritaValid = ceritaPegawai
@@ -606,18 +626,35 @@ export async function generateAndInsertDraftSc(
       teks: hasil.gambaran, sumber: ["School Culture"], catatan_internal: hasil.catatan_internal || null,
       tema_esai: Array.isArray(hasil.tema_esai) && hasil.tema_esai.length > 0 ? hasil.tema_esai : null,
       cerita_pegawai: ceritaValid ? ceritaPegawai : null,
+      draf_asal: pregenBriefing ? "excel" : "gemini",
       status: "menunggu_persetujuan",
     });
-    if (insErr) throw new Error(insErr.message);
+    if (insErr) {
+      console.error(`generateAndInsertDraftSc: gagal simpan briefing SC (sekolah=${sekolah_id}, periode=${periode_id}):`, insErr.message);
+      throw new Error(insErr.message);
+    }
     return hasil;
   }
 
-  const hasilArray = await callGemini(apiKey, model, SYSTEM_INSTRUCTION_SC_TINDAK_LANJUT, prompt);
-  const rekomendasi = Array.isArray(hasilArray) ? hasilArray : [];
+  let rekomendasi: any[];
+  if (pakaiPregenTindakLanjut) {
+    console.log(`generateAndInsertDraftSc: pakai tindak lanjut siap pakai dari Excel (sekolah=${sekolah_id}, role=${role}), Gemini dilewati.`);
+    rekomendasi = pregenTindakLanjutRole;
+  } else {
+    const prompt = buildUserPromptSc({
+      role, sekolahNama: sekolah_nama || sekolah_id, periode_id, lembagaRow: wholeSchoolRow,
+      unitRows: lembagaRows, arahanReviewer, tipe, esaiTeks, esaiQ2Teks, esaiQ3Teks,
+    });
+    const hasilArray = await callGemini(apiKey, model, SYSTEM_INSTRUCTION_SC_TINDAK_LANJUT, prompt);
+    rekomendasi = Array.isArray(hasilArray) ? hasilArray : [];
+  }
   const valid = rekomendasi.filter((r: any) =>
     r && r.title && r.type && r.fokus && r.term && Array.isArray(r.konkret) && r.konkret.length > 0
   );
-  if (valid.length === 0) throw new Error("Gemini tidak mengembalikan rekomendasi tindak lanjut yang valid.");
+  if (valid.length === 0) {
+    console.error(`generateAndInsertDraftSc: tidak ada rekomendasi tindak lanjut valid (sekolah=${sekolah_id}, role=${role}, dariExcel=${pakaiPregenTindakLanjut}).`, rekomendasi);
+    throw new Error("Gemini tidak mengembalikan rekomendasi tindak lanjut yang valid.");
+  }
 
   // Normalisasi enum sama semangatnya dengan geminiPrompt.ts: jangan pernah melanggar CHECK
   // constraint apapun yang dibalas Gemini.
@@ -640,12 +677,14 @@ export async function generateAndInsertDraftSc(
       action: r.title, trigger_desc: r.teaser || r.mengapa_data || r.title,
       priority: type === "perlu_perhatian" ? "tinggi" : "sedang",
       regenerate_dari: regenerateDari || null,
+      draf_asal: pakaiPregenTindakLanjut ? "excel" : "gemini",
       status: "menunggu_persetujuan",
     };
   });
 
   const { error: insErr } = await db.from("tindak_lanjut").insert(rows);
   if (insErr) {
+    console.error(`generateAndInsertDraftSc: gagal simpan batch tindak lanjut SC (sekolah=${sekolah_id}, role=${role}):`, insErr.message);
     const okRows: any[] = [];
     let lastErr = insErr.message;
     for (const row of rows) {
@@ -653,7 +692,10 @@ export async function generateAndInsertDraftSc(
       if (e) lastErr = e.message;
       else okRows.push(row);
     }
-    if (okRows.length === 0) throw new Error(`Gagal menyimpan draf tindak lanjut SC: ${lastErr}`);
+    if (okRows.length === 0) {
+      console.error(`generateAndInsertDraftSc: gagal simpan semua baris tindak lanjut SC satu-satu (sekolah=${sekolah_id}, role=${role}):`, lastErr);
+      throw new Error(`Gagal menyimpan draf tindak lanjut SC: ${lastErr}`);
+    }
     return valid;
   }
 

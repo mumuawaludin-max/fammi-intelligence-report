@@ -34,24 +34,27 @@ function parseBersedia(v) {
 }
 
 /**
- * Kolom "laporan_json" (opsional, satu sel per responden di sheet Personal): laporan individu
- * yang SUDAH dirumuskan di hulu, di luar FIR. Kalau terisi dan valid, generate-sc-individu
- * memakainya apa adanya dan tidak memanggil Gemini sama sekali untuk responden itu (lihat
- * migration 20260728100000 untuk latar belakangnya).
+ * Parser JSON siap-pakai TOLERAN, dipakai tiga kolom pregen SC sekaligus (laporan_json di sheet
+ * Personal, briefing_json dan tindak_lanjut_json di sheet Lembaga) -- konten yang SUDAH
+ * dirumuskan di hulu, di luar FIR, dipakai apa adanya tanpa memanggil Gemini kalau valid (lihat
+ * migration 20260728100000 dan 20260729100000 untuk latar belakangnya: jendela 503 Gemini yang
+ * berjam-jam berkali-kali menggagalkan generate massal sepanjang 2026-07).
  *
  * Sengaja TOLERAN, tiga alasan konkret dari perilaku nyata model saat menulis JSON ke Excel:
  * (1) keluaran kadang terbungkus pagar markdown ```json ... ``` walau diminta polos, jadi pagar
- * itu dilucuti dulu daripada seluruh baris dianggap rusak; (2) Excel bisa mengembalikan sel
- * sebagai objek/angka, bukan string, jadi objek yang sudah berbentuk benar diterima apa adanya;
- * (3) satu sel rusak TIDAK boleh menggagalkan import 16 orang -- baris itu cukup jatuh kembali ke
- * jalur Gemini dan diberi peringatan yang menyebut nama respondennya.
+ * itu dilucuti dulu daripada seluruh sel dianggap rusak; (2) Excel bisa mengembalikan sel
+ * sebagai objek, bukan string, jadi objek yang sudah berbentuk benar diterima apa adanya;
+ * (3) satu sel rusak TIDAK boleh menggagalkan import -- baris/aspek itu cukup jatuh kembali ke
+ * jalur Gemini dan diberi peringatan yang menyebut konteksnya.
  *
- * Validasi bentuk sengaja MINIMAL dan sama persis dengan yang dipakai generate-sc-individu
- * (header + rencana_aksi array) -- kalau ditambah di sini tapi tidak di sana (atau sebaliknya),
- * dua lapis itu bisa diam-diam beda pendapat soal apa yang "valid".
+ * `validasi` dipasok pemanggil supaya tiap kolom bisa punya aturan bentuk sendiri (laporan
+ * individu vs briefing vs tindak_lanjut per role) tanpa menduplikasi logika toleransi ini tiga
+ * kali. Validasi bentuk sengaja MINIMAL dan sama persis dengan yang dipakai
+ * generateAndInsertDraftSc (_shared/geminiPromptSc.ts) -- kalau ditambah di sini tapi tidak di
+ * sana (atau sebaliknya), dua lapis itu bisa diam-diam beda pendapat soal apa yang "valid".
  */
-function parsePregenLaporan(v) {
-  if (v && typeof v === 'object' && !Array.isArray(v)) return validasiBentukLaporan(v);
+function parsePregenJson(v, validasi) {
+  if (v && typeof v === 'object' && !Array.isArray(v)) return validasi(v);
 
   const teks = String(v ?? '').trim();
   if (!teks) return { value: null };
@@ -63,7 +66,7 @@ function parsePregenLaporan(v) {
   } catch {
     return { value: null, error: 'isinya bukan JSON yang valid' };
   }
-  return validasiBentukLaporan(parsed);
+  return validasi(parsed);
 }
 
 function validasiBentukLaporan(obj) {
@@ -74,6 +77,45 @@ function validasiBentukLaporan(obj) {
     return { value: null, error: 'tidak ada field "header" atau "rencana_aksi" (harus array)' };
   }
   return { value: obj };
+}
+
+/** Bentuk minimal briefing agregat -- padanan keluaran SYSTEM_INSTRUCTION_SC_BRIEFING
+ * (_shared/geminiPromptSc.ts): field wajib cuma "gambaran", sisanya (tema_esai/cerita_pegawai)
+ * opsional persis seperti Gemini boleh mengembalikan array kosong untuk keduanya. */
+function validasiBentukBriefing(obj) {
+  if (!obj || typeof obj !== 'object' || Array.isArray(obj)) {
+    return { value: null, error: 'JSON-nya bukan objek' };
+  }
+  if (!obj.gambaran || typeof obj.gambaran !== 'string') {
+    return { value: null, error: 'tidak ada field "gambaran" (wajib teks)' };
+  }
+  return { value: obj };
+}
+
+/** Bentuk minimal tindak lanjut agregat, dikelompokkan per target_role -- generate-tindak-lanjut
+ * dipicu SATU role per panggilan (manajemen/kepala_sekolah/yayasan), jadi bentuknya objek
+ * {role: [...]}, BUKAN array datar seperti rencana_aksi individu. Tiap item per role divalidasi
+ * minimal sama seperti Gemini (title + type + fokus + term + konkret non-kosong). */
+const ROLE_TINDAK_LANJUT_VALID = ['manajemen', 'kepala_sekolah', 'yayasan'];
+function validasiBentukTindakLanjutAgregat(obj) {
+  if (!obj || typeof obj !== 'object' || Array.isArray(obj)) {
+    return { value: null, error: 'JSON-nya bukan objek (harus dikelompokkan per role: manajemen/kepala_sekolah/yayasan)' };
+  }
+  const hasil = {};
+  let adaIsi = false;
+  for (const role of ROLE_TINDAK_LANJUT_VALID) {
+    const arr = obj[role];
+    if (arr === undefined) continue;
+    if (!Array.isArray(arr)) {
+      return { value: null, error: `field "${role}" harus array` };
+    }
+    const validItems = arr.filter((r) => r && r.title && r.type && r.fokus && r.term && Array.isArray(r.konkret) && r.konkret.length > 0);
+    if (validItems.length > 0) { hasil[role] = validItems; adaIsi = true; }
+  }
+  if (!adaIsi) {
+    return { value: null, error: 'tidak ada item tindak lanjut valid untuk role manajemen/kepala_sekolah/yayasan' };
+  }
+  return { value: hasil };
 }
 
 /** Kunci tipe budaya di kolom xlsx (huruf kecil) -> label produk yang dipakai UI (scMeta.js).
@@ -314,7 +356,7 @@ export async function parseScWorkbook(file, { sekolahId, periodeId }) {
       badRows.push(`Personal baris ${i + 2} (identitas_nama kosong)`);
       return null;
     }
-    const pregen = parsePregenLaporan(getField(r, 'laporan_json'));
+    const pregen = parsePregenJson(getField(r, 'laporan_json'), validasiBentukLaporan);
     if (pregen.error) {
       pregenWarnings.push(`${String(nama).trim()} (baris ${i + 2}): ${pregen.error}`);
     } else if (pregen.value) {
@@ -355,21 +397,42 @@ export async function parseScWorkbook(file, { sekolahId, periodeId }) {
   // lihat catatan di migration 20260722100000). jumlah_responden BUKAN dibaca dari file
   // (sheet Lembaga tidak punya kolom itu), tapi dihitung dari jumlah baris Personal yang
   // baru saja diparse -- ini bookkeeping (menghitung baris), bukan menghitung skor.
-  const lembagaRows = lembagaRaw.map((r) => ({
-    sekolah_id: sekolahId,
-    periode_id: periodeId,
-    unit: getField(r, 'unit') || null,
-    jumlah_responden: personalRows.length,
-    budaya: buildBudayaLembaga(r),
-    profil_organisasi: buildKodeLabelNilai(r, DIMENSI_KODE, DIMENSI_LABEL, 'nilai_'),
-    kesejahteraan: buildKodeLabelNilai(r, KESEJAHTERAAN_KODE, KESEJAHTERAAN_LABEL, ''),
-  }));
+  //
+  // briefing_json/tindak_lanjut_json (opsional): konten agregat siap pakai dari hulu, padanan
+  // laporan_json di sheet Personal tapi untuk briefing + tindak lanjut pimpinan (lihat migration
+  // 20260729100000). Peringatan digabung ke pregenWarnings/pregenCount yang sama seperti
+  // laporan_json -- satu ringkasan untuk admin, bukan tiga blok terpisah yang membingungkan.
+  const lembagaRows = lembagaRaw.map((r, i) => {
+    const briefingPregen = parsePregenJson(getField(r, 'briefing_json'), validasiBentukBriefing);
+    if (briefingPregen.error) {
+      pregenWarnings.push(`Lembaga baris ${i + 2}, briefing_json: ${briefingPregen.error}`);
+    } else if (briefingPregen.value) {
+      pregenCount++;
+    }
+    const tindakLanjutPregen = parsePregenJson(getField(r, 'tindak_lanjut_json'), validasiBentukTindakLanjutAgregat);
+    if (tindakLanjutPregen.error) {
+      pregenWarnings.push(`Lembaga baris ${i + 2}, tindak_lanjut_json: ${tindakLanjutPregen.error}`);
+    } else if (tindakLanjutPregen.value) {
+      pregenCount++;
+    }
+    return {
+      sekolah_id: sekolahId,
+      periode_id: periodeId,
+      unit: getField(r, 'unit') || null,
+      jumlah_responden: personalRows.length,
+      budaya: buildBudayaLembaga(r),
+      profil_organisasi: buildKodeLabelNilai(r, DIMENSI_KODE, DIMENSI_LABEL, 'nilai_'),
+      kesejahteraan: buildKodeLabelNilai(r, KESEJAHTERAAN_KODE, KESEJAHTERAAN_LABEL, ''),
+      pregen_briefing: briefingPregen.value,
+      pregen_tindak_lanjut: tindakLanjutPregen.value,
+    };
+  });
 
   return {
     ok: true,
-    // pregen* dilaporkan ke UI (Upload.jsx) supaya admin tahu SEBELUM konfirmasi: berapa orang
-    // yang laporannya sudah siap pakai dari Excel (tidak perlu Gemini), dan baris mana yang
-    // JSON-nya tidak terbaca sehingga akan jatuh kembali ke Gemini.
+    // pregen* dilaporkan ke UI (Upload.jsx) supaya admin tahu SEBELUM konfirmasi: berapa yang
+    // sudah siap pakai dari Excel (tidak perlu Gemini), dan baris/aspek mana yang JSON-nya
+    // tidak terbaca sehingga akan jatuh kembali ke Gemini.
     preview: { ...preview, pregenCount, pregenWarnings },
     rows: { personalRows, lembagaRows },
   };
