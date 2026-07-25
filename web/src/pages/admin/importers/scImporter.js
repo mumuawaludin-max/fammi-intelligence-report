@@ -53,6 +53,23 @@ function parseBersedia(v) {
  * generateAndInsertDraftSc (_shared/geminiPromptSc.ts) -- kalau ditambah di sini tapi tidak di
  * sana (atau sebaliknya), dua lapis itu bisa diam-diam beda pendapat soal apa yang "valid".
  */
+/** Excel membatasi satu sel maksimal 32.767 karakter -- tindak_lanjut_json (27 objek rekomendasi
+ * lengkap: 9 dimensi x 3 role) rutin melewati batas itu begitu skema diperluas dengan
+ * indikator_keberhasilan/hal_diwaspadai (migration 20260731100000). Solusinya BUKAN memaksa
+ * Claude memadatkan isi (itu akan mengorbankan kualitas narasi), tapi menyambung isinya lewat
+ * kolom lanjutan bernama sama plus akhiran "_2", "_3", dst -- Claude diminta melakukan ini di
+ * docs/Prompt_Laporan_Lembaga_SC_Excel.md kalau satu kolom kepanjangan. Fungsi ini menyambung
+ * semua bagian jadi satu string sebelum di-parse, berhenti begitu satu nomor lanjutan kosong. */
+function getFieldConcat(row, baseKey) {
+  let hasil = String(getField(row, baseKey) ?? '');
+  for (let i = 2; i <= 20; i++) {
+    const lanjutan = getField(row, `${baseKey}_${i}`);
+    if (lanjutan === undefined || lanjutan === null || String(lanjutan).trim() === '') break;
+    hasil += String(lanjutan);
+  }
+  return hasil;
+}
+
 function parsePregenJson(v, validasi) {
   if (v && typeof v === 'object' && !Array.isArray(v)) return validasi(v);
 
@@ -403,13 +420,13 @@ export async function parseScWorkbook(file, { sekolahId, periodeId }) {
   // 20260729100000). Peringatan digabung ke pregenWarnings/pregenCount yang sama seperti
   // laporan_json -- satu ringkasan untuk admin, bukan tiga blok terpisah yang membingungkan.
   const lembagaRows = lembagaRaw.map((r, i) => {
-    const briefingPregen = parsePregenJson(getField(r, 'briefing_json'), validasiBentukBriefing);
+    const briefingPregen = parsePregenJson(getFieldConcat(r, 'briefing_json'), validasiBentukBriefing);
     if (briefingPregen.error) {
       pregenWarnings.push(`Lembaga baris ${i + 2}, briefing_json: ${briefingPregen.error}`);
     } else if (briefingPregen.value) {
       pregenCount++;
     }
-    const tindakLanjutPregen = parsePregenJson(getField(r, 'tindak_lanjut_json'), validasiBentukTindakLanjutAgregat);
+    const tindakLanjutPregen = parsePregenJson(getFieldConcat(r, 'tindak_lanjut_json'), validasiBentukTindakLanjutAgregat);
     if (tindakLanjutPregen.error) {
       pregenWarnings.push(`Lembaga baris ${i + 2}, tindak_lanjut_json: ${tindakLanjutPregen.error}`);
     } else if (tindakLanjutPregen.value) {

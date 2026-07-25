@@ -23,8 +23,16 @@ yang Perlu Diwaspadai, untuk role Manajemen, Kepala Sekolah, dan Yayasan sekalig
      lanjut untuk tiga role sekaligus harus konsisten dan JSON-nya harus valid semua.
 4. Claude mengembalikan file Excel yang sama dengan dua kolom baru di sheet Lembaga, di baris
    ringkasan sekolah itu saja: `briefing_json` dan `tindak_lanjut_json`.
-5. Cek sel itu: harus diawali `{`, diakhiri `}`, tanpa pagar markdown, satu baris (tanpa ganti
-   baris di dalam sel).
+5. Cek sel itu: harus diawali `{`, diakhiri `}` (untuk `briefing_json`, atau kolom terakhirnya
+   kalau `tindak_lanjut_json` sampai perlu disambung, lihat poin berikut), tanpa pagar markdown,
+   satu baris (tanpa ganti baris di dalam sel).
+6. `tindak_lanjut_json` isinya sekarang besar (27 objek: 9 dimensi x 3 role) dan SERING melewati
+   batas 32.767 karakter satu sel Excel. Kalau itu terjadi, Claude akan otomatis memecahnya jadi
+   beberapa kolom bernama sama plus akhiran angka: `tindak_lanjut_json`, `tindak_lanjut_json_2`,
+   `tindak_lanjut_json_3`, dst -- **potongan mentah, disambung apa adanya tanpa spasi/pemisah**,
+   bukan JSON valid per kolom. Importer (`scImporter.js`, fungsi `getFieldConcat`) otomatis
+   menyambung semua kolom itu sebelum mem-parse, jadi tidak perlu digabung manual -- cukup
+   pastikan urutan kolomnya benar (`_2` sebelum `_3`, dst) di sheet Lembaga.
 6. Upload seperti biasa lewat CMS. Layar Upload akan menampilkan apakah briefing/tindak lanjut
    lembaga siap pakai, dan pesan kalau JSON-nya tidak terbaca.
 
@@ -40,6 +48,8 @@ termasuk yang dari Excel (lihat CLAUDE.md butir 6).
 Kamu perumus briefing dan tindak lanjut AGREGAT untuk pimpinan sekolah, modul School Culture. Saya melampirkan file Excel berisi sheet "Personal" (satu baris per orang) dan sheet "Lembaga" (satu baris ringkasan per sekolah/unit, data sudah dihitung final, jangan hitung ulang, jangan mengarang angka).
 
 TUGAS: cari baris di sheet Lembaga yang kolom "unit"-nya KOSONG -- itu ringkasan seluruh sekolah. HANYA untuk baris itu, tulis dua kolom baru di paling kanan sheet Lembaga: "briefing_json" (satu objek) dan "tindak_lanjut_json" (satu objek dikelompokkan per role). Isi keduanya dalam SATU BARIS per sel (minified, tanpa ganti baris, tanpa markdown fence). Baris unit lain dan kolom lain jangan diubah satu sel pun.
+
+BATAS PANJANG SEL: Excel membatasi satu sel maksimal 32.767 karakter. "tindak_lanjut_json" isinya besar (27 objek lengkap) dan KEMUNGKINAN BESAR melewati batas itu. Kalau JSON hasilmu untuk "tindak_lanjut_json" lebih panjang dari itu, JANGAN dipadatkan atau dipotong isinya -- pecah JADI BEBERAPA KOLOM tambahan bernama "tindak_lanjut_json_2", "tindak_lanjut_json_3", dst (secukupnya), diisi POTONGAN STRING MENTAH berurutan (bukan JSON valid per kolom, potong di mana saja asal disambung nanti hasilnya jadi satu JSON utuh yang valid). Jangan pernah memotong di tengah kata/tanda kutip yang membuatnya rusak kalau disambung.
 
 DATA YANG BOLEH DIRUJUK, HANYA dari baris ringkasan sekolah itu dan sheet Personal sebagai konteks tambahan:
 - Budaya, 4 tipe dengan label produk WAJIB persis: Kekeluargaan, Inovasi, Orientasi, Aturan. Kondisi saat ini vs harapan Tim, plus gap dan arahnya.
@@ -142,10 +152,12 @@ Kerjakan sampai tuntas, jangan ada dimensi atau role yang dilewati. Kalau data e
   `20260729100000_sc_lembaga_pregen.sql`), `tindak_lanjut.dimensi`/`indikator_keberhasilan`/
   `hal_diwaspadai` (migration `20260731100000_tindak_lanjut_dimensi_indikator.sql`), plus
   penanda asal `tindak_lanjut.draf_asal`/`briefing.draf_asal`.
-- Pembaca Excel: `parsePregenJson()` + `validasiBentukBriefing()`/
-  `validasiBentukTindakLanjutAgregat()` di `web/src/pages/admin/importers/scImporter.js` --
-  keduanya tidak perlu tahu field baru (dimensi/indikator_keberhasilan/hal_diwaspadai/
-  gambaran_lembaga) secara eksplisit, field ekstra ikut lewat apa adanya.
+- Pembaca Excel: `getFieldConcat()` (sambung kolom `_json`/`_json_2`/`_json_3`/dst jadi satu
+  string sebelum di-parse, lihat "Batas panjang sel" di atas) + `parsePregenJson()` +
+  `validasiBentukBriefing()`/`validasiBentukTindakLanjutAgregat()` di
+  `web/src/pages/admin/importers/scImporter.js` -- dua validator itu tidak perlu tahu field baru
+  (dimensi/indikator_keberhasilan/hal_diwaspadai/gambaran_lembaga) secara eksplisit, field ekstra
+  ikut lewat apa adanya.
 - Pemakai: `generateAndInsertDraftSc()` di `supabase/functions/_shared/geminiPromptSc.ts` --
   dicek di awal fungsi, sebelum memanggil Gemini sama sekali, untuk `tipe === "briefing"` dan
   untuk tindak lanjut per `role`. Normalisasi `dimensi` ke sembilan nilai yang dikenal (nilai lain
