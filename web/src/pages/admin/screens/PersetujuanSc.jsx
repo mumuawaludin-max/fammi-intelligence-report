@@ -14,13 +14,18 @@ import { periodeLabel } from '../../karakter/karakterMeta';
 // lewat admin-actions (service_role) supaya RLS sc_hasil tetap cuma membuka baris 'disetujui'
 // ke jalur baca staf/pimpinan.
 export function PersetujuanSc() {
-  const { data, showToast } = useCms();
+  const { data, showToast, retryScAccounts } = useCms();
   const [state, setState] = useState({ loading: true, error: null, rows: [] });
   const [busyId, setBusyId] = useState(null);
   const [detailRow, setDetailRow] = useState(null);
   const [bulkBusy, setBulkBusy] = useState(false);
   const [bulkProgress, setBulkProgress] = useState(null); // {done, total}
   const [akunBaru, setAkunBaru] = useState([]); // {username, password} dari sesi approve terakhir
+  // {nama, error} -- akun Karyawan yang gagal dibuat SEBELUMNYA dibuang diam-diam (cuma
+  // akun?.created yang dicek), laporan tetap tayang tapi stafnya tidak pernah bisa login tanpa
+  // admin sadar. Ditampilkan terpisah dari akunBaru supaya kelihatan jelas butuh tindak lanjut.
+  const [akunGagal, setAkunGagal] = useState([]);
+  const [retryBusyKey, setRetryBusyKey] = useState(null); // "sekolahId|periodeId" sedang diproses
 
   const load = useCallback(async () => {
     setState((s) => ({ ...s, loading: true, error: null }));
@@ -59,13 +64,19 @@ export function PersetujuanSc() {
     }
   }
 
-  async function act(id, action) {
+  async function act(row, action) {
+    const id = row.id;
     setBusyId(id);
     try {
       const akun = await actScApproval(id, action);
       if (action === 'setuju' && akun?.created) {
         showToast(`Laporan SC disetujui & tayang · akun Karyawan dibuat: ${akun.username} / ${akun.password}`, 'safe', 15000);
         setAkunBaru((s) => [...s, { username: akun.username, password: akun.password }]);
+      } else if (action === 'setuju' && akun && !akun.existing && akun.error) {
+        // Laporan TETAP tayang (approve-nya sendiri berhasil), tapi akun Karyawan gagal dibuat --
+        // SEBELUMNYA dibuang diam-diam. Tampilkan sebagai peringatan terpisah, bukan error approve.
+        showToast(`Laporan SC disetujui & tayang, TAPI akun Karyawan gagal dibuat: ${akun.error}`, 'warn', 12000);
+        setAkunGagal((s) => [...s, { nama: row.nama_responden || row.sc_personal_id, error: akun.error, sekolahId: row.sekolah_id, periodeId: row.periode_id }]);
       } else {
         showToast(action === 'setuju' ? 'Laporan SC disetujui & tayang.' : 'Laporan SC ditolak.', action === 'setuju' ? 'safe' : 'alert');
       }
@@ -91,12 +102,20 @@ export function PersetujuanSc() {
     let okCount = 0;
     const failed = [];
     const akunSesiIni = [];
+    // akunGagalSesiIni DIPISAH dari `failed` -- laporan tetap tayang meski akunnya gagal dibuat,
+    // jadi ini bukan kegagalan approve. Ditemukan lewat kejadian nyata: 16 laporan disetujui,
+    // cuma 11 akun jadi, 5 sisanya dibuang diam-diam tanpa jejak sama sekali.
+    const akunGagalSesiIni = [];
     for (let i = 0; i < targets.length; i++) {
       const r = targets[i];
+      // Jeda kecil ANTAR approve -- tiap approve memicu createUser lewat Supabase Auth admin
+      // API, menembak beruntun tanpa jeda diduga jadi penyebab kegagalan diam-diam itu.
+      if (i > 0) await new Promise((resolve) => setTimeout(resolve, 400));
       try {
         const akun = await actScApproval(r.id, 'setuju');
         okCount++;
         if (akun?.created) akunSesiIni.push({ username: akun.username, password: akun.password });
+        else if (akun && !akun.existing) akunGagalSesiIni.push({ nama: r.nama_responden || r.sc_personal_id, error: akun.error || 'Gagal tanpa keterangan.', sekolahId: r.sekolah_id, periodeId: r.periode_id });
         setState((s) => ({ ...s, rows: s.rows.filter((x) => x.id !== r.id) }));
       } catch (e) {
         failed.push({ nama: r.nama_responden || r.sc_personal_id, error: e.message || String(e) });
@@ -106,12 +125,33 @@ export function PersetujuanSc() {
     setBulkBusy(false);
     setBulkProgress(null);
     if (akunSesiIni.length > 0) setAkunBaru((s) => [...s, ...akunSesiIni]);
+    if (akunGagalSesiIni.length > 0) setAkunGagal((s) => [...s, ...akunGagalSesiIni]);
+    const bagianPesan = [];
+    if (failed.length > 0) bagianPesan.push(`${failed.length} gagal disetujui (${failed.map((f) => f.nama).join(', ')})`);
+    if (akunGagalSesiIni.length > 0) bagianPesan.push(`${akunGagalSesiIni.length} akun Karyawan gagal dibuat, tayang tanpa akun (lihat di bawah)`);
     showToast(
-      failed.length === 0
-        ? `${okCount} laporan SC disetujui & tayang.`
-        : `${okCount} berhasil disetujui, ${failed.length} gagal (${failed.map((f) => f.nama).join(', ')}).`,
-      failed.length === 0 ? 'safe' : 'warn', 8000,
+      bagianPesan.length === 0 ? `${okCount} laporan SC disetujui & tayang.` : `${okCount} disetujui. ${bagianPesan.join('. ')}.`,
+      bagianPesan.length === 0 ? 'safe' : 'warn', 10000,
     );
+  }
+
+  // Pemulihan per kelompok (sekolah, periode) -- laporan yang tercantum di akunGagal sudah
+  // tayang, tombol ini cuma mencoba lagi bikin akunnya. Aman diklik berkali-kali.
+  async function handleRetryAkunGrup(sekolahId, periodeId) {
+    const key = `${sekolahId}|${periodeId}`;
+    setRetryBusyKey(key);
+    try {
+      const result = await retryScAccounts(sekolahId, periodeId);
+      setAkunGagal((s) => s.filter((f) => !(f.sekolahId === sekolahId && f.periodeId === periodeId)));
+      if (result.akunBaru.length > 0) setAkunBaru((s) => [...s, ...result.akunBaru]);
+      if (result.gagal.length > 0) {
+        setAkunGagal((s) => [...s, ...result.gagal.map((f) => ({ ...f, sekolahId, periodeId }))]);
+      }
+    } catch (e) {
+      showToast('Gagal memeriksa ulang akun: ' + e.message, 'alert');
+    } finally {
+      setRetryBusyKey(null);
+    }
   }
 
   if (state.loading) return <LoadingCards rows={5} />;
@@ -149,6 +189,41 @@ export function PersetujuanSc() {
           </div>
         </div>
       )}
+
+      {akunGagal.length > 0 && (() => {
+        const grup = new Map();
+        akunGagal.forEach((f) => {
+          const key = `${f.sekolahId}|${f.periodeId}`;
+          if (!grup.has(key)) grup.set(key, { sekolahId: f.sekolahId, periodeId: f.periodeId, items: [] });
+          grup.get(key).items.push(f);
+        });
+        return (
+          <div style={{ marginBottom: 16, padding: '12px 14px', background: 'var(--status-warn-bg)', borderRadius: 12 }}>
+            <div style={{ fontSize: 12, fontWeight: 800, color: 'var(--status-warn)', marginBottom: 8 }}>
+              ⚠ {akunGagal.length} laporan tayang tapi akun Karyawan-nya BELUM jadi
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+              {[...grup.values()].map((g) => {
+                const key = `${g.sekolahId}|${g.periodeId}`;
+                const busy = retryBusyKey === key;
+                return (
+                  <div key={key} style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                    <div style={{ fontSize: 11.5, fontWeight: 700, color: 'var(--ink)' }}>
+                      {schoolNameById[g.sekolahId] || g.sekolahId} · {periodeLabel(g.periodeId) || g.periodeId}
+                    </div>
+                    {g.items.map((f, i) => (
+                      <div key={i} style={{ fontSize: 11.5, color: 'var(--ink-2)' }}>{f.nama}: {f.error}</div>
+                    ))}
+                    <button className="btn-secondary" style={{ alignSelf: 'flex-start', marginTop: 2 }} disabled={busy} onClick={() => handleRetryAkunGrup(g.sekolahId, g.periodeId)}>
+                      {busy ? 'Mencoba lagi…' : '🔁 Coba lagi buat akun yang gagal'}
+                    </button>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        );
+      })()}
 
       {state.rows.length === 0 ? (
         <EmptyState title="Tidak ada laporan School Culture menunggu" desc="Laporan SC yang digenerate lewat generate-sc-individu muncul di sini untuk ditinjau." />
@@ -191,8 +266,8 @@ export function PersetujuanSc() {
                 <div style={{ display: 'flex', gap: 6, marginTop: 2, paddingTop: 10, borderTop: '1px solid var(--line)' }}>
                   <button className="btn-ghost" style={{ padding: '6px 12px', fontSize: 11.5 }} disabled={busy} onClick={() => setDetailRow(r)}>👁 Detail</button>
                   <div style={{ flex: 1 }} />
-                  <button className="btn-secondary" style={{ padding: '6px 12px', fontSize: 11.5 }} disabled={busy} onClick={() => act(r.id, 'tolak')}>Tolak</button>
-                  <button className="btn-primary" style={{ padding: '6px 12px', fontSize: 11.5, background: 'var(--status-safe)' }} disabled={busy} onClick={() => act(r.id, 'setuju')}>{busyId === r.id ? '…' : 'Setujui'}</button>
+                  <button className="btn-secondary" style={{ padding: '6px 12px', fontSize: 11.5 }} disabled={busy} onClick={() => act(r, 'tolak')}>Tolak</button>
+                  <button className="btn-primary" style={{ padding: '6px 12px', fontSize: 11.5, background: 'var(--status-safe)' }} disabled={busy} onClick={() => act(r, 'setuju')}>{busyId === r.id ? '…' : 'Setujui'}</button>
                 </div>
               </div>
             );

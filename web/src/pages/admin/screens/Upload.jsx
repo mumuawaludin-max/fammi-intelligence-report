@@ -27,7 +27,7 @@ function retryStatusText(retry) {
 }
 
 export function Upload() {
-  const { data, loading, error, runImport, runMiGenerate, runScIndividuGenerate, refetch } = useCms();
+  const { data, loading, error, runImport, runMiGenerate, runScIndividuGenerate, retryScAccounts, refetch } = useCms();
   const [step, setStep] = useState(1);
   const [sekolahId, setSekolahId] = useState('');
   const [modul, setModul] = useState('karakter');
@@ -46,7 +46,8 @@ export function Upload() {
   const [scResults, setScResults] = useState(null); // ringkasan hasil generate laporan individu SC
   const [scApproveBusy, setScApproveBusy] = useState(false);
   const [scApproveProgress, setScApproveProgress] = useState(null); // { done, total }
-  const [scApproveResult, setScApproveResult] = useState(null); // { okCount, failed, akunBaru }
+  const [scApproveResult, setScApproveResult] = useState(null); // { okCount, failed, akunBaru, akunGagal }
+  const [scRetryAkunBusy, setScRetryAkunBusy] = useState(false);
 
   if (loading) return <LoadingCards rows={3} />;
   if (error) {
@@ -81,23 +82,52 @@ export function Upload() {
       let okCount = 0;
       const failed = [];
       const akunBaru = [];
+      // akunGagal DIPISAH dari `failed` -- laporan TETAP tayang meski akunnya gagal dibuat
+      // (lihat ensureKaryawanScAccount), jadi ini bukan kegagalan approve, tapi kegagalan
+      // berbeda yang SEBELUMNYA dibuang diam-diam (cuma `akun?.created` yang dicek). Sengaja
+      // dipisah dari daftar `failed` supaya admin tidak bingung "laporannya gagal atau tidak".
+      const akunGagal = [];
       for (let i = 0; i < rowsSekolahIni.length; i++) {
         const r = rowsSekolahIni[i];
+        // Jeda kecil ANTAR approve -- tiap approve memicu createUser lewat Supabase Auth admin
+        // API, menembak beruntun tanpa jeda diduga jadi penyebab kegagalan diam-diam yang
+        // pernah terjadi (16 laporan tayang, cuma 11 akun jadi -- lihat riwayat perbaikan ini).
+        if (i > 0) await new Promise((resolve) => setTimeout(resolve, 400));
         try {
           const akun = await actScApproval(r.id, 'setuju');
           okCount++;
           if (akun?.created) akunBaru.push({ username: akun.username, password: akun.password });
+          else if (akun && !akun.existing) akunGagal.push({ nama: r.nama_responden || r.sc_personal_id, error: akun.error || 'Gagal tanpa keterangan.' });
         } catch (e) {
           failed.push({ nama: r.nama_responden || r.sc_personal_id, error: e.message || String(e) });
         }
         setScApproveProgress({ done: i + 1, total: rowsSekolahIni.length });
       }
-      setScApproveResult({ okCount, failed, akunBaru });
+      setScApproveResult({ okCount, failed, akunBaru, akunGagal });
     } catch (e) {
       setParseError(e.message || 'Gagal memuat antrian persetujuan School Culture.');
     } finally {
       setScApproveBusy(false);
       setScApproveProgress(null);
+    }
+  }
+
+  // Tombol pemulihan: laporan sudah tayang, tapi sebagian akun Karyawan-nya gagal dibuat (lihat
+  // akunGagal di atas). Dipanggil terpisah dari approve supaya bisa diklik berkali-kali sampai
+  // semua beres, tanpa perlu mengulang approve (yang sudah tayang tidak boleh disetujui dua kali).
+  async function handleRetryAkun() {
+    setScRetryAkunBusy(true);
+    try {
+      const result = await retryScAccounts(sekolahId, periodeSc);
+      setScApproveResult((s) => ({
+        ...s,
+        akunBaru: [...(s?.akunBaru || []), ...result.akunBaru],
+        akunGagal: result.gagal,
+      }));
+    } catch (e) {
+      setParseError(e.message || 'Gagal memeriksa ulang akun Karyawan.');
+    } finally {
+      setScRetryAkunBusy(false);
     }
   }
 
@@ -454,6 +484,25 @@ export function Upload() {
                               <div key={i} className="mono" style={{ fontSize: 11.5, color: 'var(--ink-2)' }}>{a.username} / {a.password}</div>
                             ))}
                           </div>
+                        </div>
+                      )}
+                      {/* Laporan sudah tayang, tapi akun Karyawan-nya gagal dibuat -- SEBELUMNYA
+                          dibuang diam-diam (cuma akun?.created yang dicek), staf yang kena ini
+                          tidak akan pernah bisa login sampai admin sadar dan buat akunnya manual.
+                          Tombol di bawah aman diklik berkali-kali sampai semua beres. */}
+                      {scApproveResult.akunGagal?.length > 0 && (
+                        <div style={{ marginBottom: 12, padding: '12px 14px', background: 'var(--status-warn-bg)', borderRadius: 12 }}>
+                          <div style={{ fontSize: 12, fontWeight: 800, color: 'var(--status-warn)', marginBottom: 8 }}>
+                            ⚠ {scApproveResult.akunGagal.length} laporan tayang tapi akun Karyawan-nya BELUM jadi
+                          </div>
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: 4, marginBottom: 10 }}>
+                            {scApproveResult.akunGagal.map((f, i) => (
+                              <div key={i} style={{ fontSize: 11.5, color: 'var(--ink-2)' }}>{f.nama}: {f.error}</div>
+                            ))}
+                          </div>
+                          <button className="btn-secondary" onClick={handleRetryAkun} disabled={scRetryAkunBusy}>
+                            {scRetryAkunBusy ? 'Mencoba lagi…' : '🔁 Coba lagi buat akun yang gagal'}
+                          </button>
                         </div>
                       )}
                       <button className="btn-primary" onClick={resetFlow}>Selesai</button>

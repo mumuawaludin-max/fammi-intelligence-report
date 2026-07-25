@@ -489,6 +489,21 @@ export async function actScApproval(id, action) {
   return data?.akun || null;
 }
 
+/** Pemulihan: laporan SC yang sudah tayang ('disetujui') tapi akun Karyawan-nya sempat gagal
+ * dibuat diam-diam (mis. rate limit Supabase Auth saat approve banyak berurutan cepat -- lihat
+ * catatan di ensureKaryawanScAccount, admin-actions/index.ts) tidak punya jalur "buat ulang" di
+ * layar Persetujuan (baris yang sudah disetujui tidak lagi tampil di antrian menunggu). Action
+ * ini memeriksa SEMUA laporan disetujui untuk satu (sekolah, periode) dan mencoba lagi bikin
+ * akun untuk yang belum punya -- aman diklik berkali-kali. */
+export async function retryScAccountsAction(sekolahId, periodeId) {
+  const { data, error } = await supabase.functions.invoke('admin-actions', {
+    body: { action: 'retry-sc-accounts', sekolah_id: sekolahId, periode_id: periodeId },
+  });
+  if (error) throw new Error(await edgeErrorDetail(error, 'Edge Function admin-actions gagal dipanggil.'));
+  if (!data?.ok) throw new Error(data?.error || 'Gagal memeriksa akun Karyawan.');
+  return data;
+}
+
 /** Fase C: simpan sunting manual draf sc_hasil (LaporanIndividuSC lengkap) sebelum approve. */
 export async function updateScDraftAction(id, detail) {
   const { data, error } = await supabase.functions.invoke('admin-actions', {

@@ -50,6 +50,15 @@
 //                              (LaporanIndividuSC lengkap) SEBELUM approve. Cuma boleh menimpa
 //                              baris yang masih 'menunggu_persetujuan', supaya laporan yang
 //                              sudah tayang ke staf tidak bisa diam-diam diubah lewat jalur ini.
+//   "retry-sc-accounts"        { sekolah_id, periode_id } -> { ok, dicek, dibuat, sudahAda, akunBaru, gagal }
+//                              Perbaikan: ensureKaryawanScAccount (dipanggil approve-sc) sempat
+//                              gagal diam-diam (mis. rate limit Supabase Auth saat "Setujui
+//                              semua" memanggil createUser berurutan tanpa jeda) TANPA pernah
+//                              ditampilkan ke admin -- laporan tetap tayang, tapi stafnya tidak
+//                              pernah dapat akun. Action ini mencari SEMUA sc_hasil status
+//                              'disetujui' untuk (sekolah, periode) itu, lalu coba buat akun
+//                              lagi untuk yang belum punya. Aman diklik berkali-kali (idempoten,
+//                              pola sama ensureKaryawanScAccount sendiri).
 //
 // Deploy: supabase functions deploy admin-actions
 //
@@ -162,6 +171,9 @@ Deno.serve(async (req) => {
         break;
       case "edit-sc":
         result = await handleEditSc(admin, body);
+        break;
+      case "retry-sc-accounts":
+        result = await handleRetryScAccounts(admin, body);
         break;
       default:
         return json({ error: `action tidak dikenal: ${body.action}` }, 400);
@@ -459,6 +471,49 @@ async function handleEditSc(admin, body) {
   return { ok: true };
 }
 
+/**
+ * Perbaikan pemulihan: cari SEMUA sc_hasil status 'disetujui' untuk satu (sekolah, periode),
+ * lalu pastikan tiap sc_personal_id-nya punya akun Karyawan -- dipakai admin memperbaiki
+ * laporan yang sudah tayang tapi akunnya sempat gagal dibuat tanpa terlihat (lihat catatan
+ * "retry-sc-accounts" di atas). Jeda kecil ANTAR panggilan createUser (sama alasannya dengan
+ * jeda 600ms di runScIndividuGenerateAction, useAdminCmsData.js) supaya tidak membanjiri
+ * Supabase Auth admin API berurutan cepat, yang diduga jadi penyebab kegagalan diam-diam
+ * sebelumnya.
+ */
+async function handleRetryScAccounts(admin, body) {
+  const { sekolah_id, periode_id } = body;
+  if (!sekolah_id || !periode_id) return { ok: false, error: "Field wajib: sekolah_id, periode_id." };
+
+  const { data: rows, error: rowsErr } = await admin
+    .from("sc_hasil")
+    .select("sc_personal_id, sc_personal:sc_personal_id(nama_responden)")
+    .eq("sekolah_id", sekolah_id).eq("periode_id", periode_id).eq("status", "disetujui");
+  if (rowsErr) return { ok: false, error: rowsErr.message };
+
+  // Dedup sc_personal_id -- satu orang mestinya cuma satu baris 'disetujui' per periode (lihat
+  // penggantian mulus di handleScApproval), tapi dijaga di sini juga supaya tidak dobel proses
+  // kalau ada anomali data.
+  const unik = new Map();
+  for (const r of rows || []) {
+    if (!unik.has(r.sc_personal_id)) unik.set(r.sc_personal_id, r.sc_personal?.nama_responden);
+  }
+
+  const akunBaru: { nama: string; username: string; password: string }[] = [];
+  let sudahAda = 0;
+  const gagal: { nama: string; error: string }[] = [];
+  let i = 0;
+  for (const [scPersonalId, nama] of unik) {
+    if (i > 0) await new Promise((resolve) => setTimeout(resolve, 400));
+    i++;
+    const akun = await ensureKaryawanScAccount(admin, sekolah_id, scPersonalId, nama);
+    if (akun.created) akunBaru.push({ nama: nama || scPersonalId, username: akun.username, password: akun.password });
+    else if (akun.existing) sudahAda++;
+    else gagal.push({ nama: nama || scPersonalId, error: akun.error || "Gagal tanpa keterangan." });
+  }
+
+  return { ok: true, dicek: unik.size, dibuat: akunBaru.length, sudahAda, akunBaru, gagal };
+}
+
 /** Buat akun Karyawan untuk satu responden SC kalau belum ada (dicek lewat sc_responden_id) --
  * padanan langsung ensureOrangTuaAccount di bawah, tautannya lewat profiles.sc_responden_id
  * (bukan murid_id). Gagal buat akun TIDAK membatalkan approval laporannya (laporan tetap
@@ -467,7 +522,10 @@ async function ensureKaryawanScAccount(admin, sekolahId, scPersonalId, namaRespo
   const { data: existing, error: findErr } = await admin
     .from("profiles").select("id, username")
     .eq("school_id", sekolahId).eq("sc_responden_id", scPersonalId).eq("peran", "Karyawan").maybeSingle();
-  if (findErr) return { created: false, error: findErr.message };
+  if (findErr) {
+    console.error(`ensureKaryawanScAccount: gagal cek akun existing untuk sc_personal_id=${scPersonalId} (${namaResponden}): ${findErr.message}`);
+    return { created: false, error: findErr.message };
+  }
   if (existing) return { created: false, existing: true, username: existing.username };
 
   const baseUsername = panggilanFromNama(namaResponden);
@@ -483,6 +541,13 @@ async function ensureKaryawanScAccount(admin, sekolahId, scPersonalId, namaRespo
     if (createErr) {
       lastErr = createErr;
       if (/registered|exists|duplicate/i.test(createErr.message || "")) continue;
+      // Log eksplisit -- SEBELUMNYA error di sini cuma dibalas sebagai bagian objek `akun` yang
+      // diam-diam dibuang pemanggil (lihat Upload.jsx/PersetujuanSc.jsx: cuma `akun?.created`
+      // yang dicek, `akun?.error` tidak pernah ditampilkan), jadi kegagalan buat akun (mis. rate
+      // limit Supabase Auth saat approve banyak sekaligus berurutan) tidak pernah kelihatan di
+      // mana pun. Laporannya tetap tayang seperti dirancang, tapi admin tidak pernah tahu staf
+      // itu belum punya akun untuk membukanya.
+      console.error(`ensureKaryawanScAccount: gagal buat auth user untuk sc_personal_id=${scPersonalId} (${namaResponden}): ${createErr.message}`);
       return { created: false, error: `Gagal buat auth user: ${createErr.message}` };
     }
 
@@ -497,11 +562,13 @@ async function ensureKaryawanScAccount(admin, sekolahId, scPersonalId, namaRespo
     });
     if (profileErr) {
       await admin.auth.admin.deleteUser(created.user.id);
+      console.error(`ensureKaryawanScAccount: gagal buat profile untuk sc_personal_id=${scPersonalId} (${namaResponden}): ${profileErr.message}`);
       return { created: false, error: `Gagal buat profile: ${profileErr.message}` };
     }
 
     return { created: true, username, password };
   }
+  console.error(`ensureKaryawanScAccount: username terus bentrok untuk sc_personal_id=${scPersonalId} (${namaResponden}): ${lastErr?.message || ""}`);
   return { created: false, error: `Gagal buat akun setelah beberapa percobaan (username terus bentrok): ${lastErr?.message || ""}` };
 }
 

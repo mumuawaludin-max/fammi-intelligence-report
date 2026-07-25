@@ -1,5 +1,5 @@
 import { createContext, useCallback, useContext, useMemo, useRef, useState } from 'react';
-import { useAdminCmsData, actApprovalAction, toggleModuleAction, addSchoolAction, addYayasanAction, runImportAction, runMiGenerateAction, runScIndividuGenerateAction, triggerGeminiJobAction, createUserAction, updateUserAction, resetPasswordAction, bulkResetPasswordAction, deleteUserAction, bulkDeleteUsersAction, updateGeminiScheduleAction, regenerateDraftAction } from '../useAdminCmsData';
+import { useAdminCmsData, actApprovalAction, toggleModuleAction, addSchoolAction, addYayasanAction, runImportAction, runMiGenerateAction, runScIndividuGenerateAction, triggerGeminiJobAction, createUserAction, updateUserAction, resetPasswordAction, bulkResetPasswordAction, deleteUserAction, bulkDeleteUsersAction, updateGeminiScheduleAction, regenerateDraftAction, retryScAccountsAction } from '../useAdminCmsData';
 import { bulkCreateUsers as bulkCreateUsersAction } from '../importers/guruImporter';
 import { downloadXlsx } from '../data/helpers';
 
@@ -120,6 +120,19 @@ export function CmsProvider({ session, children }) {
       failed.length === 0 ? 'safe' : 'warn', 8000,
     );
     return results;
+  }, [showToast]);
+
+  const retryScAccounts = useCallback(async (sekolahId, periodeId) => {
+    const result = await retryScAccountsAction(sekolahId, periodeId);
+    const bagian = [];
+    if (result.dibuat > 0) bagian.push(`${result.dibuat} akun baru dibuat`);
+    if (result.sudahAda > 0) bagian.push(`${result.sudahAda} sudah punya akun`);
+    if (result.gagal.length > 0) bagian.push(`${result.gagal.length} masih gagal`);
+    showToast(
+      bagian.length > 0 ? bagian.join(', ') + '.' : 'Tidak ada laporan disetujui untuk periode ini.',
+      result.gagal.length > 0 ? 'warn' : 'safe', 8000,
+    );
+    return result;
   }, [showToast]);
 
   const triggerGeminiJob = useCallback(async (payload) => {
@@ -284,6 +297,7 @@ export function CmsProvider({ session, children }) {
     runImport,
     runMiGenerate,
     runScIndividuGenerate,
+    retryScAccounts,
     triggerGeminiJob,
     createUser,
     updateUser,
@@ -300,7 +314,7 @@ export function CmsProvider({ session, children }) {
       delete n[id];
       return { ...s, approvalEditText: n };
     }),
-  }), [session, data, loading, error, refetch, state, showToast, actApproval, toggleModule, isModuleOn, addSchool, addYayasan, runImport, runMiGenerate, runScIndividuGenerate, triggerGeminiJob, createUser, updateUser, bulkCreateUsers, resetPassword, bulkResetAndExport, deleteUser, bulkDeleteUsers, updateGeminiSchedule, regenerateDraft]);
+  }), [session, data, loading, error, refetch, state, showToast, actApproval, toggleModule, isModuleOn, addSchool, addYayasan, runImport, runMiGenerate, runScIndividuGenerate, retryScAccounts, triggerGeminiJob, createUser, updateUser, bulkCreateUsers, resetPassword, bulkResetAndExport, deleteUser, bulkDeleteUsers, updateGeminiSchedule, regenerateDraft]);
 
   return <CmsContext.Provider value={value}>{children}</CmsContext.Provider>;
 }
