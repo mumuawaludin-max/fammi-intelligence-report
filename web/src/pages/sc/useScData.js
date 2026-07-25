@@ -314,18 +314,25 @@ function statusBudayaPerTipe(budaya) {
   return byTipe;
 }
 
-/** Best-effort: cocokkan satu baris tindak_lanjut (fokus tertentu) ke satu dimensi/subdimensi
- * lewat kemunculan labelnya di title/teaser/mengapa_data/mengapa_perspektif -- tidak ada kolom
- * eksplisit "dimensi ini" di tindak_lanjut (cuma fokus budaya/kesejahteraan), jadi ini heuristik
- * teks, BUKAN pencocokan terjamin. Kalau tidak ketemu, dimensi itu TETAP tanpa priorityActions/
- * phases/targetImpact (data gap jujur) -- tidak dipaksa memakai baris yang mungkin tidak relevan.
+/** Cocokkan satu baris tindak_lanjut (fokus tertentu) ke satu dimensi/subdimensi -- sejak
+ * migration 20260731100000, tindak_lanjut.dimensi menyimpan kode dimensi PERSIS (mis.
+ * "Orientasi", "kepuasan_kepemimpinan"), jadi pencocokan utama sekarang EXACT MATCH, bukan
+ * tebak-tebak substring. Fallback ke heuristik substring lama (cek kemunculan label di title/
+ * teaser/mengapa_data/mengapa_perspektif) HANYA untuk baris lama yang digenerate sebelum kolom
+ * dimensi ada (dimensi masih null) -- supaya draf lama tidak mendadak semuanya jadi data gap.
+ * Kalau tidak ketemu sama sekali, dimensi itu TETAP tanpa priorityActions/phases/targetImpact/
+ * indicators/warnings (data gap jujur), tidak dipaksa memakai baris yang mungkin tidak relevan.
  * TIDAK ADA nilai fokus='organisasi' di skema tindak_lanjut manapun sekarang (cuma
  * budaya/kesejahteraan) -- Profil Organisasi karena itu SELALU data gap untuk bagian ini, lihat
  * pemanggilnya di useScAgregat (tidak pernah memanggil fungsi ini untuk domain organisasi). */
-function cocokkanTlKeLabel(tlAtPeriode, fokus, label) {
+function cocokkanTlKeLabel(tlAtPeriode, fokus, dimensiKode, labelFallback) {
   const rows = tlAtPeriode.filter((r) => r.fokus === fokus);
-  const t = label.toLowerCase();
+  const exact = rows.find((r) => r.dimensi === dimensiKode);
+  if (exact) return exact;
+
+  const t = (labelFallback || dimensiKode).toLowerCase();
   return rows.find((r) => {
+    if (r.dimensi) return false; // sudah punya dimensi eksplisit tapi tidak cocok -- jangan dipaksa fallback teks
     const teks = [r.title, r.teaser, r.mengapa_data, r.mengapa_perspektif].filter(Boolean).join(" ").toLowerCase();
     return teks.includes(t);
   }) || null;
@@ -380,7 +387,7 @@ export function useScAgregat(session, periodeId) {
           .eq("status", "disetujui"),
         supabase
           .from("tindak_lanjut")
-          .select("id, periode_id, type, fokus, icon, title, teaser, mengapa_data, mengapa_perspektif, dasar_teori, manfaat, konkret")
+          .select("id, periode_id, type, fokus, dimensi, icon, title, teaser, mengapa_data, mengapa_perspektif, dasar_teori, manfaat, konkret, indikator_keberhasilan, hal_diwaspadai")
           .eq("sekolah_id", sekolahId)
           .eq("modul", "sc")
           .eq("scope", "sekolah")
@@ -459,6 +466,8 @@ export function useScAgregat(session, periodeId) {
         priorityActions: cocok ? (cocok.konkret || []).map((k) => k.aksi).filter(Boolean) : undefined,
         phases: cocok ? (cocok.konkret || []).map((k) => ({ aksi: k.aksi, waktu: k.waktu || null })).filter((k) => k.aksi) : undefined,
         targetImpact: cocok?.manfaat?.sekolah || cocok?.manfaat?.pimpinan || undefined,
+        indicators: cocok?.indikator_keberhasilan || undefined,
+        warnings: cocok?.hal_diwaspadai || undefined,
       };
     });
     const tabelGap = (sekolah.budaya || []).map((b) => ({ label: b.tipe, arah: arahDariGap(b.gap), nilai_gap: b.gap }));
@@ -470,7 +479,7 @@ export function useScAgregat(session, periodeId) {
     // budaya di atas. `items`: breakdown butir mentah b1-b13, lihat driverItemsKesejahteraan.
     const driverItemsByKode = driverItemsKesejahteraan(personalAtPeriode);
     const chartKesejahteraan = (sekolah.kesejahteraan || []).map((k) => {
-      const cocok = cocokkanTlKeLabel(tlAtPeriode, "kesejahteraan", k.label);
+      const cocok = cocokkanTlKeLabel(tlAtPeriode, "kesejahteraan", k.kode, k.label);
       const items = driverItemsByKode[k.kode];
       return {
         ...k,
@@ -479,6 +488,8 @@ export function useScAgregat(session, periodeId) {
         priorityActions: cocok ? (cocok.konkret || []).map((c) => c.aksi).filter(Boolean) : undefined,
         phases: cocok ? (cocok.konkret || []).map((c) => ({ aksi: c.aksi, waktu: c.waktu || null })).filter((c) => c.aksi) : undefined,
         targetImpact: cocok?.manfaat?.sekolah || cocok?.manfaat?.pimpinan || undefined,
+        indicators: cocok?.indikator_keberhasilan || undefined,
+        warnings: cocok?.hal_diwaspadai || undefined,
       };
     });
 

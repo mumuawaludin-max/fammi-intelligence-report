@@ -310,9 +310,22 @@ export interface TemaEsai {
  * SINTESIS Gemini (bukan verbatim) dari jawaban esai Q2 (gambaran tempat kerja saat ini) dan Q3
  * (yang ingin diubah), sudah lewat gerbang approve briefing sebelum tampil di sini -- lihat
  * SYSTEM_INSTRUCTION_SC_BRIEFING untuk aturan anti-identifikasi yang lebih ketat dari tema_esai. */
+/** Satu frasa pendek gaya word cloud (2-5 kata) plus jumlah kemunculan -- BUKAN kalimat penuh,
+ * dipakai "Cerita dari Tim" (tiga kolom, section budaya). jumlah_mention menentukan ukuran
+ * tampilan visual (word cloud), bukan cuma hiasan. */
+export interface FrasaCeritaTim {
+  frasa: string;
+  jumlah_mention: number;
+}
+
+/** Tiga kolom word cloud untuk "Cerita dari Tim": gambaran_lembaga dari esai Q1 (gambaran
+ * lembaga secara umum), saat_ini dari Q2 (kejadian keseharian), ingin_diubah dari Q3 (yang
+ * ingin diubah). Ketiganya domain BUDAYA -- beda dari tema_esai (ScMeta.tema_esai) yang
+ * sumbernya Q4/Q5/Q6 dan domain KESEJAHTERAAN ("Suara Tim"). */
 export interface CeritaPegawai {
-  saat_ini: string[];
-  ingin_diubah: string[];
+  gambaran_lembaga?: FrasaCeritaTim[];
+  saat_ini: FrasaCeritaTim[];
+  ingin_diubah: FrasaCeritaTim[];
 }
 
 /** Satu langkah dalam timeline prioritas perbaikan (Fase E item 13) -- waktu = jangka bebas dari

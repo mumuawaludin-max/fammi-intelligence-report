@@ -578,6 +578,11 @@ export const MOCK_LAPORAN_AGREGAT_SC: LaporanAgregatSC = {
           { aksi: "Bandingkan hasil dengan kondisi awal, dokumentasikan yang terbukti efektif.", waktu: "3 bulan" },
         ],
         targetImpact: "Minimal satu eksperimen metode mengajar per unit setiap bulan.",
+        indicators: [
+          { title: "Jumlah eksperimen tercatat", detail: "Berapa uji coba metode/media ajar baru yang benar-benar dijalankan tiap bulan." },
+          { title: "Partisipasi lintas jenjang", detail: "Berapa guru dari jenjang berbeda ikut serta dalam satu siklus eksperimen." },
+        ],
+        warnings: ["Kalau ide baru cuma didorong tanpa waktu khusus, gurunya justru merasa dibebani di luar jam mengajar biasa."],
       },
       { tipe: "Orientasi", saat_ini: 47, harapan: 43, status: "Selaras" },
       { tipe: "Aturan", saat_ini: 56, harapan: 48, status: "Ringan" },
@@ -626,6 +631,11 @@ export const MOCK_LAPORAN_AGREGAT_SC: LaporanAgregatSC = {
           { aksi: "Evaluasi ulang linimasa yang paling menekan, realokasi kalau perlu.", waktu: "Bulan ini" },
         ],
         targetImpact: "Skor Work-Life Balance meningkat minimal 10% dalam satu periode.",
+        indicators: [
+          { title: "Jam kerja tercatat", detail: "Rata-rata jam kerja mingguan guru SMA/SMK dibanding sebelum audit." },
+          { title: "Kehadiran sesi dengar pendapat", detail: "Berapa guru yang ikut menyampaikan masukan di sesi rutin." },
+        ],
+        warnings: ["Kalau audit beban kerja cuma berhenti di data tanpa realokasi nyata, Tim bisa merasa keluhannya didengar tapi tidak ditindaklanjuti."],
       },
     ],
   },
@@ -793,19 +803,27 @@ export const MOCK_LAPORAN_AGREGAT_SC: LaporanAgregatSC = {
   // (lihat sc.types.ts), supaya ScDimensiTindakLanjut menampilkan "Belum ditentukan" jujur,
   // bukan dikarang, saat QA visual lewat ?preview=sc-agregat.
   // Section 01-E -- contoh hasil SINTESIS Gemini (sudah lewat approve briefing), BUKAN kutipan
-  // verbatim staf mana pun, lihat CeritaPegawai di sc.types.ts.
+  // verbatim staf mana pun, gaya word cloud (frasa pendek + jumlah_mention menentukan ukuran
+  // tampilan), lihat CeritaPegawai/FrasaCeritaTim di sc.types.ts.
   cerita_pegawai: {
+    gambaran_lembaga: [
+      { frasa: "seperti keluarga besar", jumlah_mention: 9 },
+      { frasa: "saling membantu", jumlah_mention: 7 },
+      { frasa: "ramah dan hangat", jumlah_mention: 6 },
+      { frasa: "masih perlu tertib waktu", jumlah_mention: 4 },
+      { frasa: "penuh semangat belajar", jumlah_mention: 3 },
+    ],
     saat_ini: [
-      "Beberapa anggota Tim merasa suasana kerja sehari-hari terasa hangat, saling membantu antar rekan tanpa diminta.",
-      "Ada yang menyebut sering diberi kepercayaan memegang tanggung jawab baru dan merasa didukung pimpinan saat mengelolanya.",
-      "Beberapa anggota Tim sudah bekerja sejak organisasi ini berdiri, dan merasa itu jadi bagian dari identitas mereka di sini.",
-      "Sapaan dan keramahan saat datang kerja disebut berulang sebagai hal yang membuat suasana terasa nyaman.",
+      { frasa: "suasana kerja hangat", jumlah_mention: 8 },
+      { frasa: "dipercaya tanggung jawab baru", jumlah_mention: 6 },
+      { frasa: "sapaan ramah tiap hari", jumlah_mention: 5 },
+      { frasa: "identitas jangka panjang", jumlah_mention: 3 },
     ],
     ingin_diubah: [
-      "Beberapa anggota Tim berharap ada perencanaan kerja yang lebih matang, tidak mendadak.",
-      "Ada keinginan agar kebiasaan kerja lama ikut beradaptasi dengan kebutuhan digital yang berkembang cepat.",
-      "Beberapa anggota Tim ingin lebih leluasa mengonfirmasi ulang pemahaman tanpa merasa sungkan.",
-      "Ada harapan apresiasi dan motivasi diberikan lebih rutin, tidak cuma sesekali.",
+      { frasa: "perencanaan lebih matang", jumlah_mention: 7 },
+      { frasa: "adaptasi kebutuhan digital", jumlah_mention: 5 },
+      { frasa: "ruang konfirmasi ulang", jumlah_mention: 4 },
+      { frasa: "apresiasi lebih rutin", jumlah_mention: 4 },
     ],
   },
 };

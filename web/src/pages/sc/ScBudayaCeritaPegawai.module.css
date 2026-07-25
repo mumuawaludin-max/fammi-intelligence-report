@@ -46,8 +46,14 @@
 
 .grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  grid-template-columns: repeat(3, 1fr);
   gap: 16px;
+}
+
+@media (max-width: 960px) {
+  .grid {
+    grid-template-columns: 1fr;
+  }
 }
 
 .card {
@@ -99,6 +105,25 @@
   color: var(--sc-muted-2);
   font-size: 12px;
   font-style: italic;
+}
+
+.cloud {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-content: flex-start;
+  gap: 8px 10px;
+  min-height: 120px;
+}
+
+.cloudTag {
+  padding: 4px 12px;
+  border-radius: 999px;
+  background: var(--sc-soft);
+  color: var(--sc-primary);
+  font-weight: 700;
+  line-height: 1.5;
+  white-space: nowrap;
 }
 
 @media (max-width: 760px) {

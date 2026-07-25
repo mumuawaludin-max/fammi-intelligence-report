@@ -130,22 +130,30 @@ Angka di "mengapa_data" harus dari field di atas, dibulatkan tanpa desimal, ditu
 persen capaian (bukan proporsi jumlah anggota Tim). Jangan mengarang angka.
 
 
-## CAKUPAN WAJIB: JANGAN TERPAKU SATU DIMENSI
+## CAKUPAN WAJIB: SATU REKOMENDASI PER DIMENSI, BUKAN CUMA DUA TOTAL
 
-Data selalu punya DUA sisi sekaligus: sisi budaya (radar 4 tipe + gap) dan sisi kesejahteraan
-(5 subdimensi). Periksa keduanya secara terpisah. Rumuskan SATU rekomendasi untuk tiap temuan
-kuat dan berbeda yang didukung data -- minimal satu rekomendasi "perlu_perhatian" (dari sisi
-paling lemah) dan satu "pertahankan" (dari sisi paling kuat), karena data selalu punya kedua
-sisi itu.
+Dashboard menampilkan satu kartu tindak lanjut untuk SETIAP dimensi budaya dan SETIAP subdimensi
+kesejahteraan sekaligus (bukan cuma dua rekomendasi prioritas seperti draf lama) -- kartu yang
+tidak dapat rekomendasi tampil kosong ke pimpinan. Karena itu WAJIB rumuskan TEPAT SATU
+rekomendasi untuk MASING-MASING dari sembilan dimensi berikut, tidak boleh ada yang dilewati:
+
+Budaya (4, fokus="budaya"): Kekeluargaan, Inovasi, Orientasi, Aturan.
+Kesejahteraan (5, fokus="kesejahteraan"): kepuasan_kepemimpinan, kenyamanan_bekerja,
+pengembangan_diri, ekspektasi, work_life_balance.
+
+Jadi keluaranmu TEPAT 9 objek, satu per dimensi di atas, tidak kurang tidak lebih. Untuk
+dimensi dengan gap besar/kategori rendah, pakai type "perlu_perhatian". Untuk dimensi yang
+kondisinya sudah baik/gap kecil, pakai type "pertahankan" -- keduanya sama-sama WAJIB dapat
+rekomendasi konkret, bukan cuma dimensi yang bermasalah.
 
 
 ## SKEMA OUTPUT WAJIB
 
-Keluarkan HANYA JSON valid, array berisi objek, satu objek per rekomendasi. Tanpa teks
-pembuka/penutup/markdown fence. Jumlah TIDAK dipatok satu -- minimal dua (satu perlu_perhatian,
-satu pertahankan), lebih banyak kalau temuannya memang lebih banyak.
+Keluarkan HANYA JSON valid, array berisi TEPAT 9 objek (lihat cakupan wajib di atas). Tanpa
+teks pembuka/penutup/markdown fence.
 
 {
+  "dimensi": "Kekeluargaan | Inovasi | Orientasi | Aturan | kepuasan_kepemimpinan | kenyamanan_bekerja | pengembangan_diri | ekspektasi | work_life_balance",
   "term": "short | long",
   "type": "perlu_perhatian | pertahankan",
   "fokus": "budaya | kesejahteraan",
@@ -158,14 +166,19 @@ satu pertahankan), lebih banyak kalau temuannya memang lebih banyak.
   "dasar_teori": "salah satu dari 5 kerangka di atas, format: <nama kerangka> (<tokoh>): <makna 1 kalimat>",
   "manfaat": { "tim": "...", "pimpinan": "...", "sekolah": "..." },
   "konkret": [ { "aksi": "...", "waktu": "...", "kenapa": "..." } ],
+  "indikator_keberhasilan": [ { "title": "penanda singkat, maks 6 kata", "detail": "1 kalimat cara mengukurnya" } ],
+  "hal_diwaspadai": [ "1 kalimat risiko/efek samping kalau langkah ini dijalankan asal-asalan" ],
   "status": "menunggu_persetujuan"
 }
 
 Keterangan nilai:
+- dimensi: WAJIB, persis salah satu dari sembilan nilai di atas (case-sensitive untuk yang
+  budaya), dipakai sistem mencocokkan kartu ke dimensi yang benar -- SATU dimensi cuma boleh
+  muncul SATU kali di seluruh array.
 - term: makna jangka waktu beda per role (lihat blok "Makna jangka waktu" di user prompt).
 - type: "perlu_perhatian" untuk sisi lemah, "pertahankan" untuk sisi kuat yang perlu dijaga.
-- fokus: "budaya" untuk temuan dari radar 4 tipe/gap, "kesejahteraan" untuk temuan dari 5
-  subdimensi kesejahteraan atau profil organisasi.
+- fokus: "budaya" untuk keempat dimensi budaya, "kesejahteraan" untuk kelima subdimensi
+  kesejahteraan -- WAJIB konsisten dengan field dimensi.
 - jenjang: SELALU null untuk modul ini (field ini milik skema Karakter, tidak relevan untuk
   data Tim sekolah).
 - dasar_teori: WAJIB, tidak boleh kosong, wajib menyebut nama kerangka DAN maknanya dalam
@@ -175,6 +188,11 @@ Keterangan nilai:
 - konkret: array objek (BUKAN array string), minimal 3 langkah, tiap objek wajib punya aksi/
   waktu/kenapa. Langkah pertama harus kemenangan cepat yang hasilnya kelihatan dalam hitungan
   minggu (bukan hari -- ritme organisasi sekolah lebih lambat dari ritme satu kelas).
+- indikator_keberhasilan: WAJIB, 2-3 item, cara KONKRET pimpinan tahu langkah ini berhasil
+  (bukan "budaya membaik", tapi penanda yang bisa diamati/dihitung langsung dari keseharian).
+- hal_diwaspadai: WAJIB, 1-2 kalimat, efek samping atau risiko nyata kalau langkah ini
+  dijalankan tanpa hati-hati (mis. dipaksakan terlalu cepat, dibebankan ke satu orang saja).
+  Bukan disclaimer generik "perlu komitmen bersama", harus spesifik ke langkah yang diusulkan.
 
 
 ## ATURAN ISI TIAP FIELD
@@ -216,6 +234,9 @@ latar belakangnya sama sekali.
 - Aksi yang butuh anggaran besar atau persetujuan yayasan ditulis untuk role kepala_sekolah.
 - dasar_teori kosong, atau cuma menyebut nama tokoh tanpa penjelasan maknanya.
 - "konkret" berupa array string biasa, atau "manfaat" berupa string biasa.
+- Array keluaran kurang dari 9 objek, ada dimensi yang terlewat, atau satu dimensi muncul dua kali.
+- "hal_diwaspadai" berisi disclaimer generik ("perlu komitmen semua pihak") alih-alih risiko
+  spesifik dari langkah yang diusulkan di "konkret".
 `;
 
 export const SYSTEM_INSTRUCTION_SC_BRIEFING = `SYSTEM PROMPT — GEMINI: PERUMUS BRIEFING SCHOOL CULTURE (Fammi Intelligence Report / FIR)
@@ -230,13 +251,15 @@ akademik budaya organisasi mentah, jangan menyebut murid, bahasa Indonesia langs
 kata/pola khas tulisan AI.
 
 
-## TUGAS KEDUA: KELOMPOKKAN TEMA ESAI TIM (kalau data esai disertakan)
+## TUGAS KEDUA: KELOMPOKKAN TEMA ESAI TIM UNTUK "SUARA TIM" (kalau data esai disertakan)
 
-Kalau permintaan menyertakan blok "Jawaban esai Tim (anonim, digabung lintas tiga pertanyaan)",
-kamu JUGA bertugas mengelompokkan jawaban-jawaban itu jadi tema yang berulang. Jawaban berasal
-dari TIGA pertanyaan berbeda (apa yang ingin diubah, apa yang paling menguras energi, apa yang
-ingin disampaikan) -- digabung jadi SATU daftar tema lintas ketiganya, bukan tiga daftar
-terpisah, karena topik yang sama sering muncul dari sudut pertanyaan berbeda.
+Kalau permintaan menyertakan blok "Jawaban esai kesejahteraan (anonim, digabung lintas tiga
+pertanyaan)", kamu JUGA bertugas mengelompokkan jawaban-jawaban itu jadi tema yang berulang.
+Jawaban berasal dari TIGA pertanyaan tentang kesejahteraan Tim (alasan betah bekerja di sini,
+hal yang paling menguras energi, hal yang ingin disampaikan) -- digabung jadi SATU daftar tema
+lintas ketiganya, bukan tiga daftar terpisah, karena topik yang sama sering muncul dari sudut
+pertanyaan berbeda. Hasil ini dipakai bagian "Suara Tim" di dashboard (domain kesejahteraan,
+BUKAN budaya kerja -- lihat tugas ketiga di bawah untuk domain budaya).
 
 Aturan WAJIB untuk tema esai:
 - Setiap jawaban SUDAH anonim (tidak ada nama anggota Tim yang menyertainya) -- tetap jangan
@@ -254,30 +277,34 @@ Aturan WAJIB untuk tema esai:
   "tema_esai": [] (array kosong) -- jangan memaksakan tema dari data yang tidak cukup.
 
 
-## TUGAS KETIGA: "CERITA DARI TIM" (kalau data esai Q2/Q3 disertakan)
+## TUGAS KETIGA: "CERITA DARI TIM" UNTUK DOMAIN BUDAYA (kalau data esai Q1/Q2/Q3 disertakan)
 
-Kalau permintaan menyertakan blok "Jawaban esai Q2 (gambaran tempat kerja saat ini)" dan/atau
-"Jawaban esai Q3 (yang ingin diubah)", kamu JUGA bertugas mensintesis dua daftar kalimat pendek
-lepas (BUKAN dikelompokkan jadi tema seperti tugas kedua di atas) -- satu daftar untuk Q2, satu
-untuk Q3. Ini beda dari tema_esai: di sini setiap kalimat berdiri sendiri (tidak ada nama tema
-atau jumlah_mention), meniru ragam suara Tim apa adanya, bukan pola yang berulang.
+Kalau permintaan menyertakan blok "Jawaban esai Q1 (gambaran lembaga)", "Jawaban esai Q2
+(kejadian keseharian)", dan/atau "Jawaban esai Q3 (yang ingin diubah)", kamu JUGA bertugas
+mensintesis TIGA daftar kata/frasa pendek lepas (BUKAN kalimat penuh, BUKAN dikelompokkan jadi
+tema seperti tugas kedua) -- satu daftar untuk Q1, satu untuk Q2, satu untuk Q3. Hasil ini
+dipakai bagian "Cerita dari Tim" di dashboard (domain budaya kerja, tiga kolom berdampingan,
+ditampilkan seperti awan kata/word cloud -- ukuran tampilan tiap frasa mengikuti jumlah_mention
+yang kamu berikan, JADI jumlah_mention di sini bukan hiasan, dia menentukan ukuran visual).
 
-Aturan WAJIB, JAUH LEBIH KETAT dari tema_esai karena bentuknya lebih dekat ke kutipan:
-- DILARANG KERAS menyalin/menempel kalimat dari jawaban anggota Tim manapun, sekalipun cuma
-  sepotong. Setiap kalimat yang kamu keluarkan WAJIB kalimat baru buatanmu sendiri yang
-  mensintesis POLA UMUM dari beberapa jawaban, bukan menulis ulang satu jawaban tertentu dengan
-  kata-kata beda tipis (parafrase dekat tetap berisiko -- buat SATU kalimat generik yang mewakili
-  beberapa jawaban serupa, jangan satu kalimat per satu anggota Tim).
+Beda dari cerita_pegawai versi lama (kalimat naratif utuh): di sini tiap entri adalah FRASA
+PENDEK (2-5 kata, gaya word cloud), bukan kalimat bersubjek-predikat lengkap. Contoh benar:
+"ruang belajar terbuka", "beban kerja tidak merata", "kepastian jadwal". Contoh SALAH (terlalu
+panjang, ini gaya kalimat lama): "Tim ingin ruang belajar yang lebih terbuka untuk semua orang".
+
+Aturan WAJIB, JAUH LEBIH KETAT dari tema esai karena bentuknya lebih dekat ke kutipan:
+- DILARANG KERAS menyalin/menempel kata dari jawaban anggota Tim manapun secara unik/khas.
+  Frasa yang kamu keluarkan WAJIB rangkuman pola dari BEBERAPA jawaban serupa, bukan potongan
+  satu jawaban tertentu.
 - DILARANG menyebut detail yang bisa mengidentifikasi satu orang: nama program/proyek spesifik,
-  jabatan spesifik yang jarang (mis. "koordinator ekskul robotik"), angka tahun masuk kerja,
-  atau kombinasi detail apa pun yang cuma cocok untuk satu anggota Tim. Tulis di level pola umum
-  saja (mis. "Beberapa anggota Tim merasa dipercaya memegang tanggung jawab baru" -- BUKAN
-  detail proyek apa).
-- Maksimal 5 kalimat per daftar (Q2 dan Q3 masing-masing), cuma tulis kalau memang ada pola yang
-  didukung beberapa jawaban -- satu jawaban unik yang berdiri sendiri TIDAK cukup untuk jadi satu
-  kalimat di sini (beda dari laporan individu yang boleh personal).
-- Kalau data esai Q2/Q3 tidak disertakan, atau tidak ada pola yang cukup didukung banyak jawaban,
-  kembalikan array kosong untuk daftar itu -- jangan memaksakan.
+  jabatan spesifik yang jarang, angka tahun masuk kerja, atau kombinasi detail apa pun yang
+  cuma cocok untuk satu anggota Tim.
+- Maksimal 8 frasa per kolom (Q1, Q2, Q3 masing-masing), cuma tulis kalau memang ada pola yang
+  didukung beberapa jawaban -- satu jawaban unik yang berdiri sendiri TIDAK cukup.
+- "jumlah_mention" WAJIB angka jujur dari berapa jawaban yang mengandung pola itu -- jangan
+  mengarang supaya word cloud kelihatan lebih ramai.
+- Kalau data esai untuk satu kolom tidak disertakan, atau tidak ada pola yang cukup didukung
+  banyak jawaban, kembalikan array kosong untuk kolom itu -- jangan memaksakan.
 
 
 ## SKEMA OUTPUT WAJIB
@@ -290,8 +317,9 @@ Keluarkan HANYA JSON valid:
     { "tema": "nama tema singkat, maks 6 kata", "ringkasan": "1-2 kalimat pola yang muncul, PARAFRASE bukan kutipan verbatim", "jumlah_mention": 0 }
   ],
   "cerita_pegawai": {
-    "saat_ini": ["kalimat sintesis pola dari jawaban Q2, maks 5"],
-    "ingin_diubah": ["kalimat sintesis pola dari jawaban Q3, maks 5"]
+    "gambaran_lembaga": [ { "frasa": "2-5 kata dari pola jawaban Q1, gaya word cloud", "jumlah_mention": 0 } ],
+    "saat_ini": [ { "frasa": "2-5 kata dari pola jawaban Q2, gaya word cloud", "jumlah_mention": 0 } ],
+    "ingin_diubah": [ { "frasa": "2-5 kata dari pola jawaban Q3, gaya word cloud", "jumlah_mention": 0 } ]
   }
 }
 `;
@@ -471,11 +499,12 @@ function ringkasSc(lembagaRow: Record<string, any>) {
 }
 
 export function buildUserPromptSc({
-  role, sekolahNama, periode_id, lembagaRow, unitRows, arahanReviewer, tipe, esaiTeks, esaiQ2Teks, esaiQ3Teks,
+  role, sekolahNama, periode_id, lembagaRow, unitRows, arahanReviewer, tipe,
+  esaiTeks, esaiQ1Teks, esaiQ2Teks, esaiQ3Teks,
 }: {
   role: string; sekolahNama: string; periode_id: string; lembagaRow: Record<string, any>;
   unitRows?: Record<string, any>[]; arahanReviewer?: string[]; tipe: string;
-  esaiTeks?: string[]; esaiQ2Teks?: string[]; esaiQ3Teks?: string[];
+  esaiTeks?: string[]; esaiQ1Teks?: string[]; esaiQ2Teks?: string[]; esaiQ3Teks?: string[];
 }) {
   const fakta = JSON.stringify(ringkasSc(lembagaRow), null, 2);
   const unitBlok = unitRows && unitRows.length > 1
@@ -485,14 +514,18 @@ export function buildUserPromptSc({
     ? `\nArahan perbaikan dari reviewer sebelumnya, WAJIB dipatuhi semuanya di draf ini:\n${arahanReviewer.map((a) => `- ${a}`).join("\n")}\n`
     : "";
   // esaiTeks sudah ANONIM (cuma teks jawaban, tanpa nama_responden apa pun) -- dikumpulkan dari
-  // TIGA pertanyaan berbeda (Q3/Q5/Q6, lihat generateAndInsertDraftSc), sengaja tidak dipisah
-  // per pertanyaan di sini karena tugas Gemini menggabungkannya jadi satu daftar tema (lihat
-  // SYSTEM_INSTRUCTION_SC_BRIEFING).
+  // TIGA pertanyaan kesejahteraan (Q4/Q5/Q6, lihat generateAndInsertDraftSc), sengaja tidak
+  // dipisah per pertanyaan di sini karena tugas Gemini menggabungkannya jadi satu daftar tema
+  // untuk "Suara Tim" (lihat SYSTEM_INSTRUCTION_SC_BRIEFING). Q3 SENGAJA TIDAK ikut di sini lagi
+  // (pindah ke esaiQ3Blok di bawah, domain budaya bukan kesejahteraan).
   const esaiBlok = esaiTeks && esaiTeks.length > 0
-    ? `\nJawaban esai Tim (anonim, digabung lintas tiga pertanyaan -- yang ingin diubah, hal menguras energi, yang ingin disampaikan), buat "tema_esai":\n${esaiTeks.map((t) => `- ${t}`).join("\n")}\n`
+    ? `\nJawaban esai kesejahteraan Tim (anonim, digabung lintas tiga pertanyaan -- alasan betah, hal menguras energi, yang ingin disampaikan), buat "tema_esai":\n${esaiTeks.map((t) => `- ${t}`).join("\n")}\n`
     : "";
-  // Q2/Q3 MURNI (bukan digabung Q5/Q6, beda tujuan dari esaiBlok di atas) -- untuk "cerita_pegawai",
-  // dua daftar terpisah karena tampil sebagai dua kolom terpisah di UI (01-E).
+  // Q1/Q2/Q3 MURNI (bukan digabung Q4/Q5/Q6 di atas) -- untuk "cerita_pegawai" domain budaya,
+  // TIGA kolom terpisah karena tampil sebagai tiga kolom word-cloud berdampingan di UI (01-E).
+  const esaiQ1Blok = esaiQ1Teks && esaiQ1Teks.length > 0
+    ? `\nJawaban esai Q1 Tim (anonim, "gambaran lembaga secara umum"), buat "cerita_pegawai.gambaran_lembaga":\n${esaiQ1Teks.map((t) => `- ${t}`).join("\n")}\n`
+    : "";
   const esaiQ2Blok = esaiQ2Teks && esaiQ2Teks.length > 0
     ? `\nJawaban esai Q2 Tim (anonim, "gambaran tempat kerja saat ini"), buat "cerita_pegawai.saat_ini":\n${esaiQ2Teks.map((t) => `- ${t}`).join("\n")}\n`
     : "";
@@ -520,7 +553,7 @@ ASAL DATA, WAJIB DIPAHAMI SEBELUM MENULIS APA PUN:
 ${arahanBlok}
 Data kuantitatif AGREGAT untuk ${sekolahNama} periode ${periode_id}:
 ${fakta}
-${unitBlok}${esaiBlok}${esaiQ2Blok}${esaiQ3Blok}`;
+${unitBlok}${esaiBlok}${esaiQ1Blok}${esaiQ2Blok}${esaiQ3Blok}`;
 }
 
 /**
@@ -570,10 +603,16 @@ export async function generateAndInsertDraftSc(
   // Fase D item 12: tema esai cuma dikumpulkan untuk draf briefing (bukan tindak_lanjut) --
   // SENGAJA cuma kolom essay yang di-select, TANPA nama_responden/no_whatsapp/email, supaya
   // Gemini betul-betul tidak pernah melihat siapa penulis jawaban ini (anonim dari sumbernya,
-  // bukan cuma "tidak disebut" di prompt). Q3/Q5/Q6 digabung jadi satu daftar teks lintas
-  // ketiga pertanyaan (lihat SYSTEM_INSTRUCTION_SC_BRIEFING untuk kenapa digabung, bukan
-  // dipisah per pertanyaan).
+  // bukan cuma "tidak disebut" di prompt).
+  //
+  // Pembagian domain (instruksi eksplisit pemilik produk, 2026-07): Q4/Q5/Q6 (kesejahteraan)
+  // digabung jadi satu daftar teks untuk "tema_esai" -> dipakai "Suara Tim" di section
+  // Kesejahteraan. Q1/Q2/Q3 (budaya) MURNI, tiga daftar terpisah untuk "cerita_pegawai" ->
+  // dipakai "Cerita dari Tim" tiga kolom word-cloud di section Budaya. SEBELUMNYA Q3 ikut
+  // digabung ke tema_esai juga (Q3+Q5+Q6) -- sekarang Q3 HANYA untuk cerita_pegawai, supaya
+  // dua bagian ini benar-benar berbeda sumber, bukan menampilkan pola yang sama dua kali.
   let esaiTeks: string[] | undefined;
+  let esaiQ1Teks: string[] | undefined;
   let esaiQ2Teks: string[] | undefined;
   let esaiQ3Teks: string[] | undefined;
   if (tipe === "briefing" && !pregenBriefing) {
@@ -583,16 +622,14 @@ export async function generateAndInsertDraftSc(
     const essays = essayRows || [];
     esaiTeks = essays
       .flatMap((r: any) => [
-        r.essay?.survey_q3_yang_ingin_diubah,
+        r.essay?.survey_q4_alasan_betah,
         r.essay?.survey_q5_hal_menguras_energi,
         r.essay?.survey_q6_yang_ingin_disampaikan,
       ])
       .map((t: any) => (t == null ? "" : String(t).trim()))
       .filter((t: string) => t.length > 0);
-    // Section "01-E" (Cerita dari Para Pegawai): Q2/Q3 MURNI, dua daftar terpisah -- beda
-    // tujuan dari esaiTeks di atas (yang gabungan Q3+Q5+Q6 untuk tema_esai). Q3 dipakai DUA
-    // KALI di sini (sekali gabungan untuk tema_esai, sekali sendiri untuk cerita_pegawai) --
-    // bukan duplikasi keliru, dua fitur beda bentuk keluaran yang sama-sama butuh Q3.
+    esaiQ1Teks = essays.map((r: any) => r.essay?.survey_q1_gambaran_lembaga)
+      .map((t: any) => (t == null ? "" : String(t).trim())).filter((t: string) => t.length > 0);
     esaiQ2Teks = essays.map((r: any) => r.essay?.survey_q2_kejadian_kesaharian)
       .map((t: any) => (t == null ? "" : String(t).trim())).filter((t: string) => t.length > 0);
     esaiQ3Teks = essays.map((r: any) => r.essay?.survey_q3_yang_ingin_diubah)
@@ -607,7 +644,7 @@ export async function generateAndInsertDraftSc(
     } else {
       const prompt = buildUserPromptSc({
         role, sekolahNama: sekolah_nama || sekolah_id, periode_id, lembagaRow: wholeSchoolRow,
-        unitRows: lembagaRows, arahanReviewer, tipe, esaiTeks, esaiQ2Teks, esaiQ3Teks,
+        unitRows: lembagaRows, arahanReviewer, tipe, esaiTeks, esaiQ1Teks, esaiQ2Teks, esaiQ3Teks,
       });
       hasil = await callGemini(apiKey, model, SYSTEM_INSTRUCTION_SC_BRIEFING, prompt);
       if (!hasil || !hasil.gambaran) {
@@ -643,7 +680,7 @@ export async function generateAndInsertDraftSc(
   } else {
     const prompt = buildUserPromptSc({
       role, sekolahNama: sekolah_nama || sekolah_id, periode_id, lembagaRow: wholeSchoolRow,
-      unitRows: lembagaRows, arahanReviewer, tipe, esaiTeks, esaiQ2Teks, esaiQ3Teks,
+      unitRows: lembagaRows, arahanReviewer, tipe, esaiTeks, esaiQ1Teks, esaiQ2Teks, esaiQ3Teks,
     });
     const hasilArray = await callGemini(apiKey, model, SYSTEM_INSTRUCTION_SC_TINDAK_LANJUT, prompt);
     rekomendasi = Array.isArray(hasilArray) ? hasilArray : [];
@@ -661,6 +698,14 @@ export async function generateAndInsertDraftSc(
   const TERM_OK = new Set(["short", "long"]);
   const TYPE_OK = new Set(["perlu_perhatian", "pertahankan"]);
   const FOKUS_OK = new Set(["budaya", "kesejahteraan"]);
+  // Sembilan dimensi yang wajib dicakup (lihat SYSTEM_INSTRUCTION_SC_TINDAK_LANJUT) -- kalau
+  // Gemini/Excel membalas nilai di luar ini, JANGAN ditebak/dipetakan paksa (dimensi null lebih
+  // aman daripada dimensi salah, yang bisa membuat kartu dimensi lain diam-diam menampilkan
+  // konten punya dimensi berbeda -- lihat cocokkanTlKeLabel di useScData.js).
+  const DIMENSI_OK = new Set([
+    "Kekeluargaan", "Inovasi", "Orientasi", "Aturan",
+    "kepuasan_kepemimpinan", "kenyamanan_bekerja", "pengembangan_diri", "ekspektasi", "work_life_balance",
+  ]);
 
   const rows = valid.map((r: any) => {
     const type = TYPE_OK.has(r.type) ? r.type : "perlu_perhatian";
@@ -670,10 +715,13 @@ export async function generateAndInsertDraftSc(
       term: TERM_OK.has(r.term) ? r.term : "short",
       type,
       fokus: FOKUS_OK.has(r.fokus) ? r.fokus : "budaya",
+      dimensi: DIMENSI_OK.has(r.dimensi) ? r.dimensi : null,
       jenjang: null,
       icon: r.icon || null, title: r.title, teaser: r.teaser || null,
       mengapa_data: r.mengapa_data || null, mengapa_perspektif: r.mengapa_perspektif || null,
       dasar_teori: r.dasar_teori || null, manfaat: r.manfaat ?? null, konkret: r.konkret,
+      indikator_keberhasilan: Array.isArray(r.indikator_keberhasilan) && r.indikator_keberhasilan.length > 0 ? r.indikator_keberhasilan : null,
+      hal_diwaspadai: Array.isArray(r.hal_diwaspadai) && r.hal_diwaspadai.length > 0 ? r.hal_diwaspadai : null,
       action: r.title, trigger_desc: r.teaser || r.mengapa_data || r.title,
       priority: type === "perlu_perhatian" ? "tinggi" : "sedang",
       regenerate_dari: regenerateDari || null,
