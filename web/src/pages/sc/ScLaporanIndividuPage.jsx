@@ -38,6 +38,22 @@ function Reveal({ children, delay = 0, className = "" }) {
   );
 }
 
+/** Ikon expand/collapse -- SVG dibuat manual (bukan karakter unicode "⌄") supaya benar-benar
+ * center secara pixel di dalam lingkaran, unicode chevron punya bias baseline yang beda-beda
+ * antar font/browser. Bola nafas halus (styles.chevronPulse, CSS-only, BUKAN framer-motion --
+ * library itu dikunci CLAUDE.md khusus dashboard pimpinan) menandakan elemen ini bisa diklik,
+ * berhenti begitu section-nya dibuka (chevronUp) supaya rotasi 180 derajat sendiri yang jadi
+ * penanda status saat itu. */
+function ExpandIcon({ expanded }) {
+  return (
+    <span className={`${styles.chevron} ${expanded ? styles.chevronUp : styles.chevronPulse}`} aria-hidden="true">
+      <svg viewBox="0 0 20 20" width="12" height="12">
+        <path d="M5 8 L10 13 L15 8" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" />
+      </svg>
+    </span>
+  );
+}
+
 function SectionHead({ index, title, lead }) {
   return (
     <div className={styles.sectionHead}>
@@ -119,7 +135,7 @@ function BudayaGapRow({ dim, gapRow, expanded, onToggle, delay, viewerIsOwner })
           <strong>{dim.tipe}</strong>
           {gap != null && <small>Gap {Math.abs(gap)} poin</small>}
         </span>
-        <span className={`${styles.chevron} ${expanded ? styles.chevronUp : ""}`} aria-hidden="true">⌄</span>
+        <ExpandIcon expanded={expanded} />
       </button>
 
       <span className={styles.gapValues}>
@@ -170,7 +186,7 @@ function KesejahteraanRow({ item, expanded, onToggle, delay, viewerIsOwner }) {
             <div className={styles.barFillSlim} style={{ width: `${Math.max(0, Math.min(100, item.nilai ?? 0))}%` }} />
           </div>
         </span>
-        <span className={`${styles.chevron} ${expanded ? styles.chevronUp : ""}`} aria-hidden="true">⌄</span>
+        <ExpandIcon expanded={expanded} />
       </button>
 
       {expanded && (
@@ -400,7 +416,7 @@ export default function ScLaporanIndividuPage({ laporan, viewerIsOwner = false }
                     <span>
                       <strong>{t.title}</strong>
                     </span>
-                    <span className={`${styles.chevron} ${expanded ? styles.chevronUp : ""}`} aria-hidden="true">⌄</span>
+                    <ExpandIcon expanded={expanded} />
                   </button>
                   {expanded && (
                     area ? (
@@ -705,7 +721,7 @@ export default function ScLaporanIndividuPage({ laporan, viewerIsOwner = false }
                 <strong>Refleksi pribadi Anda</strong>
                 <small>Hanya dapat dilihat oleh Anda</small>
               </span>
-              <span className={`${styles.chevron} ${showReflections ? styles.chevronUp : ""}`} aria-hidden="true">⌄</span>
+              <ExpandIcon expanded={showReflections} />
             </button>
 
             {showReflections && (

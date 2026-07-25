@@ -503,7 +503,11 @@ async function handleRetryScAccounts(admin, body) {
   const gagal: { nama: string; error: string }[] = [];
   let i = 0;
   for (const [scPersonalId, nama] of unik) {
-    if (i > 0) await new Promise((resolve) => setTimeout(resolve, 400));
+    // 700ms (naik dari 400ms) -- jeda lama ternyata belum cukup mencegah rate limit Supabase Auth
+    // admin API di rombongan besar (16+ createUser berurutan), lihat catatan retry rate-limit di
+    // ensureKaryawanScAccount. Jeda ini cuma pencegahan tambahan, retry-nya sendiri yang jadi
+    // perbaikan utama.
+    if (i > 0) await new Promise((resolve) => setTimeout(resolve, 700));
     i++;
     const akun = await ensureKaryawanScAccount(admin, sekolah_id, scPersonalId, nama);
     if (akun.created) akunBaru.push({ nama: nama || scPersonalId, username: akun.username, password: akun.password });
@@ -530,7 +534,15 @@ async function ensureKaryawanScAccount(admin, sekolahId, scPersonalId, namaRespo
 
   const baseUsername = panggilanFromNama(namaResponden);
   let lastErr = null;
-  for (let attempt = 0; attempt < 5; attempt++) {
+  // MAX_ATTEMPT dinaikkan dari 5 -> 8, dan sekarang dibedakan DUA jenis kegagalan createUser --
+  // sebelumnya SATU regex (/registered|exists|duplicate/i) yang dicek, kalau tidak cocok
+  // (termasuk error rate limit) langsung menyerah di percobaan PERTAMA tanpa retry sama sekali.
+  // Ini akar masalah nyata "16 di Excel, cuma 11 akun jadi" yang berulang meski logging+jeda
+  // 400ms sudah ditambahkan sebelumnya: begitu Supabase Auth admin API mulai membalas rate limit
+  // (biasanya muncul setelah belasan createUser berurutan dalam waktu singkat, pas kena kalau
+  // sekolahnya rombongan besar), createErr TIDAK match regex lama, jadi 5-6 responden terakhir
+  // langsung gagal permanen di percobaan pertama, bukan dicoba ulang.
+  for (let attempt = 0; attempt < 8; attempt++) {
     const username = baseUsername + randomDigits(3);
     const email = `${username}@fammi.internal`;
     const password = generatePassword();
@@ -540,14 +552,22 @@ async function ensureKaryawanScAccount(admin, sekolahId, scPersonalId, namaRespo
     });
     if (createErr) {
       lastErr = createErr;
-      if (/registered|exists|duplicate/i.test(createErr.message || "")) continue;
-      // Log eksplisit -- SEBELUMNYA error di sini cuma dibalas sebagai bagian objek `akun` yang
-      // diam-diam dibuang pemanggil (lihat Upload.jsx/PersetujuanSc.jsx: cuma `akun?.created`
-      // yang dicek, `akun?.error` tidak pernah ditampilkan), jadi kegagalan buat akun (mis. rate
-      // limit Supabase Auth saat approve banyak sekaligus berurutan) tidak pernah kelihatan di
-      // mana pun. Laporannya tetap tayang seperti dirancang, tapi admin tidak pernah tahu staf
-      // itu belum punya akun untuk membukanya.
-      console.error(`ensureKaryawanScAccount: gagal buat auth user untuk sc_personal_id=${scPersonalId} (${namaResponden}): ${createErr.message}`);
+      // Log SELALU (bukan cuma saat menyerah) -- termasuk status HTTP kalau tersedia, supaya
+      // kalau ternyata BUKAN rate limit (dugaan sebelumnya), pesan mentahnya kelihatan jelas di
+      // Supabase Function Logs untuk diagnosis lanjutan, bukan cuma "gagal" tanpa detail.
+      console.error(`ensureKaryawanScAccount: createUser gagal (percobaan ${attempt + 1}/8) untuk sc_personal_id=${scPersonalId} (${namaResponden}): [${createErr.status || "?"}] ${createErr.message}`);
+      if (/registered|exists|duplicate/i.test(createErr.message || "")) continue; // username bentrok, coba lagi dengan digit baru TANPA jeda
+      if (/rate limit|too many|429|request this after|try again/i.test(createErr.message || "") || createErr.status === 429) {
+        // Rate limit Supabase Auth admin API -- BUKAN masalah username, jeda dulu (naik tiap
+        // percobaan: 1.5s, 3s, 4.5s, ...) baru coba username yang sama lagi. Sebelumnya jenis
+        // error ini langsung dianggap fatal (return error di percobaan pertama), itu sebabnya
+        // sebagian responden di rombongan besar selalu gagal permanen padahal cuma perlu ditunda.
+        await new Promise((resolve) => setTimeout(resolve, 1500 * (attempt + 1)));
+        continue;
+      }
+      // Error lain (genuinely tidak diketahui) -- tetap menyerah di percobaan pertama seperti
+      // sebelumnya, supaya tidak menghabiskan 8 percobaan untuk error yang memang tidak akan
+      // pernah berhasil diulang (mis. konfigurasi Auth salah).
       return { created: false, error: `Gagal buat auth user: ${createErr.message}` };
     }
 
@@ -568,8 +588,8 @@ async function ensureKaryawanScAccount(admin, sekolahId, scPersonalId, namaRespo
 
     return { created: true, username, password };
   }
-  console.error(`ensureKaryawanScAccount: username terus bentrok untuk sc_personal_id=${scPersonalId} (${namaResponden}): ${lastErr?.message || ""}`);
-  return { created: false, error: `Gagal buat akun setelah beberapa percobaan (username terus bentrok): ${lastErr?.message || ""}` };
+  console.error(`ensureKaryawanScAccount: menyerah setelah 8 percobaan untuk sc_personal_id=${scPersonalId} (${namaResponden}): ${lastErr?.message || ""}`);
+  return { created: false, error: `Gagal buat akun setelah 8 percobaan (username bentrok/rate limit terus-menerus): ${lastErr?.message || ""}` };
 }
 
 /** Nama siswa -> panggilan: kata pertama nama, huruf kecil, diakritik dihilangkan (é->e).

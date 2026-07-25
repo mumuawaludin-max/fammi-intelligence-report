@@ -109,8 +109,10 @@ export function PersetujuanSc() {
     for (let i = 0; i < targets.length; i++) {
       const r = targets[i];
       // Jeda kecil ANTAR approve -- tiap approve memicu createUser lewat Supabase Auth admin
-      // API, menembak beruntun tanpa jeda diduga jadi penyebab kegagalan diam-diam itu.
-      if (i > 0) await new Promise((resolve) => setTimeout(resolve, 400));
+      // API, menembak beruntun tanpa jeda diduga jadi penyebab kegagalan diam-diam itu. 700ms
+      // (naik dari 400ms) -- rombongan 16 responden masih sempat kena rate limit dengan 400ms,
+      // ensureKaryawanScAccount sekarang juga retry-with-backoff sendiri kalau tetap kena.
+      if (i > 0) await new Promise((resolve) => setTimeout(resolve, 700));
       try {
         const akun = await actScApproval(r.id, 'setuju');
         okCount++;

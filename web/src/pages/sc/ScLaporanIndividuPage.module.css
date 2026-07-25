@@ -280,7 +280,7 @@
 
 .gapHead {
   display: grid;
-  grid-template-columns: 34px 1fr 26px;
+  grid-template-columns: 34px 1fr 28px;
   align-items: center;
   gap: 10px;
   width: 100%;
@@ -319,18 +319,46 @@
 .chevron {
   display: grid;
   place-items: center;
-  width: 26px;
-  height: 26px;
+  width: 28px;
+  height: 28px;
   border-radius: 50%;
   background: var(--purple-050);
   color: var(--purple-600);
-  font-size: 15px;
-  font-weight: 800;
-  transition: transform 200ms ease, background 200ms ease;
+  box-shadow: 0 0 0 1px var(--purple-100) inset;
+  transition: transform 200ms ease, background 200ms ease, box-shadow 200ms ease;
+}
+
+.chevron svg {
+  display: block;
 }
 
 .chevronUp {
   transform: rotate(180deg);
+  background: var(--purple-100);
+  box-shadow: none;
+}
+
+/* Bola nafas halus HANYA saat tertutup -- menandakan "ini bisa diklik" tanpa harus di-hover
+   dulu, berhenti begitu section-nya terbuka (rotasi 180 derajat sendiri sudah jadi penanda). */
+.chevronPulse svg {
+  animation: chevronBob 1.8s ease-in-out infinite;
+}
+
+@keyframes chevronBob {
+  0%, 100% { transform: translateY(-1px); }
+  50% { transform: translateY(2px); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .chevronPulse svg {
+    animation: none;
+  }
+}
+
+.gapHead:hover .chevron,
+.wbHead:hover .chevron,
+.agencyItem > button:hover .chevron,
+.reflectionToggle:hover .chevron {
   background: var(--purple-100);
 }
 
@@ -434,7 +462,7 @@
 
 .wbHead {
   display: grid;
-  grid-template-columns: 40px 1fr 26px;
+  grid-template-columns: 40px 1fr 28px;
   align-items: center;
   gap: 10px;
   width: 100%;
@@ -611,7 +639,7 @@
 /* ══ Refleksi privat ══════════════════════════════════════════════════════════ */
 .reflectionToggle {
   display: grid;
-  grid-template-columns: 32px 1fr 26px;
+  grid-template-columns: 32px 1fr 28px;
   align-items: center;
   gap: 10px;
   width: 100%;
@@ -846,7 +874,7 @@
 
 .agencyItem > button {
   display: grid;
-  grid-template-columns: 32px 1fr 26px;
+  grid-template-columns: 32px 1fr 28px;
   align-items: center;
   gap: 10px;
   width: 100%;
