@@ -1396,13 +1396,19 @@ export function useSummaryTrend({ sekolahId, scope, scopeId, limit = 6 }) {
     // sekolahId boleh array (Yayasan memantau banyak sekolah sekaligus).
     const sekolahIds = Array.isArray(sekolahId) ? sekolahId : [sekolahId];
 
-    supabase
+    // Untuk scope "sekolah" satu baris per sekolah per periode sudah unik dari sekolah_id+scope
+    // saja. Filter scope_id tambahan bikin grafik tren kosong total untuk sekolah yang baris
+    // scope_id-nya tidak persis sama dengan session.school_id (mis. beda jalur import), padahal
+    // kartu hero (KepsekView/YayasanView, tidak pernah filter scope_id untuk baris sekolah) tetap
+    // tampil normal -- makanya angka hero muncul tapi grafik di bawahnya kosong.
+    let query = supabase
       .from("karakter_summary")
       .select("periode_id, ringkasan")
       .in("sekolah_id", sekolahIds)
-      .eq("scope", scope)
-      .in("scope_id", scopeIds)
-      .then(({ data }) => {
+      .eq("scope", scope);
+    if (scope !== "sekolah") query = query.in("scope_id", scopeIds);
+
+    query.then(({ data }) => {
         if (!alive) return;
         const byPeriode = {};
         (data || []).forEach((r) => {

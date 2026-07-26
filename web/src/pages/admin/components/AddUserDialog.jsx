@@ -16,7 +16,7 @@ export function AddUserDialog() {
   return (
     <>
       <div style={{ position: 'fixed', inset: 0, background: 'rgba(33,27,46,.42)', zIndex: 60 }} onClick={close} />
-      <div className="dialog-enter" style={{ position: 'fixed', top: '50%', left: '50%', transform: 'translate(-50%,-50%)', background: 'var(--surface)', borderRadius: 20, width: 'min(720px,94vw)', maxHeight: '86vh', display: 'flex', flexDirection: 'column', boxShadow: '0 24px 60px rgba(33,27,46,.28)', zIndex: 70 }}>
+      <div className="dialog-enter" style={{ position: 'fixed', top: '50%', left: '50%', transform: 'translate(-50%,-50%)', background: 'var(--surface)', borderRadius: 20, width: 'min(720px,94vw)', maxHeight: '86vh', display: 'flex', flexDirection: 'column', overflow: 'hidden', boxShadow: '0 24px 60px rgba(33,27,46,.28)', zIndex: 70 }}>
         <div style={{ padding: '20px 24px 0', borderBottom: '1px solid var(--line)', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
           <div>
             <div className="disp" style={{ fontSize: 17, fontWeight: 700, color: 'var(--ink)' }}>Buat akun baru</div>
@@ -69,7 +69,7 @@ function SingleForm({ close }) {
 
   return (
     <>
-      <div style={{ padding: '20px 24px', display: 'flex', flexDirection: 'column', gap: 14, overflowY: 'auto' }}>
+      <div style={{ padding: '20px 24px', display: 'flex', flexDirection: 'column', gap: 14, overflowY: 'auto', flex: 1, minHeight: 0 }}>
         <div>
           <label style={labelStyle}>Nama lengkap</label>
           <input ref={namaRef} className="fld" placeholder="Contoh: Bu Ratna Dewi" autoFocus />
@@ -148,7 +148,7 @@ function BulkForm({ close }) {
 
   return (
     <>
-      <div style={{ padding: '16px 24px', display: 'flex', flexDirection: 'column', gap: 12, overflowY: 'auto', flex: 1 }}>
+      <div style={{ padding: '16px 24px', display: 'flex', flexDirection: 'column', gap: 12, overflowY: 'auto', flex: 1, minHeight: 0 }}>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
           <div>
             <label style={labelStyle}>Sekolah</label>

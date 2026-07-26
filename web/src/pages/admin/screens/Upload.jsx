@@ -4,13 +4,14 @@ import { LoadingCards } from '../components/LoadingCards';
 import { ErrorState } from '../components/ErrorState';
 import { moduleColor, moduleShort, statusColor } from '../data/helpers';
 import { parseKarakterWorkbook } from '../importers/karakterImporter';
-import { parseMiWorkbook } from '../importers/miImporter';
+import { parseMiWorkbook, resolveMiUnresolved, computePeriodeDetected } from '../importers/miImporter';
 import { parseScWorkbook } from '../importers/scImporter';
 import { loadScPersonalIdsAction, loadScPendingAction, actScApproval } from '../useAdminCmsData';
 import { periodeLabel } from '../../karakter/karakterMeta';
 
-// Modul MI dibaca per-baris dari file (multi-sekolah), jadi tidak pakai langkah "pilih sekolah".
-// Sentinel ini dipakai di dropdown langkah 1 untuk masuk ke mode MI.
+// Modul MI bisa dipakai untuk satu sekolah spesifik (dipilih normal di langkah 1, sama seperti
+// modul lain) ATAU untuk file yang mencampur banyak sekolah sekaligus. Sentinel ini dipakai di
+// dropdown langkah 1 khusus untuk masuk ke mode "banyak sekolah dari file" yang kedua.
 const SEKOLAH_MI = '__mi__';
 const STEPS = ['Sekolah', 'Modul', 'Upload file', 'Cek & konfirmasi'];
 
@@ -41,6 +42,10 @@ export function Upload() {
   const [busy, setBusy] = useState(false);
   const [miProgress, setMiProgress] = useState(null); // { done, total }
   const [miResults, setMiResults] = useState(null); // ringkasan hasil generate
+  // Mode "banyak sekolah dari file" saja: pemetaan manual nama-sekolah-di-file -> sekolah_id
+  // terdaftar, untuk baris yang gagal cocok otomatis (lihat unresolved di parseMiWorkbook).
+  const [miMapping, setMiMapping] = useState({});
+  const [miMappingBusy, setMiMappingBusy] = useState(false);
   const [scImported, setScImported] = useState(false); // import mentah sc_personal/sc_lembaga selesai
   const [scProgress, setScProgress] = useState(null); // { done, total }
   const [scResults, setScResults] = useState(null); // ringkasan hasil generate laporan individu SC
@@ -61,6 +66,7 @@ export function Upload() {
   function resetFlow() {
     setStep(1); setSekolahId(''); setModul('karakter'); setFile(null);
     setParsed(null); setParseError(null); setMiProgress(null); setMiResults(null); setPeriodeSc('');
+    setMiMapping({}); setMiMappingBusy(false);
     setScImported(false); setScProgress(null); setScResults(null);
     setScApproveBusy(false); setScApproveProgress(null); setScApproveResult(null);
   }
@@ -142,7 +148,14 @@ export function Upload() {
       if (modul === 'karakter') {
         result = await parseKarakterWorkbook(f, { sekolahId });
       } else if (modul === 'mi') {
-        result = await parseMiWorkbook(f, { schools: data.sekolah });
+        // Sekolah tunggal dipilih di langkah 1 (bukan sentinel SEKOLAH_MI): pakai langsung,
+        // kolom sekolah di file diabaikan sama sekali -- tidak ada nama yang perlu dicocokkan.
+        result = await parseMiWorkbook(f, { schools: data.sekolah, sekolahId: sekolahId !== SEKOLAH_MI ? sekolahId : null });
+        if (result.ok && result.unresolved?.length > 0) {
+          const initial = {};
+          result.unresolved.forEach((u) => { initial[u.namaFile] = u.suggestion?.id || ''; });
+          setMiMapping(initial);
+        }
       } else if (modul === 'sc') {
         result = await parseScWorkbook(f, { sekolahId, periodeId: periodeSc });
       } else {
@@ -154,6 +167,30 @@ export function Upload() {
       setStep(4);
     } catch (e) {
       setParseError(e.message || 'Gagal memparse file.');
+    }
+  }
+
+  // Setelah admin memetakan tiap nama-sekolah-tak-dikenal ke sekolah terdaftar (atau memilih
+  // lewati), gabungkan baris yang baru terselesaikan ke rows utama tanpa perlu upload ulang file.
+  async function applyMiMapping() {
+    setMiMappingBusy(true);
+    setParseError(null);
+    try {
+      const mapping = {};
+      Object.entries(miMapping).forEach(([namaFile, v]) => { mapping[namaFile] = v === '__skip__' || !v ? null : v; });
+      const { rows: extraRows } = await resolveMiUnresolved(parsed.unresolved, mapping, parsed.muridState);
+      const mergedRows = [...parsed.rows, ...extraRows];
+      setParsed({
+        ...parsed,
+        rows: mergedRows,
+        unresolved: undefined,
+        preview: { ...parsed.preview, periodeDetected: computePeriodeDetected(mergedRows), sekolahCount: new Set(mergedRows.map((r) => r.sekolah_id)).size },
+      });
+      setMiMapping({});
+    } catch (e) {
+      setParseError(e.message || 'Gagal mencocokkan sekolah.');
+    } finally {
+      setMiMappingBusy(false);
     }
   }
 
@@ -236,16 +273,17 @@ export function Upload() {
             onChange={(e) => {
               const v = e.target.value;
               setSekolahId(v);
-              // Mode MI: sekolah dibaca dari file, jadi modul otomatis MI dan dikunci di langkah 2.
+              // Mode "banyak sekolah dari file": modul otomatis MI (satu-satunya yang didukung
+              // mode ini). Pindah ke sekolah spesifik TIDAK memaksa modul lain -- MI tetap valid
+              // untuk satu sekolah juga, jadi pilihan modul admin dibiarkan seperti sebelumnya.
               if (v === SEKOLAH_MI) setModul('mi');
-              else if (modul === 'mi') setModul('karakter');
             }}
           >
             <option value="">— Pilih sekolah —</option>
             <option value={SEKOLAH_MI}>— Modul MI: banyak sekolah, dibaca dari file —</option>
             {data.sekolah.map((s) => <option key={s.id} value={s.id}>{s.nama} ({s.id})</option>)}
           </select>
-          <div style={{ fontSize: 11.5, color: 'var(--ink-3)', marginTop: 8 }}>Untuk modul MI, pilih baris paling atas: satu file bisa memuat banyak sekolah dan tiap baris dicocokkan otomatis ke sekolah terdaftar lewat namanya.</div>
+          <div style={{ fontSize: 11.5, color: 'var(--ink-3)', marginTop: 8 }}>Untuk modul MI: pilih sekolah tujuan seperti biasa kalau filenya cuma untuk satu sekolah. Baris paling atas ("banyak sekolah, dibaca dari file") cuma dipakai kalau satu file mencampur beberapa sekolah sekaligus, dicocokkan lewat nama tiap barisnya.</div>
           <button className="btn-primary" style={{ marginTop: 16 }} disabled={!sekolahId} onClick={() => setStep(2)}>Lanjut ke langkah 2</button>
         </div>
       )}
@@ -257,9 +295,11 @@ export function Upload() {
             {['karakter', 'mi', 'screening', 'sc'].map((m) => {
               const mc = moduleColor(m);
               const active = m === modul;
-              // Kalau masuk lewat mode MI (sekolah dibaca dari file), modul dikunci ke MI, dan
-              // sebaliknya modul MI cuma boleh lewat mode itu.
-              const locked = (sekolahId === SEKOLAH_MI && m !== 'mi') || (sekolahId !== SEKOLAH_MI && m === 'mi');
+              // Modul MI selalu boleh dipilih, baik untuk satu sekolah spesifik (dari file
+              // sekolah_id-nya diabaikan, langsung pakai sekolah yang dipilih) maupun mode
+              // "banyak sekolah dari file". Modul lain butuh satu sekolah konkret, jadi terkunci
+              // selama masih di mode MI sentinel (belum ada sekolah spesifik yang dipilih).
+              const locked = sekolahId === SEKOLAH_MI && m !== 'mi';
               return (
                 <button key={m} className="clk" disabled={locked} onClick={() => setModul(m)} style={{ padding: '10px 14px', borderRadius: 11, fontSize: 12.5, fontWeight: 700, opacity: locked ? 0.4 : 1, cursor: locked ? 'not-allowed' : 'pointer', background: active ? mc.bg : 'var(--surface-soft)', color: active ? mc.ink : 'var(--ink-2)', boxShadow: active ? 'none' : 'inset 0 0 0 1px var(--line)' }}>
                   {moduleShort(m)}
@@ -269,7 +309,9 @@ export function Upload() {
           </div>
           <div style={{ fontSize: 11.5, color: 'var(--ink-3)', marginBottom: 14 }}>
             {isMi
-              ? 'MI: tiap baris file = satu siswa. Gemini merumuskan seluruh laporan (dominan, narasi, profesi, rencana) lalu masuk antrian persetujuan. Periode dan sekolah dibaca dari file.'
+              ? (sekolahId === SEKOLAH_MI
+                ? 'MI: tiap baris file = satu siswa, boleh lintas sekolah. Sekolah tiap baris dicocokkan ke sekolah terdaftar lewat namanya; yang tidak cocok bisa dipetakan manual sebelum generate. Periode dibaca dari file.'
+                : `MI: tiap baris file = satu siswa. Semua baris langsung dianggap milik ${sekolah?.nama || 'sekolah yang dipilih'} -- kolom sekolah di file (kalau ada) diabaikan. Periode dibaca dari file.`)
               : modul === 'sc'
               ? 'School Culture: sheet "Personal" (satu baris per staf) + sheet "Lembaga" (agregat sekolah). File ini TIDAK punya kolom bulan sendiri, jadi periode wajib diisi manual di bawah.'
               : 'Periode tidak perlu diketik manual — sistem membaca kolom "bulan" langsung dari tiap baris file, jadi satu file boleh memuat beberapa bulan sekaligus.'}
@@ -296,7 +338,7 @@ export function Upload() {
           <div className="card" style={{ padding: '14px 20px', marginBottom: 14, display: 'flex', gap: 20, alignItems: 'center' }}>
             <div>
               <div style={{ fontSize: 10.5, fontWeight: 800, letterSpacing: '0.06em', textTransform: 'uppercase', color: 'var(--ink-3)' }}>Sekolah</div>
-              <div style={{ fontSize: 13.5, fontWeight: 700, marginTop: 2 }}>{isMi ? 'Banyak sekolah (dari file)' : `${sekolah?.nama} (${sekolahId})`}</div>
+              <div style={{ fontSize: 13.5, fontWeight: 700, marginTop: 2 }}>{sekolahId === SEKOLAH_MI ? 'Banyak sekolah (dari file)' : `${sekolah?.nama} (${sekolahId})`}</div>
             </div>
             <div style={{ width: 1, height: 32, background: 'var(--line)' }} />
             <div>
@@ -310,7 +352,9 @@ export function Upload() {
             <div className="disp" style={{ fontSize: 18, fontWeight: 700, color: 'var(--ink)', marginBottom: 6 }}>Pilih file Excel</div>
             <div style={{ fontSize: 13, color: 'var(--ink-3)', marginBottom: 16 }}>
               {isMi
-                ? '.xlsx / .xls · satu sheet, satu baris per siswa (kolom nama_siswa, kelas_id, sekolah_id, periode, r_inter..r_spasial, essay_*)'
+                ? (sekolahId === SEKOLAH_MI
+                  ? '.xlsx / .xls · satu sheet, satu baris per siswa (kolom nama_siswa, kelas_id, sekolah_id, periode, r_inter..r_spasial, essay_*)'
+                  : '.xlsx / .xls · satu sheet, satu baris per siswa (kolom nama_siswa, kelas_id, periode, r_inter..r_spasial, essay_*). Kolom sekolah di file boleh ada atau tidak, tidak dipakai.')
                 : modul === 'sc'
                 ? '.xlsx / .xls · sheet "Personal" (satu baris per staf) + sheet "Lembaga" (agregat sekolah)'
                 : '.xlsx / .xls · sheet detail_persentase_karakter dkk (format sama seperti data awal)'}
@@ -348,6 +392,43 @@ export function Upload() {
             )}
           </div>
 
+          {parsed.unresolved?.length > 0 && (
+            <div className="card" style={{ padding: '16px 22px', marginBottom: 14, boxShadow: 'inset 0 0 0 1px var(--status-warn)' }}>
+              <div className="disp" style={{ fontSize: 14, fontWeight: 700, color: 'var(--status-warn)', marginBottom: 6 }}>
+                ⚠ {parsed.unresolved.length} nama sekolah di file belum cocok dengan yang terdaftar ({parsed.unresolved.reduce((n, u) => n + u.count, 0)} siswa tertahan)
+              </div>
+              <div style={{ fontSize: 12, color: 'var(--ink-2)', marginBottom: 12, lineHeight: 1.5 }}>
+                Cocokkan tiap nama ke sekolah terdaftar, atau lewati baris-baris itu. Tidak ditebak otomatis -- pilih sendiri per baris supaya tidak salah sekolah.
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 14 }}>
+                {parsed.unresolved.map((u) => (
+                  <div key={u.namaFile} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                    <div style={{ flex: 1, fontSize: 12.5, minWidth: 0 }}>
+                      <span className="mono">{u.namaFile}</span>
+                      <span style={{ color: 'var(--ink-3)' }}> · {u.count} siswa</span>
+                      {u.suggestion && <span style={{ color: 'var(--purple-600)' }}> · mirip "{u.suggestion.nama}"</span>}
+                    </div>
+                    <select
+                      className="fld" style={{ maxWidth: 280 }}
+                      value={miMapping[u.namaFile] || ''}
+                      onChange={(e) => setMiMapping((m) => ({ ...m, [u.namaFile]: e.target.value }))}
+                    >
+                      <option value="">— pilih sekolah —</option>
+                      <option value="__skip__">Lewati {u.count} siswa ini</option>
+                      {data.sekolah.map((s) => <option key={s.id} value={s.id}>{s.nama} ({s.id})</option>)}
+                    </select>
+                  </div>
+                ))}
+              </div>
+              <button
+                className="btn-primary" disabled={miMappingBusy || parsed.unresolved.some((u) => !miMapping[u.namaFile])}
+                onClick={applyMiMapping}
+              >
+                {miMappingBusy ? 'Mencocokkan…' : 'Terapkan pencocokan'}
+              </button>
+            </div>
+          )}
+
           {miResults ? (
             <div className="card" style={{ padding: '16px 22px' }}>
               <div className="disp" style={{ fontSize: 15, fontWeight: 700, color: 'var(--ink)', marginBottom: 8 }}>
@@ -363,7 +444,7 @@ export function Upload() {
               <div style={{ fontSize: 12.5, color: 'var(--ink-2)', marginBottom: 12 }}>Laporan yang berhasil masuk Antrian Persetujuan berstatus menunggu. Setujui di sana supaya tayang ke siswa/orang tua.</div>
               <button className="btn-primary" onClick={resetFlow}>Selesai</button>
             </div>
-          ) : (
+          ) : !parsed.unresolved?.length ? (
             <div className="card" style={{ padding: '16px 22px' }}>
               <div style={{ fontSize: 12.5, color: 'var(--ink-2)', lineHeight: 1.6, marginBottom: 12 }}>
                 Tiap siswa dirumuskan Gemini (dominan, narasi, profesi, rencana) lalu masuk Antrian Persetujuan berstatus menunggu. Prosesnya ~15-30 detik per siswa, jadi {parsed.rows.length} siswa bisa memakan beberapa menit. Jangan tutup halaman ini selama proses berjalan.
@@ -381,10 +462,14 @@ export function Upload() {
               )}
               <div style={{ display: 'flex', gap: 8 }}>
                 <button className="btn-secondary" onClick={() => setStep(3)} disabled={busy}>Batal</button>
-                <button className="btn-primary" onClick={handleConfirm} disabled={busy}>{busy ? 'Menggenerate…' : `Generate ${parsed.rows.length} laporan MI`}</button>
+                {/* rows bisa 0 kalau semua baris tadinya tak-cocok lalu admin memilih lewati
+                    semuanya -- tanpa guard ini tombol berbunyi "Generate 0 laporan". */}
+                <button className="btn-primary" onClick={handleConfirm} disabled={busy || parsed.rows.length === 0}>
+                  {busy ? 'Menggenerate…' : parsed.rows.length === 0 ? 'Tidak ada siswa tersisa' : `Generate ${parsed.rows.length} laporan MI`}
+                </button>
               </div>
             </div>
-          )}
+          ) : null}
         </div>
       )}
 
