@@ -8,10 +8,10 @@ import { IconMoreVertical } from '../components/icons';
 
 // Urutannya harus sama dengan kolom <th> di tabel bawah -- baris data dirender dengan
 // MODULES.map, jadi menambah modul di sini tanpa menambah header bikin kolom bergeser.
-const MODULES = ['karakter', 'mi', 'screening', 'cw', 'sc'];
+const MODULES = ['karakter', 'mi', 'screening', 'cw', 'sc', 'pa'];
 
 export function Sekolah() {
-  const { data, loading, error, setAddSchoolOpen, setAddYayasanOpen, showToast, isModuleOn, toggleModule, refetch } = useCms();
+  const { data, loading, error, setAddSchoolOpen, setAddYayasanOpen, setEditSchoolTarget, showToast, isModuleOn, toggleModule, refetch } = useCms();
   const [expanded, setExpanded] = useState(null);
 
   if (loading) return <LoadingCards rows={4} />;
@@ -47,6 +47,7 @@ export function Sekolah() {
                 <th>Screening</th>
                 <th>Culture</th>
                 <th>School Culture</th>
+                <th>Perilaku Anak</th>
                 <th>Aspek config</th>
                 <th>Aktif</th>
                 <th style={{ width: 36 }}></th>
@@ -61,6 +62,7 @@ export function Sekolah() {
                   isModuleOn={isModuleOn}
                   toggleModule={toggleModule}
                   onExpand={() => setExpanded(cur => cur === k.id ? null : k.id)}
+                  onEditLogo={() => setEditSchoolTarget(k)}
                 />
               ))}
             </tbody>
@@ -96,11 +98,16 @@ export function Sekolah() {
   );
 }
 
-function SekolahRow({ k, yayNama, isModuleOn, toggleModule, onExpand }) {
+function SekolahRow({ k, yayNama, isModuleOn, toggleModule, onExpand, onEditLogo }) {
   return (
     <tr className="hover-row">
       <td>
-        <div style={{ fontWeight: 700 }}>{k.nama}</div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          {k.logoUrl && (
+            <img src={k.logoUrl} alt="" style={{ width: 22, height: 22, objectFit: 'contain', borderRadius: 5, flexShrink: 0 }} />
+          )}
+          <div style={{ fontWeight: 700 }}>{k.nama}</div>
+        </div>
         <div className="mono" style={{ fontSize: 11, color: 'var(--ink-3)', marginTop: 2 }}>{k.id}</div>
       </td>
       <td style={{ fontSize: 12.5, color: 'var(--ink-2)' }}>{yayNama ? yayNama.replace('Yayasan ', '') : <span style={{ color: 'var(--ink-4)' }}>Mandiri</span>}</td>
@@ -119,7 +126,11 @@ function SekolahRow({ k, yayNama, isModuleOn, toggleModule, onExpand }) {
           ? <span className="pill" style={{ background: 'var(--status-safe-bg)', color: 'var(--status-safe)' }}><span className="dot" style={{ background: 'var(--status-safe)' }} />Aktif</span>
           : <span className="pill" style={{ background: '#F0F0F4', color: 'var(--ink-3)' }}><span className="dot" style={{ background: 'var(--ink-4)' }} />Nonaktif</span>}
       </td>
-      <td style={{ textAlign: 'right' }}><IconMoreVertical size={14} stroke="#7C7689" /></td>
+      <td style={{ textAlign: 'right' }}>
+        <button className="btn-ghost" style={{ padding: 6 }} onClick={onEditLogo} title="Logo sekolah">
+          <IconMoreVertical size={14} stroke="#7C7689" />
+        </button>
+      </td>
     </tr>
   );
 }

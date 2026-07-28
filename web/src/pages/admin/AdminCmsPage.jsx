@@ -9,6 +9,7 @@ import { AddSchoolDialog } from './components/AddSchoolDialog';
 import { AddYayasanDialog } from './components/AddYayasanDialog';
 import { AddUserDialog } from './components/AddUserDialog';
 import { EditUserDialog } from './components/EditUserDialog';
+import { EditSchoolDialog } from './components/EditSchoolDialog';
 import { Dashboard } from './screens/Dashboard';
 import { Antrian } from './screens/Antrian';
 import { PersetujuanMi } from './screens/PersetujuanMi';
@@ -86,6 +87,7 @@ function Shell({ session, onLogout }) {
       <AddYayasanDialog />
       <AddUserDialog />
       <EditUserDialog />
+      <EditSchoolDialog />
       <ToastHost />
     </div>
   );

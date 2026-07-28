@@ -6,6 +6,7 @@ import { moduleColor, moduleShort, statusColor } from '../data/helpers';
 import { parseKarakterWorkbook } from '../importers/karakterImporter';
 import { parseMiWorkbook, resolveMiUnresolved, computePeriodeDetected } from '../importers/miImporter';
 import { parseScWorkbook } from '../importers/scImporter';
+import { parsePaWorkbook } from '../importers/paImporter';
 import { loadScPersonalIdsAction, loadScPendingAction, actScApproval } from '../useAdminCmsData';
 import { periodeLabel } from '../../karakter/karakterMeta';
 
@@ -61,6 +62,10 @@ export function Upload() {
 
   const isMi = modul === 'mi';
   const isSc = modul === 'sc';
+  const isPa = modul === 'pa';
+  // SC dan PA sama-sama tidak punya kolom periode di dalam filenya, jadi keduanya memakai input
+  // periode manual yang sama di langkah 2.
+  const butuhPeriodeManual = isSc || isPa;
   const sekolah = data.sekolah.find((s) => s.id === sekolahId);
 
   function resetFlow() {
@@ -158,8 +163,11 @@ export function Upload() {
         }
       } else if (modul === 'sc') {
         result = await parseScWorkbook(f, { sekolahId, periodeId: periodeSc });
+      } else if (modul === 'pa') {
+        // Perilaku Anak ikut pola SC: periode tidak ada di dalam file, diketik admin di langkah 2.
+        result = await parsePaWorkbook(f, { sekolahId, periodeId: periodeSc });
       } else {
-        setParseError('Importer untuk modul ini belum tersedia (baru Karakter, MI, dan School Culture).');
+        setParseError('Importer untuk modul ini belum tersedia (baru Karakter, MI, School Culture, dan Perilaku Anak).');
         return;
       }
       if (!result.ok) { setParseError(result.error); return; }
@@ -292,7 +300,7 @@ export function Upload() {
         <div className="card" style={{ padding: 24 }}>
           <div className="disp" style={{ fontSize: 16, fontWeight: 700, color: 'var(--ink)', marginBottom: 10 }}>Pilih modul</div>
           <div style={{ display: 'flex', gap: 8, marginBottom: 6 }}>
-            {['karakter', 'mi', 'screening', 'sc'].map((m) => {
+            {['karakter', 'mi', 'screening', 'sc', 'pa'].map((m) => {
               const mc = moduleColor(m);
               const active = m === modul;
               // Modul MI selalu boleh dipilih, baik untuk satu sekolah spesifik (dari file
@@ -312,11 +320,13 @@ export function Upload() {
               ? (sekolahId === SEKOLAH_MI
                 ? 'MI: tiap baris file = satu siswa, boleh lintas sekolah. Sekolah tiap baris dicocokkan ke sekolah terdaftar lewat namanya; yang tidak cocok bisa dipetakan manual sebelum generate. Periode dibaca dari file.'
                 : `MI: tiap baris file = satu siswa. Semua baris langsung dianggap milik ${sekolah?.nama || 'sekolah yang dipilih'} -- kolom sekolah di file (kalau ada) diabaikan. Periode dibaca dari file.`)
-              : modul === 'sc'
+              : isSc
               ? 'School Culture: sheet "Personal" (satu baris per staf) + sheet "Lembaga" (agregat sekolah). File ini TIDAK punya kolom bulan sendiri, jadi periode wajib diisi manual di bawah.'
+              : isPa
+              ? 'Perilaku Anak: satu workbook berisi sheet data (PAGE 1-4) + sheet NARASI. Sheet dikenali dari nama kolomnya, bukan nama sheet-nya. File TIDAK punya kolom bulan, jadi periode wajib diisi manual di bawah. Mengunggah ulang periode yang sama akan MENGGANTI seluruh data periode itu, bukan menumpuk.'
               : 'Periode tidak perlu diketik manual — sistem membaca kolom "bulan" langsung dari tiap baris file, jadi satu file boleh memuat beberapa bulan sekaligus.'}
           </div>
-          {modul === 'sc' && (
+          {butuhPeriodeManual && (
             <div style={{ marginBottom: 14 }}>
               <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: 'var(--ink-2)', marginBottom: 6 }}>Periode (format YYYY-MM)</label>
               <input
@@ -329,7 +339,7 @@ export function Upload() {
               />
             </div>
           )}
-          <button className="btn-primary" disabled={modul === 'sc' && !/^\d{4}-\d{2}$/.test(periodeSc)} onClick={() => setStep(3)}>Lanjut ke langkah 3</button>
+          <button className="btn-primary" disabled={butuhPeriodeManual && !/^\d{4}-\d{2}$/.test(periodeSc)} onClick={() => setStep(3)}>Lanjut ke langkah 3</button>
         </div>
       )}
 
@@ -482,6 +492,8 @@ export function Upload() {
                 <div style={{ fontSize: 12, color: 'var(--ink-3)', marginTop: 3 }}>
                   {isSc
                     ? `${parsed.rows.personalRows.length} responden · ${parsed.rows.lembagaRows.length} baris agregat lembaga`
+                    : isPa
+                    ? `${parsed.rows.siswaRows.length} baris siswa/domain · ${parsed.rows.lembagaRows.length} baris agregat · ${parsed.rows.esaiRows.length} jawaban esai`
                     : `${parsed.rows.skorRows.length} baris skor · ${parsed.muridBaru} murid baru terdeteksi`}
                 </div>
               </div>
@@ -511,6 +523,29 @@ export function Upload() {
             {/* Kolom "laporan_json" (opsional): laporan siap pakai dari hulu. Ditampilkan SEBELUM
                 konfirmasi supaya admin tahu berapa orang yang tidak perlu Gemini sama sekali, dan
                 baris mana yang JSON-nya perlu diperbaiki dulu kalau tidak mau jatuh ke Gemini. */}
+            {/* Perilaku Anak: status kelengkapan narasi. Ini yang membedakan unggahan tahap 1
+                (data saja, kolom ISI_ masih kosong) dari tahap 2 (narasi sudah diisi) -- admin
+                perlu tahu SEBELUM konfirmasi, karena keduanya sama-sama "berhasil" di mata
+                importer, cuma laporannya nanti tampil tanpa kalimat insight. */}
+            {isPa && (
+              <div style={{ marginTop: 10, padding: '10px 14px', background: parsed.preview.pregenWarnings?.length > 0 ? 'var(--status-warn-bg)' : 'var(--status-safe-bg)', borderRadius: 10 }}>
+                <div style={{ fontSize: 12.5, fontWeight: 700, color: parsed.preview.pregenWarnings?.length > 0 ? 'var(--status-warn)' : 'var(--status-safe)' }}>
+                  📝 Narasi terisi untuk {parsed.preview.narasiScopeTerisi} cakupan unit · {parsed.preview.anotasiEsaiTerisi} dari {parsed.rows.esaiRows.length} jawaban esai sudah dianotasi
+                </div>
+                <div style={{ fontSize: 11.5, color: 'var(--ink-2)', marginTop: 4, lineHeight: 1.5 }}>
+                  Unit terdeteksi: {(parsed.preview.unitTerdeteksi || []).join(' · ') || '—'}.
+                  Mengunggah ulang periode {periodeSc} akan mengganti seluruh data periode itu, jadi aman diulang setelah narasi dilengkapi.
+                </div>
+                {parsed.preview.pregenWarnings?.length > 0 && (
+                  <div style={{ marginTop: 8, display: 'flex', flexDirection: 'column', gap: 3 }}>
+                    {parsed.preview.pregenWarnings.map((w, i) => (
+                      <div key={i} style={{ fontSize: 11.5, color: 'var(--ink-2)' }}>⚠ {w}</div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+
             {isSc && (parsed.preview.pregenCount > 0 || parsed.preview.pregenWarnings?.length > 0) && (
               <div style={{ marginTop: 10, padding: '10px 14px', background: parsed.preview.pregenWarnings?.length > 0 ? 'var(--status-warn-bg)' : 'var(--status-safe-bg)', borderRadius: 10 }}>
                 <div style={{ fontSize: 12.5, fontWeight: 700, color: parsed.preview.pregenWarnings?.length > 0 ? 'var(--status-warn)' : 'var(--status-safe)' }}>
@@ -642,7 +677,7 @@ export function Upload() {
               <div>
                 <div style={{ fontSize: 13, color: 'var(--ink-2)', lineHeight: 1.5 }}>Akan menulis ke tabel: </div>
                 <div className="mono" style={{ fontSize: 12, color: 'var(--purple-700)', marginTop: 3 }}>
-                  {isSc ? 'sc_personal · sc_lembaga' : 'karakter_skor · karakter_skor_indikator · karakter_pernyataan_ortu · karakter_summary'}
+                  {isSc ? 'sc_personal · sc_lembaga' : isPa ? 'pa_lembaga · pa_siswa · pa_esai' : 'karakter_skor · karakter_skor_indikator · karakter_pernyataan_ortu · karakter_summary'}
                 </div>
               </div>
               <div style={{ display: 'flex', gap: 8 }}>

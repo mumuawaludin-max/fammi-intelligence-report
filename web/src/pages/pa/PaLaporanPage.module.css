@@ -1,0 +1,56 @@
+/**
+ * Layout minimal. Struktur visual tiap bagian hidup di CSS module komponennya sendiri, sama
+ * seperti pembagian di sc/ScLaporanAgregatPage.module.css.
+ */
+.page {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: min(calc(100% - 40px), 1200px);
+  margin-inline: auto;
+  padding-bottom: 48px;
+}
+
+/* Status kosong/memuat/gagal, dipakai sebelum data siap -- padanan .stateBox di sc/ScPage.module.css,
+   disalin ke token warna PA (--pa-*) supaya tidak keluar dari cakupan .scope modul ini. */
+.stateBox {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  min-height: 320px;
+  background: var(--pa-surface);
+  border: 1.5px dashed var(--pa-border);
+  border-radius: var(--pa-radius-lg);
+  padding: 48px 32px;
+  text-align: center;
+  margin-top: 24px;
+}
+
+.stateIcon {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: var(--pa-soft);
+  color: var(--pa-primary);
+  font-size: 22px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.stateTitle {
+  font-size: 17px;
+  font-weight: 760;
+  color: var(--pa-heading);
+  margin: 0;
+}
+
+.stateMsg {
+  font-size: 14px;
+  color: var(--pa-muted);
+  margin: 0;
+  max-width: 420px;
+  line-height: 1.5;
+}

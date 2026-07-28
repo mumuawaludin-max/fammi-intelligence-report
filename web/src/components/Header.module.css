@@ -80,27 +80,43 @@
   flex-shrink: 0;
 }
 
-.rightKepsek .schoolName {
+.rightKepsek .schoolBrand {
   display: none;
 }
 
 @media (min-width: 900px) {
-  .rightKepsek .schoolName {
-    display: block;
+  .rightKepsek .schoolBrand {
+    display: flex;
   }
+}
+
+/* Logo sekolah + nama sekolah dikelompokkan jadi satu unit supaya breakpoint tampil/sembunyi
+   berlaku untuk keduanya sekaligus -- kalau ditoggle terpisah, logo bisa nongol sendirian tanpa
+   nama sekolah di lebar layar tanggung. */
+.schoolBrand {
+  display: none;
+  align-items: center;
+  gap: 8px;
+}
+
+@media (min-width: 640px) {
+  .schoolBrand {
+    display: flex;
+  }
+}
+
+.schoolLogo {
+  width: 26px;
+  height: 26px;
+  object-fit: contain;
+  border-radius: var(--radius-sm);
+  flex-shrink: 0;
 }
 
 .schoolName {
   font-size: 13px;
   font-weight: 600;
   color: var(--ink-3);
-  display: none;
-}
-
-@media (min-width: 640px) {
-  .schoolName {
-    display: block;
-  }
 }
 
 /* Satu baris rapi: avatar + nama + pill peran sejajar, tidak ditumpuk 2 baris

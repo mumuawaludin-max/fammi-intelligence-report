@@ -1,0 +1,54 @@
+/**
+ * Token warna KHUSUS modul Perilaku Anak (PA). Palet dasar, radius, dan bayangannya sengaja
+ * disalin dari dashboard "Laporan Lembaga" School Culture (sc/scBudayaTokens.module.css) --
+ * instruksi eksplisit pemilik produk: pola desain dan animasi modul ini benchmark ke School
+ * Culture. Sama seperti di SC, ini pengecualian yang disengaja dari token FIR biasa dan
+ * di-scope lewat class .scope supaya TIDAK menjalar ke modul lain.
+ *
+ * Tambahan yang tidak ada di SC: skala tiga tingkat hasil asesmen (aman/waspada/perlu
+ * perhatian), skala lima tingkat emosi, dan dua warna jenis kelamin. Ketiganya warna pengkode
+ * data, bukan warna dekorasi. Nilainya sengaja diturunkan dari token status FIR (aman #2E9E6B,
+ * perlu perhatian #D69219, waspada #D6455A), BUKAN merah/hijau/kuning mentah seperti di
+ * wireframe -- wireframe memakai warna layar penuh yang terlalu keras untuk laporan sekolah,
+ * dan pemilik produk meminta hasil akhirnya mengikuti bahasa visual School Culture.
+ */
+.scope {
+  --pa-primary: #6c2bd9;
+  --pa-heading: #3b1e77;
+  --pa-soft: #f1eaff;
+  --pa-bg: #fafaf7;
+  --pa-surface: #ffffff;
+  --pa-border: #e6e2da;
+  --pa-gold: #d9a406;
+  --pa-gold-soft: #fff7dc;
+  --pa-ink: #211c2d;
+  --pa-muted: #675f71;
+  --pa-muted-2: #8c8494;
+  --pa-track: #ece8e0;
+  --pa-shadow-sm: 0 6px 22px rgba(59, 30, 119, 0.06);
+  --pa-shadow-md: 0 18px 48px rgba(59, 30, 119, 0.09);
+  --pa-radius-sm: 10px;
+  --pa-radius-md: 16px;
+  --pa-radius-lg: 24px;
+
+  /* Tiga tingkat hasil asesmen HEART. */
+  --pa-aman: #2e9e6b;
+  --pa-aman-bg: #e7f4ee;
+  --pa-waspada: #d69219;
+  --pa-waspada-bg: #faf1dc;
+  --pa-perhatian: #d6455a;
+  --pa-perhatian-bg: #fbe7ea;
+
+  /* Lima tingkat emosi, skala divergen positif -> negatif. */
+  --pa-emosi-1: #1f7a49;
+  --pa-emosi-2: #62b37d;
+  --pa-emosi-3: #b9b2a4;
+  --pa-emosi-4: #e0a63c;
+  --pa-emosi-5: #d6455a;
+
+  /* Jenis kelamin. */
+  --pa-laki: #4f63c9;
+  --pa-laki-bg: #e9ecfa;
+  --pa-perempuan: #c2419a;
+  --pa-perempuan-bg: #fbe9f4;
+}

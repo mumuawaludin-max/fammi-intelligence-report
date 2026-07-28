@@ -1,0 +1,182 @@
+.section {
+  padding: 40px 0;
+}
+
+.grid {
+  display: grid;
+  gap: 28px;
+}
+
+.domainGroup {
+  display: grid;
+  gap: 14px;
+}
+
+.domainHead {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+}
+
+.domainHuruf {
+  display: inline-grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 7px;
+  background: var(--pa-soft);
+  color: var(--pa-primary);
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.domainLabel {
+  margin: 0;
+  color: var(--pa-heading);
+  font-size: 14.5px;
+  font-weight: 780;
+  letter-spacing: -0.01em;
+}
+
+.domainCards {
+  display: grid;
+  gap: 14px;
+}
+
+.card {
+  padding: 18px 24px 12px;
+  border: 1px solid var(--pa-border);
+  border-radius: var(--pa-radius-md);
+  background: var(--pa-surface);
+  box-shadow: var(--pa-shadow-sm);
+}
+
+.cardHead {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 14px;
+  padding-bottom: 14px;
+  border-bottom: 1px solid var(--pa-border);
+}
+
+.cardHead h3 {
+  margin: 0;
+  color: var(--pa-heading);
+  font-size: 16px;
+  font-weight: 760;
+  letter-spacing: -0.01em;
+}
+
+.headTotal {
+  color: var(--pa-heading);
+  font-size: 12.5px;
+  font-weight: 760;
+  white-space: nowrap;
+}
+
+.rows {
+  display: grid;
+}
+
+.row {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) minmax(0, 1.1fr) auto;
+  align-items: center;
+  gap: 14px;
+  padding: 12px 0;
+}
+
+.rank {
+  display: inline-grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 8px;
+  background: var(--pa-soft);
+  color: var(--pa-primary);
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.rowLabel {
+  color: var(--pa-ink);
+  font-size: 14px;
+  font-weight: 650;
+}
+
+.rowValue {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 7px;
+  white-space: nowrap;
+}
+
+.rowPct {
+  color: var(--pa-muted);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.rowDot {
+  color: var(--pa-muted-2);
+}
+
+.rowCount {
+  color: var(--pa-primary);
+  font-size: 13.5px;
+  font-weight: 780;
+}
+
+/* Opsi bertanda "sinyal" (jawaban paling layak diperhatikan pada kategori ini) disorot warna
+   emas -- bahasa visual yang sama dengan PaInsightBanner, supaya pembaca langsung tahu baris
+   mana yang dibicarakan kalimat interpretasi di bawah kartu. */
+.rowSinyal .rank {
+  background: var(--pa-gold-soft);
+  color: var(--pa-gold);
+}
+
+.rowSinyal .rowCount {
+  color: var(--pa-gold);
+}
+
+/* Opsi "Tidak Menjawab" -- redup, bukan warna sinyal, supaya tidak terbaca seolah temuan. */
+.rowMuted .rowLabel,
+.rowMuted .rowCount {
+  color: var(--pa-muted-2);
+}
+
+.cardInterpretasi {
+  margin: 6px 0 14px;
+  padding: 12px 14px;
+  border-radius: var(--pa-radius-sm);
+  background: var(--pa-bg);
+  color: var(--pa-muted);
+  font-size: 12.5px;
+  line-height: 1.55;
+}
+
+@media (max-width: 860px) {
+  .row {
+    grid-template-columns: auto minmax(0, 1fr) auto;
+  }
+
+  .rowBar {
+    grid-column: 1 / -1;
+    order: 4;
+  }
+}
+
+@media (max-width: 640px) {
+  .section {
+    padding: 32px 0;
+  }
+
+  .card {
+    padding: 16px 18px 8px;
+  }
+
+  .headTotal {
+    display: none;
+  }
+}

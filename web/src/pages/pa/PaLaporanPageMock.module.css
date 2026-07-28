@@ -1,0 +1,12 @@
+/**
+ * Layout minimal. Struktur visual tiap bagian hidup di CSS module komponennya sendiri, sama
+ * seperti pembagian di sc/ScLaporanAgregatPage.module.css.
+ */
+.page {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: min(calc(100% - 40px), 1200px);
+  margin-inline: auto;
+  padding-bottom: 48px;
+}

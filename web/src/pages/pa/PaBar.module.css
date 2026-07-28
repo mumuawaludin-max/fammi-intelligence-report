@@ -1,0 +1,49 @@
+.track {
+  display: flex;
+  overflow: hidden;
+  width: 100%;
+  border-radius: 999px;
+  background: var(--pa-track);
+}
+
+.track_sm { height: 6px; }
+.track_md { height: 9px; }
+.track_lg { height: 13px; }
+
+.stack {
+  transform-origin: left center;
+  transition: transform 800ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.fill {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+  transition: width 800ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .stack,
+  .fill {
+    transition: none;
+  }
+}
+
+.fillRight {
+  margin-left: auto;
+}
+
+.segment {
+  display: block;
+  height: 100%;
+  flex: 0 0 auto;
+}
+
+.fill_primary { background: var(--pa-primary); }
+.fill_aman { background: var(--pa-aman); }
+.fill_waspada { background: var(--pa-waspada); }
+.fill_perhatian { background: var(--pa-perhatian); }
+.fill_laki { background: var(--pa-laki); }
+.fill_perempuan { background: var(--pa-perempuan); }
+.fill_muted { background: var(--pa-muted-2); }
+.fill_gold { background: var(--pa-gold); }

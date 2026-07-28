@@ -1,5 +1,5 @@
 import { createContext, useCallback, useContext, useMemo, useRef, useState } from 'react';
-import { useAdminCmsData, actApprovalAction, toggleModuleAction, addSchoolAction, addYayasanAction, runImportAction, runMiGenerateAction, runScIndividuGenerateAction, triggerGeminiJobAction, createUserAction, updateUserAction, resetPasswordAction, bulkResetPasswordAction, deleteUserAction, bulkDeleteUsersAction, updateGeminiScheduleAction, regenerateDraftAction, retryScAccountsAction } from '../useAdminCmsData';
+import { useAdminCmsData, actApprovalAction, toggleModuleAction, addSchoolAction, editSchoolAction, addYayasanAction, runImportAction, runMiGenerateAction, runScIndividuGenerateAction, triggerGeminiJobAction, createUserAction, updateUserAction, resetPasswordAction, bulkResetPasswordAction, deleteUserAction, bulkDeleteUsersAction, updateGeminiScheduleAction, regenerateDraftAction, retryScAccountsAction } from '../useAdminCmsData';
 import { bulkCreateUsers as bulkCreateUsersAction } from '../importers/guruImporter';
 import { downloadXlsx } from '../data/helpers';
 
@@ -18,6 +18,7 @@ const initialState = {
   addSchoolOpen: false,
   addYayasanOpen: false,
   editUserTarget: null,
+  editSchoolTarget: null,
 };
 
 export function CmsProvider({ session, children }) {
@@ -69,6 +70,19 @@ export function CmsProvider({ session, children }) {
       refetch();
     } catch (e) {
       showToast('Gagal tambah sekolah: ' + e.message, 'alert');
+    }
+  }, [showToast, refetch]);
+
+  const editSchool = useCallback(async (schoolId, payload) => {
+    try {
+      await editSchoolAction({ schoolId, ...payload });
+      showToast('Logo sekolah diperbarui.', 'safe');
+      setState((s) => ({ ...s, editSchoolTarget: null }));
+      refetch();
+      return true;
+    } catch (e) {
+      showToast('Gagal ubah sekolah: ' + e.message, 'alert');
+      return false;
     }
   }, [showToast, refetch]);
 
@@ -288,11 +302,13 @@ export function CmsProvider({ session, children }) {
     setAddSchoolOpen: (addSchoolOpen) => setState((s) => ({ ...s, addSchoolOpen })),
     setAddYayasanOpen: (addYayasanOpen) => setState((s) => ({ ...s, addYayasanOpen })),
     setEditUserTarget: (editUserTarget) => setState((s) => ({ ...s, editUserTarget })),
+    setEditSchoolTarget: (editSchoolTarget) => setState((s) => ({ ...s, editSchoolTarget })),
     showToast,
     actApproval,
     toggleModule,
     isModuleOn,
     addSchool,
+    editSchool,
     addYayasan,
     runImport,
     runMiGenerate,
@@ -314,7 +330,7 @@ export function CmsProvider({ session, children }) {
       delete n[id];
       return { ...s, approvalEditText: n };
     }),
-  }), [session, data, loading, error, refetch, state, showToast, actApproval, toggleModule, isModuleOn, addSchool, addYayasan, runImport, runMiGenerate, runScIndividuGenerate, retryScAccounts, triggerGeminiJob, createUser, updateUser, bulkCreateUsers, resetPassword, bulkResetAndExport, deleteUser, bulkDeleteUsers, updateGeminiSchedule, regenerateDraft]);
+  }), [session, data, loading, error, refetch, state, showToast, actApproval, toggleModule, isModuleOn, addSchool, editSchool, addYayasan, runImport, runMiGenerate, runScIndividuGenerate, retryScAccounts, triggerGeminiJob, createUser, updateUser, bulkCreateUsers, resetPassword, bulkResetAndExport, deleteUser, bulkDeleteUsers, updateGeminiSchedule, regenerateDraft]);
 
   return <CmsContext.Provider value={value}>{children}</CmsContext.Provider>;
 }

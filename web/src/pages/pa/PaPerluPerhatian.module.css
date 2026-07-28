@@ -1,0 +1,477 @@
+.section {
+  padding: 8px 0 40px;
+}
+
+/* ── Empat angka status ────────────────────────────────────────────────────────────────── */
+
+.statGrid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 14px;
+  margin-bottom: 20px;
+}
+
+.statCard {
+  padding: 18px 20px;
+  border: 1px solid var(--pa-border);
+  border-radius: var(--pa-radius-md);
+  background: var(--pa-surface);
+  box-shadow: var(--pa-shadow-sm);
+}
+
+/* Kartu pertama (siswa perlu telaah individual) diberi latar merah muda -- itu satu-satunya
+   angka di baris ini yang menuntut tindakan, tiga sisanya laporan kemajuan. */
+.statCardSorot {
+  border-color: #f3d3d9;
+  background: var(--pa-perhatian-bg);
+}
+
+.statLabel {
+  margin: 0 0 8px;
+  color: var(--pa-muted-2);
+  font-size: 11.5px;
+  font-weight: 720;
+}
+
+.statCardSorot .statLabel {
+  color: #a5545f;
+}
+
+.statValue {
+  display: block;
+  color: var(--pa-heading);
+  font-size: 34px;
+  font-weight: 800;
+  line-height: 1.05;
+  letter-spacing: -0.035em;
+}
+
+.statCardSorot .statValue {
+  color: var(--pa-perhatian);
+}
+
+.statSkala {
+  color: var(--pa-muted-2);
+  font-size: 0.5em;
+  font-weight: 700;
+  margin-left: 2px;
+}
+
+.statDetail {
+  margin: 8px 0 0;
+  color: var(--pa-muted);
+  font-size: 11.5px;
+  line-height: 1.5;
+}
+
+/* ── Kartu per domain ──────────────────────────────────────────────────────────────────── */
+
+.list {
+  display: grid;
+  gap: 14px;
+}
+
+.card {
+  padding: 20px 24px;
+  border: 1px solid var(--pa-border);
+  border-radius: var(--pa-radius-md);
+  background: var(--pa-surface);
+  box-shadow: var(--pa-shadow-sm);
+  transition: box-shadow 220ms ease, transform 220ms ease;
+}
+
+.card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--pa-shadow-md);
+}
+
+.cardTop {
+  display: grid;
+  grid-template-columns: minmax(180px, 230px) minmax(0, 1fr) minmax(150px, 190px);
+  align-items: center;
+  gap: 24px;
+}
+
+.identitas {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.huruf {
+  display: inline-grid;
+  place-items: center;
+  flex: 0 0 auto;
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  background: #191527;
+  color: white;
+  font-size: 17px;
+  font-weight: 800;
+}
+
+.domainLabel {
+  margin: 0;
+  color: var(--pa-heading);
+  font-size: 16.5px;
+  font-weight: 780;
+  letter-spacing: -0.01em;
+}
+
+.domainStatus {
+  margin: 2px 0 0;
+  color: var(--pa-muted-2);
+  font-size: 11.5px;
+}
+
+.perilakuList {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.perilaku {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 12px;
+}
+
+.rank {
+  display: inline-grid;
+  place-items: center;
+  width: 20px;
+  height: 20px;
+  border-radius: 6px;
+  background: var(--pa-perhatian-bg);
+  color: var(--pa-perhatian);
+  font-size: 10.5px;
+  font-weight: 800;
+}
+
+.perilakuLabel {
+  color: var(--pa-ink);
+  font-size: 13px;
+  font-weight: 550;
+}
+
+.perilakuJumlah {
+  color: var(--pa-perhatian);
+  font-size: 13px;
+  font-weight: 750;
+  font-variant-numeric: tabular-nums;
+}
+
+.total {
+  display: grid;
+  justify-items: end;
+  gap: 2px;
+  text-align: right;
+}
+
+.totalValue {
+  color: var(--pa-perhatian);
+  font-size: 22px;
+  font-weight: 800;
+  letter-spacing: -0.025em;
+}
+
+.totalPersen {
+  margin: 0;
+  color: var(--pa-muted-2);
+  font-size: 11.5px;
+}
+
+.cardDefinisi {
+  margin: 16px 0 0;
+  padding: 14px 16px;
+  border-radius: var(--pa-radius-sm);
+  background: var(--pa-bg);
+  color: var(--pa-muted);
+  font-size: 12.5px;
+  line-height: 1.55;
+}
+
+.cardActions {
+  display: flex;
+  gap: 10px;
+  margin-top: 16px;
+}
+
+.analisisBtn,
+.daftarBtn {
+  padding: 9px 18px;
+  border: 1px solid var(--pa-border);
+  border-radius: 999px;
+  cursor: pointer;
+  font: inherit;
+  font-size: 12.5px;
+  font-weight: 720;
+  white-space: nowrap;
+  transition: border-color 180ms ease, background-color 180ms ease, color 180ms ease;
+}
+
+.analisisBtn {
+  border-color: var(--pa-primary);
+  background: var(--pa-primary);
+  color: white;
+}
+
+.analisisBtn:hover {
+  background: #5a24b3;
+  border-color: #5a24b3;
+}
+
+.daftarBtn {
+  background: var(--pa-surface);
+  color: var(--pa-heading);
+}
+
+.daftarBtn:hover {
+  border-color: var(--pa-primary);
+  background: var(--pa-soft);
+  color: var(--pa-primary);
+}
+
+/* ── Isi dialog daftar nama ────────────────────────────────────────────────────────────── */
+
+.dialogHead,
+.siswaRow {
+  display: grid;
+  grid-template-columns: minmax(0, 1.6fr) minmax(0, 1.2fr) minmax(0, 1fr) 92px;
+  align-items: center;
+  gap: 14px;
+}
+
+.dialogHead {
+  padding: 14px 0 10px;
+  color: var(--pa-muted-2);
+  font-size: 11.5px;
+  font-weight: 760;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.dialogSkorHead {
+  text-align: right;
+}
+
+.siswaList {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.siswaRow {
+  padding: 12px 0;
+  border-top: 1px solid var(--pa-border);
+}
+
+.siswaNama {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  color: var(--pa-heading);
+  font-size: 13.5px;
+  font-weight: 700;
+}
+
+.siswaIndex {
+  color: var(--pa-muted-2);
+  font-size: 12px;
+  font-weight: 650;
+}
+
+.siswaMeta {
+  color: var(--pa-muted);
+  font-size: 12.5px;
+}
+
+.siswaSkor {
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  font-size: 15px;
+  font-weight: 800;
+}
+
+.skor_aman { color: var(--pa-aman); }
+.skor_waspada { color: var(--pa-waspada); }
+.skor_perhatian { color: var(--pa-perhatian); }
+
+.dialogNote {
+  margin: 18px 0 0;
+  padding-top: 14px;
+  border-top: 1px solid var(--pa-border);
+  color: var(--pa-muted-2);
+  font-size: 12px;
+  line-height: 1.5;
+  font-style: italic;
+}
+
+/* ── Isi dialog "Baca analisis lengkap" ────────────────────────────────────────────────── */
+
+.analisisIntro {
+  padding-bottom: 18px;
+  margin-bottom: 18px;
+  border-bottom: 1px solid var(--pa-border);
+}
+
+.analisisEyebrow {
+  margin: 0 0 8px;
+  color: var(--pa-primary);
+  font-size: 11px;
+  font-weight: 780;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.analisisDefinisi {
+  margin: 0 0 10px;
+  color: var(--pa-heading);
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+.analisisCiri {
+  display: grid;
+  gap: 6px;
+  margin: 0;
+  padding-left: 18px;
+  color: var(--pa-muted);
+  font-size: 12.5px;
+  line-height: 1.5;
+}
+
+.analisisCiri::marker {
+  color: var(--pa-primary);
+}
+
+.analisisGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.analisisBlock {
+  padding: 16px 18px;
+  border-radius: var(--pa-radius-sm);
+  background: var(--pa-bg);
+}
+
+.blockTitle {
+  margin: 0 0 8px;
+  color: var(--pa-heading);
+  font-size: 12px;
+  font-weight: 780;
+}
+
+.blockText {
+  margin: 0;
+  color: var(--pa-ink);
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+.blockList,
+.blockListNum {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding-left: 18px;
+  color: var(--pa-ink);
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.blockList::marker,
+.blockListNum::marker {
+  color: var(--pa-muted-2);
+}
+
+@media (max-width: 1080px) {
+  .statGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .cardTop {
+    grid-template-columns: minmax(0, 1fr) minmax(150px, 190px);
+    align-items: start;
+    gap: 18px;
+  }
+
+  .perilakuList {
+    grid-column: 1 / -1;
+    order: 3;
+    padding-top: 16px;
+    border-top: 1px solid var(--pa-border);
+  }
+}
+
+@media (max-width: 640px) {
+  .section {
+    padding: 4px 0 32px;
+  }
+
+  .statGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .card {
+    padding: 18px;
+  }
+
+  .cardTop {
+    grid-template-columns: 1fr;
+  }
+
+  .total {
+    justify-items: start;
+    text-align: left;
+  }
+
+  .cardActions {
+    flex-direction: column;
+  }
+
+  .analisisBtn,
+  .daftarBtn {
+    width: 100%;
+    text-align: center;
+  }
+
+  .analisisGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .dialogHead {
+    display: none;
+  }
+
+  .siswaRow {
+    grid-template-columns: minmax(0, 1fr) 80px;
+    gap: 6px 14px;
+  }
+
+  .siswaNama {
+    grid-column: 1 / 2;
+  }
+
+  .siswaSkor {
+    grid-row: 1 / 3;
+    grid-column: 2 / 3;
+  }
+
+  .siswaMeta {
+    grid-column: 1 / 2;
+    font-size: 11.5px;
+  }
+
+  .siswaMeta + .siswaMeta {
+    margin-top: -4px;
+  }
+}

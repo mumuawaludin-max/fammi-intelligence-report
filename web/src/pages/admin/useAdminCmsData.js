@@ -2,6 +2,7 @@ import { useEffect, useState, useCallback } from 'react';
 import { supabase, edgeErrorDetail } from '../../lib/supabase';
 import { importKarakterWorkbook } from './importers/karakterImporter';
 import { importScWorkbook } from './importers/scImporter';
+import { importPaWorkbook } from './importers/paImporter';
 
 function currentPeriode() {
   const d = new Date();
@@ -36,7 +37,7 @@ export function useAdminCmsData() {
         scLembagaRes, tlScRes, briefingScRes,
       ] = await Promise.all([
         supabase.from('yayasan').select('id, nama'),
-        supabase.from('schools').select('id, nama, yayasan_id, aktif'),
+        supabase.from('schools').select('id, nama, yayasan_id, aktif, logo_url'),
         supabase.from('school_modules').select('school_id, modul, aktif').eq('aktif', true),
         supabase.from('karakter_summary').select('sekolah_id, periode_id').eq('scope', 'sekolah'),
         supabase.from('karakter_aspek_config').select('sekolah_id, aspek_kode, aspek_label, urutan').order('urutan', { ascending: true }),
@@ -109,6 +110,7 @@ export function useAdminCmsData() {
           nama: s.nama,
           yay: s.yayasan_id,
           aktif: s.aktif,
+          logoUrl: s.logo_url || null,
           jenjang: '—',
           modules,
           periode,
@@ -290,12 +292,22 @@ export async function toggleModuleAction(schoolId, modul, nextOn) {
   if (error) throw new Error(await edgeErrorDetail(error, 'Edge Function admin-actions gagal dipanggil.'));
 }
 
-export async function addSchoolAction({ nama, jenjang: _jenjang, yayasanId, modules }) {
+export async function addSchoolAction({ nama, jenjang: _jenjang, yayasanId, modules, logoBase64 }) {
   const { data, error } = await supabase.functions.invoke('admin-actions', {
-    body: { action: 'add-school', nama, yayasanId, modules },
+    body: { action: 'add-school', nama, yayasanId, modules, logoBase64 },
   });
   if (error) throw new Error(await edgeErrorDetail(error, 'Edge Function admin-actions gagal dipanggil.'));
   return data.id;
+}
+
+/** Ubah logo sekolah yang sudah ada -- padanan addSchoolAction tapi untuk baris `schools` yang
+ * sudah terdaftar duluan. `logoBase64` untuk unggah/ganti, `removeLogo:true` untuk menghapus. */
+export async function editSchoolAction({ schoolId, logoBase64, removeLogo }) {
+  const { data, error } = await supabase.functions.invoke('admin-actions', {
+    body: { action: 'edit-school', schoolId, logoBase64, removeLogo },
+  });
+  if (error) throw new Error(await edgeErrorDetail(error, 'Edge Function admin-actions gagal dipanggil.'));
+  return data;
 }
 
 export async function addYayasanAction({ nama }) {
@@ -380,14 +392,20 @@ export async function actMiApproval(id, action) {
 
 export async function runImportAction({ sekolahId, modul, fileName, parsed }) {
   const periodeId = parsed?.preview?.periodeDetected?.map((p) => p.periode).join(',') || null;
-  if (modul !== 'karakter' && modul !== 'sc') {
+  const IMPORTER = {
+    karakter: importKarakterWorkbook,
+    sc: importScWorkbook,
+    pa: importPaWorkbook,
+  };
+  const importer = IMPORTER[modul];
+  if (!importer) {
     await supabase.from('import_log').insert({
       sekolah_id: sekolahId, modul, periode_id: periodeId, rows: 0, status: 'gagal',
       pesan: 'Importer modul ini belum tersedia.', oleh: fileName || 'admin',
     });
     throw new Error('Importer untuk modul ini belum tersedia.');
   }
-  const result = modul === 'sc' ? await importScWorkbook(parsed) : await importKarakterWorkbook(parsed);
+  const result = await importer(parsed);
   await supabase.from('import_log').insert({
     sekolah_id: sekolahId, modul, periode_id: periodeId,
     rows: result.rowsWritten, status: result.ok ? 'sukses' : 'gagal',

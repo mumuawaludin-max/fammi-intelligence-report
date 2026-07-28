@@ -1,0 +1,371 @@
+.section {
+  padding: 40px 0;
+}
+
+.section h3 {
+  margin: 0;
+  color: var(--pa-heading);
+  font-size: 17px;
+  font-weight: 760;
+  letter-spacing: -0.01em;
+}
+
+/* ── Baris atas: total input + pembagian jenis kelamin ─────────────────────────────────── */
+
+.topRow {
+  display: grid;
+  grid-template-columns: minmax(240px, 300px) minmax(0, 1fr);
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+/* Dipakai saat sebaran jenis kelamin tidak tersedia (scope unit spesifik -- file sumber cuma
+   memecah gender di baris agregat, lihat catatan di paAssembler.js). */
+.topRowSolo {
+  grid-template-columns: minmax(240px, 420px);
+}
+
+.totalCard,
+.genderCard,
+.card {
+  padding: 22px 24px;
+  border: 1px solid var(--pa-border);
+  border-radius: var(--pa-radius-md);
+  background: var(--pa-surface);
+  box-shadow: var(--pa-shadow-sm);
+}
+
+.totalCard {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.totalValue {
+  display: block;
+  color: var(--pa-heading);
+  font-size: 26px;
+  font-weight: 780;
+  letter-spacing: -0.03em;
+}
+
+.totalLabel {
+  margin: 2px 0 0;
+  color: var(--pa-muted);
+  font-size: 13px;
+}
+
+/* Dua sisi berlebar sama (1fr - ikon - 1fr), masing-masing berisi batang elastis + blok teks
+   berlebar tetap. Lihat catatan di PaStatistikSiswa.jsx kenapa lebar teksnya dikunci. */
+.genderCard {
+  --gender-text: 176px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  align-items: center;
+  gap: 18px;
+}
+
+.genderSide {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  min-width: 0;
+}
+
+.genderText {
+  display: flex;
+  align-items: baseline;
+  gap: 9px;
+  flex: 0 0 var(--gender-text);
+  width: var(--gender-text);
+  white-space: nowrap;
+}
+
+.genderSideLeft .genderText {
+  justify-content: flex-end;
+}
+
+.genderCount {
+  color: var(--pa-ink);
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.pctLaki {
+  color: var(--pa-laki);
+  font-size: 17px;
+  font-weight: 780;
+}
+
+.pctPerempuan {
+  color: var(--pa-perempuan);
+  font-size: 17px;
+  font-weight: 780;
+}
+
+.genderLabel {
+  color: var(--pa-heading);
+  font-size: 15px;
+  font-weight: 760;
+  white-space: nowrap;
+}
+
+.genderIcons {
+  display: flex;
+  gap: 8px;
+  flex: 0 0 auto;
+}
+
+/* ── Kartu daftar (Data Siswa) ─────────────────────────────────────────────────────────── */
+
+.card {
+  margin-bottom: 16px;
+}
+
+.cardHead {
+  display: grid;
+  grid-template-columns: minmax(150px, 1.4fr) minmax(0, 2fr) 70px 110px;
+  align-items: center;
+  gap: 18px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid var(--pa-border);
+}
+
+.cardHead h3 {
+  grid-column: 1 / 3;
+}
+
+.headMeta {
+  color: var(--pa-heading);
+  font-size: 13px;
+  font-weight: 760;
+  text-align: right;
+}
+
+.rows {
+  display: grid;
+}
+
+.row {
+  display: grid;
+  grid-template-columns: minmax(150px, 1.4fr) minmax(0, 2fr) 70px 110px;
+  align-items: center;
+  gap: 18px;
+  padding: 14px 0;
+  border-bottom: 1px solid var(--pa-border);
+}
+
+.row:last-child {
+  border-bottom: none;
+  padding-bottom: 2px;
+}
+
+.rowLabel {
+  color: var(--pa-ink);
+  font-size: 14px;
+  font-weight: 650;
+}
+
+.rowPct {
+  color: var(--pa-muted);
+  font-size: 13.5px;
+  font-weight: 700;
+  text-align: right;
+}
+
+.rowTotal {
+  color: var(--pa-heading);
+  font-size: 13.5px;
+  font-weight: 760;
+  text-align: right;
+}
+
+/* ── Kartu emosi ───────────────────────────────────────────────────────────────────────── */
+
+/* Grid identik dengan .emosiRow (label unit | area batang) supaya kolom kedua di sini
+   berhimpit tepat dengan area batang di baris-baris bawahnya. */
+.emosiHead {
+  display: grid;
+  grid-template-columns: minmax(150px, 240px) minmax(0, 1fr);
+  align-items: center;
+  gap: 20px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid var(--pa-border);
+}
+
+.emosiPoles {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+/* Dua pill kutub emosi (Sangat Positif/Sangat Negatif). Sengaja asimetris: positif berupa
+   cincin outline (terbuka, ringan), negatif berupa lingkaran terisi penuh (padat, tegas) --
+   supaya bahasa visualnya sendiri sudah menyiratkan "ringan" vs "berat" sebelum pembaca sempat
+   membaca tulisannya. Warnanya dipinjam dari token yang sudah ada (--pa-laki untuk biru
+   indigo, --pa-perhatian untuk merah), bukan warna baru di luar palet PA. */
+.emosiPill {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 5px;
+  border: 1.5px solid transparent;
+  border-radius: 999px;
+  background: var(--pa-surface);
+  font-size: 13.5px;
+  font-weight: 780;
+  white-space: nowrap;
+}
+
+.emosiPillPositif {
+  border-color: var(--pa-laki);
+  color: var(--pa-laki);
+  padding-right: 18px;
+}
+
+.emosiPillNegatif {
+  border-color: var(--pa-perhatian);
+  color: var(--pa-perhatian);
+  padding-left: 18px;
+}
+
+.emosiPillIcon {
+  display: inline-grid;
+  flex: 0 0 auto;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+}
+
+.emosiPillIcon svg {
+  width: 60%;
+  height: 60%;
+}
+
+.emosiPillPositif .emosiPillIcon {
+  border: 2px solid var(--pa-laki);
+  background: var(--pa-surface);
+  color: var(--pa-laki);
+}
+
+.emosiPillNegatif .emosiPillIcon {
+  background: var(--pa-perhatian);
+  color: white;
+}
+
+.emosiRows {
+  display: grid;
+}
+
+.emosiRow {
+  display: grid;
+  grid-template-columns: minmax(150px, 240px) minmax(0, 1fr);
+  align-items: center;
+  gap: 20px;
+  padding: 18px 0;
+  border-bottom: 1px solid var(--pa-border);
+}
+
+.emosiRow:last-child {
+  border-bottom: none;
+  padding-bottom: 2px;
+}
+
+.emosiUnitLabel {
+  margin: 0;
+  color: var(--pa-ink);
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.emosiUnitNote {
+  margin: 2px 0 0;
+  color: var(--pa-muted-2);
+  font-size: 11.5px;
+}
+
+.emosiBody {
+  display: grid;
+  gap: 10px;
+}
+
+.emosiValues {
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.emosiValue {
+  font-size: 11.5px;
+  font-weight: 650;
+}
+
+.emosiValue strong {
+  font-weight: 780;
+}
+
+@media (max-width: 900px) {
+  .topRow {
+    grid-template-columns: 1fr;
+  }
+
+  .cardHead,
+  .row {
+    grid-template-columns: minmax(0, 1fr) 78px 96px;
+  }
+
+  .cardHead h3 {
+    grid-column: 1 / 2;
+  }
+
+  /* Batang pindah ke barisnya sendiri di bawah label supaya angka tetap terbaca. */
+  .rowBar {
+    grid-column: 1 / -1;
+    order: 3;
+  }
+}
+
+@media (max-width: 760px) {
+  .section {
+    padding: 32px 0;
+  }
+
+  .totalCard,
+  .genderCard,
+  .card {
+    padding: 18px;
+  }
+
+  .genderCard {
+    --gender-text: auto;
+    grid-template-columns: 1fr;
+    gap: 14px;
+  }
+
+  /* Di mobile kedua sisi dibaca dengan urutan yang sama: teks dulu, lalu batang. */
+  .genderSideLeft {
+    flex-direction: row-reverse;
+  }
+
+  .genderText {
+    flex: 0 0 auto;
+    width: auto;
+  }
+
+  .genderSideLeft .genderText {
+    flex-direction: row-reverse;
+  }
+
+  .genderIcons {
+    justify-content: center;
+  }
+
+  .emosiRow,
+  .emosiHead {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+}

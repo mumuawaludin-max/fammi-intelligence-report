@@ -21,7 +21,18 @@
 // Body: { action, ...payload }, action salah satu dari:
 //   "approve" | "reject"      { id, tipe: "tindak_lanjut"|"briefing", teks?, langkahTerpilih?, regenerateDari? }
 //   "update-profile"          { userId, nama?, peran?, schoolId?, cakupan? }
-//   "add-school"               { nama, yayasanId?, modules? }
+//   "add-school"               { nama, yayasanId?, modules?, logoBase64? } -- logoBase64 data
+//                              URL PNG ("data:image/png;base64,...."), opsional. Diunggah ke
+//                              bucket Storage publik "school-logos" (migration 20260801120000)
+//                              lewat service_role SEBELUM insert schools, supaya logo_url sudah
+//                              terisi di baris yang sama, bukan update terpisah setelahnya.
+//   "edit-school"              { schoolId, logoBase64? | removeLogo? } -- untuk sekolah yang
+//                              SUDAH ada (tidak lewat add-school), supaya bisa menambah/mengganti
+//                              logo belakangan. Kirim logoBase64 untuk unggah baru (upsert path
+//                              yang sama, otomatis menimpa), atau removeLogo:true untuk
+//                              menghapus logo dan mengembalikan logo_url ke null. Cuma soal
+//                              logo -- field lain (nama/yayasan/jenjang) belum ada jalur edit-nya
+//                              di CMS ini sama sekali.
 //   "add-yayasan"              { nama } -> { id, nama }. id di-generate slug manual dari nama
 //                              (prefix "YAY-", lihat handleAddYayasan) -- SEBELUMNYA diasumsikan
 //                              auto-generate dari database, ternyata yayasan.id sungguhan text
@@ -41,6 +52,12 @@
 //   "import-sc"                { payload: { sekolah_id, periode_id, personal, lembaga } } --
 //                              modul School Culture, panggil RPC import_sc_periode (migration
 //                              20260722100000), pola identik import-karakter.
+//   "import-pa"                { payload: { sekolah_id, periode_id, lembaga, siswa, esai } } --
+//                              modul Perilaku Anak, panggil RPC import_pa_periode (migration
+//                              20260801130000), pola identik import-sc. RPC-nya delete-then-insert
+//                              per (sekolah, periode), jadi mengunggah ulang periode yang sama
+//                              MENGGANTI isinya, bukan menumpuk -- ini yang membuat alur unggah
+//                              dua tahap (data dulu, lalu data + narasi terisi) aman diulang.
 //   "list-sc-pending"          {}  -> { rows: [...] } daftar laporan SC individu menunggu persetujuan
 //   "approve-sc" | "reject-sc" { id }  setujui/tolak satu baris sc_hasil. Approve yang berhasil
 //                              otomatis buat akun Karyawan untuk responden itu kalau belum ada
@@ -137,6 +154,9 @@ Deno.serve(async (req) => {
       case "add-school":
         result = await handleAddSchool(admin, body);
         break;
+      case "edit-school":
+        result = await handleEditSchool(admin, body);
+        break;
       case "add-yayasan":
         result = await handleAddYayasan(admin, body);
         break;
@@ -158,6 +178,9 @@ Deno.serve(async (req) => {
         break;
       case "import-sc":
         result = await handleImportSc(admin, body);
+        break;
+      case "import-pa":
+        result = await handleImportPa(admin, body);
         break;
       case "list-sc-personal":
         result = await handleListScPersonal(admin, body);
@@ -233,14 +256,21 @@ async function handleUpdateProfile(admin, body) {
 }
 
 async function handleAddSchool(admin, body) {
-  const { nama, yayasanId, modules } = body;
+  const { nama, yayasanId, modules, logoBase64 } = body;
   if (!nama) return { ok: false, error: "Field wajib: nama." };
 
   const id = String(nama).toUpperCase().replace(/[^A-Z0-9]+/g, "-").replace(/(^-|-$)/g, "").slice(0, 40);
 
+  let logoUrl: string | null = null;
+  if (logoBase64) {
+    const uploaded = await uploadSchoolLogo(admin, id, logoBase64);
+    if (!uploaded.ok) return { ok: false, error: uploaded.error };
+    logoUrl = uploaded.url;
+  }
+
   const { error: schoolErr } = await admin
     .from("schools")
-    .insert({ id, nama, yayasan_id: yayasanId || null, aktif: true });
+    .insert({ id, nama, yayasan_id: yayasanId || null, aktif: true, logo_url: logoUrl });
   if (schoolErr) return { ok: false, error: schoolErr.message };
 
   if (Array.isArray(modules) && modules.length > 0) {
@@ -250,7 +280,66 @@ async function handleAddSchool(admin, body) {
     if (modErr) return { ok: false, error: modErr.message };
   }
 
-  return { ok: true, id };
+  return { ok: true, id, logoUrl };
+}
+
+/** Ubah logo sekolah yang SUDAH ada -- padanan handleAddSchool tapi untuk baris schools yang
+ * sudah terdaftar duluan (dibuat sebelum fitur logo ada, atau salah unggah saat pembuatan).
+ * logoBase64 dan removeLogo saling eksklusif secara logis; kalau keduanya kosong, tidak ada
+ * yang perlu disimpan jadi dianggap error supaya CMS tidak diam-diam no-op. */
+async function handleEditSchool(admin, body) {
+  const { schoolId, logoBase64, removeLogo } = body;
+  if (!schoolId) return { ok: false, error: "Field wajib: schoolId." };
+
+  const patch: Record<string, unknown> = {};
+  if (logoBase64) {
+    const uploaded = await uploadSchoolLogo(admin, schoolId, logoBase64);
+    if (!uploaded.ok) return { ok: false, error: uploaded.error };
+    patch.logo_url = uploaded.url;
+  } else if (removeLogo) {
+    await admin.storage.from("school-logos").remove([`${schoolId}.png`]);
+    patch.logo_url = null;
+  } else {
+    return { ok: false, error: "Tidak ada perubahan logo untuk disimpan." };
+  }
+
+  const { error } = await admin.from("schools").update(patch).eq("id", schoolId);
+  if (error) return { ok: false, error: error.message };
+  return { ok: true, logoUrl: patch.logo_url ?? null };
+}
+
+// Batas ukuran data URL base64 -- PNG mentah ~1.5MB, base64 menggembungkannya ~33%, jadi
+// ambang string ini dilonggarkan sampai ~2.1 juta karakter. Ini pertahanan lapis kedua; batas
+// utama (lebih ketat) sudah ditegakkan di sisi klien (AddSchoolDialog.jsx) sebelum file
+// dibaca jadi base64 sama sekali.
+const LOGO_BASE64_MAX_LENGTH = 2_100_000;
+
+/** Unggah satu logo PNG (data URL) ke bucket publik "school-logos", balikin public URL-nya.
+ * Nama file dikunci ke id sekolah + upsert:true, supaya logo bisa ditimpa (mis. salah unggah)
+ * tanpa meninggalkan file yatim di bucket. */
+async function uploadSchoolLogo(admin, schoolId: string, dataUrl: string) {
+  const match = /^data:image\/png;base64,(.+)$/.exec(dataUrl);
+  if (!match) return { ok: false, error: "Logo harus berupa PNG (data URL image/png)." };
+  if (dataUrl.length > LOGO_BASE64_MAX_LENGTH) {
+    return { ok: false, error: "Ukuran logo terlalu besar (maks sekitar 1.5MB)." };
+  }
+
+  let bytes: Uint8Array;
+  try {
+    const binary = atob(match[1]);
+    bytes = Uint8Array.from(binary, (c) => c.charCodeAt(0));
+  } catch {
+    return { ok: false, error: "Data logo tidak valid (gagal didekode dari base64)." };
+  }
+
+  const path = `${schoolId}.png`;
+  const { error: uploadErr } = await admin.storage
+    .from("school-logos")
+    .upload(path, bytes, { contentType: "image/png", upsert: true });
+  if (uploadErr) return { ok: false, error: `Gagal unggah logo: ${uploadErr.message}` };
+
+  const { data: publicUrlData } = admin.storage.from("school-logos").getPublicUrl(path);
+  return { ok: true, url: publicUrlData.publicUrl };
 }
 
 /**
@@ -382,6 +471,22 @@ async function handleImportSc(admin, body) {
   const { data, error } = await admin.rpc("import_sc_periode", {
     p_sekolah_id: sekolah_id, p_periode_id: periode_id,
     p_personal: personal || [], p_lembaga: lembaga || [],
+  });
+  if (error) return { ok: false, error: error.message };
+  return { ok: true, ...data };
+}
+
+/** Impor satu periode modul Perilaku Anak. Pola parameter bernama mengikuti handleImportSc
+ * (bukan payload jsonb utuh ala handleImportKarakter) supaya kontraknya eksplisit. RPC-nya
+ * delete-then-insert, lihat catatan di kepala berkas ini. */
+async function handleImportPa(admin, body) {
+  const { payload } = body;
+  if (!payload || typeof payload !== "object") return { ok: false, error: "Field wajib: payload (objek)." };
+  const { sekolah_id, periode_id, lembaga, siswa, esai } = payload;
+
+  const { data, error } = await admin.rpc("import_pa_periode", {
+    p_sekolah_id: sekolah_id, p_periode_id: periode_id,
+    p_lembaga: lembaga || [], p_siswa: siswa || [], p_esai: esai || [],
   });
   if (error) return { ok: false, error: error.message };
   return { ok: true, ...data };

@@ -1,0 +1,35 @@
+.wrap {
+  display: grid;
+  justify-items: center;
+  gap: 14px;
+  width: min(calc(100% - 40px), 460px);
+  margin: 80px auto;
+  padding: 48px 32px;
+  border: 1px solid var(--pa-border);
+  border-radius: var(--pa-radius-lg);
+  background: var(--pa-surface);
+  box-shadow: var(--pa-shadow-md);
+  text-align: center;
+}
+
+.title {
+  margin: 6px 0 0;
+  color: var(--pa-heading);
+  font-size: 22px;
+  font-weight: 780;
+  letter-spacing: -0.02em;
+}
+
+.desc {
+  margin: 0;
+  color: var(--pa-muted);
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+@media (max-width: 640px) {
+  .wrap {
+    margin: 48px auto;
+    padding: 36px 24px;
+  }
+}

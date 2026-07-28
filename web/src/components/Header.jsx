@@ -2,7 +2,7 @@ import PeriodPicker from "./PeriodPicker";
 import styles from "./Header.module.css";
 
 export default function Header({
-  userName = "Demo User", role = "Kepala Sekolah", schoolName = "SMA Contoh", onLogout,
+  userName = "Demo User", role = "Kepala Sekolah", schoolName = "SMA Contoh", schoolLogoUrl = null, onLogout,
   period, onPeriodChange, showPeriod = false, inlineNav = null, bulananOptions,
 }) {
   return (
@@ -24,7 +24,12 @@ export default function Header({
             />
           )}
           {showPeriod && <span className={styles.divider} aria-hidden="true" />}
-          <span className={styles.schoolName}>{schoolName}</span>
+          {(schoolName || schoolLogoUrl) && (
+            <span className={styles.schoolBrand}>
+              {schoolLogoUrl && <img className={styles.schoolLogo} src={schoolLogoUrl} alt="" />}
+              {schoolName && <span className={styles.schoolName}>{schoolName}</span>}
+            </span>
+          )}
           <div className={styles.userChip}>
             <span className={styles.avatar}>{userName.charAt(0)}</span>
             <span className={styles.userName}>{userName}</span>

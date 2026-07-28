@@ -1,0 +1,388 @@
+.section {
+  padding: 40px 0;
+}
+
+.section h3 {
+  margin: 0;
+  color: var(--pa-heading);
+  font-size: 17px;
+  font-weight: 760;
+  letter-spacing: -0.01em;
+}
+
+/* ── Kartu inisial HEART ───────────────────────────────────────────────────────────────── */
+
+.dimensiGrid {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 14px;
+  margin-bottom: 28px;
+}
+
+.dimensiCard {
+  display: block;
+  width: 100%;
+  padding: 20px 18px;
+  border: 2px solid transparent;
+  border-radius: var(--pa-radius-md);
+  background: var(--pa-surface);
+  box-shadow: var(--pa-shadow-sm);
+  cursor: pointer;
+  font: inherit;
+  text-align: left;
+  transition: transform 220ms ease, box-shadow 220ms ease, border-color 220ms ease, background-color 220ms ease;
+}
+
+.dimensiCard:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--pa-shadow-md);
+}
+
+.dimensiCardActive {
+  border-color: var(--pa-primary);
+  background: var(--pa-soft);
+  box-shadow: 0 12px 26px rgba(108, 43, 217, 0.14);
+}
+
+.dimensiHead {
+  text-align: center;
+  padding-bottom: 16px;
+  margin-bottom: 16px;
+  border-bottom: 1px solid var(--pa-border);
+}
+
+.dimensiCardActive .dimensiHead {
+  border-bottom-color: rgba(108, 43, 217, 0.18);
+}
+
+.dimensiCardActive .huruf,
+.dimensiCardActive .dimensiLabel {
+  color: var(--pa-primary);
+}
+
+.huruf {
+  display: block;
+  color: var(--pa-heading);
+  font-size: 44px;
+  font-weight: 800;
+  line-height: 1.05;
+  letter-spacing: -0.04em;
+}
+
+.dimensiLabel {
+  margin: 6px 0 0;
+  color: var(--pa-muted);
+  font-size: 13px;
+  font-weight: 650;
+}
+
+/* ── Tiga tingkat per dimensi ──────────────────────────────────────────────────────────── */
+
+.tingkatList {
+  display: grid;
+  gap: 12px;
+}
+
+.tingkat {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 6px 10px;
+}
+
+.tingkatLabel {
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.tingkatValue {
+  font-size: 12.5px;
+  font-weight: 780;
+  text-align: right;
+}
+
+.tingkatBar {
+  grid-column: 1 / -1;
+}
+
+.ink_aman { color: var(--pa-aman); }
+.ink_waspada { color: var(--pa-waspada); }
+.ink_perhatian { color: var(--pa-perhatian); }
+
+/* ── Panel "Apa artinya", berganti isi mengikuti kartu HEART yang dipilih ─────────────────── */
+
+.meaningBlock {
+  margin-bottom: 24px;
+}
+
+.meaningGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.meaningCard {
+  padding: 22px 24px;
+  border: 1px solid var(--pa-border);
+  border-radius: var(--pa-radius-md);
+  background: var(--pa-surface);
+  box-shadow: var(--pa-shadow-sm);
+}
+
+.meaningCardInsight {
+  border-color: #e6dcc2;
+  background: #fdfbf4;
+}
+
+.meaningEyebrow {
+  margin: 0 0 10px;
+  color: var(--pa-primary);
+  font-size: 11px;
+  font-weight: 780;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.meaningCardInsight .meaningEyebrow {
+  color: #96690a;
+}
+
+.meaningDefinisi,
+.meaningInsight {
+  margin: 0 0 14px;
+  color: var(--pa-heading);
+  font-size: 14px;
+  line-height: 1.65;
+}
+
+.meaningInsight {
+  font-weight: 620;
+}
+
+.ciriList {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding-left: 18px;
+  color: var(--pa-muted);
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.ciriList::marker {
+  color: var(--pa-primary);
+}
+
+.meaningCatatan {
+  margin: 0;
+  padding-top: 14px;
+  border-top: 1px solid var(--pa-border);
+  color: var(--pa-muted-2);
+  font-size: 12px;
+  font-style: italic;
+  line-height: 1.5;
+}
+
+/* ── Blok per unit sekolah ─────────────────────────────────────────────────────────────── */
+
+.unitBlock {
+  margin-bottom: 18px;
+  border: 1px solid var(--pa-border);
+  border-radius: var(--pa-radius-md);
+  background: var(--pa-surface);
+  box-shadow: var(--pa-shadow-sm);
+  overflow: hidden;
+}
+
+.unitTitle {
+  margin: 0;
+  padding: 16px 22px;
+  border-bottom: 1px solid var(--pa-border);
+  background: var(--pa-bg);
+  color: var(--pa-heading);
+  font-size: 15px;
+  font-weight: 760;
+  text-align: center;
+}
+
+.unitGrid {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 0;
+}
+
+.unitCard {
+  padding: 18px;
+  border-right: 1px solid var(--pa-border);
+}
+
+.unitCard:last-child {
+  border-right: none;
+}
+
+.unitCardLabel {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 0 14px;
+  color: var(--pa-heading);
+  font-size: 12.5px;
+  font-weight: 720;
+}
+
+.hurufMini {
+  display: inline-grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 7px;
+  background: var(--pa-soft);
+  color: var(--pa-primary);
+  font-size: 12px;
+  font-weight: 800;
+}
+
+/* ── Perbandingan antarunit ────────────────────────────────────────────────────────────── */
+
+.compareCard {
+  margin-top: 10px;
+  padding: 22px 24px;
+  border: 1px solid var(--pa-border);
+  border-radius: var(--pa-radius-md);
+  background: var(--pa-surface);
+  box-shadow: var(--pa-shadow-sm);
+}
+
+.compareHead {
+  display: grid;
+  grid-template-columns: minmax(150px, 240px) minmax(0, 1fr);
+  align-items: center;
+  gap: 20px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid var(--pa-border);
+}
+
+.compareKeys {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.compareKey {
+  font-size: 13px;
+  font-weight: 760;
+}
+
+.compareRows {
+  display: grid;
+}
+
+.compareRow {
+  display: grid;
+  grid-template-columns: minmax(150px, 240px) minmax(0, 1fr);
+  align-items: center;
+  gap: 20px;
+  padding: 18px 0;
+  border-bottom: 1px solid var(--pa-border);
+}
+
+.compareRow:last-child {
+  border-bottom: none;
+}
+
+.compareUnitLabel {
+  margin: 0;
+  color: var(--pa-ink);
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.compareUnitNote {
+  margin: 2px 0 0;
+  color: var(--pa-muted-2);
+  font-size: 11.5px;
+}
+
+.compareBody {
+  display: grid;
+  gap: 10px;
+}
+
+.compareValues {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  font-size: 12px;
+  font-weight: 650;
+}
+
+.compareValues strong {
+  font-weight: 780;
+}
+
+.compareNote {
+  margin: 16px 0 0;
+  color: var(--pa-muted-2);
+  font-size: 12px;
+  font-style: italic;
+}
+
+@media (max-width: 1080px) {
+  .dimensiGrid,
+  .unitGrid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .unitCard {
+    border-bottom: 1px solid var(--pa-border);
+  }
+
+  .unitCard:nth-child(3n) {
+    border-right: none;
+  }
+}
+
+@media (max-width: 760px) {
+  .section {
+    padding: 32px 0;
+  }
+
+  .dimensiGrid,
+  .unitGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .unitCard:nth-child(3n) {
+    border-right: 1px solid var(--pa-border);
+  }
+
+  .unitCard:nth-child(2n) {
+    border-right: none;
+  }
+
+  .huruf {
+    font-size: 34px;
+  }
+
+  .compareCard {
+    padding: 18px;
+  }
+
+  .compareHead {
+    grid-template-columns: 1fr;
+    gap: 8px;
+  }
+
+  .compareRow {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+
+  .meaningGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .meaningCard {
+    padding: 18px;
+  }
+}

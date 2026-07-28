@@ -1,0 +1,119 @@
+.grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 14px;
+  margin: 18px 0 8px;
+}
+
+.card {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 10px;
+  position: relative;
+  overflow: hidden;
+  min-height: 116px;
+  padding: 16px 18px 18px;
+  border: 2px solid transparent;
+  border-radius: var(--pa-radius-md);
+  background: #191527;
+  color: white;
+  cursor: pointer;
+  font: inherit;
+  text-align: left;
+  transition: border-color 220ms ease, transform 220ms ease, box-shadow 220ms ease, background-color 220ms ease;
+}
+
+/* Lingkaran tipis di sudut kanan, penanda visual saja supaya kartu gelap tidak terasa datar. */
+.card::after {
+  content: "";
+  position: absolute;
+  top: -34px;
+  right: -34px;
+  width: 128px;
+  height: 128px;
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  border-radius: 50%;
+  pointer-events: none;
+}
+
+.card:hover {
+  transform: translateY(-2px);
+}
+
+.cardActive {
+  border-color: var(--pa-primary);
+  background: var(--pa-primary);
+  box-shadow: 0 0 0 4px rgba(108, 43, 217, 0.2), var(--pa-shadow-md);
+}
+
+.cardActive::after {
+  border-color: rgba(255, 255, 255, 0.22);
+}
+
+.number {
+  color: rgba(255, 255, 255, 0.4);
+  font-size: 11.5px;
+  font-weight: 780;
+  letter-spacing: 0.04em;
+}
+
+.cardActive .number {
+  color: rgba(255, 255, 255, 0.66);
+}
+
+.titleRow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.badge {
+  display: inline-grid;
+  place-items: center;
+  flex: 0 0 auto;
+  width: 26px;
+  height: 26px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.12);
+  color: white;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.cardActive .badge {
+  background: rgba(255, 255, 255, 0.22);
+}
+
+.label {
+  color: white;
+  font-size: 14.5px;
+  font-weight: 760;
+  letter-spacing: -0.01em;
+}
+
+.desc {
+  color: rgba(255, 255, 255, 0.52);
+  font-size: 11.5px;
+  line-height: 1.45;
+}
+
+.cardActive .desc {
+  color: rgba(255, 255, 255, 0.78);
+}
+
+@media (max-width: 980px) {
+  .grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 560px) {
+  .grid {
+    grid-template-columns: 1fr;
+  }
+
+  .card {
+    min-height: 0;
+  }
+}

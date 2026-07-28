@@ -14,6 +14,7 @@ import CwPage from "./pages/cw/CwPage";
 import CwKaryawanPage from "./pages/cw/CwKaryawanPage";
 import ScPage from "./pages/sc/ScPage";
 import ScKaryawanPage from "./pages/sc/ScKaryawanPage";
+import PaPage from "./pages/pa/PaPage";
 import SiswaPage from "./pages/siswa/SiswaPage";
 import AdminCmsPage from "./pages/admin/AdminCmsPage";
 import styles from "./App.module.css";
@@ -219,6 +220,7 @@ export default function App() {
         userName={session.nama}
         role={session.peran}
         schoolName={overview.schoolName || ""}
+        schoolLogoUrl={overview.schoolLogoUrl || null}
         onLogout={handleLogout}
         period={period}
         onPeriodChange={setPeriod}
@@ -257,6 +259,10 @@ export default function App() {
         {activeTab === "cw" && <CwPage session={session} />}
 
         {activeTab === "sc" && <ScPage session={session} tab={scTab} />}
+
+        {/* Perilaku Anak: modul tampilan-dulu, data masih contoh (lihat pa/pa.mock.js).
+            Aktif untuk sekolah yang punya penanda "pa" di school_modules. */}
+        {activeTab === "pa" && <PaPage session={{ ...session, school_name: overview.schoolName }} />}
 
         {activeTab === "screening" && (
           <div className={styles.placeholder}>
