@@ -28,7 +28,7 @@ export function usePaData(session, periodeId = null) {
       const [lembagaRes, siswaRes, esaiRes] = await Promise.all([
         supabase.from("pa_lembaga").select("*").eq("sekolah_id", sekolahId),
         supabase.from("pa_siswa").select("nama, kelas, unit, domain, status, skor, periode_id").eq("sekolah_id", sekolahId),
-        supabase.from("pa_esai").select("kode_anonim, domain, pertanyaan_kode, jawaban_pilihan, jawaban_teks, anotasi, periode_id").eq("sekolah_id", sekolahId),
+        supabase.from("pa_esai").select("kode_anonim, unit, domain, pertanyaan_kode, jawaban_pilihan, jawaban_teks, anotasi, periode_id").eq("sekolah_id", sekolahId),
       ]);
 
       if (!alive) return;

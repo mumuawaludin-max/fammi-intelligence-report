@@ -539,6 +539,7 @@ function insightUtamaSurvey(survey, esaiStatistik) {
 const ESAI = [
   {
     id: "SIA-08-104",
+    unit: "SMP Islam Athirah Bone",
     domain: "relasi",
     pertanyaan_kode: "orang_yang_dipercaya_untuk_cerita",
     prioritas: "Pantau",
@@ -552,6 +553,7 @@ const ESAI = [
   },
   {
     id: "SIA-05-219",
+    unit: "SD Kajaolalido",
     domain: "relasi",
     pertanyaan_kode: "orang_yang_dipercaya_untuk_cerita",
     prioritas: "Pencegahan",
@@ -565,6 +567,7 @@ const ESAI = [
   },
   {
     id: "SIA-11-357",
+    unit: "SMA Islam Athirah Bone",
     domain: "relasi",
     pertanyaan_kode: "orang_yang_dipercaya_untuk_cerita",
     prioritas: "Prioritas",
@@ -578,6 +581,7 @@ const ESAI = [
   },
   {
     id: "SIA-08-243",
+    unit: "SMP Islam Athirah Bone",
     domain: "tolong_menolong",
     pertanyaan_kode: "kenapa_penting_peduli",
     prioritas: "Pantau",
@@ -591,6 +595,7 @@ const ESAI = [
   },
   {
     id: "SIA-12-401",
+    unit: "SMA Islam Athirah Bone",
     domain: "relasi",
     pertanyaan_kode: "orang_yang_dipercaya_untuk_cerita",
     prioritas: "Pencegahan",
@@ -604,6 +609,7 @@ const ESAI = [
   },
   {
     id: "SIA-06-133",
+    unit: "SD Kajaolalido",
     domain: "relasi",
     pertanyaan_kode: "orang_yang_dipercaya_untuk_cerita",
     prioritas: null,
@@ -615,6 +621,7 @@ const ESAI = [
   },
   {
     id: "SIA-09-288",
+    unit: "SMP Islam Athirah Bone",
     domain: "relasi",
     pertanyaan_kode: "orang_yang_dipercaya_untuk_cerita",
     prioritas: "Prioritas",
@@ -628,6 +635,7 @@ const ESAI = [
   },
   {
     id: "SIA-10-052",
+    unit: "SD Kajaolalido",
     domain: "tolong_menolong",
     pertanyaan_kode: "kenapa_penting_peduli",
     prioritas: "Pencegahan",

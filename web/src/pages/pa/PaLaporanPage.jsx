@@ -101,7 +101,7 @@ export default function PaLaporanPage({ session }) {
       <PaInfoBanner />
 
       {sectionAktif === "statistik" && (
-        <PaStatistikSiswa data={laporan.statistik} unitLabel={unitLabel} />
+        <PaStatistikSiswa data={laporan.statistik} esai={laporan.esai} unitLabel={unitLabel} />
       )}
 
       {sectionAktif === "asesmen" && (
@@ -113,7 +113,7 @@ export default function PaLaporanPage({ session }) {
       )}
 
       {sectionAktif === "survey" && (
-        <PaSurvey data={laporan.survey} esai={laporan.esai} unitLabel={unitLabel} />
+        <PaSurvey data={laporan.survey} unitLabel={unitLabel} />
       )}
 
       <PaFooterNote />

@@ -3,7 +3,6 @@ import { PaSectionHeading } from "./PaSectionHeading";
 import { PaInsightBanner } from "./PaInsightBanner";
 import { PaIconBadge } from "./paIconBadge";
 import { PaBar } from "./PaBar";
-import { PaRuangBacaEsai } from "./PaRuangBacaEsai";
 import tokens from "./paTokens.module.css";
 import styles from "./PaSurvey.module.css";
 
@@ -20,18 +19,17 @@ function angka(n) {
  *    kartu peringkat opsi terbanyak, plus satu kalimat interpretasi kalau sudah ditulis lewat
  *    sheet NARASI. Opsi "Tidak Menjawab" ditandai `muted` (warna redup, bukan warna sinyal),
  *    supaya tidak terbaca seolah jadi temuan seperti opsi lain.
- * 2. Pertanyaan terbuka -- TIDAK ditumpuk sebagai daftar "nama + jawaban" mentah di bawah tiap
- *    kategori. Jawaban esai punya ruangnya sendiri (PaRuangBacaEsai) karena cara membacanya
- *    berbeda: satu per satu, utuh, dengan konteks pertanyaannya, bukan dipindai sekilas.
+ * Jawaban esai (pertanyaan terbuka) TIDAK lagi di sini -- dipindah ke bagian 01 Statistik Siswa
+ * atas permintaan pemilik produk, jadi bagian ini sekarang murni pertanyaan tertutup.
  */
-export function PaSurvey({ data, esai, unitLabel }) {
+export function PaSurvey({ data, unitLabel }) {
   const { insight_utama, per_domain } = data;
 
   return (
     <section className={`${tokens.scope} ${styles.section}`}>
       <PaSectionHeading
-        title="Kebiasaan harian dan jawaban terbuka"
-        subtitle="Jawaban pilihan siswa tentang kebiasaan sehari-hari, dikelompokkan per domain HEART, ditutup ruang baca jawaban terbuka."
+        title="Kebiasaan harian"
+        subtitle="Jawaban pilihan siswa tentang kebiasaan sehari-hari, dikelompokkan per domain HEART."
         aside={unitLabel}
       />
 
@@ -84,8 +82,6 @@ export function PaSurvey({ data, esai, unitLabel }) {
           </PaReveal>
         ))}
       </div>
-
-      <PaRuangBacaEsai data={esai} />
     </section>
   );
 }

@@ -3,6 +3,7 @@ import { PaReveal } from "./PaReveal";
 import { PaSectionHeading } from "./PaSectionHeading";
 import { PaIconBadge } from "./paIconBadge";
 import { PaBar, PaStackBar } from "./PaBar";
+import { PaRuangBacaEsai } from "./PaRuangBacaEsai";
 import tokens from "./paTokens.module.css";
 import styles from "./PaStatistikSiswa.module.css";
 
@@ -24,8 +25,11 @@ function angka(n) {
 /**
  * PaStatistikSiswa -- bagian 01. Menjawab satu pertanyaan sebelum pembaca masuk ke hasil:
  * siapa saja yang datanya terkumpul, dan bagaimana suasana hati mereka secara garis besar.
+ * Ruang baca jawaban esai (PaRuangBacaEsai) ditutup di paling bawah bagian ini -- dipindah dari
+ * bagian 04 Survey atas permintaan pemilik produk, supaya pembaca sudah dapat gambaran siapa
+ * respondennya sebelum masuk ke suara mereka sendiri.
  */
-export function PaStatistikSiswa({ data, unitLabel }) {
+export function PaStatistikSiswa({ data, esai, unitLabel }) {
   const { total, laki, perempuan, sebaran, emosi } = data;
 
   return (
@@ -167,6 +171,8 @@ export function PaStatistikSiswa({ data, unitLabel }) {
           ))}
         </div>
       </PaReveal>
+
+      <PaRuangBacaEsai data={esai} />
     </section>
   );
 }

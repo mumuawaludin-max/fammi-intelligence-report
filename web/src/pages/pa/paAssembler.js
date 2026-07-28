@@ -371,6 +371,7 @@ export function rakitLaporanPa(raw, unitScope = "semua") {
       statistik: esaiStatistik,
       entri: esaiScope.map((e) => ({
         id: e.kode_anonim,
+        unit: e.unit || null,
         domain: e.domain,
         pertanyaan_kode: e.pertanyaan_kode,
         jawaban_pilihan: e.jawaban_pilihan,

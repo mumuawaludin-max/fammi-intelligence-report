@@ -398,6 +398,17 @@ export async function parsePaWorkbook(file, { sekolahId, periodeId } = {}) {
   }
 
   // ── pa_esai ──
+  // unit/kelas siswa TIDAK ada di sheet esai (mentah maupun NARASI anotasi) -- dicari lewat nama,
+  // dari siswaRows yang sudah dibangun di atas (satu siswa muncul di 5 baris, satu per domain,
+  // tapi unit/kelasnya sama di semua barisnya, jadi cukup ambil kemunculan pertama).
+  const unitKelasByNama = new Map();
+  for (const s of siswaRows) {
+    if (!unitKelasByNama.has(s.nama)) unitKelasByNama.set(s.nama, { unit: s.unit, kelas: s.kelas });
+  }
+  function unitKelasUntuk(nama) {
+    return unitKelasByNama.get(nama) || { unit: null, kelas: null };
+  }
+
   // Jalur utama: sheet "NARASI RuangBaca Anotasi" -- di situ jawaban mentah DAN kode anonim sudah
   // sebaris dengan kolom anotasi. Jalur cadangan: dua sheet esai mentah, dipakai kalau file yang
   // diunggah masih versi asli tanpa sheet NARASI (kode anonim dibuat di sini, urut kemunculan).
@@ -411,13 +422,15 @@ export async function parsePaWorkbook(file, { sekolahId, periodeId } = {}) {
       const saran = teks(r.isi_saran_tindak_lanjut);
       const prioritas = teks(r.isi_prioritas_label);
       const adaAnotasi = tema.length > 0 || sinyal || saran || prioritas;
+      const namaEsai = teks(r.nama);
+      const { unit: unitEsai, kelas: kelasEsai } = unitKelasUntuk(namaEsai);
       esaiRows.push({
         sekolah_id: sekolahId,
         periode_id: periodeId,
         kode_anonim: kode,
-        nama: teks(r.nama),
-        kelas: null,
-        unit: null,
+        nama: namaEsai,
+        kelas: kelasEsai,
+        unit: unitEsai,
         domain: normDomain(r.domain) || teks(r.domain) || 'relasi',
         pertanyaan_kode: teks(r.pertanyaan_kode) || 'esai',
         jawaban_pilihan: teks(r.ref_jawaban_pilihan),
@@ -439,13 +452,14 @@ export async function parsePaWorkbook(file, { sekolahId, periodeId } = {}) {
       for (const r of s.rows) {
         const nama = teks(r.nama);
         if (!nama) continue;
+        const { unit: unitEsai, kelas: kelasEsai } = unitKelasUntuk(nama);
         esaiRows.push({
           sekolah_id: sekolahId,
           periode_id: periodeId,
           kode_anonim: kodeUntuk(nama),
           nama,
-          kelas: null,
-          unit: null,
+          kelas: kelasEsai,
+          unit: unitEsai,
           domain,
           pertanyaan_kode: pertanyaanKode,
           jawaban_pilihan: teks(r[kolPilihan]),

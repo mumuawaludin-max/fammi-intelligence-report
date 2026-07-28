@@ -52,7 +52,7 @@
   transform: translateY(-1px);
 }
 
-/* ── Tiga angka pembuka ────────────────────────────────────────────────────────────────── */
+/* ── Angka pembuka ─────────────────────────────────────────────────────────────────────── */
 
 .statGrid {
   display: grid;
@@ -92,35 +92,25 @@
   line-height: 1.5;
 }
 
-/* ── Dua kolom: pilih di kiri, baca di kanan ───────────────────────────────────────────── */
+/* ── Baris filter: cari + domain + unit ───────────────────────────────────────────────────── */
 
-.layout {
-  display: grid;
-  grid-template-columns: 320px minmax(0, 1fr);
-  gap: 16px;
-  align-items: start;
-}
-
-.sidebar,
-.reader {
-  padding: 20px;
+.filtersBar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: 20px;
+  padding: 18px 20px;
   border: 1px solid var(--pa-border);
   border-radius: var(--pa-radius-md);
   background: var(--pa-surface);
   box-shadow: var(--pa-shadow-sm);
 }
 
-.sidebarTitle {
-  margin: 0 0 12px;
-  color: var(--pa-heading);
-  font-size: 14px;
-  font-weight: 760;
-}
-
 .searchField {
   display: flex;
   align-items: center;
   gap: 8px;
+  flex: 1 1 240px;
   padding: 0 12px;
   border: 1px solid var(--pa-border);
   border-radius: 12px;
@@ -154,8 +144,13 @@
   outline: none;
 }
 
+.filterGroup {
+  flex: 1 1 220px;
+  min-width: 0;
+}
+
 .filterLabel {
-  margin: 18px 0 8px;
+  margin: 0 0 8px;
   color: var(--pa-muted-2);
   font-size: 11.5px;
   font-weight: 720;
@@ -192,51 +187,71 @@
 }
 
 .hasilCount {
-  margin: 16px 0 10px;
-  padding-top: 14px;
-  border-top: 1px solid var(--pa-border);
+  margin: 16px 0 14px;
   color: var(--pa-muted-2);
   font-size: 11.5px;
   font-weight: 650;
 }
 
-.entriList {
+/* ── Baris kategori (tema) -- vertikal ke bawah, tiap baris digeser sendiri kiri-kanan ──────── */
+
+.kategoriList {
   display: grid;
-  gap: 6px;
-  max-height: 460px;
-  overflow-y: auto;
-  margin-right: -6px;
-  padding-right: 6px;
+  gap: 12px;
 }
 
-.entri {
-  display: grid;
-  gap: 5px;
-  padding: 12px 14px;
-  border: 1px solid transparent;
-  border-radius: 12px;
-  background: transparent;
-  cursor: pointer;
-  font: inherit;
-  text-align: left;
-  transition: border-color 180ms ease, background-color 180ms ease;
+.kategoriRow {
+  padding: 16px 20px 18px;
+  border: 1px solid var(--pa-border);
+  border-radius: var(--pa-radius-md);
+  background: var(--pa-surface);
+  box-shadow: var(--pa-shadow-sm);
 }
 
-.entri:hover {
-  border-color: var(--pa-border);
+.kategoriHead {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 12px;
+}
+
+.kategoriLabel {
+  margin: 0;
+  color: var(--pa-heading);
+  font-size: 15px;
+  font-weight: 780;
+  letter-spacing: -0.01em;
+}
+
+.kategoriMeta {
+  margin: 0;
+  color: var(--pa-muted-2);
+  font-size: 11.5px;
+  font-weight: 650;
+}
+
+.kategoriBody {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 16px;
+}
+
+.kategoriCard {
+  min-width: 0;
+  padding: 14px 18px;
+  border-radius: var(--pa-radius-sm);
   background: var(--pa-bg);
 }
 
-.entriActive {
-  border-color: var(--pa-primary);
-  background: var(--pa-soft);
-}
-
-.entriTop {
+.kategoriCardHead {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 10px;
+  margin-bottom: 10px;
 }
 
 .entriId {
@@ -245,7 +260,14 @@
   font-weight: 700;
 }
 
+.entriDomain {
+  color: var(--pa-primary);
+  font-size: 10.5px;
+  font-weight: 700;
+}
+
 .status {
+  flex: 0 0 auto;
   font-size: 10.5px;
   font-weight: 780;
   text-transform: uppercase;
@@ -257,78 +279,38 @@
 .status_perhatian { color: var(--pa-perhatian); }
 .status_muted { color: var(--pa-muted-2); }
 
-.entriDomain {
+.kategoriPertanyaan {
+  margin: 0 0 8px;
   color: var(--pa-primary);
-  font-size: 10.5px;
-  font-weight: 700;
-}
-
-.entriJudul {
-  color: var(--pa-heading);
-  font-size: 13.5px;
-  font-weight: 720;
-}
-
-.entriCuplik {
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  line-clamp: 2;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
-  color: var(--pa-muted);
   font-size: 12px;
+  font-weight: 750;
   line-height: 1.5;
 }
 
-/* ── Panel baca ────────────────────────────────────────────────────────────────────────── */
-
-.reader {
-  padding: 24px 26px;
-  min-height: 460px;
-}
-
-.readerHead {
-  display: flex;
-  align-items: center;
-  gap: 14px;
-  padding-bottom: 18px;
-  border-bottom: 1px solid var(--pa-border);
-}
-
-.avatar {
-  display: inline-grid;
-  place-items: center;
-  flex: 0 0 auto;
-  width: 42px;
-  height: 42px;
-  border-radius: 13px;
-  background: #191527;
-  color: white;
-  font-size: 14px;
-  font-weight: 800;
-}
-
-.readerIdent {
-  flex: 1;
-  min-width: 0;
-}
-
-.readerIdent strong {
-  display: block;
-  color: var(--pa-heading);
+.kategoriJawaban {
+  margin: 0 0 10px;
+  color: var(--pa-ink);
   font-size: 14.5px;
-  font-weight: 760;
+  font-weight: 450;
+  line-height: 1.65;
 }
 
-.readerIdent p {
-  margin: 2px 0 0;
-  color: var(--pa-muted-2);
-  font-size: 12px;
+.kategoriSinyal {
+  margin: 0;
+  padding-top: 10px;
+  border-top: 1px solid var(--pa-border);
+  color: var(--pa-heading);
+  font-size: 12.5px;
+  font-weight: 600;
+  line-height: 1.55;
 }
 
-.navBtns {
+.kategoriPager {
   display: flex;
+  flex-direction: column;
+  align-items: center;
   gap: 8px;
+  flex: 0 0 auto;
 }
 
 .navBtn {
@@ -344,89 +326,38 @@
   transition: border-color 180ms ease, color 180ms ease, background-color 180ms ease;
 }
 
-.navBtn:hover {
+.navBtn:hover:not(:disabled) {
   border-color: var(--pa-primary);
   background: var(--pa-soft);
   color: var(--pa-primary);
 }
 
-.pertanyaan {
-  margin: 20px 0 14px;
-  color: var(--pa-primary);
-  font-size: 12.5px;
-  font-weight: 750;
-  line-height: 1.5;
+.navBtn:disabled {
+  opacity: 0.35;
+  cursor: default;
 }
 
-.jawaban {
-  margin: 0 0 24px;
-  color: var(--pa-ink);
-  font-size: clamp(16px, 1.6vw, 19px);
-  font-weight: 450;
-  line-height: 1.72;
-}
-
-.insightGrid {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 12px;
-  margin-bottom: 12px;
-}
-
-.insightCard {
-  padding: 16px 18px;
-  border-radius: var(--pa-radius-sm);
-  background: var(--pa-bg);
-}
-
-.insightLabel {
-  margin: 0 0 8px;
+.pagerIndex {
   color: var(--pa-muted-2);
   font-size: 11px;
-  font-weight: 750;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-}
-
-.insightText {
-  margin: 0;
-  color: var(--pa-heading);
-  font-size: 13px;
-  line-height: 1.6;
-  font-weight: 600;
-}
-
-.temaTags {
-  display: flex;
-  gap: 6px;
-  flex-wrap: wrap;
-}
-
-.temaTag {
-  padding: 6px 12px;
-  border-radius: 999px;
-  background: var(--pa-surface);
-  color: var(--pa-primary);
-  font-size: 11.5px;
   font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
 }
 
-.saranCard {
-  background: var(--pa-soft);
-}
-
-.saranText {
-  margin: 0;
-  color: var(--pa-heading);
-  font-size: 13.5px;
-  font-weight: 700;
-  line-height: 1.6;
+.kategoriSisa {
+  margin: 4px 0 0;
+  padding: 14px 18px;
+  border: 1px dashed var(--pa-border);
+  border-radius: var(--pa-radius-sm);
+  color: var(--pa-muted);
+  font-size: 12px;
+  line-height: 1.5;
+  text-align: center;
 }
 
 .readerFoot {
-  margin: 18px 0 0;
-  padding-top: 14px;
-  border-top: 1px solid var(--pa-border);
+  margin: 16px 0 0;
   color: var(--pa-muted-2);
   font-size: 11.5px;
   font-style: italic;
@@ -437,7 +368,7 @@
   display: grid;
   place-items: center;
   gap: 8px;
-  min-height: 380px;
+  min-height: 260px;
   text-align: center;
 }
 
@@ -474,32 +405,24 @@
   color: var(--pa-primary);
 }
 
-@media (max-width: 980px) {
-  .layout {
-    grid-template-columns: 1fr;
-  }
-
+@media (max-width: 860px) {
   .statGrid {
     grid-template-columns: 1fr;
   }
 
-  .entriList {
-    max-height: 320px;
+  .kategoriBody {
+    grid-template-columns: 1fr;
   }
 
-  .reader {
-    min-height: 0;
+  .kategoriPager {
+    flex-direction: row;
+    justify-content: center;
   }
 }
 
 @media (max-width: 640px) {
-  .sidebar,
-  .reader {
-    padding: 18px;
-  }
-
-  .insightGrid {
-    grid-template-columns: 1fr;
+  .filtersBar {
+    padding: 16px;
   }
 
   .guideBtn {
