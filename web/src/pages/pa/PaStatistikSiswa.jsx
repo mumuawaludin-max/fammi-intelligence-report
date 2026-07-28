@@ -35,7 +35,7 @@ export function PaStatistikSiswa({ data, esai, unitLabel }) {
   return (
     <section className={`${tokens.scope} ${styles.section}`}>
       <PaSectionHeading
-        title="Siapa yang datanya terkumpul"
+        title="Pemetaan siswa yang mengikuti screening deteksi masalah perilaku dan mental anak"
         subtitle="Siapa saja yang datanya terkumpul pada periode ini, dan bagaimana suasana emosi yang mereka laporkan."
         aside={unitLabel}
       />

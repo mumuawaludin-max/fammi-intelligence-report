@@ -235,7 +235,6 @@ export default function App() {
       <Header
         userName={session.nama}
         role={session.peran}
-        schoolName={overview.schoolName || ""}
         schoolLogoUrl={overview.schoolLogoUrl || null}
         onLogout={handleLogout}
         period={period}
