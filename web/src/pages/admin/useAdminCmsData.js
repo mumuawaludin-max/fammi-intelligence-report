@@ -37,7 +37,7 @@ export function useAdminCmsData() {
         scLembagaRes, tlScRes, briefingScRes,
       ] = await Promise.all([
         supabase.from('yayasan').select('id, nama'),
-        supabase.from('schools').select('id, nama, yayasan_id, aktif, logo_url'),
+        supabase.from('schools').select('id, nama, jenjang, yayasan_id, aktif, logo_url'),
         supabase.from('school_modules').select('school_id, modul, aktif').eq('aktif', true),
         supabase.from('karakter_summary').select('sekolah_id, periode_id').eq('scope', 'sekolah'),
         supabase.from('karakter_aspek_config').select('sekolah_id, aspek_kode, aspek_label, urutan').order('urutan', { ascending: true }),
@@ -111,7 +111,7 @@ export function useAdminCmsData() {
           yay: s.yayasan_id,
           aktif: s.aktif,
           logoUrl: s.logo_url || null,
-          jenjang: '—',
+          jenjang: s.jenjang || '—',
           modules,
           periode,
           gap: modules.includes('karakter') ? gapFor(periode) : 'none',
@@ -292,9 +292,9 @@ export async function toggleModuleAction(schoolId, modul, nextOn) {
   if (error) throw new Error(await edgeErrorDetail(error, 'Edge Function admin-actions gagal dipanggil.'));
 }
 
-export async function addSchoolAction({ nama, jenjang: _jenjang, yayasanId, modules, logoBase64 }) {
+export async function addSchoolAction({ nama, jenjang, yayasanId, modules, logoBase64 }) {
   const { data, error } = await supabase.functions.invoke('admin-actions', {
-    body: { action: 'add-school', nama, yayasanId, modules, logoBase64 },
+    body: { action: 'add-school', nama, jenjang, yayasanId, modules, logoBase64 },
   });
   if (error) throw new Error(await edgeErrorDetail(error, 'Edge Function admin-actions gagal dipanggil.'));
   return data.id;

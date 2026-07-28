@@ -21,7 +21,7 @@
 // Body: { action, ...payload }, action salah satu dari:
 //   "approve" | "reject"      { id, tipe: "tindak_lanjut"|"briefing", teks?, langkahTerpilih?, regenerateDari? }
 //   "update-profile"          { userId, nama?, peran?, schoolId?, cakupan? }
-//   "add-school"               { nama, yayasanId?, modules?, logoBase64? } -- logoBase64 data
+//   "add-school"               { nama, jenjang?, yayasanId?, modules?, logoBase64? } -- logoBase64 data
 //                              URL PNG ("data:image/png;base64,...."), opsional. Diunggah ke
 //                              bucket Storage publik "school-logos" (migration 20260801120000)
 //                              lewat service_role SEBELUM insert schools, supaya logo_url sudah
@@ -256,7 +256,7 @@ async function handleUpdateProfile(admin, body) {
 }
 
 async function handleAddSchool(admin, body) {
-  const { nama, yayasanId, modules, logoBase64 } = body;
+  const { nama, jenjang, yayasanId, modules, logoBase64 } = body;
   if (!nama) return { ok: false, error: "Field wajib: nama." };
 
   const id = String(nama).toUpperCase().replace(/[^A-Z0-9]+/g, "-").replace(/(^-|-$)/g, "").slice(0, 40);
@@ -270,7 +270,7 @@ async function handleAddSchool(admin, body) {
 
   const { error: schoolErr } = await admin
     .from("schools")
-    .insert({ id, nama, yayasan_id: yayasanId || null, aktif: true, logo_url: logoUrl });
+    .insert({ id, nama, jenjang: jenjang || null, yayasan_id: yayasanId || null, aktif: true, logo_url: logoUrl });
   if (schoolErr) return { ok: false, error: schoolErr.message };
 
   if (Array.isArray(modules) && modules.length > 0) {

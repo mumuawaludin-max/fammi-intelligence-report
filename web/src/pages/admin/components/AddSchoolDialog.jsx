@@ -4,10 +4,15 @@ import { moduleColor, moduleLabel } from '../data/helpers';
 import { IconX } from './icons';
 
 const MODULES = ['karakter', 'mi', 'screening', 'cw', 'sc', 'pa'];
-// Daycare..SMK = jenjang akademik (sekolah K-12). Manajemen/Karyawan ditambahkan untuk
-// organisasi yang bukan sekolah berjenjang (klien modul Culture & Wellbeing/School Culture),
-// dipilih sesuai peran dominan yang mengisi asesmen budaya kerja di organisasi itu.
-const JENJANG_OPTIONS = ['Daycare', 'TK', 'SD', 'SMP', 'SMA', 'SMK', 'Manajemen', 'Karyawan'];
+// Daycare..SMK = jenjang akademik (sekolah K-12). "Semua Jenjang" untuk satu Yayasan yang
+// mendaftar sebagai SATU baris `schools`/satu login tapi mencakup beberapa jenjang sekaligus
+// (mis. Sekolah Islam Athirah: SD/SMP/SMA dalam satu wadah) -- label ini murni deskriptif untuk
+// daftar Admin CMS, TIDAK membatasi unit/jenjang apa yang boleh diimpor untuk sekolah itu (lihat
+// kolom `unit` di pa_lembaga/sc_lembaga, itu yang sungguhan memecah data per jenjang).
+// Manajemen/Karyawan ditambahkan untuk organisasi yang bukan sekolah berjenjang (klien modul
+// Culture & Wellbeing/School Culture), dipilih sesuai peran dominan yang mengisi asesmen budaya
+// kerja di organisasi itu.
+const JENJANG_OPTIONS = ['Daycare', 'TK', 'SD', 'SMP', 'SMA', 'SMK', 'Semua Jenjang', 'Manajemen', 'Karyawan'];
 
 // Batas ukuran mentah file logo -- dicek DI SINI (klien) sebelum sempat dibaca jadi base64
 // sama sekali, supaya pesan errornya cepat dan tidak menunggu bolak-balik ke Edge Function.
