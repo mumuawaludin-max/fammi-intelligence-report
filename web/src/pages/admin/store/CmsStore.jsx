@@ -76,7 +76,7 @@ export function CmsProvider({ session, children }) {
   const editSchool = useCallback(async (schoolId, payload) => {
     try {
       await editSchoolAction({ schoolId, ...payload });
-      showToast('Logo sekolah diperbarui.', 'safe');
+      showToast('Sekolah diperbarui.', 'safe');
       setState((s) => ({ ...s, editSchoolTarget: null }));
       refetch();
       return true;

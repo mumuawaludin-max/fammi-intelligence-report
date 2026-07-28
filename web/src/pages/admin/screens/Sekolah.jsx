@@ -62,7 +62,7 @@ export function Sekolah() {
                   isModuleOn={isModuleOn}
                   toggleModule={toggleModule}
                   onExpand={() => setExpanded(cur => cur === k.id ? null : k.id)}
-                  onEditLogo={() => setEditSchoolTarget(k)}
+                  onEdit={() => setEditSchoolTarget(k)}
                 />
               ))}
             </tbody>
@@ -98,7 +98,7 @@ export function Sekolah() {
   );
 }
 
-function SekolahRow({ k, yayNama, isModuleOn, toggleModule, onExpand, onEditLogo }) {
+function SekolahRow({ k, yayNama, isModuleOn, toggleModule, onExpand, onEdit }) {
   return (
     <tr className="hover-row">
       <td>
@@ -127,7 +127,7 @@ function SekolahRow({ k, yayNama, isModuleOn, toggleModule, onExpand, onEditLogo
           : <span className="pill" style={{ background: '#F0F0F4', color: 'var(--ink-3)' }}><span className="dot" style={{ background: 'var(--ink-4)' }} />Nonaktif</span>}
       </td>
       <td style={{ textAlign: 'right' }}>
-        <button className="btn-ghost" style={{ padding: 6 }} onClick={onEditLogo} title="Logo sekolah">
+        <button className="btn-ghost" style={{ padding: 6 }} onClick={onEdit} title="Edit sekolah">
           <IconMoreVertical size={14} stroke="#7C7689" />
         </button>
       </td>

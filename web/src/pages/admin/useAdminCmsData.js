@@ -300,11 +300,13 @@ export async function addSchoolAction({ nama, jenjang, yayasanId, modules, logoB
   return data.id;
 }
 
-/** Ubah logo sekolah yang sudah ada -- padanan addSchoolAction tapi untuk baris `schools` yang
- * sudah terdaftar duluan. `logoBase64` untuk unggah/ganti, `removeLogo:true` untuk menghapus. */
-export async function editSchoolAction({ schoolId, logoBase64, removeLogo }) {
+/** Ubah sekolah yang sudah ada -- padanan addSchoolAction tapi untuk baris `schools` yang sudah
+ * terdaftar duluan. `nama`/`jenjang`/`yayasanId` opsional dan independen dari logo (`logoBase64`
+ * untuk unggah/ganti, `removeLogo:true` untuk menghapus) -- kirim hanya field yang benar-benar
+ * berubah, field yang tidak dikirim tidak akan disentuh di sisi server. */
+export async function editSchoolAction({ schoolId, nama, jenjang, yayasanId, logoBase64, removeLogo }) {
   const { data, error } = await supabase.functions.invoke('admin-actions', {
-    body: { action: 'edit-school', schoolId, logoBase64, removeLogo },
+    body: { action: 'edit-school', schoolId, nama, jenjang, yayasanId, logoBase64, removeLogo },
   });
   if (error) throw new Error(await edgeErrorDetail(error, 'Edge Function admin-actions gagal dipanggil.'));
   return data;

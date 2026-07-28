@@ -26,13 +26,14 @@
 //                              bucket Storage publik "school-logos" (migration 20260801120000)
 //                              lewat service_role SEBELUM insert schools, supaya logo_url sudah
 //                              terisi di baris yang sama, bukan update terpisah setelahnya.
-//   "edit-school"              { schoolId, logoBase64? | removeLogo? } -- untuk sekolah yang
-//                              SUDAH ada (tidak lewat add-school), supaya bisa menambah/mengganti
-//                              logo belakangan. Kirim logoBase64 untuk unggah baru (upsert path
-//                              yang sama, otomatis menimpa), atau removeLogo:true untuk
-//                              menghapus logo dan mengembalikan logo_url ke null. Cuma soal
-//                              logo -- field lain (nama/yayasan/jenjang) belum ada jalur edit-nya
-//                              di CMS ini sama sekali.
+//   "edit-school"              { schoolId, nama?, jenjang?, yayasanId?, logoBase64? | removeLogo? }
+//                              untuk sekolah yang SUDAH ada (tidak lewat add-school). nama/
+//                              jenjang/yayasanId independen dari logo, cuma disentuh kalau
+//                              key-nya memang dikirim (undefined check, bukan falsy check).
+//                              `id` (slug) tidak pernah bisa diubah lewat sini. Kirim logoBase64
+//                              untuk unggah baru (upsert path yang sama, otomatis menimpa), atau
+//                              removeLogo:true untuk menghapus logo dan mengembalikan logo_url
+//                              ke null.
 //   "add-yayasan"              { nama } -> { id, nama }. id di-generate slug manual dari nama
 //                              (prefix "YAY-", lihat handleAddYayasan) -- SEBELUMNYA diasumsikan
 //                              auto-generate dari database, ternyata yayasan.id sungguhan text
@@ -283,15 +284,22 @@ async function handleAddSchool(admin, body) {
   return { ok: true, id, logoUrl };
 }
 
-/** Ubah logo sekolah yang SUDAH ada -- padanan handleAddSchool tapi untuk baris schools yang
- * sudah terdaftar duluan (dibuat sebelum fitur logo ada, atau salah unggah saat pembuatan).
- * logoBase64 dan removeLogo saling eksklusif secara logis; kalau keduanya kosong, tidak ada
- * yang perlu disimpan jadi dianggap error supaya CMS tidak diam-diam no-op. */
+/** Ubah sekolah yang SUDAH ada -- padanan handleAddSchool tapi untuk baris schools yang sudah
+ * terdaftar duluan. `nama`/`jenjang`/`yayasanId` opsional dan independen dari logo -- kalau
+ * key-nya tidak dikirim di body sama sekali, field itu tidak disentuh (undefined check, bukan
+ * falsy check, supaya "Mandiri" / jenjang kosong tetap bisa disimpan sebagai null yang disengaja).
+ * `id` (slug) SENGAJA tidak pernah diubah lewat sini -- itu kunci yang direferensikan
+ * profiles.school_id/pa_lembaga.sekolah_id/dst, mengubahnya akan memutus semua baris terkait. */
 async function handleEditSchool(admin, body) {
-  const { schoolId, logoBase64, removeLogo } = body;
+  const { schoolId, nama, jenjang, yayasanId, logoBase64, removeLogo } = body;
   if (!schoolId) return { ok: false, error: "Field wajib: schoolId." };
+  if (nama !== undefined && !String(nama).trim()) return { ok: false, error: "Nama sekolah tidak boleh kosong." };
 
   const patch: Record<string, unknown> = {};
+  if (nama !== undefined) patch.nama = String(nama).trim();
+  if (jenjang !== undefined) patch.jenjang = jenjang || null;
+  if (yayasanId !== undefined) patch.yayasan_id = yayasanId || null;
+
   if (logoBase64) {
     const uploaded = await uploadSchoolLogo(admin, schoolId, logoBase64);
     if (!uploaded.ok) return { ok: false, error: uploaded.error };
@@ -299,13 +307,15 @@ async function handleEditSchool(admin, body) {
   } else if (removeLogo) {
     await admin.storage.from("school-logos").remove([`${schoolId}.png`]);
     patch.logo_url = null;
-  } else {
-    return { ok: false, error: "Tidak ada perubahan logo untuk disimpan." };
+  }
+
+  if (Object.keys(patch).length === 0) {
+    return { ok: false, error: "Tidak ada perubahan untuk disimpan." };
   }
 
   const { error } = await admin.from("schools").update(patch).eq("id", schoolId);
   if (error) return { ok: false, error: error.message };
-  return { ok: true, logoUrl: patch.logo_url ?? null };
+  return { ok: true, logoUrl: patch.logo_url as string | null | undefined };
 }
 
 // Batas ukuran data URL base64 -- PNG mentah ~1.5MB, base64 menggembungkannya ~33%, jadi
