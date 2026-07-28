@@ -89,6 +89,16 @@ function formatTanggalIndo(iso) {
   return `${d.getDate()} ${BULAN[d.getMonth()]} ${d.getFullYear()}`;
 }
 
+/** periode_id "2026-05" -> "Bulan Mei Tahun 2026", dipakai label dropdown "Periode asesmen" di
+ * PaFilterBar supaya pembaca tidak perlu menerjemahkan sendiri kode YYYY-MM. */
+export function formatPeriodeBulanTahun(periodeId) {
+  const m = /^(\d{4})-(\d{2})$/.exec(periodeId || "");
+  if (!m) return periodeId;
+  const [, tahun, bulan] = m;
+  const nama = BULAN[parseInt(bulan, 10) - 1];
+  return nama ? `Bulan ${nama} Tahun ${tahun}` : periodeId;
+}
+
 function persenSatuDesimal(bagian, total) {
   if (!total) return "0";
   return ((bagian / total) * 100).toFixed(1).replace(".", ",");

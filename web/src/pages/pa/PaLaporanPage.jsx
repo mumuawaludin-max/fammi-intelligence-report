@@ -8,7 +8,7 @@ import { PaHasilAsesmen } from "./PaHasilAsesmen";
 import { PaPerluPerhatian } from "./PaPerluPerhatian";
 import { PaSurvey } from "./PaSurvey";
 import { usePaData } from "./usePaData";
-import { rakitLaporanPa } from "./paAssembler";
+import { rakitLaporanPa, formatPeriodeBulanTahun } from "./paAssembler";
 import tokens from "./paTokens.module.css";
 import styles from "./PaLaporanPage.module.css";
 
@@ -67,7 +67,7 @@ export default function PaLaporanPage({ session }) {
     );
   }
 
-  const periodeOptions = raw.availablePeriods.map((id) => ({ id, label: id }));
+  const periodeOptions = raw.availablePeriods.map((id) => ({ id, label: formatPeriodeBulanTahun(id) }));
   const unitOptions = [
     { id: "semua", label: "Semua unit sekolah" },
     ...raw.lembagaAtPeriode.filter((r) => r.unit !== null).map((r) => ({ id: r.unit, label: r.unit })),

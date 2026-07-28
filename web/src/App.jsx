@@ -78,16 +78,32 @@ function isSingleModuleShellPeran(peran) {
     || peran === "Yayasan" || peran === "Manajemen";
 }
 
+// Urutan prioritas kalau session.modules punya lebih dari satu entitlement aktif -- dipakai
+// supaya modul default begitu login stabil dan cocok dengan tab paling kiri yang terlihat di
+// NavBar (lihat NAV_ITEMS di components/NavBar.jsx), bukan urutan acak dari database.
+const URUTAN_MODUL_DEFAULT = ["karakter", "screening", "mi", "cw", "sc", "pa"];
+
 /**
- * Modul default kalau session.modules kosong -- Manajemen ke CW atau SC (dua modul "budaya
- * organisasi" berbeda, dibedakan lewat entitlement school_modules), peran lain ke Karakter.
- * Kalau `modules` sudah menyebut salah satunya secara eksplisit, ikuti itu -- fallback "cw"
- * cuma jaring pengaman untuk sesi yang modules-nya benar-benar kosong.
+ * Modul default begitu login (atau kalau session.modules kosong). SEBELUMNYA hardcode
+ * "karakter" untuk semua peran selain Manajemen, tidak peduli modul apa yang sungguhan aktif
+ * untuk sekolah itu -- akun Yayasan yang cuma punya modul "pa" (mis. Sekolah Islam Athirah)
+ * jadi mendarat di KarakterPage yang datanya memang tidak pernah ada untuk sekolah itu, muncul
+ * sebagai "Gagal memuat data" yang membingungkan padahal bukan bug data, cuma salah landing.
+ *
+ * Sekarang: ikuti session.modules kalau ada isinya (peran mana pun, bukan cuma Manajemen),
+ * lewat URUTAN_MODUL_DEFAULT supaya defaultnya stabil kalau lebih dari satu modul aktif.
+ * Fallback "karakter" HANYA kalau modules benar-benar kosong (entitlement belum diatur sama
+ * sekali) -- jaring pengaman lama, bukan asumsi modul yang benar.
  */
 function defaultModuleForPeran(peran, modules = []) {
-  if (peran !== "Manajemen") return "karakter";
-  if (modules.includes("sc")) return "sc";
-  return "cw";
+  const aktif = (modules || []).filter((m) => m !== "overview");
+  if (peran === "Manajemen") {
+    if (aktif.includes("sc")) return "sc";
+    if (aktif.includes("cw")) return "cw";
+    return "cw";
+  }
+  const terurut = URUTAN_MODUL_DEFAULT.filter((m) => aktif.includes(m));
+  return terurut[0] || "karakter";
 }
 
 export default function App() {
