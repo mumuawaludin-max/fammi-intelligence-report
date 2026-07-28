@@ -158,10 +158,29 @@
   font-weight: 550;
 }
 
+/* SEBELUMNYA classname ini dipakai di JSX tapi tidak pernah didefinisikan di sini -- jumlah dan
+   persen jatuh ke alur teks default tanpa jarak/pemisah sama sekali dan menempel jadi satu
+   ("31966%"). display:flex + gap + separator "·" eksplisit di JSX memastikan ini tidak terjadi
+   lagi walau kontennya berubah panjang. */
+.perilakuAngka {
+  display: flex;
+  align-items: baseline;
+  gap: 5px;
+  flex-wrap: wrap;
+  white-space: nowrap;
+}
+
 .perilakuJumlah {
   color: var(--pa-perhatian);
   font-size: 13px;
   font-weight: 750;
+  font-variant-numeric: tabular-nums;
+}
+
+.perilakuPersen {
+  color: var(--pa-muted-2);
+  font-size: 11.5px;
+  font-weight: 650;
   font-variant-numeric: tabular-nums;
 }
 

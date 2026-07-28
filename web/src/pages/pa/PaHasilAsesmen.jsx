@@ -3,6 +3,7 @@ import { PaReveal } from "./PaReveal";
 import { PaSectionHeading } from "./PaSectionHeading";
 import { PaInsightBanner } from "./PaInsightBanner";
 import { PaBar, PaStackBar } from "./PaBar";
+import { PaRichText } from "./PaRichText";
 import tokens from "./paTokens.module.css";
 import styles from "./PaHasilAsesmen.module.css";
 
@@ -104,17 +105,17 @@ export function PaHasilAsesmen({ data, unitLabel, unitScope = "semua" }) {
           <div className={styles.meaningGrid}>
             <div className={styles.meaningCard}>
               <p className={styles.meaningEyebrow}>Apa itu {selected.label}?</p>
-              <p className={styles.meaningDefinisi}>{selected.definisi}</p>
+              <p className={styles.meaningDefinisi}><PaRichText text={selected.definisi} /></p>
               {selected.ciri_umum?.length > 0 && (
                 <ul className={styles.ciriList}>
-                  {selected.ciri_umum.map((c) => <li key={c}>{c}</li>)}
+                  {selected.ciri_umum.map((c) => <li key={c}><PaRichText text={c} /></li>)}
                 </ul>
               )}
             </div>
             <div className={`${styles.meaningCard} ${styles.meaningCardInsight}`}>
               <p className={styles.meaningEyebrow}>Temuan untuk {unitLabel}</p>
-              <p className={styles.meaningInsight}>{selected.insight}</p>
-              {selected.catatan && <p className={styles.meaningCatatan}>{selected.catatan}</p>}
+              <p className={styles.meaningInsight}><PaRichText text={selected.insight} /></p>
+              {selected.catatan && <p className={styles.meaningCatatan}><PaRichText text={selected.catatan} /></p>}
             </div>
           </div>
         </PaReveal>

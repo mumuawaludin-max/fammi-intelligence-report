@@ -8,6 +8,7 @@ import { PaHasilAsesmen } from "./PaHasilAsesmen";
 import { PaPerluPerhatian } from "./PaPerluPerhatian";
 import { PaSurvey } from "./PaSurvey";
 import { PA_PERIODE_OPTIONS, PA_UNIT_OPTIONS, paLaporanContoh } from "./pa.mock";
+import tokens from "./paTokens.module.css";
 import styles from "./PaLaporanPage.module.css";
 
 const SECTIONS = [
@@ -36,9 +37,14 @@ export default function PaLaporanPage() {
 
   const laporan = useMemo(() => paLaporanContoh(unit), [unit]);
   const unitLabel = laporan.meta.unit_label;
+  const namaUntukIntro = unit === "semua" ? laporan.meta.lembaga : unitLabel;
 
   return (
     <div className={styles.page}>
+      <p className={`${tokens.scope} ${styles.introText}`}>
+        Hasil screening deteksi dini masalah perilaku dan mental anak {namaUntukIntro}.
+      </p>
+
       <PaFilterBar
         periodeOptions={PA_PERIODE_OPTIONS}
         periode={periode}

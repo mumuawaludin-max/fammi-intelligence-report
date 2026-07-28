@@ -11,6 +11,14 @@
   padding-bottom: 48px;
 }
 
+.introText {
+  margin: 20px 0 4px;
+  color: var(--pa-heading);
+  font-size: 15px;
+  font-weight: 700;
+  line-height: 1.4;
+}
+
 /* Status kosong/memuat/gagal, dipakai sebelum data siap -- padanan .stateBox di sc/ScPage.module.css,
    disalin ke token warna PA (--pa-*) supaya tidak keluar dari cakupan .scope modul ini. */
 .stateBox {

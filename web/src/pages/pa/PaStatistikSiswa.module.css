@@ -85,6 +85,14 @@
   justify-content: flex-end;
 }
 
+/* Dipakai sebagai className tambahan untuk <PaBar> di dalam .genderSide (flex) -- tanpa ini
+   batangnya cuma mengandalkan width:100% bawaan PaBar, yang tidak otomatis tumbuh mengisi sisa
+   ruang flex kalau .genderText di sebelahnya sudah memegang lebar tetap. */
+.genderTrack {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
 .genderCount {
   color: var(--pa-ink);
   font-size: 15px;
@@ -272,6 +280,10 @@
 .emosiRow:last-child {
   border-bottom: none;
   padding-bottom: 2px;
+}
+
+.emosiUnit {
+  min-width: 0;
 }
 
 .emosiUnitLabel {

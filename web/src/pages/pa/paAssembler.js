@@ -62,7 +62,7 @@ export const PA_GLOSARIUM = {
     catatan: "Skor tinggi mengarahkan perhatian ke kondisi lingkungan kelas, bukan menyalahkan anak yang menyendiri.",
   },
   tolong_menolong: {
-    definisi: "Satu-satunya subskala 'kekuatan' pada SDQ, bukan subskala kesulitan seperti empat lainnya: mengukur kesediaan berbagi, menolong, dan berempati. Karena itu arah bacanya kebalikan dari empat domain lain, skor RENDAH yang perlu diperhatikan, bukan skor tinggi.",
+    definisi: "Satu-satunya subskala 'kekuatan' pada SDQ, bukan subskala kesulitan seperti empat lainnya: mengukur kesediaan berbagi, menolong, dan berempati. Karena itu arah bacanya kebalikan dari empat domain lain, skor **rendah** yang perlu diperhatikan, bukan skor tinggi.",
     ciri_umum: ["Bersedia berbagi dengan orang lain", "Peka pada perasaan teman", "Menawarkan bantuan tanpa diminta"],
     catatan: "Karena arah skalanya kebalikan, domain ini dibaca sebagai bahan penguatan, bukan kasus yang perlu diwaspadai.",
   },
@@ -248,7 +248,10 @@ export function rakitLaporanPa(raw, unitScope = "semua") {
         rank: i + 1, label: it.indikator, nilai: it.nilai, jumlah: it.siswa, persen: it.persentase,
       })),
       indikatorLintasUnit: unitScope !== "semua" && indikatorList.length > 0,
-      siswa: anggotaSiswa.slice(0, 15).map((s) => ({ nama: s.nama, unit: s.unit, kelas: s.kelas, skor: s.skor })),
+      // `status` ikut disalin (bukan cuma skor) -- ambang skor "Perlu Perhatian" vs "Perlu
+      // Diwaspadai" BEDA per domain (SDQ per subskala), lihat catatan di PaPerluPerhatian.jsx.
+      // Tampilan tidak boleh menebak tingkat dari skor mentah pakai satu ambang universal.
+      siswa: anggotaSiswa.slice(0, 15).map((s) => ({ nama: s.nama, unit: s.unit, kelas: s.kelas, skor: s.skor, status: s.status })),
       ...PA_GLOSARIUM[d.kode],
       analisis: current.narasi?.analisis_03_domain?.[d.kode] || agregat.narasi?.analisis_03_domain?.[d.kode] || null,
     };

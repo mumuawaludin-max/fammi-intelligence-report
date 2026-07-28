@@ -290,6 +290,10 @@
   border-bottom: none;
 }
 
+.compareUnit {
+  min-width: 0;
+}
+
 .compareUnitLabel {
   margin: 0;
   color: var(--pa-ink);

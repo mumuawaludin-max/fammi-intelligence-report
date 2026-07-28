@@ -31,7 +31,11 @@ export default function Header({
             </span>
           )}
           <div className={styles.userChip}>
-            <span className={styles.avatar}>{userName.charAt(0)}</span>
+            <span className={styles.avatar}>
+              {schoolLogoUrl
+                ? <img className={styles.avatarLogo} src={schoolLogoUrl} alt="" />
+                : userName.charAt(0)}
+            </span>
             <span className={styles.userName}>{userName}</span>
             <span className={styles.rolePill}>{role}</span>
           </div>

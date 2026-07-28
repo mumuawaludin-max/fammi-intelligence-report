@@ -68,7 +68,7 @@ export const PA_GLOSARIUM = {
     catatan: "Skor tinggi mengarahkan perhatian ke kondisi lingkungan kelas, bukan menyalahkan anak yang menyendiri.",
   },
   prososial: {
-    definisi: "Satu-satunya subskala 'kekuatan' pada SDQ, bukan subskala kesulitan seperti empat lainnya: mengukur kesediaan berbagi, menolong, dan berempati. Karena itu arah bacanya kebalikan dari empat domain lain, skor RENDAH yang perlu diperhatikan, bukan skor tinggi.",
+    definisi: "Satu-satunya subskala 'kekuatan' pada SDQ, bukan subskala kesulitan seperti empat lainnya: mengukur kesediaan berbagi, menolong, dan berempati. Karena itu arah bacanya kebalikan dari empat domain lain, skor **rendah** yang perlu diperhatikan, bukan skor tinggi.",
     ciri_umum: ["Bersedia berbagi dengan orang lain", "Peka pada perasaan teman", "Menawarkan bantuan tanpa diminta"],
     catatan: "Karena arah skalanya kebalikan, domain ini sengaja tidak masuk daftar prioritas di bagian Perlu Perhatian.",
   },
@@ -185,12 +185,16 @@ function bangunKasusUnit(u, total, seed) {
     if (acak() < 0.3) {
       domains.add(DOMAIN_PERHATIAN_KODE[Math.floor(acak() * DOMAIN_PERHATIAN_KODE.length)]);
     }
+    const skor = 6 + Math.floor(acak() * 5); // 6-10, ambang "perlu perhatian" ke atas
     return {
       nama: namaKasus(seed * 31 + i),
       unit: UNIT[u].label,
       kelas: KELAS[u][i % KELAS[u].length],
       domains: [...domains],
-      skor: 6 + Math.floor(acak() * 5), // 6-10, ambang "perlu perhatian" ke atas
+      skor,
+      // Status CONTOH, bukan ambang skor asli per domain (itu beda-beda tiap domain SDQ, lihat
+      // catatan panjang di PaPerluPerhatian.jsx) -- cukup untuk mewarnai badge di preview visual.
+      status: skor >= 9 ? "Perlu Diwaspadai" : "Perlu Perhatian",
     };
   });
 }
@@ -409,7 +413,7 @@ const PERHATIAN_ANALISIS = {
     ],
   },
   prososial: {
-    interpretasi: "Skor RENDAH pada domain ini (kebalikan dari empat domain lain) menandakan siswa jarang menunjukkan kesediaan berbagi, menolong, atau berempati dibanding teman sebayanya. Ini bahan penguatan, bukan kasus yang perlu ditelaah seperti domain kesulitan.",
+    interpretasi: "Skor **rendah** pada domain ini (kebalikan dari empat domain lain) menandakan siswa jarang menunjukkan kesediaan berbagi, menolong, atau berempati dibanding teman sebayanya. Ini bahan penguatan, bukan kasus yang perlu ditelaah seperti domain kesulitan.",
     kemungkinan_penyebab: [
       "Belum banyak kesempatan berlatih menolong dalam situasi nyata",
       "Contoh perilaku prososial di lingkungan sekitar masih terbatas",

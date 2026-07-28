@@ -4,6 +4,7 @@ import { PaSectionHeading } from "./PaSectionHeading";
 import { PaInsightBanner } from "./PaInsightBanner";
 import { PaIconBadge } from "./paIconBadge";
 import { PaDialog } from "./PaDialog";
+import { PaRichText } from "./PaRichText";
 import tokens from "./paTokens.module.css";
 import styles from "./PaPerluPerhatian.module.css";
 
@@ -15,16 +16,34 @@ function angkaSatuDesimal(n) {
   return (n ?? 0).toLocaleString("id-ID", { maximumFractionDigits: 1 });
 }
 
-/** Skor 1-10 dipetakan ke tiga tingkat yang sama dengan bagian 02. */
-function toneSkor(skor) {
-  if (skor >= 9) return "perhatian";
-  if (skor >= 7) return "waspada";
+/** Skor 1-10 gabungan (rata-rata lintas domain, "Intensitas rata-rata") dipetakan ke tiga
+ * tingkat secara kasar untuk mewarnai kartu ringkas -- INI SATU-SATUNYA tempat ambang skor
+ * universal dipakai, karena kartu ini murni rata-rata gabungan, bukan skor satu domain
+ * tertentu yang punya ambang sendiri. Jangan pakai fungsi ini untuk skor per-siswa per-domain
+ * (lihat toneStatus di bawah, dan catatan panjang kenapa keduanya beda). */
+function toneSkorRataRata(skor) {
+  if (skor >= 8) return "perhatian";
+  if (skor >= 6) return "waspada";
+  return "aman";
+}
+
+/** status "Aman"/"Perlu Perhatian"/"Perlu Diwaspadai" (SUDAH final dari data, per domain) ->
+ * tone warna badge. Ambang skor yang membedakan "Perlu Perhatian" dari "Perlu Diwaspadai"
+ * TERNYATA beda-beda tiap domain (mis. Hiperaktivitas: perhatian=skor 6, diwaspadai=skor 7-10;
+ * Tolong Menolong: perhatian=skor 5, diwaspadai=skor 6-8) -- masing-masing subskala SDQ punya
+ * distribusi skornya sendiri. Karena itu badge skor per siswa di dialog "Lihat daftar nama"
+ * HARUS memakai `status` yang sudah final, BUKAN menebak ulang dari angka skor mentah lewat
+ * satu ambang yang sama untuk semua domain (itu bug versi sebelumnya -- pernah mewarnai siswa
+ * Tolong Menolong skor 8 sebagai "aman" padahal status aslinya "Perlu Diwaspadai"). */
+function toneStatus(status) {
+  if (status === "Perlu Diwaspadai") return "perhatian";
+  if (status === "Perlu Perhatian") return "waspada";
   return "aman";
 }
 
 function NilaiRingkas({ s }) {
   if (s.tipe === "skor") {
-    const tone = toneSkor(s.nilai);
+    const tone = toneSkorRataRata(s.nilai);
     return (
       <span className={styles[`skor_${tone}`]}>
         {angkaSatuDesimal(s.nilai)}
@@ -46,10 +65,10 @@ function BlokAnalisis({ title, isi, kosongTeks }) {
     <div className={styles.analisisBlock}>
       <p className={styles.blockTitle}>{title}</p>
       {typeof isi === "string" && isi ? (
-        <p className={styles.blockText}>{isi}</p>
+        <p className={styles.blockText}><PaRichText text={isi} /></p>
       ) : daftar.length > 0 ? (
         <ul className={styles.blockList}>
-          {daftar.map((x) => <li key={x}>{x}</li>)}
+          {daftar.map((x) => <li key={x}><PaRichText text={x} /></li>)}
         </ul>
       ) : (
         <p className={styles.blockGapNote}>{kosongTeks}</p>
@@ -112,8 +131,10 @@ export function PaPerluPerhatian({ data, unitLabel }) {
                       <span className={styles.rank}>{p.rank}</span>
                       <span className={styles.perilakuLabel}>{p.label}</span>
                       <span className={styles.perilakuAngka}>
-                        <span className={styles.perilakuJumlah}>{angka(p.jumlah)}</span>
-                        {p.persen != null && <span className={styles.perilakuPersen}>{angkaSatuDesimal(p.persen)}%</span>}
+                        <span className={styles.perilakuJumlah}>{angka(p.jumlah)} siswa</span>
+                        {p.persen != null && (
+                          <span className={styles.perilakuPersen}>· {angkaSatuDesimal(p.persen)}% dari total</span>
+                        )}
                       </span>
                     </li>
                   ))}
@@ -134,7 +155,7 @@ export function PaPerluPerhatian({ data, unitLabel }) {
               </p>
             )}
 
-            {d.definisi && <p className={styles.cardDefinisi}>{d.definisi}</p>}
+            {d.definisi && <p className={styles.cardDefinisi}><PaRichText text={d.definisi} /></p>}
 
             <div className={styles.cardActions}>
               <button type="button" className={styles.analisisBtn} onClick={() => setDialogAnalisis(d)}>
@@ -166,7 +187,7 @@ export function PaPerluPerhatian({ data, unitLabel }) {
           {dialogNama.siswa.length > 0 ? (
             <ol className={styles.siswaList}>
               {dialogNama.siswa.map((s, i) => {
-                const tone = toneSkor(s.skor);
+                const tone = toneStatus(s.status);
                 return (
                   <li className={styles.siswaRow} key={`${s.nama}-${i}`}>
                     <span className={styles.siswaNama}>
@@ -204,10 +225,10 @@ export function PaPerluPerhatian({ data, unitLabel }) {
         >
           <div className={styles.analisisIntro}>
             <p className={styles.analisisEyebrow}>Apa itu {dialogAnalisis.label}?</p>
-            <p className={styles.analisisDefinisi}>{dialogAnalisis.definisi}</p>
+            <p className={styles.analisisDefinisi}><PaRichText text={dialogAnalisis.definisi} /></p>
             {dialogAnalisis.ciri_umum?.length > 0 && (
               <ul className={styles.analisisCiri}>
-                {dialogAnalisis.ciri_umum.map((c) => <li key={c}>{c}</li>)}
+                {dialogAnalisis.ciri_umum.map((c) => <li key={c}><PaRichText text={c} /></li>)}
               </ul>
             )}
           </div>

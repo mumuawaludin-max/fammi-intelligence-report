@@ -96,8 +96,30 @@ export function useOverviewBriefing(session) {
 
       if (session.peran === "Yayasan") {
         const yayasanId = Array.isArray(session.cakupan) ? session.cakupan[0] : null;
+
+        // Akun Yayasan single-sekolah (session.school_id terisi, cakupan lintas-sekolah tidak
+        // pernah diatur -- mis. akun modul Perilaku Anak yang dibuat langsung terikat ke satu
+        // sekolah) diperlakukan sama seperti Kepsek: satu sekolah, bukan agregat lintas yayasan.
+        // SEBELUMNYA akun jenis ini selalu gagal dengan "Cakupan yayasan belum ditentukan",
+        // padahal bukan error sungguhan -- schoolName/logo Header ikut kosong karenanya.
         if (!yayasanId) {
-          setState({ loading: false, error: "Cakupan yayasan belum ditentukan untuk akun ini.", schoolName: null, schoolLogoUrl: null, briefing: null, tindakLanjut: [] });
+          if (!session.school_id) {
+            setState({ loading: false, error: "Cakupan yayasan belum ditentukan untuk akun ini.", schoolName: null, schoolLogoUrl: null, briefing: null, tindakLanjut: [] });
+            return;
+          }
+          const schoolRes = await supabase.from("schools").select("nama, logo_url").eq("id", session.school_id).maybeSingle();
+          if (!alive) return;
+          if (schoolRes.error) { setState({ loading: false, error: schoolRes.error.message, schoolName: null, schoolLogoUrl: null, briefing: null, tindakLanjut: [] }); return; }
+
+          const [briefingRes, tlRes] = await Promise.all([
+            supabase.from("briefing").select("sekolah_id, modul, teks, sumber, periode_id, created_at")
+              .eq("sekolah_id", session.school_id).eq("scope", "sekolah").eq("status", "disetujui"),
+            supabase.from("tindak_lanjut").select("id, sekolah_id, modul, action, trigger_desc, priority, periode_id, created_at")
+              .eq("sekolah_id", session.school_id).eq("scope", "sekolah").eq("status", "disetujui")
+              .eq("target_role", targetRoleForPeran(session.peran)),
+          ]);
+          if (!alive) return;
+          finalizeState(briefingRes, tlRes, schoolRes.data?.nama || null, schoolRes.data?.logo_url || null);
           return;
         }
         const { data: schoolRows, error: schoolErr } = await supabase

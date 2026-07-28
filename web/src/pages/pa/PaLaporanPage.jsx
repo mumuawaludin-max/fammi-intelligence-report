@@ -73,9 +73,17 @@ export default function PaLaporanPage({ session }) {
     ...raw.lembagaAtPeriode.filter((r) => r.unit !== null).map((r) => ({ id: r.unit, label: r.unit })),
   ];
   const unitLabel = laporan.meta.unit_label;
+  // Scope "semua" pakai nama lembaga sungguhan (session.school_name, dari overview.schoolName
+  // di App.jsx) -- unitLabel di scope itu cuma placeholder generik "Semua unit sekolah", bukan
+  // nama sekolah. Begitu difilter ke satu unit, ikuti unit itu (sesuai filter yang aktif).
+  const namaUntukIntro = unit === "semua" ? (session?.school_name || unitLabel) : unitLabel;
 
   return (
     <div className={styles.page}>
+      <p className={`${tokens.scope} ${styles.introText}`}>
+        Hasil screening deteksi dini masalah perilaku dan mental anak {namaUntukIntro}.
+      </p>
+
       <PaFilterBar
         periodeOptions={periodeOptions}
         periode={laporan.meta.periode_id}
