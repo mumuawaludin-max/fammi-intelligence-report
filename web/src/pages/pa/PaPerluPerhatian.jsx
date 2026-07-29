@@ -39,15 +39,38 @@ function toneStatus(status) {
 // dua angka yang arah bacanya selalu sama. paAssembler.js masih menyalurkan `nilai`/`skalaLabel`
 // kalau suatu saat dibutuhkan lagi.
 
+const ADA_ANGKA = /\d/;
+
+/** KHUSUS dialog "Baca analisis lengkap": buang kalimat/poin yang menyebut angka apa pun,
+ * supaya bagian ini murni narasi kualitatif -- instruksi eksplisit pemilik produk, dasarnya
+ * angka gabungan lintas periode (mis. "153 siswa Perlu Diwaspadai") bisa menyesatkan kalau
+ * dikutip di analisis satu periode. TIDAK dipakai di bagian lain PA (jumlah/persen kartu,
+ * daftar nama, dst tetap tampil seperti biasa). Untuk teks satu paragraf, kalimat dipisah per
+ * tanda baca akhir lalu kalimat yang menyebut angka dibuang, sisanya disambung ulang. */
+function tanpaAngka(teks) {
+  if (typeof teks === "string") {
+    return teks
+      .split(/(?<=[.!?])\s+/)
+      .filter((kalimat) => !ADA_ANGKA.test(kalimat))
+      .join(" ")
+      .trim();
+  }
+  if (Array.isArray(teks)) {
+    return teks.filter((x) => x && !ADA_ANGKA.test(x));
+  }
+  return teks;
+}
+
 /** Blok satu bagian narasi, dengan teks jujur kalau isinya belum ditulis -- daripada
  * mengosongkan diam-diam saat tim narasi belum sempat mengisi sheet NARASI. */
 function BlokAnalisis({ title, isi, kosongTeks }) {
-  const daftar = Array.isArray(isi) ? isi.filter(Boolean) : [];
+  const bersih = tanpaAngka(isi);
+  const daftar = Array.isArray(bersih) ? bersih.filter(Boolean) : [];
   return (
     <div className={styles.analisisBlock}>
       <p className={styles.blockTitle}>{title}</p>
-      {typeof isi === "string" && isi ? (
-        <p className={styles.blockText}><PaRichText text={isi} /></p>
+      {typeof bersih === "string" && bersih ? (
+        <p className={styles.blockText}><PaRichText text={bersih} /></p>
       ) : daftar.length > 0 ? (
         <ul className={styles.blockList}>
           {daftar.map((x) => <li key={x}><PaRichText text={x} /></li>)}
