@@ -233,6 +233,19 @@ export function rakitLaporanPa(raw, unitScope = "semua") {
   // agregat di pa_lembaga.indikator, jadi HANYA bagian itu yang jatuh balik ke data lembaga.
   const indikatorSumber = agregat.indikator || {};
 
+  // `nilai` indikator TERNYATA tidak konsisten antar-unggahan -- satu berkas contoh pernah
+  // memakai rata-rata mentah skala 0-2 (konvensi SDQ per-item), unggahan lain memakai
+  // persentase 0-100. Dideteksi SEKALI per laporan dari nilai maksimum yang benar-benar ada,
+  // bukan diasumsikan tetap -- supaya label skalanya selalu jujur mengikuti data yang sedang
+  // ditampilkan, apa pun konvensi yang dipakai pipeline hulu untuk unggahan itu.
+  const semuaNilaiIndikator = Object.values(indikatorSumber)
+    .flat()
+    .map((it) => it?.nilai)
+    .filter((v) => typeof v === "number" && Number.isFinite(v));
+  const skalaNilaiIndikator = semuaNilaiIndikator.length > 0 && Math.max(...semuaNilaiIndikator) > 2.5
+    ? { maks: 100, label: "dari 100" }
+    : { maks: 2, label: "skala 0–2" };
+
   const domainDenganAngka = PA_DOMAIN_META.map((d) => {
     const h = heartSumber[d.kode] || {};
     const jumlah = (h.perhatian?.jumlah || 0) + (h.diwaspadai?.jumlah || 0);
@@ -245,7 +258,7 @@ export function rakitLaporanPa(raw, unitScope = "semua") {
       jumlah,
       persen: persenSatuDesimal(jumlah, totalSiswaScope),
       perilaku: indikatorList.map((it, i) => ({
-        rank: i + 1, label: it.indikator, nilai: it.nilai, jumlah: it.siswa, persen: it.persentase,
+        rank: i + 1, label: it.indikator, nilai: it.nilai, skalaLabel: skalaNilaiIndikator.label, jumlah: it.siswa, persen: it.persentase,
       })),
       indikatorLintasUnit: unitScope !== "semua" && indikatorList.length > 0,
       // `status` ikut disalin (bukan cuma skor) -- ambang skor "Perlu Perhatian" vs "Perlu

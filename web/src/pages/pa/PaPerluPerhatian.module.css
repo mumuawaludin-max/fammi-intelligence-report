@@ -26,6 +26,40 @@
   background: var(--pa-perhatian-bg);
 }
 
+.caraBaca {
+  margin-bottom: 20px;
+  padding: 16px 20px;
+  border-radius: var(--pa-radius-sm);
+  background: var(--pa-bg);
+}
+
+.caraBacaTitle {
+  margin: 0 0 8px;
+  color: var(--pa-heading);
+  font-size: 12px;
+  font-weight: 780;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.caraBacaList {
+  display: grid;
+  gap: 6px;
+  margin: 0;
+  padding-left: 18px;
+  color: var(--pa-muted);
+  font-size: 12px;
+  line-height: 1.55;
+}
+
+.caraBacaList strong {
+  color: var(--pa-heading);
+}
+
+.caraBacaList::marker {
+  color: var(--pa-primary);
+}
+
 .statLabel {
   margin: 0 0 8px;
   color: var(--pa-muted-2);

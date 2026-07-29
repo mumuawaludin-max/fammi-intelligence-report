@@ -41,16 +41,26 @@ function toneStatus(status) {
   return "aman";
 }
 
-/** `nilai` indikator = skor rata-rata mentah (skala 0-2, konvensi SDQ per-item: 0 "Tidak Benar",
- * 1 "Agak Benar", 2 "Benar"), BUKAN persentase 0-100 -- diverifikasi dari data asli (rentang
- * nyata 0,32 sampai 1,18 di seluruh 25 indikator). Sengaja TIDAK diberi label "rendah/tinggi":
- * beberapa indikator berupa perilaku positif ("Berpikir Sebelum Bertindak", "Disukai Teman") di
- * mana skor RENDAH yang jadi perhatian, sementara indikator lain negatif ("Gelisah", "Cemas") di
- * mana skor TINGGI yang jadi perhatian -- arahnya berbeda per indikator dan tidak bisa ditebak
- * dari labelnya saja tanpa data arah skala tiap item, jadi ditampilkan apa adanya (angka + skala)
- * daripada menebak kata sifat yang bisa salah arah. */
-function angkaDuaDesimal(n) {
-  return (n ?? 0).toLocaleString("id-ID", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+/**
+ * `nilai` indikator TERNYATA tidak konsisten antar-unggahan -- satu berkas contoh sempat memakai
+ * rata-rata mentah skala 0-2 (konvensi SDQ per-item, rentang 0,32-1,18), unggahan lain (yang
+ * sekarang live) memakai persentase 0-100 (mis. 41, 53, 58). paAssembler.js MENDETEKSI skala ini
+ * dari nilai maksimum yang benar-benar ada di laporan (lihat skalaNilaiIndikator/skalaLabel per
+ * indikator), bukan diasumsikan tetap -- supaya label di sini selalu jujur mengikuti data asli,
+ * apa pun konvensi pipeline hulu untuk unggahan itu. `angkaNilai` cuma menyesuaikan JUMLAH
+ * DESIMAL yang wajar per skala (2 desimal untuk 0-2, tanpa desimal untuk 0-100).
+ *
+ * Sengaja TIDAK diberi label "rendah/tinggi": pernah ada unggahan dengan indikator berupa
+ * perilaku POSITIF ("Berpikir Sebelum Bertindak", "Disukai Teman") di mana skor rendah yang jadi
+ * perhatian, dan unggahan lain (termasuk yang sekarang live) sudah menulis ulang semua indikator
+ * jadi framing negatif seragam ("Tidak Berpikir Sebelum Bertindak", "Tidak Disukai Teman") --
+ * kalau konvensi framing itu berubah lagi di unggahan berikutnya, label "tinggi=bermasalah" yang
+ * dikunci di kode bisa salah arah. Angka + skala ditampilkan apa adanya, penjelasan arahnya ada
+ * di kalimat "cara membaca" yang menyertai daftar ini.
+ */
+function angkaNilai(n, skalaLabel) {
+  const desimal = skalaLabel === "skala 0–2" ? 2 : 0;
+  return (n ?? 0).toLocaleString("id-ID", { minimumFractionDigits: desimal, maximumFractionDigits: desimal });
 }
 
 function NilaiRingkas({ s }) {
@@ -124,6 +134,16 @@ export function PaPerluPerhatian({ data, unitLabel }) {
         ))}
       </PaReveal>
 
+      <PaReveal className={styles.caraBaca} delay={0.03}>
+        <p className={styles.caraBacaTitle}>Cara membaca angka di bagian ini</p>
+        <ul className={styles.caraBacaList}>
+          <li><strong>Empat kartu di atas</strong> gabungan LINTAS empat domain kesulitan (Hiperaktivitas, Emosional, Agresi, Relasi) -- satu siswa dihitung sekali saja walau tinggi di beberapa domain sekaligus.</li>
+          <li><strong>Jumlah siswa di kanan tiap kartu domain</strong> (mis. "234 siswa" pada kartu Emosional) HANYA untuk domain itu sendiri, jadi wajar lebih besar dari total gabungan di atas -- siswa yang sama bisa ikut terhitung lagi di kartu domain lain.</li>
+          <li><strong>&ldquo;Siswa perlu perhatian&rdquo;</strong> per indikator = berapa banyak siswa yang terindikasi pada perilaku spesifik bernama indikator itu, dan berapa persen dari total siswa sekolah.</li>
+          <li><strong>&ldquo;Skor indikator&rdquo;</strong> mengukur seberapa sering/kuat pola pada nama indikator itu muncul menurut data sumber -- angka dan skalanya (0-2 atau dari 100) mengikuti apa yang ditulis di file yang diunggah, bukan dihitung ulang di sini.</li>
+        </ul>
+      </PaReveal>
+
       <div className={styles.list}>
         {data.domain.map((d, i) => (
           <PaReveal className={styles.card} delay={i * 0.04} amount={0.12} key={d.kode}>
@@ -162,10 +182,10 @@ export function PaPerluPerhatian({ data, unitLabel }) {
                         </div>
                         {p.nilai != null && (
                           <div className={styles.perilakuStatBlock}>
-                            <span className={styles.perilakuStatLabel}>Skor rata-rata indikator</span>
+                            <span className={styles.perilakuStatLabel}>Skor indikator</span>
                             <span className={`${styles.perilakuStatValue} ${styles.perilakuStatValueMuted}`}>
-                              {angkaDuaDesimal(p.nilai)}
-                              <span className={styles.perilakuStatQual}>skala 0–2</span>
+                              {angkaNilai(p.nilai, p.skalaLabel)}
+                              <span className={styles.perilakuStatQual}>{p.skalaLabel || "skala 0–2"}</span>
                             </span>
                           </div>
                         )}

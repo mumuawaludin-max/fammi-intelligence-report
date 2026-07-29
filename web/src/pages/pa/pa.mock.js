@@ -713,6 +713,7 @@ export function paLaporanContoh(unitId = "semua") {
           rank: i + 1,
           label: p.label,
           nilai: p.nilai,
+          skalaLabel: "skala 0–2",
           jumlah: jumlahIndikator,
           persen: persenAngka(jumlahIndikator, info.total),
         };
