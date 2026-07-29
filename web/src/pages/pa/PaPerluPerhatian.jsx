@@ -121,7 +121,7 @@ export function PaPerluPerhatian({ data, unitLabel }) {
               </div>
 
               <div className={styles.total}>
-                <strong className={styles.totalValue}>{angka(d.jumlah)} siswa perlu perhatian</strong>
+                <strong className={styles.totalValue}>{angka(d.jumlah)} Siswa Terindikasi Memerlukan Prioritas Tindak Lanjut</strong>
                 <p className={styles.totalPersen}>{d.persen}% dari total siswa dinilai</p>
               </div>
             </div>
@@ -131,10 +131,10 @@ export function PaPerluPerhatian({ data, unitLabel }) {
                 {/* Judul eksplisit -- sebelumnya lima indikator ini muncul tanpa kepala apa pun,
                     jadi tidak jelas hubungannya dengan domain di sebelahnya. */}
                 <p className={styles.perilakuJudul}>
-                  Indikator penyebab masalah {d.label}
+                  Indikator Terindikasi Penyebab Masalah {d.label}
                 </p>
                 <p className={styles.perilakuSubjudul}>
-                  {d.perilaku.length} perilaku yang paling banyak tercatat dan membuat siswa masuk kategori {d.label}. Angka di kanan = berapa siswa yang menunjukkan perilaku itu.
+                  {d.perilaku.length} perilaku yang paling banyak tercatat dan membuat siswa terindikasi masuk kategori {d.label}. Angka di kanan = berapa siswa yang menunjukkan perilaku itu.
                 </p>
 
                 <ol className={styles.perilakuList}>
@@ -174,7 +174,7 @@ export function PaPerluPerhatian({ data, unitLabel }) {
                 Baca analisis lengkap
               </button>
               <button type="button" className={styles.daftarBtn} onClick={() => setDialogNama(d)}>
-                Lihat Daftar Nama Prioritas Perlu Perhatian
+                Lihat Daftar Nama Terindikasi Memerlukan Prioritas Tindak Lanjut
               </button>
             </div>
           </PaReveal>
@@ -184,8 +184,8 @@ export function PaPerluPerhatian({ data, unitLabel }) {
       {dialogNama && (
         <PaDialog
           eyebrow={`Domain ${dialogNama.label}`}
-          title="Daftar Nama Prioritas Perlu Perhatian"
-          subtitle={`${angka(dialogNama.jumlah)} siswa perlu perhatian domain ini, sama dengan angka di kartu. Daftar menampilkan skor tertinggi lebih dulu.`}
+          title="Daftar Nama Terindikasi Memerlukan Prioritas Tindak Lanjut"
+          subtitle={`${angka(dialogNama.jumlah)} siswa terindikasi memerlukan prioritas tindak lanjut domain ini, sama dengan angka di kartu. Daftar menampilkan skor tertinggi lebih dulu.`}
           onClose={() => setDialogNama(null)}
           size="lg"
         >
