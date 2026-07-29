@@ -10,6 +10,10 @@ function angka(n) {
   return (n ?? 0).toLocaleString("id-ID");
 }
 
+function angkaSatuDesimal(n) {
+  return (n ?? 0).toLocaleString("id-ID", { maximumFractionDigits: 1 });
+}
+
 /**
  * PaSurvey -- bagian 04. Dua jenis isi yang sengaja dipisah tegas:
  *
@@ -21,9 +25,15 @@ function angka(n) {
  *    supaya tidak terbaca seolah jadi temuan seperti opsi lain.
  * Jawaban esai (pertanyaan terbuka) TIDAK lagi di sini -- dipindah ke bagian 01 Statistik Siswa
  * atas permintaan pemilik produk, jadi bagian ini sekarang murni pertanyaan tertutup.
+ *
+ * `top_prioritas` (sampai 3 kartu, dari hitungTopPrioritasSurvey di paAssembler.js) muncul
+ * persis di bawah insight banner -- ringkasan paling penting sebelum pembaca menelusuri seluruh
+ * rincian pertanyaan di bawahnya. Pemilihannya heuristik kata kunci + ambang durasi (BUKAN
+ * klasifikasi ahli), jadi CTA-nya sengaja saran umum, bukan rekomendasi spesifik yang seolah
+ * sudah ditinjau -- lihat catatan panjang di paAssembler.js kenapa.
  */
 export function PaSurvey({ data, unitLabel }) {
-  const { insight_utama, per_domain } = data;
+  const { insight_utama, per_domain, top_prioritas } = data;
 
   return (
     <section className={`${tokens.scope} ${styles.section}`}>
@@ -34,6 +44,38 @@ export function PaSurvey({ data, unitLabel }) {
       />
 
       <PaInsightBanner teks={insight_utama} />
+
+      {top_prioritas?.length > 0 && (
+        <PaReveal className={styles.prioritasWrap} delay={0.02}>
+          <div className={styles.prioritasHead}>
+            <p className={styles.prioritasTitle}>Top {top_prioritas.length} prioritas dari seluruh survei</p>
+            <p className={styles.prioritasSubtitle}>
+              Dipilih otomatis dari pola jawaban yang paling menonjol di seluruh pertanyaan tertutup --
+              bahan awal diskusi, bukan pengganti penilaian wali kelas atau guru BK.
+            </p>
+          </div>
+          <div className={styles.prioritasGrid}>
+            {top_prioritas.map((tp) => (
+              <div className={styles.prioritasCard} key={tp.pertanyaanKode}>
+                <div className={styles.prioritasCardHead}>
+                  <span className={styles.prioritasRank}>{tp.rank}</span>
+                  <span className={styles.prioritasDomain}>{tp.domainHuruf} · {tp.domainLabel}</span>
+                </div>
+                <p className={styles.prioritasJudul}>{tp.pertanyaanJudul}</p>
+                <p className={styles.prioritasOpsi}>&ldquo;{tp.opsiLabel}&rdquo;</p>
+                <div className={styles.prioritasAngka}>
+                  <strong>{angka(tp.jumlah)} siswa</strong>
+                  <span>{angkaSatuDesimal(tp.persen)}% dari total</span>
+                </div>
+                <div className={styles.prioritasCta}>
+                  <span className={styles.prioritasCtaLabel}>Saran tindak lanjut</span>
+                  <p>{tp.cta}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </PaReveal>
+      )}
 
       <div className={styles.grid}>
         {per_domain.map((d, gi) => (

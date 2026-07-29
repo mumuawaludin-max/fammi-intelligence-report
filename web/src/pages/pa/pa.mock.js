@@ -443,6 +443,16 @@ const PERHATIAN_ANALISIS = {
 // untuk Kebiasaan Belajar semua opsi cuma preferensi, jadi tidak ada yang ditandai). Penanda ini
 // dipakai insightUtamaSurvey untuk memilih temuan utama, bukan cuma dekorasi.
 
+/** Sama persis CTA_PER_DOMAIN di paAssembler.js, disalin (bukan diimpor) supaya jalur mock dan
+ * jalur asli tetap berdiri sendiri (pola yang sama dipakai seluruh berkas ini). */
+const CTA_PER_DOMAIN_MOCK = {
+  hiperaktivitas: "Bahas pola ini di rapat wali kelas berkala, dan sepakati satu rutinitas kelas untuk mengimbanginya.",
+  emosional: "Sediakan waktu check-in ringan dengan wali kelas atau guru BK untuk siswa yang termasuk kelompok ini.",
+  agresi: "Telaah bersama wali kelas pola pemicunya, lalu sepakati konsekuensi yang konsisten antarguru.",
+  relasi: "Rancang kegiatan kelompok yang mendorong interaksi lintas lingkaran pertemanan.",
+  prososial: "Perkuat lewat contoh dan apresiasi terbuka setiap kali muncul perilaku menolong.",
+};
+
 /** `domain` dipakai mengelompokkan pertanyaan ke kartu domain HEART di bagian 04, pola yang
  * sama dengan klasifikasiPertanyaan di paAssembler.js -- satu domain boleh menaungi lebih dari
  * satu pertanyaan (Hiperaktivitas di sini menaungi tiga). */
@@ -855,6 +865,34 @@ export function paLaporanContoh(unitId = "semua") {
           })),
         };
       }).filter((d) => d.pertanyaan.length > 0),
+      // Padanan hitungTopPrioritasSurvey (paAssembler.js), tapi CONTOH ini pakai penanda
+      // `sinyal:true` yang sudah dikurasi tangan di SURVEY di atas -- bukan re-derive heuristik
+      // kata kunci yang sama, supaya preview visual tetap konsisten dengan opsi yang memang
+      // sengaja ditandai penulis contoh ini.
+      top_prioritas: SURVEY
+        .map((s) => {
+          const opsiSinyal = s.opsi.find((o) => o.sinyal);
+          if (!opsiSinyal) return null;
+          const d = PA_DIMENSI.find((x) => x.kode === s.domain);
+          return {
+            pertanyaanKode: s.kode,
+            domainKode: s.domain,
+            domainLabel: d?.label || s.domain,
+            domainHuruf: d?.huruf || "?",
+            pertanyaanJudul: s.judul,
+            opsiLabel: opsiSinyal.label,
+            jumlah: jumlahDari(opsiSinyal.persen, info.total),
+            persen: opsiSinyal.persen,
+          };
+        })
+        .filter(Boolean)
+        .sort((a, b) => b.persen - a.persen)
+        .slice(0, 3)
+        .map((k, i) => ({
+          ...k,
+          rank: i + 1,
+          cta: CTA_PER_DOMAIN_MOCK[k.domainKode] || "Diskusikan pola ini bersama wali kelas dan orang tua pada pertemuan berkala.",
+        })),
     },
 
     // esai TIDAK disaring per unit -- pa_esai asli tidak punya kolom unit, lihat catatan kepala

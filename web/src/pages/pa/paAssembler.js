@@ -365,6 +365,7 @@ export function rakitLaporanPa(raw, unitScope = "semua") {
     survey: {
       insight_utama: agregat.narasi?.insight_04_utama || "",
       per_domain: surveyPerDomain,
+      top_prioritas: hitungTopPrioritasSurvey(surveyPerDomain),
     },
 
     esai: {
@@ -383,6 +384,92 @@ export function rakitLaporanPa(raw, unitScope = "semua") {
       })),
     },
   };
+}
+
+// ── Top prioritas bagian 04 ──────────────────────────────────────────────────────────────────
+//
+// TIDAK ada penanda "opsi mana yang layak diperhatikan" di data survei tertutup asli (beda dari
+// jawaban esai yang punya anotasi.prioritas dari sheet NARASI) -- jadi ini HEURISTIK kata kunci
+// + ambang durasi, bukan klasifikasi ahli. Angka yang ditampilkan (jumlah/persen) tetap 100%
+// data asli, cuma PEMILIHAN opsi mana yang ditonjolkan yang otomatis. Kalau tim narasi nanti
+// menulis penanda prioritas sungguhan untuk survei tertutup (pola sama seperti esai), ganti
+// fungsi ini untuk membaca itu dulu, heuristik ini jadi fallback saja.
+// Kata kunci SPESIFIK (frasa, bukan kata umum satuan seperti "tidak"/"sendiri"/"diam" sendirian
+// -- itu memicu salah tangkap: "Sendiri dalam ruangan tenang" bukan kekhawatiran, itu kebiasaan
+// belajar yang justru baik; "Tidak pasti" pada pertanyaan durasi bukan sinyal apa pun, cuma
+// jawaban tidak spesifik). Setiap frasa di sini sengaja panjang/khusus supaya cuma cocok pada
+// jawaban yang MEMANG menggambarkan pola mengkhawatirkan, diverifikasi satu per satu terhadap
+// data asli sebelum dipakai.
+const KATA_KUNCI_PERHATIAN = [
+  "menyendiri", "diam sendiri", "menghindar", "menolak", "mengeluh", "berbohong", "memaksa",
+  "berselisih", "dibully", "kesulitan", "sulit menghentikan", "khawatir", "takut", "cemas",
+  "menangis", "kabur", "malas", "menunda", "memendam", "belum tahu", "tidak cerita",
+  "tidak tahu harus", "menyalahkan",
+];
+
+function adaKataKunciPerhatian(label) {
+  const l = String(label || "").toLowerCase();
+  return KATA_KUNCI_PERHATIAN.some((k) => l.includes(k));
+}
+
+/** Opsi durasi ("2-4 jam per hari") -> jam tertinggi yang disebut di label itu. */
+function jamDariLabel(label) {
+  const m = /(\d+)\s*[-–]\s*(\d+)\s*jam|(\d+)\s*jam/i.exec(String(label || ""));
+  if (!m) return null;
+  if (m[2]) return parseInt(m[2], 10);
+  return parseInt(m[3], 10);
+}
+
+const CTA_PER_DOMAIN = {
+  hiperaktivitas: "Bahas pola ini di rapat wali kelas berkala, dan sepakati satu rutinitas kelas untuk mengimbanginya.",
+  emosional: "Sediakan waktu check-in ringan dengan wali kelas atau guru BK untuk siswa yang termasuk kelompok ini.",
+  agresi: "Telaah bersama wali kelas pola pemicunya, lalu sepakati konsekuensi yang konsisten antarguru.",
+  relasi: "Rancang kegiatan kelompok yang mendorong interaksi lintas lingkaran pertemanan.",
+  tolong_menolong: "Perkuat lewat contoh dan apresiasi terbuka setiap kali muncul perilaku menolong.",
+};
+
+/**
+ * Pilih sampai 3 (pertanyaan, opsi) paling layak disorot lintas SELURUH survei tertutup --
+ * maksimal SATU opsi per pertanyaan, diurutkan dari persen tertinggi.
+ *
+ * Dua jalur kandidat yang SENGAJA saling eksklusif per pertanyaan:
+ * 1. Pertanyaan durasi (ada opsi berformat "N jam"): HANYA opsi durasi TERPANJANG yang jadi
+ *    kandidat. Opsi lain di pertanyaan yang sama (termasuk "Tidak pasti") tidak pernah dicoba
+ *    lewat kata kunci -- kalau tidak, "Tidak pasti" bisa menang cuma karena memuat kata "tidak"
+ *    padahal itu bukan sinyal apa pun untuk pertanyaan durasi.
+ * 2. Pertanyaan non-durasi: opsi dengan kata kunci perhatian (lihat KATA_KUNCI_PERHATIAN),
+ *    persen tertinggi di antara yang cocok.
+ */
+function hitungTopPrioritasSurvey(surveyPerDomain) {
+  const terbaikPerPertanyaan = new Map();
+  for (const d of surveyPerDomain) {
+    for (const p of d.pertanyaan) {
+      const opsiValid = (p.opsi || []).filter((o) => !o.muted);
+      if (opsiValid.length === 0) continue;
+      const jamOpsi = opsiValid.map((o) => jamDariLabel(o.label));
+      const adaJam = jamOpsi.some((v) => v != null);
+
+      let terpilih = null;
+      if (adaJam) {
+        const jamMaks = Math.max(...jamOpsi.filter((v) => v != null));
+        if (jamMaks >= 2) terpilih = opsiValid[jamOpsi.findIndex((v) => v === jamMaks)];
+      } else {
+        const berKataKunci = opsiValid.filter((o) => adaKataKunciPerhatian(o.label));
+        terpilih = berKataKunci.reduce((acc, o) => (!acc || (o.persen ?? 0) > (acc.persen ?? 0) ? o : acc), null);
+      }
+      if (!terpilih) continue;
+
+      terbaikPerPertanyaan.set(p.kode, {
+        domainKode: d.kode, domainLabel: d.label, domainHuruf: d.huruf,
+        pertanyaanKode: p.kode, pertanyaanJudul: p.judul,
+        opsiLabel: terpilih.label, jumlah: terpilih.jumlah, persen: terpilih.persen,
+      });
+    }
+  }
+  return [...terbaikPerPertanyaan.values()]
+    .sort((a, b) => (b.persen ?? 0) - (a.persen ?? 0))
+    .slice(0, 3)
+    .map((k, i) => ({ ...k, rank: i + 1, cta: CTA_PER_DOMAIN[k.domainKode] || "Diskusikan pola ini bersama wali kelas dan orang tua pada pertemuan berkala." }));
 }
 
 /** Kode kolom sheet survei asli -> judul tampilan, dipakai heading tiap pertanyaan di bagian 04. */

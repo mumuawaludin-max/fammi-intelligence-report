@@ -2,6 +2,132 @@
   padding: 40px 0;
 }
 
+/* ── Top prioritas (heuristik, lihat catatan di paAssembler.js) ───────────────────────────── */
+
+.prioritasWrap {
+  margin: 4px 0 28px;
+}
+
+.prioritasHead {
+  margin-bottom: 14px;
+}
+
+.prioritasTitle {
+  margin: 0 0 4px;
+  color: var(--pa-heading);
+  font-size: 15px;
+  font-weight: 780;
+  letter-spacing: -0.01em;
+}
+
+.prioritasSubtitle {
+  margin: 0;
+  max-width: 640px;
+  color: var(--pa-muted);
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.prioritasGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 14px;
+}
+
+.prioritasCard {
+  display: flex;
+  flex-direction: column;
+  padding: 18px 20px;
+  border: 1px solid var(--pa-border);
+  border-radius: var(--pa-radius-md);
+  background: var(--pa-surface);
+  box-shadow: var(--pa-shadow-sm);
+}
+
+.prioritasCardHead {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.prioritasRank {
+  display: inline-grid;
+  place-items: center;
+  flex: 0 0 auto;
+  width: 24px;
+  height: 24px;
+  border-radius: 8px;
+  background: var(--pa-gold-soft);
+  color: var(--pa-gold);
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.prioritasDomain {
+  color: var(--pa-primary);
+  font-size: 11px;
+  font-weight: 750;
+}
+
+.prioritasJudul {
+  margin: 0 0 4px;
+  color: var(--pa-heading);
+  font-size: 13.5px;
+  font-weight: 720;
+}
+
+.prioritasOpsi {
+  margin: 0 0 14px;
+  color: var(--pa-ink);
+  font-size: 13px;
+  font-style: italic;
+  line-height: 1.4;
+}
+
+.prioritasAngka {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  margin-bottom: 14px;
+  padding-bottom: 14px;
+  border-bottom: 1px solid var(--pa-border);
+  font-variant-numeric: tabular-nums;
+}
+
+.prioritasAngka strong {
+  color: var(--pa-gold);
+  font-size: 18px;
+  font-weight: 800;
+}
+
+.prioritasAngka span {
+  color: var(--pa-muted-2);
+  font-size: 11.5px;
+  font-weight: 650;
+}
+
+.prioritasCta {
+  margin-top: auto;
+}
+
+.prioritasCtaLabel {
+  margin: 0 0 6px;
+  color: var(--pa-muted-2);
+  font-size: 10.5px;
+  font-weight: 720;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.prioritasCta p {
+  margin: 0;
+  color: var(--pa-heading);
+  font-size: 12.5px;
+  font-weight: 600;
+  line-height: 1.55;
+}
+
 .grid {
   display: grid;
   gap: 28px;
@@ -79,9 +205,14 @@
   display: grid;
 }
 
+/* Kolom terakhir (rowValue, "48% · 232 Siswa") SENGAJA lebar tetap (bukan auto) -- auto berarti
+   lebarnya ikut jumlah digit ("82" lebih sempit dari "232"), dan sisa ruangnya lari ke kolom
+   batang (kolom ketiga, minmax fleksibel), jadi batang "100%" di satu baris jadi beda panjang
+   pixel dari baris lain padahal keduanya sama-sama merepresentasikan 100%. Ini data sensitif,
+   perbandingan panjang batang antarbaris harus selalu adil. */
 .row {
   display: grid;
-  grid-template-columns: auto minmax(0, 1fr) minmax(0, 1.1fr) auto;
+  grid-template-columns: auto minmax(0, 1fr) minmax(0, 1.1fr) 140px;
   align-items: center;
   gap: 14px;
   padding: 12px 0;
@@ -108,6 +239,7 @@
 .rowValue {
   display: inline-flex;
   align-items: baseline;
+  justify-content: flex-end;
   gap: 7px;
   white-space: nowrap;
 }
