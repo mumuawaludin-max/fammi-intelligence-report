@@ -2,80 +2,6 @@
   padding: 8px 0 40px;
 }
 
-/* ── Empat angka status ────────────────────────────────────────────────────────────────── */
-
-.statGrid {
-  display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 10px;
-  margin-bottom: 16px;
-}
-
-/* Compact: angka dan label SEJAJAR di satu baris (bukan angka raksasa di baris sendiri seperti
-   versi sebelumnya) -- empat kartu ini konteks pembuka, bukan bintang utama halaman. Yang perlu
-   menonjol justru kartu domain di bawahnya. */
-.statCard {
-  padding: 12px 14px;
-  border: 1px solid var(--pa-border);
-  border-radius: var(--pa-radius-sm);
-  background: var(--pa-surface);
-  box-shadow: var(--pa-shadow-sm);
-}
-
-.statTop {
-  display: flex;
-  align-items: baseline;
-  gap: 8px;
-  margin-bottom: 4px;
-}
-
-/* Kartu pertama (siswa perlu telaah individual) diberi latar merah muda -- itu satu-satunya
-   angka di baris ini yang menuntut tindakan, tiga sisanya laporan kemajuan. */
-.statCardSorot {
-  border-color: #f3d3d9;
-  background: var(--pa-perhatian-bg);
-}
-
-.statLabel {
-  margin: 0;
-  color: var(--pa-muted-2);
-  font-size: 11px;
-  font-weight: 720;
-  line-height: 1.3;
-}
-
-.statCardSorot .statLabel {
-  color: #a5545f;
-}
-
-.statValue {
-  flex: 0 0 auto;
-  color: var(--pa-heading);
-  font-size: 22px;
-  font-weight: 800;
-  line-height: 1.05;
-  letter-spacing: -0.03em;
-  font-variant-numeric: tabular-nums;
-}
-
-.statCardSorot .statValue {
-  color: var(--pa-perhatian);
-}
-
-.statSkala {
-  color: var(--pa-muted-2);
-  font-size: 0.55em;
-  font-weight: 700;
-  margin-left: 2px;
-}
-
-.statDetail {
-  margin: 0;
-  color: var(--pa-muted);
-  font-size: 11px;
-  line-height: 1.45;
-}
-
 /* ── Kartu per domain ──────────────────────────────────────────────────────────────────── */
 
 .list {
@@ -442,9 +368,10 @@
   color: var(--pa-primary);
 }
 
+/* Satu kolom -- dulu dua kolom untuk 4 blok (2x2), tapi begitu "Interpretasi Data" dihapus
+   sisa 3 blok bikin kolom kedua di baris terakhir kosong sebelah. */
 .analisisGrid {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 14px;
 }
 
@@ -485,10 +412,6 @@
 }
 
 @media (max-width: 1080px) {
-  .statGrid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-
   /* Batang indikator dilepas di layar sempit -- kolomnya tinggal terlalu tipis untuk terbaca,
      dan angka di kanan tetap membawa informasi yang sama. */
   .perilaku {
@@ -503,10 +426,6 @@
 @media (max-width: 640px) {
   .section {
     padding: 4px 0 32px;
-  }
-
-  .statGrid {
-    grid-template-columns: 1fr;
   }
 
   .card {
@@ -535,10 +454,6 @@
   .daftarBtn {
     width: 100%;
     text-align: center;
-  }
-
-  .analisisGrid {
-    grid-template-columns: 1fr;
   }
 
   .dialogHead {

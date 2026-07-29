@@ -37,6 +37,10 @@ export function Upload() {
   // contoh file asli), jadi periode wajib diketik admin sebelum upload -- beda dari Karakter/MI
   // yang membaca periode dari tiap baris file.
   const [periodeSc, setPeriodeSc] = useState('');
+  // Modul Perilaku Anak saja: admin memilih eksplisit tiap upload apakah ini menambah periode
+  // baru (default, aman -- periode lain tidak disentuh) atau memperbaiki periode yang sedang
+  // berjalan (destruktif, hapus SELURUH periode sekolah ini). Lihat migration 20260802100000.
+  const [paMode, setPaMode] = useState('baru');
   const [file, setFile] = useState(null);
   const [parsed, setParsed] = useState(null);
   const [parseError, setParseError] = useState(null);
@@ -71,6 +75,7 @@ export function Upload() {
   function resetFlow() {
     setStep(1); setSekolahId(''); setModul('karakter'); setFile(null);
     setParsed(null); setParseError(null); setMiProgress(null); setMiResults(null); setPeriodeSc('');
+    setPaMode('baru');
     setMiMapping({}); setMiMappingBusy(false);
     setScImported(false); setScProgress(null); setScResults(null);
     setScApproveBusy(false); setScApproveProgress(null); setScApproveResult(null);
@@ -222,7 +227,7 @@ export function Upload() {
         // dilewati sekalipun untuk kemudahan alur upload.
         await handleGenerateScIndividu();
       } else {
-        await runImport({ sekolahId, modul, fileName: file?.name, parsed });
+        await runImport({ sekolahId, modul, fileName: file?.name, parsed, paMode });
         resetFlow();
       }
     } finally {
@@ -323,7 +328,7 @@ export function Upload() {
               : isSc
               ? 'School Culture: sheet "Personal" (satu baris per staf) + sheet "Lembaga" (agregat sekolah). File ini TIDAK punya kolom bulan sendiri, jadi periode wajib diisi manual di bawah.'
               : isPa
-              ? 'Perilaku Anak: satu workbook berisi sheet data (PAGE 1-4) + sheet NARASI. Sheet dikenali dari nama kolomnya, bukan nama sheet-nya. File TIDAK punya kolom bulan, jadi periode wajib diisi manual di bawah. Mengunggah ulang periode yang sama akan MENGGANTI seluruh data periode itu, bukan menumpuk.'
+              ? 'Perilaku Anak: satu workbook berisi sheet data (PAGE 1-4) + sheet NARASI. Sheet dikenali dari nama kolomnya, bukan nama sheet-nya. File TIDAK punya kolom bulan, jadi periode wajib diisi manual di bawah. Pilih juga mode unggah di bawah sebelum lanjut.'
               : 'Periode tidak perlu diketik manual — sistem membaca kolom "bulan" langsung dari tiap baris file, jadi satu file boleh memuat beberapa bulan sekaligus.'}
           </div>
           {butuhPeriodeManual && (
@@ -337,6 +342,29 @@ export function Upload() {
                 onChange={(e) => setPeriodeSc(e.target.value.trim())}
                 style={{ maxWidth: 160 }}
               />
+            </div>
+          )}
+          {/* Perilaku Anak saja: pilihan eksplisit "unggah periode baru" (default, aman -- periode
+              lain tidak disentuh) vs "unggah ulang" (perbaiki periode ini, tapi menghapus SELURUH
+              periode sekolah ini dulu). Keduanya tidak bisa dibedakan dari isi berkas saja, jadi
+              admin yang harus memilih -- lihat migration 20260802100000_pa_import_mode.sql. */}
+          {isPa && (
+            <div style={{ marginBottom: 14, display: 'flex', flexDirection: 'column', gap: 8 }}>
+              <label style={{ fontSize: 12, fontWeight: 700, color: 'var(--ink-2)' }}>Mode unggah</label>
+              <label style={{ display: 'flex', alignItems: 'flex-start', gap: 10, padding: '10px 12px', border: paMode === 'baru' ? '1px solid var(--purple-600)' : '1px solid var(--line)', borderRadius: 10, background: paMode === 'baru' ? 'var(--purple-050)' : 'var(--surface-soft)', cursor: 'pointer' }}>
+                <input type="radio" name="paMode" value="baru" checked={paMode === 'baru'} onChange={() => setPaMode('baru')} style={{ marginTop: 3 }} />
+                <span>
+                  <span style={{ display: 'block', fontSize: 12.5, fontWeight: 700, color: 'var(--ink)' }}>Unggah periode baru</span>
+                  <span style={{ display: 'block', fontSize: 11.5, color: 'var(--ink-3)', marginTop: 2 }}>Menambah periode {periodeSc || '(isi dulu di atas)'} untuk sekolah ini. Periode lain yang sudah ada TIDAK terhapus. Kalau periode ini sudah pernah diunggah sebelumnya, isinya diganti (tidak dobel).</span>
+                </span>
+              </label>
+              <label style={{ display: 'flex', alignItems: 'flex-start', gap: 10, padding: '10px 12px', border: paMode === 'ulang' ? '1px solid var(--status-alert)' : '1px solid var(--line)', borderRadius: 10, background: paMode === 'ulang' ? 'var(--status-alert-bg)' : 'var(--surface-soft)', cursor: 'pointer' }}>
+                <input type="radio" name="paMode" value="ulang" checked={paMode === 'ulang'} onChange={() => setPaMode('ulang')} style={{ marginTop: 3 }} />
+                <span>
+                  <span style={{ display: 'block', fontSize: 12.5, fontWeight: 700, color: 'var(--ink)' }}>Unggah ulang (perbaiki periode ini)</span>
+                  <span style={{ display: 'block', fontSize: 11.5, color: 'var(--ink-3)', marginTop: 2 }}>Menghapus SELURUH data Perilaku Anak sekolah ini (semua periode, termasuk periode selain {periodeSc || 'yang diisi di atas'}), lalu mengganti total dengan isi berkas ini. Tidak bisa dibatalkan.</span>
+                </span>
+              </label>
             </div>
           )}
           <button className="btn-primary" disabled={butuhPeriodeManual && !/^\d{4}-\d{2}$/.test(periodeSc)} onClick={() => setStep(3)}>Lanjut ke langkah 3</button>
@@ -535,12 +563,19 @@ export function Upload() {
                 <div style={{ fontSize: 11.5, color: 'var(--ink-2)', marginTop: 4, lineHeight: 1.5 }}>
                   Unit terdeteksi: {(parsed.preview.unitTerdeteksi || []).join(' · ') || '—'}.
                 </div>
-                {/* Unggahan PA sekarang FULL REPLACE per sekolah (migration 20260801150000), bukan
-                    cuma per periode -- konsekuensinya destruktif dan tidak bisa dibatalkan, jadi
-                    wajib disebut eksplisit di sini SEBELUM admin menekan konfirmasi. */}
-                <div style={{ marginTop: 8, padding: '8px 12px', background: 'var(--status-warn-bg)', borderRadius: 8, fontSize: 11.5, color: 'var(--ink-2)', lineHeight: 1.5 }}>
-                  ⚠ Unggahan ini <strong>menghapus seluruh data Perilaku Anak sekolah ini</strong> (semua periode, termasuk periode selain {periodeSc}), lalu menggantinya dengan isi berkas ini. Tidak bisa dibatalkan.
-                </div>
+                {/* Mode dipilih admin di langkah 2 (lihat migration 20260802100000) -- 'ulang'
+                    destruktif (hapus semua periode sekolah ini), 'baru' cuma ganti periode yang
+                    sama. Konfirmasi terakhir sebelum menekan tombol wajib mengulang konsekuensi
+                    mode yang dipilih, bukan cuma diasumsikan dari langkah sebelumnya. */}
+                {paMode === 'ulang' ? (
+                  <div style={{ marginTop: 8, padding: '8px 12px', background: 'var(--status-alert-bg)', borderRadius: 8, fontSize: 11.5, color: 'var(--ink-2)', lineHeight: 1.5 }}>
+                    ⚠ Mode <strong>unggah ulang</strong>: menghapus seluruh data Perilaku Anak sekolah ini (semua periode, termasuk periode selain {periodeSc}), lalu menggantinya dengan isi berkas ini. Tidak bisa dibatalkan.
+                  </div>
+                ) : (
+                  <div style={{ marginTop: 8, padding: '8px 12px', background: 'var(--status-warn-bg)', borderRadius: 8, fontSize: 11.5, color: 'var(--ink-2)', lineHeight: 1.5 }}>
+                    ⚠ Mode <strong>unggah periode baru</strong>: menambah/mengganti periode {periodeSc}, periode lain sekolah ini tidak disentuh.
+                  </div>
+                )}
                 {parsed.preview.pregenWarnings?.length > 0 && (
                   <div style={{ marginTop: 8, display: 'flex', flexDirection: 'column', gap: 3 }}>
                     {parsed.preview.pregenWarnings.map((w, i) => (

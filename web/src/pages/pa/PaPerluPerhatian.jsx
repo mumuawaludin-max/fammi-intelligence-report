@@ -16,17 +16,6 @@ function angkaSatuDesimal(n) {
   return (n ?? 0).toLocaleString("id-ID", { maximumFractionDigits: 1 });
 }
 
-/** Skor 1-10 gabungan (rata-rata lintas domain, "Intensitas rata-rata") dipetakan ke tiga
- * tingkat secara kasar untuk mewarnai kartu ringkas -- INI SATU-SATUNYA tempat ambang skor
- * universal dipakai, karena kartu ini murni rata-rata gabungan, bukan skor satu domain
- * tertentu yang punya ambang sendiri. Jangan pakai fungsi ini untuk skor per-siswa per-domain
- * (lihat toneStatus di bawah, dan catatan panjang kenapa keduanya beda). */
-function toneSkorRataRata(skor) {
-  if (skor >= 8) return "perhatian";
-  if (skor >= 6) return "waspada";
-  return "aman";
-}
-
 /** status "Aman"/"Perlu Perhatian"/"Perlu Diwaspadai" (SUDAH final dari data, per domain) ->
  * tone warna badge. Ambang skor yang membedakan "Perlu Perhatian" dari "Perlu Diwaspadai"
  * TERNYATA beda-beda tiap domain (mis. Hiperaktivitas: perhatian=skor 6, diwaspadai=skor 7-10;
@@ -49,22 +38,6 @@ function toneStatus(status) {
 // dan menampilkannya justru membingungkan. Yang ditampilkan sekarang cuma jumlah + persen siswa,
 // dua angka yang arah bacanya selalu sama. paAssembler.js masih menyalurkan `nilai`/`skalaLabel`
 // kalau suatu saat dibutuhkan lagi.
-
-function NilaiRingkas({ s }) {
-  if (s.tipe === "skor") {
-    const tone = toneSkorRataRata(s.nilai);
-    return (
-      <span className={styles[`skor_${tone}`]}>
-        {angkaSatuDesimal(s.nilai)}
-        <span className={styles.statSkala}>/10</span>
-      </span>
-    );
-  }
-  if (s.tipe === "persen") {
-    return <>{angkaSatuDesimal(s.nilai)}%</>;
-  }
-  return <>{angka(s.nilai)}</>;
-}
 
 /** Blok satu bagian narasi, dengan teks jujur kalau isinya belum ditulis -- daripada
  * mengosongkan diam-diam saat tim narasi belum sempat mengisi sheet NARASI. */
@@ -109,18 +82,6 @@ export function PaPerluPerhatian({ data, unitLabel }) {
         aside={unitLabel}
       />
 
-      <PaReveal className={styles.statGrid} delay={0.02}>
-        {data.ringkas.map((s) => (
-          <div className={`${styles.statCard} ${s.sorot ? styles.statCardSorot : ""}`} key={s.kode}>
-            <div className={styles.statTop}>
-              <strong className={styles.statValue}><NilaiRingkas s={s} /></strong>
-              <p className={styles.statLabel}>{s.label}</p>
-            </div>
-            <p className={styles.statDetail}>{s.detail}</p>
-          </div>
-        ))}
-      </PaReveal>
-
       <div className={styles.list}>
         {data.domain.map((d, i) => (
           <PaReveal className={styles.card} delay={i * 0.04} amount={0.12} key={d.kode}>
@@ -137,8 +98,8 @@ export function PaPerluPerhatian({ data, unitLabel }) {
               </div>
 
               <div className={styles.total}>
-                <strong className={styles.totalValue}>{angka(d.jumlah)} siswa</strong>
-                <p className={styles.totalPersen}>{d.persen}% dari responden</p>
+                <strong className={styles.totalValue}>{angka(d.jumlah)} siswa perlu perhatian</strong>
+                <p className={styles.totalPersen}>{d.persen}% dari total siswa dinilai</p>
               </div>
             </div>
 
@@ -190,7 +151,7 @@ export function PaPerluPerhatian({ data, unitLabel }) {
                 Baca analisis lengkap
               </button>
               <button type="button" className={styles.daftarBtn} onClick={() => setDialogNama(d)}>
-                Lihat daftar nama
+                Lihat Daftar Nama Prioritas Perlu Perhatian
               </button>
             </div>
           </PaReveal>
@@ -200,8 +161,8 @@ export function PaPerluPerhatian({ data, unitLabel }) {
       {dialogNama && (
         <PaDialog
           eyebrow={`Domain ${dialogNama.label}`}
-          title="Daftar nama untuk ditelaah"
-          subtitle={`${angka(dialogNama.jumlah)} siswa masuk antrean domain ini. Daftar menampilkan skor tertinggi lebih dulu.`}
+          title="Daftar Nama Prioritas Perlu Perhatian"
+          subtitle={`${angka(dialogNama.jumlah)} siswa perlu perhatian domain ini, sama dengan angka di kartu. Daftar menampilkan skor tertinggi lebih dulu.`}
           onClose={() => setDialogNama(null)}
           size="lg"
         >
@@ -247,7 +208,7 @@ export function PaPerluPerhatian({ data, unitLabel }) {
         <PaDialog
           eyebrow={`Domain ${dialogAnalisis.label}`}
           title="Analisis dan rekomendasi lengkap"
-          subtitle={`Interpretasi data dan langkah tindak lanjut untuk domain ${dialogAnalisis.label} periode ini.`}
+          subtitle={`Kemungkinan penyebab dan langkah tindak lanjut untuk domain ${dialogAnalisis.label} periode ini.`}
           onClose={() => setDialogAnalisis(null)}
           size="lg"
         >
@@ -262,11 +223,6 @@ export function PaPerluPerhatian({ data, unitLabel }) {
           </div>
 
           <div className={styles.analisisGrid}>
-            <BlokAnalisis
-              title="Interpretasi Data"
-              isi={dialogAnalisis.analisis?.interpretasi}
-              kosongTeks="Interpretasi belum ditulis untuk domain ini periode ini."
-            />
             <BlokAnalisis
               title="Kemungkinan Penyebab"
               isi={dialogAnalisis.analisis?.kemungkinan_penyebab}
@@ -285,7 +241,7 @@ export function PaPerluPerhatian({ data, unitLabel }) {
           </div>
 
           <p className={styles.dialogNote}>
-            Interpretasi dan rekomendasi di atas bahan diskusi bersama guru BK, wali kelas, dan
+            Penjelasan dan rekomendasi di atas bahan diskusi bersama guru BK, wali kelas, dan
             psikolog Fammi, bukan diagnosis atau vonis atas seorang siswa.
           </p>
         </PaDialog>

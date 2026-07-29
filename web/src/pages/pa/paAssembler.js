@@ -104,11 +104,6 @@ function persenSatuDesimal(bagian, total) {
   return ((bagian / total) * 100).toFixed(1).replace(".", ",");
 }
 
-function persenAngka(bagian, total) {
-  if (!total) return 0;
-  return Math.round((bagian / total) * 1000) / 10;
-}
-
 // ── Kalimat insight, dihitung dari angka nyata (bukan ditulis lepas) ─────────────────────────
 
 function insightUtamaAsesmen(ringkasan, perUnit, unitScope) {
@@ -227,10 +222,14 @@ export function rakitLaporanPa(raw, unitScope = "semua") {
   }));
 
   // ── Bagian 03: Perlu Perhatian ───────────────────────────────────────────────────────────
-  // jumlah/persen kartu = data unit ini sendiri (nyata di semua scope). Daftar 5 indikator dan
-  // daftar nama tetap bisa dihitung tepat di scope manapun karena bersumber dari pa_siswa
-  // (per-siswa, punya kolom unit) -- yang TIDAK bisa dipecah per unit hanyalah daftar indikator
-  // agregat di pa_lembaga.indikator, jadi HANYA bagian itu yang jatuh balik ke data lembaga.
+  // jumlah/persen kartu SENGAJA dihitung dari anggotaSiswa.length (daftar nama per-siswa di
+  // pa_siswa, sama seperti dialog "Lihat Daftar Nama Prioritas Perlu Perhatian"), BUKAN dari
+  // agregat pa_lembaga.heart. Pernah ada selisih antara keduanya (agregat lembaga sempat
+  // menghitung siswa yang ternyata tidak mengisi asesmen sama sekali, sehingga tidak muncul di
+  // daftar nama per-siswa) -- kalau angka pojok kartu dan isi dialog beda sumber, pimpinan
+  // melihat "234 siswa" di kartu tapi dialog cuma menampilkan sebagian, dan itu yang bikin
+  // bingung. Konsekuensinya: dialog TIDAK memotong daftar (tidak ada slice cap lagi), supaya
+  // jumlah yang tampil di kartu selalu persis sama dengan banyaknya baris di dialog.
   const indikatorSumber = agregat.indikator || {};
 
   // `nilai` indikator TERNYATA tidak konsisten antar-unggahan -- satu berkas contoh pernah
@@ -247,11 +246,10 @@ export function rakitLaporanPa(raw, unitScope = "semua") {
     : { maks: 2, label: "skala 0–2" };
 
   const domainDenganAngka = PA_DOMAIN_META.map((d) => {
-    const h = heartSumber[d.kode] || {};
-    const jumlah = (h.perhatian?.jumlah || 0) + (h.diwaspadai?.jumlah || 0);
     const anggotaSiswa = siswaScope
       .filter((s) => s.domain === d.kode && (s.status === "Perlu Perhatian" || s.status === "Perlu Diwaspadai"))
       .sort((a, b) => (b.skor || 0) - (a.skor || 0));
+    const jumlah = anggotaSiswa.length;
     const indikatorList = indikatorSumber[d.kode] || [];
     return {
       ...d,
@@ -264,7 +262,7 @@ export function rakitLaporanPa(raw, unitScope = "semua") {
       // `status` ikut disalin (bukan cuma skor) -- ambang skor "Perlu Perhatian" vs "Perlu
       // Diwaspadai" BEDA per domain (SDQ per subskala), lihat catatan di PaPerluPerhatian.jsx.
       // Tampilan tidak boleh menebak tingkat dari skor mentah pakai satu ambang universal.
-      siswa: anggotaSiswa.slice(0, 15).map((s) => ({ nama: s.nama, unit: s.unit, kelas: s.kelas, skor: s.skor, status: s.status })),
+      siswa: anggotaSiswa.map((s) => ({ nama: s.nama, unit: s.unit, kelas: s.kelas, skor: s.skor, status: s.status })),
       ...PA_GLOSARIUM[d.kode],
       analisis: current.narasi?.analisis_03_domain?.[d.kode] || agregat.narasi?.analisis_03_domain?.[d.kode] || null,
     };
@@ -284,26 +282,6 @@ export function rakitLaporanPa(raw, unitScope = "semua") {
   const perhatianDomain = domainDenganAngka
     .map((d) => ({ ...d, status: statusByKode[d.kode] }))
     .sort((a, b) => b.jumlah - a.jumlah);
-
-  // Empat kartu ringkas: DIHITUNG cuma dari 4 domain "kesulitan", Tolong Menolong sengaja
-  // dikeluarkan (lihat DOMAIN_GABUNGAN) supaya tidak mencampur "butuh ditelaah segera" dengan
-  // "butuh penguatan" dalam satu angka.
-  const namaGabungan = new Map();
-  for (const kode of DOMAIN_GABUNGAN) {
-    for (const s of siswaScope) {
-      if (s.domain !== kode || (s.status !== "Perlu Perhatian" && s.status !== "Perlu Diwaspadai")) continue;
-      const set = namaGabungan.get(s.nama) || new Set();
-      set.add(kode);
-      namaGabungan.set(s.nama, set);
-    }
-  }
-  const totalPerluTelaah = namaGabungan.size;
-  const lintasDomain = [...namaGabungan.values()].filter((set) => set.size > 1).length;
-  const skorGabungan = siswaScope.filter((s) => DOMAIN_GABUNGAN.includes(s.domain)
-    && (s.status === "Perlu Perhatian" || s.status === "Perlu Diwaspadai") && Number.isFinite(s.skor));
-  const rataRataSkor = skorGabungan.length > 0
-    ? skorGabungan.reduce((sum, s) => sum + s.skor, 0) / skorGabungan.length
-    : 0;
 
   // ── Bagian 04: Survey, dikelompokkan per domain ─────────────────────────────────────────
   // Sama seperti indikator, pertanyaan survei tertutup cuma ada di baris agregat pa_lembaga.
@@ -351,26 +329,6 @@ export function rakitLaporanPa(raw, unitScope = "semua") {
     },
 
     perhatian: {
-      ringkas: [
-        {
-          kode: "perlu_telaah", tipe: "angka", label: "Perlu perhatian", nilai: totalPerluTelaah,
-          detail: "Siswa perlu telaah individual, digabung dari empat domain kesulitan.", sorot: true,
-        },
-        {
-          kode: "rasio", tipe: "persen", label: "Rasio dari total siswa",
-          nilai: persenAngka(totalPerluTelaah, totalSiswaScope),
-          detail: "Proporsi siswa perlu perhatian dari total responden periode ini.",
-        },
-        {
-          kode: "lintas_domain", tipe: "angka", label: "Lebih dari satu domain", nilai: lintasDomain,
-          detail: "Siswa yang tinggi di lebih dari satu domain kesulitan sekaligus.",
-        },
-        {
-          kode: "keparahan", tipe: "skor", label: "Intensitas rata-rata",
-          nilai: Math.round(rataRataSkor * 10) / 10,
-          detail: "Rata-rata skor keparahan siswa yang tercatat, skala 1 sampai 10.",
-        },
-      ],
       insight_utama: agregat.narasi?.insight_03_utama || insightUtamaPerhatian(gabunganTerurut),
       domain: perhatianDomain,
     },

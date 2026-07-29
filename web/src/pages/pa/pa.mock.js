@@ -125,13 +125,11 @@ const KELAS = {
 // bisa "diolah otomatis dari data yang ada" karena data itu sendiri belum ada di skema mana
 // pun, harus dibangun sistem pencatatan kasus terpisah lebih dulu.
 //
-// Empat metrik pengganti (lihat `perhatian.ringkas` di paLaporanContoh) semuanya turunan
-// langsung dari skor asesmen per siswa per domain -- persis yang akan tersedia begitu pipeline
-// hulu menulis hasil akhirnya ke Supabase. Supaya turunannya jujur (bukan angka ringkasan yang
-// ditulis terpisah dan kebetulan konsisten), berkas ini membangun dulu KUMPULAN KASUS per siswa
-// (nama, kelas, domain mana saja yang skornya tinggi, skor tertingginya), lalu seluruh angka
-// bagian 03 -- jumlah per domain, jumlah gabungan, jumlah lintas-domain, rata-rata keparahan,
-// daftar nama di dialog -- dihitung dari kumpulan itu, bukan dari tabel angka terpisah.
+// Berkas ini membangun dulu KUMPULAN KASUS per siswa (nama, kelas, domain mana saja yang
+// skornya tinggi, skor tertingginya), lalu seluruh angka bagian 03 -- jumlah per domain dan
+// daftar nama di dialog -- dihitung dari kumpulan itu, bukan dari tabel angka terpisah. Jumlah
+// di kartu domain SELALU sama dengan panjang daftar nama di dialognya (keduanya `anggota.length`
+// dari kumpulan kasus yang sama), sesuai kontrak `perhatian.domain[].jumlah` di paAssembler.js.
 
 const KASUS_NAMA_DEPAN = [
   "Andi", "Muhammad", "Nur", "Siti", "Ahmad", "Putri", "Fatimah", "Rizky", "Aulia", "Syifa",
@@ -692,9 +690,6 @@ export function paLaporanContoh(unitId = "semua") {
   // pembanding "periode lalu" -- data modul ini baru satu periode, membandingkan ke periode yang
   // belum pernah ada cuma akan mengarang tren yang tidak nyata.
   const kasus = kumpulanKasus(unitAktif);
-  const totalPerluTelaah = kasus.length;
-  const lintasDomain = kasus.filter((k) => k.domains.length > 1).length;
-  const rataRataSkor = kasus.reduce((s, k) => s + k.skor, 0) / kasus.length;
 
   // Empat kartu domain "kesulitan", angkanya dari kumpulan kasus di atas.
   const perhatianDomainKesulitan = PERHATIAN_DOMAIN.map((d) => {
@@ -718,7 +713,7 @@ export function paLaporanContoh(unitId = "semua") {
           persen: persenAngka(jumlahIndikator, info.total),
         };
       }),
-      siswa: anggota.slice(0, 10),
+      siswa: anggota,
       ...PA_GLOSARIUM[d.kode],
       analisis: PERHATIAN_ANALISIS[d.kode],
     };
@@ -825,25 +820,6 @@ export function paLaporanContoh(unitId = "semua") {
     },
 
     perhatian: {
-      ringkas: [
-        {
-          kode: "perlu_telaah", tipe: "angka", label: "Perlu perhatian", nilai: totalPerluTelaah,
-          detail: "Siswa perlu telaah individual, digabung dari seluruh domain.", sorot: true,
-        },
-        {
-          kode: "rasio", tipe: "persen", label: "Rasio dari total siswa",
-          nilai: persenAngka(totalPerluTelaah, info.total),
-          detail: "Proporsi siswa perlu perhatian dari total responden periode ini.",
-        },
-        {
-          kode: "lintas_domain", tipe: "angka", label: "Lebih dari satu domain", nilai: lintasDomain,
-          detail: "Siswa yang tinggi di lebih dari satu domain sekaligus, prioritas ditelaah lebih dulu.",
-        },
-        {
-          kode: "keparahan", tipe: "skor", label: "Intensitas rata-rata", nilai: Math.round(rataRataSkor * 10) / 10,
-          detail: "Rata-rata skor keparahan siswa yang tercatat, skala 1 sampai 10.",
-        },
-      ],
       // Insight dihitung dari EMPAT domain kesulitan saja (sudah terurut jumlah tertinggi->
       // terendah), bukan dari `perhatianDomain` yang lima -- kalau Tolong Menolong ikut masuk
       // perbandingan "paling mendesak vs paling ringan", dua makna beda (kasus yang perlu

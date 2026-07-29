@@ -528,7 +528,14 @@ export async function parsePaWorkbook(file, { sekolahId, periodeId } = {}) {
   };
 }
 
-export async function importPaWorkbook(parsed) {
+/**
+ * `mode` diteruskan apa adanya ke Edge Function -> RPC import_pa_periode (migration
+ * 20260802100000): 'ulang' (default) menghapus SELURUH data Perilaku Anak sekolah ini lalu
+ * mengganti total dengan isi berkas ini; 'baru' cuma mengganti baris periode_id yang sama,
+ * periode lain milik sekolah ini tidak disentuh. Admin memilih salah satu di Upload.jsx sebelum
+ * konfirmasi, karena keduanya tidak bisa dibedakan dari isi berkas saja.
+ */
+export async function importPaWorkbook(parsed, mode = 'ulang') {
   const { lembagaRows, siswaRows, esaiRows } = parsed.rows;
   const sekolahId = lembagaRows[0]?.sekolah_id;
   const periodeId = lembagaRows[0]?.periode_id;
@@ -542,6 +549,7 @@ export async function importPaWorkbook(parsed) {
         lembaga: lembagaRows,
         siswa: siswaRows,
         esai: esaiRows,
+        mode,
       },
     },
   });

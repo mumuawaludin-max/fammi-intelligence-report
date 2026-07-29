@@ -53,12 +53,12 @@
 //   "import-sc"                { payload: { sekolah_id, periode_id, personal, lembaga } } --
 //                              modul School Culture, panggil RPC import_sc_periode (migration
 //                              20260722100000), pola identik import-karakter.
-//   "import-pa"                { payload: { sekolah_id, periode_id, lembaga, siswa, esai } } --
-//                              modul Perilaku Anak, panggil RPC import_pa_periode (migration
-//                              20260801130000), pola identik import-sc. RPC-nya delete-then-insert
-//                              per (sekolah, periode), jadi mengunggah ulang periode yang sama
-//                              MENGGANTI isinya, bukan menumpuk -- ini yang membuat alur unggah
-//                              dua tahap (data dulu, lalu data + narasi terisi) aman diulang.
+//   "import-pa"                { payload: { sekolah_id, periode_id, lembaga, siswa, esai, mode } }
+//                              -- modul Perilaku Anak, panggil RPC import_pa_periode (migration
+//                              20260802100000). `mode`: 'ulang' (default) hapus SELURUH data
+//                              sekolah ini lalu ganti total isi berkas ini; 'baru' cuma hapus
+//                              baris periode_id yang sama (idem-poten), periode lain tidak
+//                              disentuh -- admin memilih salah satu tiap upload di Upload.jsx.
 //   "list-sc-pending"          {}  -> { rows: [...] } daftar laporan SC individu menunggu persetujuan
 //   "approve-sc" | "reject-sc" { id }  setujui/tolak satu baris sc_hasil. Approve yang berhasil
 //                              otomatis buat akun Karyawan untuk responden itu kalau belum ada
@@ -488,15 +488,21 @@ async function handleImportSc(admin, body) {
 
 /** Impor satu periode modul Perilaku Anak. Pola parameter bernama mengikuti handleImportSc
  * (bukan payload jsonb utuh ala handleImportKarakter) supaya kontraknya eksplisit. RPC-nya
- * delete-then-insert, lihat catatan di kepala berkas ini. */
+ * delete-then-insert, lihat catatan di kepala berkas ini.
+ *
+ * `mode` diteruskan APA ADANYA ke p_mode ('ulang' full-replace per sekolah, atau 'baru' cuma
+ * ganti periode yang sama) -- admin yang memilih di Upload.jsx, RPC (migration 20260802100000)
+ * yang menegakkan. Default 'ulang' kalau field ini tidak dikirim, supaya panggilan lama (kalau
+ * ada) tetap berperilaku sama seperti sebelum mode ini ada. */
 async function handleImportPa(admin, body) {
   const { payload } = body;
   if (!payload || typeof payload !== "object") return { ok: false, error: "Field wajib: payload (objek)." };
-  const { sekolah_id, periode_id, lembaga, siswa, esai } = payload;
+  const { sekolah_id, periode_id, lembaga, siswa, esai, mode } = payload;
 
   const { data, error } = await admin.rpc("import_pa_periode", {
     p_sekolah_id: sekolah_id, p_periode_id: periode_id,
     p_lembaga: lembaga || [], p_siswa: siswa || [], p_esai: esai || [],
+    p_mode: mode === "baru" ? "baru" : "ulang",
   });
   if (error) return { ok: false, error: error.message };
   return { ok: true, ...data };

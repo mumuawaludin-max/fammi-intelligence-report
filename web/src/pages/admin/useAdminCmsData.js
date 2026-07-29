@@ -392,12 +392,14 @@ export async function actMiApproval(id, action) {
   return data?.akun || null;
 }
 
-export async function runImportAction({ sekolahId, modul, fileName, parsed }) {
+export async function runImportAction({ sekolahId, modul, fileName, parsed, paMode }) {
   const periodeId = parsed?.preview?.periodeDetected?.map((p) => p.periode).join(',') || null;
   const IMPORTER = {
     karakter: importKarakterWorkbook,
     sc: importScWorkbook,
-    pa: importPaWorkbook,
+    // Perilaku Anak satu-satunya importer yang butuh argumen kedua (mode ulang/baru) -- lihat
+    // catatan di paImporter.js.
+    pa: (p) => importPaWorkbook(p, paMode),
   };
   const importer = IMPORTER[modul];
   if (!importer) {
