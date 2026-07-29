@@ -276,37 +276,40 @@ function insightUtamaPerhatian(domainTerurut) {
  * `share` = porsi siswa domain ini yang menunjukkan perilaku tersebut. Satu siswa bisa
  * menunjukkan lebih dari satu perilaku, jadi jumlah share memang boleh lebih dari 1.
  */
+// `nilai` = pencapaian indikator itu sendiri (dari 100%, angka independen dari share/jumlah
+// siswa) -- lihat catatan panjang di PaPerluPerhatian.jsx soal kenapa dua angka ini HARUS
+// ditampilkan terpisah dan dilabeli, bukan digabung jadi satu baris seperti versi sebelumnya.
 const PERHATIAN_DOMAIN = [
   {
     kode: "emosional", huruf: "E", label: "Emosional", status: "prioritas tertinggi",
     perilaku: [
-      { label: "Tampak khawatir atau tegang", share: 0.52 },
-      { label: "Mudah takut pada situasi baru", share: 0.43 },
-      { label: "Kesulitan mengelola kesedihan", share: 0.34 },
+      { label: "Tampak khawatir atau tegang", share: 0.52, nilai: 1.12 },
+      { label: "Mudah takut pada situasi baru", share: 0.43, nilai: 0.95 },
+      { label: "Kesulitan mengelola kesedihan", share: 0.34, nilai: 0.78 },
     ],
   },
   {
     kode: "relasi", huruf: "R", label: "Relasi", status: "perlu penguatan",
     perilaku: [
-      { label: "Merasa sendiri di lingkungan sekolah", share: 0.516 },
-      { label: "Sulit memulai interaksi dengan teman", share: 0.419 },
-      { label: "Merasa tidak diterima kelompok", share: 0.306 },
+      { label: "Merasa sendiri di lingkungan sekolah", share: 0.516, nilai: 1.05 },
+      { label: "Sulit memulai interaksi dengan teman", share: 0.419, nilai: 0.88 },
+      { label: "Merasa tidak diterima kelompok", share: 0.306, nilai: 0.66 },
     ],
   },
   {
     kode: "hiperaktivitas", huruf: "H", label: "Hiperaktivitas", status: "pantau per kelas",
     perilaku: [
-      { label: "Sulit diam saat kegiatan belajar", share: 0.661 },
-      { label: "Bertindak sebelum memikirkan akibat", share: 0.518 },
-      { label: "Mudah kehilangan fokus", share: 0.446 },
+      { label: "Sulit diam saat kegiatan belajar", share: 0.661, nilai: 1.15 },
+      { label: "Bertindak sebelum memikirkan akibat", share: 0.518, nilai: 0.97 },
+      { label: "Mudah kehilangan fokus", share: 0.446, nilai: 0.84 },
     ],
   },
   {
     kode: "agresi", huruf: "A", label: "Agresi", status: "butuh pencegahan",
     perilaku: [
-      { label: "Bereaksi keras saat kecewa", share: 0.558 },
-      { label: "Konflik berulang dengan teman", share: 0.419 },
-      { label: "Sulit menghentikan pertengkaran", share: 0.349 },
+      { label: "Bereaksi keras saat kecewa", share: 0.558, nilai: 1.02 },
+      { label: "Konflik berulang dengan teman", share: 0.419, nilai: 0.86 },
+      { label: "Sulit menghentikan pertengkaran", share: 0.349, nilai: 0.71 },
     ],
   },
 ];
@@ -321,9 +324,9 @@ const PERHATIAN_DOMAIN = [
 const PERHATIAN_PROSOSIAL = {
   kode: "prososial", huruf: "T", label: "Tolong Menolong", status: "butuh penguatan",
   perilaku: [
-    { label: "Jarang menawarkan bantuan tanpa diminta", share: 0.41 },
-    { label: "Kurang peka saat teman terlihat kesulitan", share: 0.33 },
-    { label: "Enggan berbagi saat punya kelebihan", share: 0.27 },
+    { label: "Jarang menawarkan bantuan tanpa diminta", share: 0.41, nilai: 0.68 },
+    { label: "Kurang peka saat teman terlihat kesulitan", share: 0.33, nilai: 0.55 },
+    { label: "Enggan berbagi saat punya kelebihan", share: 0.27, nilai: 0.45 },
   ],
 };
 
@@ -694,11 +697,16 @@ export function paLaporanContoh(unitId = "semua") {
       status: d.status,
       jumlah,
       persen: persenSatuDesimal(jumlah, info.total),
-      perilaku: d.perilaku.map((p, i) => ({
-        rank: i + 1,
-        label: p.label,
-        jumlah: Math.round(p.share * jumlah),
-      })),
+      perilaku: d.perilaku.map((p, i) => {
+        const jumlahIndikator = Math.round(p.share * jumlah);
+        return {
+          rank: i + 1,
+          label: p.label,
+          nilai: p.nilai,
+          jumlah: jumlahIndikator,
+          persen: persenAngka(jumlahIndikator, info.total),
+        };
+      }),
       siswa: anggota.slice(0, 10),
       ...PA_GLOSARIUM[d.kode],
       analisis: PERHATIAN_ANALISIS[d.kode],
@@ -717,11 +725,16 @@ export function paLaporanContoh(unitId = "semua") {
     status: PERHATIAN_PROSOSIAL.status,
     jumlah: prososialJumlah,
     persen: persenSatuDesimal(prososialJumlah, info.total),
-    perilaku: PERHATIAN_PROSOSIAL.perilaku.map((p, i) => ({
-      rank: i + 1,
-      label: p.label,
-      jumlah: Math.round(p.share * prososialJumlah),
-    })),
+    perilaku: PERHATIAN_PROSOSIAL.perilaku.map((p, i) => {
+      const jumlahIndikator = Math.round(p.share * prososialJumlah);
+      return {
+        rank: i + 1,
+        label: p.label,
+        nilai: p.nilai,
+        jumlah: jumlahIndikator,
+        persen: persenAngka(jumlahIndikator, info.total),
+      };
+    }),
     siswa: [],
     ...PA_GLOSARIUM.prososial,
     analisis: PERHATIAN_ANALISIS.prososial,

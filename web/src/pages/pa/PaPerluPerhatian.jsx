@@ -41,6 +41,18 @@ function toneStatus(status) {
   return "aman";
 }
 
+/** `nilai` indikator = skor rata-rata mentah (skala 0-2, konvensi SDQ per-item: 0 "Tidak Benar",
+ * 1 "Agak Benar", 2 "Benar"), BUKAN persentase 0-100 -- diverifikasi dari data asli (rentang
+ * nyata 0,32 sampai 1,18 di seluruh 25 indikator). Sengaja TIDAK diberi label "rendah/tinggi":
+ * beberapa indikator berupa perilaku positif ("Berpikir Sebelum Bertindak", "Disukai Teman") di
+ * mana skor RENDAH yang jadi perhatian, sementara indikator lain negatif ("Gelisah", "Cemas") di
+ * mana skor TINGGI yang jadi perhatian -- arahnya berbeda per indikator dan tidak bisa ditebak
+ * dari labelnya saja tanpa data arah skala tiap item, jadi ditampilkan apa adanya (angka + skala)
+ * daripada menebak kata sifat yang bisa salah arah. */
+function angkaDuaDesimal(n) {
+  return (n ?? 0).toLocaleString("id-ID", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+
 function NilaiRingkas({ s }) {
   if (s.tipe === "skor") {
     const tone = toneSkorRataRata(s.nilai);
@@ -128,14 +140,36 @@ export function PaPerluPerhatian({ data, unitLabel }) {
                 <ol className={styles.perilakuList}>
                   {d.perilaku.map((p) => (
                     <li className={styles.perilaku} key={p.label}>
-                      <span className={styles.rank}>{p.rank}</span>
-                      <span className={styles.perilakuLabel}>{p.label}</span>
-                      <span className={styles.perilakuAngka}>
-                        <span className={styles.perilakuJumlah}>{angka(p.jumlah)} siswa</span>
-                        {p.persen != null && (
-                          <span className={styles.perilakuPersen}>· {angkaSatuDesimal(p.persen)}% dari total</span>
+                      <div className={styles.perilakuTop}>
+                        <span className={styles.rank}>{p.rank}</span>
+                        <span className={styles.perilakuLabel}>{p.label}</span>
+                      </div>
+
+                      {/* Dua angka BEDA, dilabeli eksplisit dan TIDAK dicampur jadi satu baris
+                          seperti sebelumnya. "Siswa perlu perhatian" (jumlah+persen dari total
+                          sekolah) jadi angka utama karena paling langsung ditindaklanjuti. "Skor
+                          rata-rata indikator" (nilai) ditampilkan apa adanya sebagai info sekunder
+                          TANPA kata sifat rendah/tinggi -- lihat catatan panjang di atas kenapa. */}
+                      <div className={styles.perilakuStats}>
+                        <div className={styles.perilakuStatBlock}>
+                          <span className={styles.perilakuStatLabel}>Siswa perlu perhatian</span>
+                          <span className={styles.perilakuStatValue}>
+                            {angka(p.jumlah)} siswa
+                            {p.persen != null && (
+                              <span className={styles.perilakuStatQual}>sekitar {angkaSatuDesimal(p.persen)}% dari total siswa</span>
+                            )}
+                          </span>
+                        </div>
+                        {p.nilai != null && (
+                          <div className={styles.perilakuStatBlock}>
+                            <span className={styles.perilakuStatLabel}>Skor rata-rata indikator</span>
+                            <span className={`${styles.perilakuStatValue} ${styles.perilakuStatValueMuted}`}>
+                              {angkaDuaDesimal(p.nilai)}
+                              <span className={styles.perilakuStatQual}>skala 0–2</span>
+                            </span>
+                          </div>
                         )}
-                      </span>
+                      </div>
                     </li>
                   ))}
                 </ol>

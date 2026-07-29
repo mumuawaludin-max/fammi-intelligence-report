@@ -127,22 +127,37 @@
 
 .perilakuList {
   display: grid;
-  gap: 8px;
+  gap: 14px;
   margin: 0;
   padding: 0;
   list-style: none;
 }
 
+/* Tiap indikator jadi blok DUA BARIS (bukan satu baris sejajar seperti sebelumnya) -- baris
+   pertama identitas indikatornya, baris kedua dua angka yang dilabeli terpisah. Butuh ruang
+   vertikal lebih supaya kedua angka (pencapaian indikator vs siswa perlu perhatian) tidak
+   nempel jadi satu string yang gampang disalahbaca pimpinan sebagai angka yang sama. */
 .perilaku {
-  display: grid;
-  grid-template-columns: auto minmax(0, 1fr) auto;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--pa-border);
+}
+
+.perilaku:last-child {
+  padding-bottom: 0;
+  border-bottom: none;
+}
+
+.perilakuTop {
+  display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 10px;
+  margin-bottom: 8px;
 }
 
 .rank {
   display: inline-grid;
   place-items: center;
+  flex: 0 0 auto;
   width: 20px;
   height: 20px;
   border-radius: 6px;
@@ -154,32 +169,51 @@
 
 .perilakuLabel {
   color: var(--pa-ink);
-  font-size: 13px;
-  font-weight: 550;
+  font-size: 13.5px;
+  font-weight: 650;
 }
 
-/* SEBELUMNYA classname ini dipakai di JSX tapi tidak pernah didefinisikan di sini -- jumlah dan
-   persen jatuh ke alur teks default tanpa jarak/pemisah sama sekali dan menempel jadi satu
-   ("31966%"). display:flex + gap + separator "·" eksplisit di JSX memastikan ini tidak terjadi
-   lagi walau kontennya berubah panjang. */
-.perilakuAngka {
+.perilakuStats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 10px 20px;
+  padding-left: 30px;
+}
+
+.perilakuStatBlock {
+  display: grid;
+  gap: 2px;
+}
+
+.perilakuStatLabel {
+  color: var(--pa-muted-2);
+  font-size: 10.5px;
+  font-weight: 720;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.perilakuStatValue {
   display: flex;
   align-items: baseline;
-  gap: 5px;
   flex-wrap: wrap;
-  white-space: nowrap;
-}
-
-.perilakuJumlah {
-  color: var(--pa-perhatian);
-  font-size: 13px;
+  gap: 6px;
+  color: var(--pa-ink);
+  font-size: 14px;
   font-weight: 750;
   font-variant-numeric: tabular-nums;
 }
 
-.perilakuPersen {
+/* Skor rata-rata indikator (nilai) sengaja netral -- lihat catatan di PaPerluPerhatian.jsx
+   kenapa tidak diberi warna rendah/tinggi seperti angka siswa di sebelahnya. */
+.perilakuStatValueMuted {
+  color: var(--pa-muted);
+  font-weight: 700;
+}
+
+.perilakuStatQual {
   color: var(--pa-muted-2);
-  font-size: 11.5px;
+  font-size: 11px;
   font-weight: 650;
   font-variant-numeric: tabular-nums;
 }
