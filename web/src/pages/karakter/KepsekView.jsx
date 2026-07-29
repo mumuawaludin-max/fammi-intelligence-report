@@ -183,9 +183,7 @@ export default function KepsekView({ session, periodeId }) {
               : `Periode ${latestLabel || "ini"}`}
             subTone={heroDelta ? (heroDelta.direction === "up" ? "aman" : heroDelta.direction === "down" ? "perhatian" : "default") : "default"}
           >
-            {trendPoints.length >= 2
-              ? <TrendChart points={trendPoints} aspek={aspek} aspekPrefix="rata_input_guru_" />
-              : trendPoints.length === 1 && <TrendChart points={trendPoints} />}
+            <TrendChart points={trendPoints} aspek={aspek} aspekPrefix="rata_input_guru_" />
           </StatCardMini>
 
           <div className={styles.statHeroSide}>

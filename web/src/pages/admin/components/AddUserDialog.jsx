@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useCms } from '../store/CmsStore';
 import { IconX } from './icons';
 import { parseGuruFile } from '../importers/guruImporter';
@@ -114,6 +114,26 @@ function BulkForm({ close }) {
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState(null);
   const fileRef = useRef(null);
+  const scrollRef = useRef(null);
+
+  // Sekali baris tabel punya banyak <select> (Peran/Kelas) dan salah satunya sudah difokus
+  // (diklik untuk pilih kelas manual), Chrome/Firefox mengarahkan scroll wheel berikutnya untuk
+  // GANTI NILAI select itu, bukan scroll daftar di belakangnya -- baris jadi terasa "tidak bisa
+  // discroll" begitu tabel makin panjang. Listener native (bukan prop onWheel React, yang
+  // dipasang passive sejak React 17 sehingga preventDefault() di situ diam-diam tidak berlaku)
+  // memaksa wheel di atas select tetap men-scroll kontainer ini, bukan mengubah pilihannya.
+  useEffect(() => {
+    const el = scrollRef.current;
+    if (!el) return;
+    const onWheel = (e) => {
+      if (e.target.closest('select')) {
+        e.preventDefault();
+        el.scrollTop += e.deltaY;
+      }
+    };
+    el.addEventListener('wheel', onWheel, { passive: false });
+    return () => el.removeEventListener('wheel', onWheel);
+  }, []);
 
   const onFile = async (e) => {
     const file = e.target.files?.[0];
@@ -148,7 +168,7 @@ function BulkForm({ close }) {
 
   return (
     <>
-      <div style={{ padding: '16px 24px', display: 'flex', flexDirection: 'column', gap: 12, overflowY: 'auto', flex: 1, minHeight: 0 }}>
+      <div ref={scrollRef} style={{ padding: '16px 24px', display: 'flex', flexDirection: 'column', gap: 12, overflowY: 'auto', flex: 1, minHeight: 0 }}>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
           <div>
             <label style={labelStyle}>Sekolah</label>

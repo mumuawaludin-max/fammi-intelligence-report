@@ -15,7 +15,7 @@ import styles from "./PaLaporanPage.module.css";
 const SECTIONS = [
   { key: "statistik", number: "01", initial: "S", label: "Statistik Siswa", desc: "Cakupan, profil, dan distribusi responden" },
   { key: "asesmen", number: "02", initial: "A", label: "Hasil Asesmen", desc: "Lima domain perilaku dan emosi" },
-  { key: "perhatian", number: "03", initial: "P", label: "Perlu Perhatian", desc: "Prioritas kasus dan status tindak lanjut" },
+  { key: "perhatian", number: "03", initial: "P", label: "Prioritas dan Tindak Lanjut", desc: "Prioritas kasus dan status tindak lanjut" },
   { key: "survey", number: "04", initial: "V", label: "Survey", desc: "Kebiasaan, dukungan, dan suara siswa" },
 ];
 
