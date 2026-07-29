@@ -54,6 +54,8 @@ export default function PaLaporanPage() {
         onUnitChange={setUnit}
         unitLabel={unitLabel}
         diperbarui={laporan.meta.diperbarui}
+        nonaktif={sectionAktif === "survey"}
+        alasanNonaktif="Survei kebiasaan hanya tersedia sebagai agregat seluruh siswa, tidak dipecah per periode atau unit."
       />
 
       <PaSectionSelector sections={SECTIONS} active={sectionAktif} onSelect={setSectionAktif} />

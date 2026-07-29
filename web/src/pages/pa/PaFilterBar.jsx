@@ -10,20 +10,28 @@ import styles from "./PaFilterBar.module.css";
  * Penanda "Contoh" sengaja dipasang di sini, bukan di tiap kartu: satu-satunya tempat yang
  * pasti terlihat di semua bagian, dan tetap memenuhi aturan CLAUDE.md soal tidak menampilkan
  * angka contoh seolah temuan nyata. Hapus penanda ini begitu sumbernya diganti data Supabase.
+ *
+ * `nonaktif` mematikan KEDUA filter sekaligus, dipakai bagian 04 Survey: data survei tertutup
+ * cuma ada di baris agregat pa_lembaga (tidak dipecah per unit, lihat catatan kepala
+ * paAssembler.js), jadi mengganti filter di bagian itu tidak pernah mengubah angka yang tampil.
+ * Lebih jujur dimatikan dengan alasan tertulis daripada dibiarkan bisa diklik tapi tidak
+ * berefek.
  */
 export function PaFilterBar({
   periodeOptions, periode, onPeriodeChange,
   unitOptions, unit, onUnitChange,
   unitLabel, diperbarui, contoh = true,
+  nonaktif = false, alasanNonaktif = "",
 }) {
   return (
     <div className={`${tokens.scope} ${styles.bar}`}>
       <div className={styles.filters}>
-        <label className={styles.field}>
+        <label className={`${styles.field} ${nonaktif ? styles.fieldNonaktif : ""}`}>
           <span className={styles.fieldLabel}>Periode asesmen</span>
           <select
             className={styles.select}
             value={periode}
+            disabled={nonaktif}
             onChange={(e) => onPeriodeChange(e.target.value)}
           >
             {periodeOptions.map((o) => (
@@ -32,11 +40,12 @@ export function PaFilterBar({
           </select>
         </label>
 
-        <label className={styles.field}>
+        <label className={`${styles.field} ${nonaktif ? styles.fieldNonaktif : ""}`}>
           <span className={styles.fieldLabel}>Unit sekolah</span>
           <select
             className={styles.select}
             value={unit}
+            disabled={nonaktif}
             onChange={(e) => onUnitChange(e.target.value)}
           >
             {unitOptions.map((o) => (
@@ -44,6 +53,10 @@ export function PaFilterBar({
             ))}
           </select>
         </label>
+
+        {nonaktif && alasanNonaktif && (
+          <span className={styles.alasanNonaktif}>{alasanNonaktif}</span>
+        )}
       </div>
 
       <div className={styles.meta}>

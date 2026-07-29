@@ -53,8 +53,30 @@
   transition: border-color 180ms ease, box-shadow 180ms ease;
 }
 
-.select:hover {
+.select:hover:not(:disabled) {
   border-color: var(--pa-primary);
+}
+
+/* Filter yang dimatikan (bagian 04 Survey -- lihat catatan di PaFilterBar.jsx). Dibuat jelas
+   tidak bisa diklik, bukan sekadar diredupkan sedikit. */
+.select:disabled {
+  background-color: var(--pa-bg);
+  color: var(--pa-muted-2);
+  cursor: not-allowed;
+}
+
+.fieldNonaktif .fieldLabel {
+  color: var(--pa-muted-2);
+  opacity: 0.75;
+}
+
+.alasanNonaktif {
+  align-self: flex-end;
+  max-width: 260px;
+  padding-bottom: 10px;
+  color: var(--pa-muted-2);
+  font-size: 11px;
+  line-height: 1.4;
 }
 
 .select:focus-visible {

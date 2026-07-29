@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { PaReveal } from "./PaReveal";
 import { PaSectionHeading } from "./PaSectionHeading";
-import { PaInsightBanner } from "./PaInsightBanner";
+import { PaBar } from "./PaBar";
 import { PaIconBadge } from "./paIconBadge";
 import { PaDialog } from "./PaDialog";
 import { PaRichText } from "./PaRichText";
@@ -41,27 +41,14 @@ function toneStatus(status) {
   return "aman";
 }
 
-/**
- * `nilai` indikator TERNYATA tidak konsisten antar-unggahan -- satu berkas contoh sempat memakai
- * rata-rata mentah skala 0-2 (konvensi SDQ per-item, rentang 0,32-1,18), unggahan lain (yang
- * sekarang live) memakai persentase 0-100 (mis. 41, 53, 58). paAssembler.js MENDETEKSI skala ini
- * dari nilai maksimum yang benar-benar ada di laporan (lihat skalaNilaiIndikator/skalaLabel per
- * indikator), bukan diasumsikan tetap -- supaya label di sini selalu jujur mengikuti data asli,
- * apa pun konvensi pipeline hulu untuk unggahan itu. `angkaNilai` cuma menyesuaikan JUMLAH
- * DESIMAL yang wajar per skala (2 desimal untuk 0-2, tanpa desimal untuk 0-100).
- *
- * Sengaja TIDAK diberi label "rendah/tinggi": pernah ada unggahan dengan indikator berupa
- * perilaku POSITIF ("Berpikir Sebelum Bertindak", "Disukai Teman") di mana skor rendah yang jadi
- * perhatian, dan unggahan lain (termasuk yang sekarang live) sudah menulis ulang semua indikator
- * jadi framing negatif seragam ("Tidak Berpikir Sebelum Bertindak", "Tidak Disukai Teman") --
- * kalau konvensi framing itu berubah lagi di unggahan berikutnya, label "tinggi=bermasalah" yang
- * dikunci di kode bisa salah arah. Angka + skala ditampilkan apa adanya, penjelasan arahnya ada
- * di kalimat "cara membaca" yang menyertai daftar ini.
- */
-function angkaNilai(n, skalaLabel) {
-  const desimal = skalaLabel === "skala 0–2" ? 2 : 0;
-  return (n ?? 0).toLocaleString("id-ID", { minimumFractionDigits: desimal, maximumFractionDigits: desimal });
-}
+// CATATAN soal `nilai` indikator (pa_lembaga.indikator[].nilai): field itu SENGAJA tidak lagi
+// ditampilkan. Skalanya tidak konsisten antar-unggahan (satu berkas memakai rata-rata mentah
+// 0-2 ala SDQ per-item, unggahan lain memakai 0-100), dan arah bacanya berbeda-beda per
+// indikator tergantung apakah nama indikatornya dibingkai positif ("Disukai Teman") atau negatif
+// ("Tidak Disukai Teman") -- jadi angka itu tidak bisa dibaca pimpinan tanpa penjelasan panjang,
+// dan menampilkannya justru membingungkan. Yang ditampilkan sekarang cuma jumlah + persen siswa,
+// dua angka yang arah bacanya selalu sama. paAssembler.js masih menyalurkan `nilai`/`skalaLabel`
+// kalau suatu saat dibutuhkan lagi.
 
 function NilaiRingkas({ s }) {
   if (s.tipe === "skor") {
@@ -122,31 +109,24 @@ export function PaPerluPerhatian({ data, unitLabel }) {
         aside={unitLabel}
       />
 
-      <PaInsightBanner teks={data.insight_utama} />
-
       <PaReveal className={styles.statGrid} delay={0.02}>
         {data.ringkas.map((s) => (
           <div className={`${styles.statCard} ${s.sorot ? styles.statCardSorot : ""}`} key={s.kode}>
-            <p className={styles.statLabel}>{s.label}</p>
-            <strong className={styles.statValue}><NilaiRingkas s={s} /></strong>
+            <div className={styles.statTop}>
+              <strong className={styles.statValue}><NilaiRingkas s={s} /></strong>
+              <p className={styles.statLabel}>{s.label}</p>
+            </div>
             <p className={styles.statDetail}>{s.detail}</p>
           </div>
         ))}
       </PaReveal>
 
-      <PaReveal className={styles.caraBaca} delay={0.03}>
-        <p className={styles.caraBacaTitle}>Cara membaca angka di bagian ini</p>
-        <ul className={styles.caraBacaList}>
-          <li><strong>Empat kartu di atas</strong> gabungan LINTAS empat domain kesulitan (Hiperaktivitas, Emosional, Agresi, Relasi) -- satu siswa dihitung sekali saja walau tinggi di beberapa domain sekaligus.</li>
-          <li><strong>Jumlah siswa di kanan tiap kartu domain</strong> (mis. "234 siswa" pada kartu Emosional) HANYA untuk domain itu sendiri, jadi wajar lebih besar dari total gabungan di atas -- siswa yang sama bisa ikut terhitung lagi di kartu domain lain.</li>
-          <li><strong>&ldquo;Siswa perlu perhatian&rdquo;</strong> per indikator = berapa banyak siswa yang terindikasi pada perilaku spesifik bernama indikator itu, dan berapa persen dari total siswa sekolah.</li>
-          <li><strong>&ldquo;Skor indikator&rdquo;</strong> mengukur seberapa sering/kuat pola pada nama indikator itu muncul menurut data sumber -- angka dan skalanya (0-2 atau dari 100) mengikuti apa yang ditulis di file yang diunggah, bukan dihitung ulang di sini.</li>
-        </ul>
-      </PaReveal>
-
       <div className={styles.list}>
         {data.domain.map((d, i) => (
           <PaReveal className={styles.card} delay={i * 0.04} amount={0.12} key={d.kode}>
+            {/* Kepala kartu: identitas domain + total, satu baris ringkas. Rincian indikator
+                turun ke bloknya sendiri di bawah, bukan disejajarkan di kolom tengah seperti
+                versi sebelumnya -- itu yang bikin kartunya tinggi dan sulit dipindai. */}
             <div className={styles.cardTop}>
               <div className={styles.identitas}>
                 <span className={styles.huruf}>{d.huruf}</span>
@@ -156,52 +136,46 @@ export function PaPerluPerhatian({ data, unitLabel }) {
                 </div>
               </div>
 
-              {d.perilaku.length > 0 ? (
+              <div className={styles.total}>
+                <strong className={styles.totalValue}>{angka(d.jumlah)} siswa</strong>
+                <p className={styles.totalPersen}>{d.persen}% dari responden</p>
+              </div>
+            </div>
+
+            {d.perilaku.length > 0 ? (
+              <div className={styles.perilakuBlok}>
+                {/* Judul eksplisit -- sebelumnya lima indikator ini muncul tanpa kepala apa pun,
+                    jadi tidak jelas hubungannya dengan domain di sebelahnya. */}
+                <p className={styles.perilakuJudul}>
+                  Indikator penyebab masalah {d.label}
+                </p>
+                <p className={styles.perilakuSubjudul}>
+                  {d.perilaku.length} perilaku yang paling banyak tercatat dan membuat siswa masuk kategori {d.label}. Angka di kanan = berapa siswa yang menunjukkan perilaku itu.
+                </p>
+
                 <ol className={styles.perilakuList}>
                   {d.perilaku.map((p) => (
                     <li className={styles.perilaku} key={p.label}>
-                      <div className={styles.perilakuTop}>
-                        <span className={styles.rank}>{p.rank}</span>
-                        <span className={styles.perilakuLabel}>{p.label}</span>
-                      </div>
-
-                      {/* Dua angka BEDA, dilabeli eksplisit dan TIDAK dicampur jadi satu baris
-                          seperti sebelumnya. "Siswa perlu perhatian" (jumlah+persen dari total
-                          sekolah) jadi angka utama karena paling langsung ditindaklanjuti. "Skor
-                          rata-rata indikator" (nilai) ditampilkan apa adanya sebagai info sekunder
-                          TANPA kata sifat rendah/tinggi -- lihat catatan panjang di atas kenapa. */}
-                      <div className={styles.perilakuStats}>
-                        <div className={styles.perilakuStatBlock}>
-                          <span className={styles.perilakuStatLabel}>Siswa perlu perhatian</span>
-                          <span className={styles.perilakuStatValue}>
-                            {angka(p.jumlah)} siswa
-                            {p.persen != null && (
-                              <span className={styles.perilakuStatQual}>sekitar {angkaSatuDesimal(p.persen)}% dari total siswa</span>
-                            )}
-                          </span>
-                        </div>
-                        {p.nilai != null && (
-                          <div className={styles.perilakuStatBlock}>
-                            <span className={styles.perilakuStatLabel}>Skor indikator</span>
-                            <span className={`${styles.perilakuStatValue} ${styles.perilakuStatValueMuted}`}>
-                              {angkaNilai(p.nilai, p.skalaLabel)}
-                              <span className={styles.perilakuStatQual}>{p.skalaLabel || "skala 0–2"}</span>
-                            </span>
-                          </div>
-                        )}
-                      </div>
+                      <span className={styles.rank}>{p.rank}</span>
+                      <span className={styles.perilakuLabel}>{p.label}</span>
+                      <PaBar
+                        persen={p.persen}
+                        tone="perhatian"
+                        size="sm"
+                        className={styles.perilakuBar}
+                        label={`${p.label}: ${p.jumlah} siswa, ${p.persen} persen dari total`}
+                      />
+                      <span className={styles.perilakuAngka}>
+                        <strong>{angka(p.jumlah)} siswa</strong>
+                        {p.persen != null && <span>{angkaSatuDesimal(p.persen)}%</span>}
+                      </span>
                     </li>
                   ))}
                 </ol>
-              ) : (
-                <p className={styles.gapNote}>Rincian indikator belum tersedia untuk domain ini periode ini.</p>
-              )}
-
-              <div className={styles.total}>
-                <strong className={styles.totalValue}>{angka(d.jumlah)} siswa</strong>
-                <p className={styles.totalPersen}>{d.persen}% responden</p>
               </div>
-            </div>
+            ) : (
+              <p className={styles.gapNote}>Rincian indikator belum tersedia untuk domain ini periode ini.</p>
+            )}
 
             {d.indikatorLintasUnit && (
               <p className={styles.lintasUnitNote}>

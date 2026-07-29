@@ -534,7 +534,12 @@ export function Upload() {
                 </div>
                 <div style={{ fontSize: 11.5, color: 'var(--ink-2)', marginTop: 4, lineHeight: 1.5 }}>
                   Unit terdeteksi: {(parsed.preview.unitTerdeteksi || []).join(' · ') || '—'}.
-                  Mengunggah ulang periode {periodeSc} akan mengganti seluruh data periode itu, jadi aman diulang setelah narasi dilengkapi.
+                </div>
+                {/* Unggahan PA sekarang FULL REPLACE per sekolah (migration 20260801150000), bukan
+                    cuma per periode -- konsekuensinya destruktif dan tidak bisa dibatalkan, jadi
+                    wajib disebut eksplisit di sini SEBELUM admin menekan konfirmasi. */}
+                <div style={{ marginTop: 8, padding: '8px 12px', background: 'var(--status-warn-bg)', borderRadius: 8, fontSize: 11.5, color: 'var(--ink-2)', lineHeight: 1.5 }}>
+                  ⚠ Unggahan ini <strong>menghapus seluruh data Perilaku Anak sekolah ini</strong> (semua periode, termasuk periode selain {periodeSc}), lalu menggantinya dengan isi berkas ini. Tidak bisa dibatalkan.
                 </div>
                 {parsed.preview.pregenWarnings?.length > 0 && (
                   <div style={{ marginTop: 8, display: 'flex', flexDirection: 'column', gap: 3 }}>

@@ -7,16 +7,26 @@
 .statGrid {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 14px;
-  margin-bottom: 20px;
+  gap: 10px;
+  margin-bottom: 16px;
 }
 
+/* Compact: angka dan label SEJAJAR di satu baris (bukan angka raksasa di baris sendiri seperti
+   versi sebelumnya) -- empat kartu ini konteks pembuka, bukan bintang utama halaman. Yang perlu
+   menonjol justru kartu domain di bawahnya. */
 .statCard {
-  padding: 18px 20px;
+  padding: 12px 14px;
   border: 1px solid var(--pa-border);
-  border-radius: var(--pa-radius-md);
+  border-radius: var(--pa-radius-sm);
   background: var(--pa-surface);
   box-shadow: var(--pa-shadow-sm);
+}
+
+.statTop {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  margin-bottom: 4px;
 }
 
 /* Kartu pertama (siswa perlu telaah individual) diberi latar merah muda -- itu satu-satunya
@@ -26,45 +36,12 @@
   background: var(--pa-perhatian-bg);
 }
 
-.caraBaca {
-  margin-bottom: 20px;
-  padding: 16px 20px;
-  border-radius: var(--pa-radius-sm);
-  background: var(--pa-bg);
-}
-
-.caraBacaTitle {
-  margin: 0 0 8px;
-  color: var(--pa-heading);
-  font-size: 12px;
-  font-weight: 780;
-  text-transform: uppercase;
-  letter-spacing: 0.03em;
-}
-
-.caraBacaList {
-  display: grid;
-  gap: 6px;
-  margin: 0;
-  padding-left: 18px;
-  color: var(--pa-muted);
-  font-size: 12px;
-  line-height: 1.55;
-}
-
-.caraBacaList strong {
-  color: var(--pa-heading);
-}
-
-.caraBacaList::marker {
-  color: var(--pa-primary);
-}
-
 .statLabel {
-  margin: 0 0 8px;
+  margin: 0;
   color: var(--pa-muted-2);
-  font-size: 11.5px;
+  font-size: 11px;
   font-weight: 720;
+  line-height: 1.3;
 }
 
 .statCardSorot .statLabel {
@@ -72,12 +49,13 @@
 }
 
 .statValue {
-  display: block;
+  flex: 0 0 auto;
   color: var(--pa-heading);
-  font-size: 34px;
+  font-size: 22px;
   font-weight: 800;
   line-height: 1.05;
-  letter-spacing: -0.035em;
+  letter-spacing: -0.03em;
+  font-variant-numeric: tabular-nums;
 }
 
 .statCardSorot .statValue {
@@ -86,16 +64,16 @@
 
 .statSkala {
   color: var(--pa-muted-2);
-  font-size: 0.5em;
+  font-size: 0.55em;
   font-weight: 700;
   margin-left: 2px;
 }
 
 .statDetail {
-  margin: 8px 0 0;
+  margin: 0;
   color: var(--pa-muted);
-  font-size: 11.5px;
-  line-height: 1.5;
+  font-size: 11px;
+  line-height: 1.45;
 }
 
 /* ── Kartu per domain ──────────────────────────────────────────────────────────────────── */
@@ -119,11 +97,15 @@
   box-shadow: var(--pa-shadow-md);
 }
 
+/* Kepala kartu tinggal DUA kolom (identitas | total) -- daftar indikator turun ke bloknya
+   sendiri di bawah, bukan lagi dijejalkan sebagai kolom tengah. Ini yang bikin kartunya jauh
+   lebih pendek dan gampang dipindai dibanding versi tiga-kolom sebelumnya. */
 .cardTop {
-  display: grid;
-  grid-template-columns: minmax(180px, 230px) minmax(0, 1fr) minmax(150px, 190px);
+  display: flex;
   align-items: center;
-  gap: 24px;
+  justify-content: space-between;
+  gap: 20px;
+  flex-wrap: wrap;
 }
 
 .identitas {
@@ -159,39 +141,50 @@
   font-size: 11.5px;
 }
 
+/* ── Blok indikator penyebab ─────────────────────────────────────────────────────────────── */
+
+.perilakuBlok {
+  margin-top: 16px;
+  padding: 14px 16px 16px;
+  border-radius: var(--pa-radius-sm);
+  background: var(--pa-bg);
+}
+
+.perilakuJudul {
+  margin: 0 0 3px;
+  color: var(--pa-heading);
+  font-size: 12.5px;
+  font-weight: 780;
+}
+
+.perilakuSubjudul {
+  margin: 0 0 12px;
+  color: var(--pa-muted);
+  font-size: 11.5px;
+  line-height: 1.45;
+}
+
 .perilakuList {
   display: grid;
-  gap: 14px;
+  gap: 7px;
   margin: 0;
   padding: 0;
   list-style: none;
 }
 
-/* Tiap indikator jadi blok DUA BARIS (bukan satu baris sejajar seperti sebelumnya) -- baris
-   pertama identitas indikatornya, baris kedua dua angka yang dilabeli terpisah. Butuh ruang
-   vertikal lebih supaya kedua angka (pencapaian indikator vs siswa perlu perhatian) tidak
-   nempel jadi satu string yang gampang disalahbaca pimpinan sebagai angka yang sama. */
+/* Satu indikator = SATU baris ringkas (rank | nama | batang | angka). Kolom angka lebar TETAP
+   supaya panjang batang antarbaris selalu sebanding -- lihat catatan sama di PaSurvey.module.css
+   soal kenapa lebar auto bikin batang tidak adil dibandingkan. */
 .perilaku {
-  padding-bottom: 12px;
-  border-bottom: 1px solid var(--pa-border);
-}
-
-.perilaku:last-child {
-  padding-bottom: 0;
-  border-bottom: none;
-}
-
-.perilakuTop {
-  display: flex;
+  display: grid;
+  grid-template-columns: 20px minmax(0, 1.15fr) minmax(0, 1fr) 122px;
   align-items: center;
   gap: 10px;
-  margin-bottom: 8px;
 }
 
 .rank {
   display: inline-grid;
   place-items: center;
-  flex: 0 0 auto;
   width: 20px;
   height: 20px;
   border-radius: 6px;
@@ -203,53 +196,33 @@
 
 .perilakuLabel {
   color: var(--pa-ink);
-  font-size: 13.5px;
-  font-weight: 650;
+  font-size: 13px;
+  font-weight: 620;
 }
 
-.perilakuStats {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
-  gap: 10px 20px;
-  padding-left: 30px;
+.perilakuBar {
+  min-width: 0;
 }
 
-.perilakuStatBlock {
-  display: grid;
-  gap: 2px;
-}
-
-.perilakuStatLabel {
-  color: var(--pa-muted-2);
-  font-size: 10.5px;
-  font-weight: 720;
-  text-transform: uppercase;
-  letter-spacing: 0.03em;
-}
-
-.perilakuStatValue {
-  display: flex;
+.perilakuAngka {
+  display: inline-flex;
   align-items: baseline;
-  flex-wrap: wrap;
+  justify-content: flex-end;
   gap: 6px;
-  color: var(--pa-ink);
-  font-size: 14px;
-  font-weight: 750;
+  white-space: nowrap;
   font-variant-numeric: tabular-nums;
 }
 
-/* Skor rata-rata indikator (nilai) sengaja netral -- lihat catatan di PaPerluPerhatian.jsx
-   kenapa tidak diberi warna rendah/tinggi seperti angka siswa di sebelahnya. */
-.perilakuStatValueMuted {
-  color: var(--pa-muted);
-  font-weight: 700;
+.perilakuAngka strong {
+  color: var(--pa-perhatian);
+  font-size: 13px;
+  font-weight: 780;
 }
 
-.perilakuStatQual {
+.perilakuAngka span {
   color: var(--pa-muted-2);
   font-size: 11px;
   font-weight: 650;
-  font-variant-numeric: tabular-nums;
 }
 
 .total {
@@ -272,20 +245,51 @@
   font-size: 11.5px;
 }
 
-.cardDefinisi {
-  margin: 16px 0 0;
-  padding: 14px 16px;
+/* Tiga kelas catatan/fallback di bawah SEBELUMNYA dipakai di JSX tapi tidak pernah didefinisikan
+   di sini, jadi teksnya jatuh ke gaya default browser (hitam, seukuran teks biasa) dan justru
+   tampak seperti isi penting, bukan catatan kecil. Pola bug yang sama dengan .perilakuAngka dan
+   .genderTrack yang sudah diperbaiki sebelumnya. */
+.gapNote {
+  margin: 14px 0 0;
+  padding: 12px 14px;
   border-radius: var(--pa-radius-sm);
   background: var(--pa-bg);
-  color: var(--pa-muted);
+  color: var(--pa-muted-2);
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.lintasUnitNote {
+  margin: 10px 0 0;
+  color: var(--pa-muted-2);
+  font-size: 11.5px;
+  font-style: italic;
+  line-height: 1.5;
+}
+
+.blockGapNote {
+  margin: 0;
+  color: var(--pa-muted-2);
   font-size: 12.5px;
-  line-height: 1.55;
+  font-style: italic;
+  line-height: 1.5;
+}
+
+/* Tanpa latar sendiri (dulu var(--pa-bg), sama dengan .perilakuBlok di atasnya sehingga dua blok
+   abu-abu menempel dan kartunya terasa berat). Sekarang cuma teks bergaris pemisah. */
+.cardDefinisi {
+  margin: 14px 0 0;
+  padding-top: 12px;
+  border-top: 1px solid var(--pa-border);
+  color: var(--pa-muted);
+  font-size: 12px;
+  line-height: 1.5;
 }
 
 .cardActions {
   display: flex;
-  gap: 10px;
-  margin-top: 16px;
+  gap: 8px;
+  margin-top: 14px;
 }
 
 .analisisBtn,
@@ -485,17 +489,14 @@
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
-  .cardTop {
-    grid-template-columns: minmax(0, 1fr) minmax(150px, 190px);
-    align-items: start;
-    gap: 18px;
+  /* Batang indikator dilepas di layar sempit -- kolomnya tinggal terlalu tipis untuk terbaca,
+     dan angka di kanan tetap membawa informasi yang sama. */
+  .perilaku {
+    grid-template-columns: 20px minmax(0, 1fr) 122px;
   }
 
-  .perilakuList {
-    grid-column: 1 / -1;
-    order: 3;
-    padding-top: 16px;
-    border-top: 1px solid var(--pa-border);
+  .perilakuBar {
+    display: none;
   }
 }
 
@@ -509,16 +510,21 @@
   }
 
   .card {
-    padding: 18px;
+    padding: 16px;
   }
 
   .cardTop {
-    grid-template-columns: 1fr;
+    align-items: flex-start;
   }
 
   .total {
     justify-items: start;
     text-align: left;
+  }
+
+  .perilaku {
+    grid-template-columns: 20px minmax(0, 1fr) 96px;
+    gap: 8px;
   }
 
   .cardActions {
