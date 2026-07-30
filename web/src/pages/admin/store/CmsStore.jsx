@@ -170,8 +170,8 @@ export function CmsProvider({ session, children }) {
     }
   }, [showToast, refetch]);
 
-  const bulkCreateUsers = useCallback(async (rows, sekolahId) => {
-    const results = await bulkCreateUsersAction(rows, { sekolahId });
+  const bulkCreateUsers = useCallback(async (rows, sekolahId, onProgress) => {
+    const results = await bulkCreateUsersAction(rows, { sekolahId, onProgress });
     const ok = results.filter((r) => r.ok);
     const failed = results.filter((r) => !r.ok);
     if (failed.length === 0) {

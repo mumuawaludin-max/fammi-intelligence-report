@@ -110,8 +110,10 @@ function BulkForm({ close }) {
   const { bulkCreateUsers, data } = useCms();
   const [sekolahId, setSekolahId] = useState(data.sekolah[0]?.id || '');
   const [rows, setRows] = useState(null);
+  const [parseInfo, setParseInfo] = useState(null);
   const [results, setResults] = useState(null);
   const [busy, setBusy] = useState(false);
+  const [progress, setProgress] = useState(null);
   const [err, setErr] = useState(null);
   const fileRef = useRef(null);
   const scrollRef = useRef(null);
@@ -128,7 +130,10 @@ function BulkForm({ close }) {
     const onWheel = (e) => {
       if (e.target.closest('select')) {
         e.preventDefault();
-        el.scrollTop += e.deltaY;
+        // Scroll wadah terdekat yang benar-benar bisa discroll (tabel preview/hasil punya
+        // scrollbar sendiri sekarang), fallback ke panel dialog.
+        const scroller = e.target.closest('[data-scroll]') || el;
+        scroller.scrollTop += e.deltaY;
       }
     };
     el.addEventListener('wheel', onWheel, { passive: false });
@@ -140,9 +145,11 @@ function BulkForm({ close }) {
     if (!file || !sekolahId) return;
     setErr(null);
     setResults(null);
+    setParseInfo(null);
     try {
       const parsed = await parseGuruFile(file, { sekolahId });
-      setRows(parsed);
+      setRows(parsed.rows);
+      setParseInfo({ sheetCount: parsed.sheetCount, dupCount: parsed.dupCount });
     } catch (ex) {
       setErr(ex.message);
     }
@@ -154,13 +161,15 @@ function BulkForm({ close }) {
 
   const submit = async () => {
     setBusy(true);
+    setProgress({ done: 0, total: rows.length });
     try {
-      const res = await bulkCreateUsers(rows, sekolahId);
+      const res = await bulkCreateUsers(rows, sekolahId, (done, total) => setProgress({ done, total }));
       setResults(res);
     } catch (ex) {
       setErr(ex.message);
     } finally {
       setBusy(false);
+      setProgress(null);
     }
   };
 
@@ -188,14 +197,18 @@ function BulkForm({ close }) {
 
         {rows && !results && (
           <>
+            <div style={{ padding: '10px 12px', background: 'var(--status-safe-bg,#E7F4EE)', borderRadius: 8, fontSize: 12, color: 'var(--status-safe,#2E9E6B)' }}>
+              ✅ {rows.length} baris terbaca dari {parseInfo?.sheetCount || 1} sheet
+              {parseInfo?.dupCount > 0 ? `, ${parseInfo.dupCount} duplikat email dilewati` : ''}. Semua akan diproses, tidak ada batas jumlah.
+            </div>
             {unmatchedCount > 0 && (
               <div style={{ padding: '10px 12px', background: '#FAF1DC', borderRadius: 8, fontSize: 12, color: '#D69219' }}>
                 ⚠️ {unmatchedCount} baris kelasnya tidak ketemu otomatis — pilih manual di dropdown kolom Kelas sebelum submit.
               </div>
             )}
-            <div style={{ border: '1px solid var(--line)', borderRadius: 10, overflow: 'hidden' }}>
+            <div data-scroll style={{ border: '1px solid var(--line)', borderRadius: 10, overflowY: 'auto', maxHeight: '46vh', flexShrink: 0 }}>
               <table style={{ width: '100%', fontSize: 12, borderCollapse: 'collapse' }}>
-                <thead>
+                <thead style={{ position: 'sticky', top: 0, zIndex: 1 }}>
                   <tr style={{ background: 'var(--surface-soft)', textAlign: 'left' }}>
                     <th style={{ padding: '8px 10px' }}>Nama</th>
                     <th style={{ padding: '8px 10px' }}>Email (username)</th>
@@ -232,7 +245,10 @@ function BulkForm({ close }) {
         )}
 
         {results && (
-          <div style={{ border: '1px solid var(--line)', borderRadius: 10, overflow: 'hidden' }}>
+          <div data-scroll style={{ border: '1px solid var(--line)', borderRadius: 10, overflowY: 'auto', maxHeight: '46vh', flexShrink: 0 }}>
+            <div style={{ padding: '10px 12px', fontSize: 12, fontWeight: 700, color: 'var(--ink-2)', borderBottom: '1px solid var(--line)' }}>
+              {results.filter(r => r.ok).length} berhasil, {results.filter(r => !r.ok).length} gagal dari {results.length} baris
+            </div>
             <table style={{ width: '100%', fontSize: 12, borderCollapse: 'collapse' }}>
               <thead>
                 <tr style={{ background: 'var(--surface-soft)', textAlign: 'left' }}>
@@ -260,7 +276,9 @@ function BulkForm({ close }) {
       <div style={{ padding: '14px 24px', borderTop: '1px solid var(--line)', display: 'flex', justifyContent: 'flex-end', gap: 8, background: 'var(--surface-soft)', borderRadius: '0 0 20px 20px' }}>
         <button className="btn-secondary" onClick={close} disabled={busy}>{results ? 'Tutup' : 'Batal'}</button>
         {rows && !results && (
-          <button className="btn-primary" onClick={submit} disabled={busy}>{busy ? 'Membuat…' : `Buat ${rows.length} akun`}</button>
+          <button className="btn-primary" onClick={submit} disabled={busy}>
+            {busy ? `Membuat ${progress?.done ?? 0}/${progress?.total ?? rows.length}…` : `Buat ${rows.length} akun`}
+          </button>
         )}
       </div>
     </>
