@@ -1301,11 +1301,19 @@ export async function callGemini(apiKey: string, model: string, systemInstructio
   //   lewat, request DITERIMA Gemini tapi generate laporan penuh (JSON panjang, maxOutputTokens
   //   8192) memang wajar butuh 15-30+ detik, jadi percobaan yang sebenarnya berhasil ikut
   //   diaborsi sendiri ("Gemini API timeout dalam 12 detik" di log).
-  // - Sekarang: 2 percobaan x 30 detik. 30 detik cukup lega untuk generasi laporan terpanjang,
-  //   dan total terburuk (30 + backoff 2 + 30 = ~62 detik) tetap di bawah ~75 detik yang
-  //   terbukti jadi batas hidup function di platform ini.
+  // - Kalibrasi ketiga: 2 percobaan x 30 detik (total terburuk ~62 detik, di bawah ~75 detik
+  //   batas hidup function). TERNYATA 30 detik masih kurang untuk trigger tindak lanjut
+  //   (prompt berisi fakta satu kelas/sekolah penuh + keluaran JSON panjang) -- produksi
+  //   2026-08 menunjukkan KEDUA percobaan mentok "timeout 30 detik" berulang kali.
+  // - Sekarang: anggaran DEADLINE, bukan angka seragam. Percobaan pertama boleh sampai 40
+  //   detik; percobaan kedua memakai sisa anggaran total 70 detik (praktisnya ~26-28 detik,
+  //   model fallback yang thinking-nya dibatasi memang lebih cepat). Total tetap di bawah
+  //   ~75 detik. Ditambah thinkingBudget dibatasi untuk model 2.5-flash (lihat di bawah)
+  //   supaya waktu berpikir tidak menghabiskan jatah timeout maupun maxOutputTokens.
   const MAX_ATTEMPT = 2;
-  const FETCH_TIMEOUT_MS = 30000;
+  const TOTAL_BUDGET_MS = 70000;
+  const ATTEMPT_TIMEOUT_MS = 40000;
+  const mulaiMs = Date.now();
   // FALLBACK MODEL -- log produksi menunjukkan jendela 503 "high demand" bisa menutupi seluruh
   // retry ke model yang sama; kapasitas per model terpisah di sisi Google, jadi percobaan kedua
   // langsung pindah model cadangan (bukan mengulang model yang sedang padat). Ini juga berlaku
@@ -1320,8 +1328,22 @@ export async function callGemini(apiKey: string, model: string, systemInstructio
 
   for (let attempt = 1; attempt <= MAX_ATTEMPT; attempt++) {
     const attemptModel = modelPlan[attempt - 1];
+    // Sisa anggaran total menentukan timeout percobaan ini. Kalau sisanya sudah terlalu
+    // tipis untuk percobaan yang berarti, lempar error terakhir sekarang -- lebih baik
+    // gagal jelas daripada percobaan 5 detik yang pasti diaborsi.
+    const sisaMs = TOTAL_BUDGET_MS - (Date.now() - mulaiMs);
+    if (attempt > 1 && sisaMs < 10000) throw lastErr ?? new Error("Anggaran waktu Gemini habis.");
+    const timeoutMs = Math.min(ATTEMPT_TIMEOUT_MS, Math.max(10000, sisaMs));
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
+    const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+
+    // gemini-2.5-flash: thinking menyala default, token berpikirnya ikut menghabiskan
+    // maxOutputTokens DAN waktu respons -- dua-duanya penyebab timeout/MAX_TOKENS di atas.
+    // Dibatasi (bukan dimatikan total) supaya tetap ada penalaran untuk rekomendasi, tapi
+    // generasi selesai jauh di bawah timeout. Model lain (pro, generasi 3+) tidak dikirimi
+    // thinkingConfig karena kontrak fieldnya beda, biar memakai default masing-masing.
+    const generationConfig: Record<string, unknown> = { responseMimeType: "application/json", maxOutputTokens: 8192 };
+    if (/2\.5-flash/.test(attemptModel)) generationConfig.thinkingConfig = { thinkingBudget: 1024 };
     let res: Response;
     try {
       res = await fetch(
@@ -1338,8 +1360,9 @@ export async function callGemini(apiKey: string, model: string, systemInstructio
             // staf ikut dibaca sebagai konteks, rencana_aksi 4 item) sempat KEPOTONG di tengah
             // JSON kalau kebetulan mepet limit, bikin JSON.parse gagal walau responseMimeType
             // sudah "application/json". 8192 token cukup lega untuk skema output terbesar (array
-            // tindak lanjut Karakter/SC) tanpa menaikkan biaya berarti.
-            generationConfig: { responseMimeType: "application/json", maxOutputTokens: 8192 },
+            // tindak lanjut Karakter/SC) tanpa menaikkan biaya berarti. (Objeknya dirakit
+            // di atas loop fetch supaya thinkingConfig bisa berbeda per model percobaan.)
+            generationConfig,
           }),
         }
       );
@@ -1348,7 +1371,7 @@ export async function callGemini(apiKey: string, model: string, systemInstructio
       // RETRYABLE (pesan mengandung "timeout" supaya cocok juga dengan isTransientGeminiError
       // di sisi klien, useAdminCmsData.js, untuk lapis retry batch di atas ini).
       lastErr = fetchErr?.name === "AbortError"
-        ? new Error(`Gemini API timeout (tidak merespons dalam ${FETCH_TIMEOUT_MS / 1000} detik).`)
+        ? new Error(`Gemini API timeout (tidak merespons dalam ${Math.round(timeoutMs / 1000)} detik).`)
         : new Error(`Gemini API gagal dihubungi: ${String(fetchErr?.message || fetchErr)}`);
       if (attempt < MAX_ATTEMPT) {
         await tunggu(backoffMs(attempt));

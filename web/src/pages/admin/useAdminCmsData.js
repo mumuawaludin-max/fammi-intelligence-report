@@ -570,20 +570,49 @@ export async function regenerateScIndividuAction(scPersonalId, catatan) {
   return data;
 }
 
+/**
+ * Panggil generate-tindak-lanjut dengan lapis retry transient di sisi klien -- pola yang sama
+ * dengan runScIndividuGenerateAction/runMiGenerateAction, yang selama ini justru TIDAK ada di
+ * jalur trigger manual ini: satu jendela padat/lambat Gemini langsung tampil "Gemini gagal"
+ * ke admin padahal mengulang beberapa detik kemudian biasanya berhasil. Server (callGemini)
+ * sudah retry sendiri; lapis ini menunggu lebih renggang (5s lalu 15s) supaya jendela
+ * padatnya sempat lewat, bukan menembak ulang di tengah badai.
+ *
+ * makeBody dipanggil per percobaan (bukan body statis) karena regenerate menyimpan catatan
+ * reviewer ke gemini_feedback SEBELUM generate -- kalau percobaan pertama gagal di tahap
+ * Gemini, catatannya sudah tersimpan, jadi percobaan berikutnya tidak boleh mengirim catatan
+ * yang sama lagi (duplikat).
+ */
+async function invokeGenerateTindakLanjut(makeBody, fallbackMsg) {
+  const RETRY_DELAYS_MS = [0, 5000, 15000];
+  let lastErr = null;
+  for (let i = 0; i < RETRY_DELAYS_MS.length; i++) {
+    if (RETRY_DELAYS_MS[i] > 0) await sleep(RETRY_DELAYS_MS[i]);
+    try {
+      const { data, error } = await supabase.functions.invoke('generate-tindak-lanjut', { body: makeBody(i) });
+      if (error) throw new Error(await edgeErrorDetail(error, fallbackMsg));
+      if (data?.error) throw new Error(data.error);
+      return data;
+    } catch (e) {
+      lastErr = e;
+      if (!isTransientGeminiError(e?.message)) throw e;
+    }
+  }
+  throw lastErr;
+}
+
 export async function triggerGeminiJobAction({ scope, scopeId, sekolahId, modul, tipe, periodeId, role }) {
-  const { data, error } = await supabase.functions.invoke('generate-tindak-lanjut', {
-    body: { scope, scope_id: scopeId, sekolah_id: sekolahId, modul, tipe, periode_id: periodeId, role },
-  });
-  if (error) throw new Error(await edgeErrorDetail(error, 'Edge Function generate-tindak-lanjut gagal dipanggil.'));
-  return data;
+  return invokeGenerateTindakLanjut(
+    () => ({ scope, scope_id: scopeId, sekolah_id: sekolahId, modul, tipe, periode_id: periodeId, role }),
+    'Edge Function generate-tindak-lanjut gagal dipanggil.'
+  );
 }
 
 export async function regenerateDraftAction({ id, catatan }) {
-  const { data, error } = await supabase.functions.invoke('generate-tindak-lanjut', {
-    body: { regenerate_of: id, catatan: catatan || '' },
-  });
-  if (error) throw new Error(await edgeErrorDetail(error, 'Edge Function generate-tindak-lanjut (regenerate) gagal dipanggil.'));
-  return data;
+  return invokeGenerateTindakLanjut(
+    (attempt) => ({ regenerate_of: id, catatan: attempt === 0 ? (catatan || '') : '' }),
+    'Edge Function generate-tindak-lanjut (regenerate) gagal dipanggil.'
+  );
 }
 
 export async function updateGeminiScheduleAction(patch) {
