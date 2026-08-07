@@ -92,6 +92,25 @@ Deno.serve(async (req) => {
         : ROLE_VALID.includes(lama.target_role) ? lama.target_role
         : (lama.scope === "kelas" || lama.scope === "murid") ? "wali_kelas" : "kepala_sekolah";
 
+      // BUG NYATA YANG DITEMUKAN (2026-08): id baris saudara lama WAJIB diambil SEBELUM
+      // generate, bukan sesudah. generateAndInsertDraft/Sc di bawah menyisipkan baris BARU
+      // dengan kombinasi sekolah/modul/scope/scope_id/periode/target_role/status
+      // (menunggu_persetujuan) YANG PERSIS SAMA dengan baris lama yang mau ditolak. Kalau
+      // baris yang ditolak dicari lewat filter kolom yang sama SESUDAH insert (kode
+      // sebelumnya), baris BARU yang baru saja dibuat generate ikut tertangkap filter itu dan
+      // ikut ditolak sendiri -- regenerate kelihatan sukses (hasil dikembalikan tanpa error)
+      // tapi draf penggantinya langsung hilang, tidak pernah muncul di Antrian. Menangkap id
+      // di sini, SEBELUM insert, membuat daftar yang ditolak pasti cuma baris lama.
+      const { data: siblingRows, error: siblingErr } = await db
+        .from("tindak_lanjut")
+        .select("id")
+        .eq("sekolah_id", lama.sekolah_id).eq("modul", lama.modul)
+        .eq("scope", lama.scope).eq("scope_id", lama.scope_id).eq("periode_id", lama.periode_id)
+        .eq("target_role", role)
+        .eq("status", "menunggu_persetujuan");
+      if (siblingErr) return json({ error: siblingErr.message }, 500);
+      const siblingIds = (siblingRows || []).map((r: any) => r.id);
+
       const hasil = lama.modul === "sc"
         ? await generateAndInsertDraftSc(
             db,
@@ -112,15 +131,11 @@ Deno.serve(async (req) => {
       // drawer, jadi semua saudara-baris yang masih menunggu ikut ditolak di sini. Yang sudah
       // disetujui dibiarkan tayang dulu, baru ditolak saat penggantinya di-approve (lihat
       // actApprovalAction di CMS) supaya laporan sekolah tidak pernah kosong di tengah proses.
-      // Difilter target_role juga: Kepsek dan Yayasan sama-sama scope='sekolah' di sekolah
-      // yang sama, jadi tanpa filter ini regenerate draf satu peran ikut menolak draf
-      // peran lain yang masih menunggu.
-      await db.from("tindak_lanjut")
-        .update({ status: "ditolak" })
-        .eq("sekolah_id", lama.sekolah_id).eq("modul", lama.modul)
-        .eq("scope", lama.scope).eq("scope_id", lama.scope_id).eq("periode_id", lama.periode_id)
-        .eq("target_role", role)
-        .eq("status", "menunggu_persetujuan");
+      // Ditolak lewat id yang sudah ditangkap SEBELUM generate (siblingIds), BUKAN filter kolom
+      // ulang -- lihat catatan di atas soal kenapa filter ulang menolak baris baru sendiri.
+      if (siblingIds.length > 0) {
+        await db.from("tindak_lanjut").update({ status: "ditolak" }).in("id", siblingIds);
+      }
 
       return json({ ok: true, hasil });
     }

@@ -1340,10 +1340,21 @@ export async function callGemini(apiKey: string, model: string, systemInstructio
     // gemini-2.5-flash: thinking menyala default, token berpikirnya ikut menghabiskan
     // maxOutputTokens DAN waktu respons -- dua-duanya penyebab timeout/MAX_TOKENS di atas.
     // Dibatasi (bukan dimatikan total) supaya tetap ada penalaran untuk rekomendasi, tapi
-    // generasi selesai jauh di bawah timeout. Model lain (pro, generasi 3+) tidak dikirimi
-    // thinkingConfig karena kontrak fieldnya beda, biar memakai default masing-masing.
+    // generasi selesai jauh di bawah timeout.
+    //
+    // BUG YANG BARU KETAHUAN (2026-08): regex ini cuma cocok literal "2.5-flash", padahal
+    // GEMINI_MODEL default di generate-tindak-lanjut/index.ts sudah "gemini-3.5-flash" sejak
+    // sebelum kalibrasi timeout di atas ditulis -- percobaan pertama (model utama) jalan TANPA
+    // thinkingConfig sama sekali, cuma percobaan kedua (fallback 2.5-flash) yang kena batas.
+    // Gemini 3.x TIDAK memakai field "thinkingBudget" numerik seperti 2.5 -- kontraknya beda
+    // (thinkingLevel: "minimal"|"low"|"medium"|"high"), dan kalau dikosongkan defaultnya
+    // "medium" untuk model Flash, bukan nol. Itu match persis gejala di lapangan: prompt
+    // rapor sekolah (agregat kelas terbanyak, keluaran JSON terpanjang) konsisten timeout
+    // walau anggaran sudah dinaikkan ke 40+30 detik -- percobaan pertama diam-diam
+    // menghabiskan waktu untuk thinking "medium" yang tidak pernah dibatasi.
     const generationConfig: Record<string, unknown> = { responseMimeType: "application/json", maxOutputTokens: 8192 };
     if (/2\.5-flash/.test(attemptModel)) generationConfig.thinkingConfig = { thinkingBudget: 1024 };
+    else if (/-flash/.test(attemptModel)) generationConfig.thinkingConfig = { thinkingLevel: "low" };
     let res: Response;
     try {
       res = await fetch(
