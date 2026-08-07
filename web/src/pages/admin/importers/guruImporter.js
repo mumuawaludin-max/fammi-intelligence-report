@@ -1,5 +1,5 @@
 import * as XLSX from 'xlsx';
-import { supabase } from '../../../lib/supabase';
+import { supabase, fetchAllRows } from '../../../lib/supabase';
 
 function normalize(s) {
   return String(s || '')
@@ -96,12 +96,20 @@ export async function parseGuruFile(file, { sekolahId }) {
   const buf = await file.arrayBuffer();
   const wb = XLSX.read(buf, { type: 'array' });
 
-  const { data: skorRows, error } = await supabase
-    .from('karakter_skor')
-    .select('kelas_id')
-    .eq('sekolah_id', sekolahId);
+  // karakter_skor satu baris per (sekolah, murid, periode, aspek) -- untuk sekolah dengan
+  // banyak murid ini gampang melewati batas diam-diam 1000 baris PostgREST kalau query tidak
+  // dipaginasi, dan daftar kelas jadi terpotong (kelas grade tinggi tidak pernah kebaca).
+  const { data: skorRows, error } = await fetchAllRows((from, to) =>
+    supabase
+      .from('karakter_skor')
+      .select('kelas_id')
+      .eq('sekolah_id', sekolahId)
+      .range(from, to)
+  );
   if (error) throw new Error(error.message);
-  const kelasIdList = [...new Set((skorRows || []).map((r) => r.kelas_id))];
+  const kelasIdList = [...new Set((skorRows || []).map((r) => r.kelas_id))].sort((a, b) =>
+    a.localeCompare(b, undefined, { numeric: true, sensitivity: 'base' })
+  );
 
   const rows = [];
   const seenEmails = new Set();

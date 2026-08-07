@@ -1,5 +1,5 @@
 import * as XLSX from 'xlsx';
-import { supabase, edgeErrorDetail } from '../../../lib/supabase';
+import { supabase, edgeErrorDetail, fetchAllRows } from '../../../lib/supabase';
 
 // parseFloat berhenti diam-diam di karakter koma ("84,67" -> 84, bukan 84.67) -- kalau ada
 // sekolah yang sel skornya berformat Indonesia (koma desimal) alih-alih titik, skor yang
@@ -139,12 +139,20 @@ export function normalizeNama(nama) {
   return String(nama || '').trim().replace(/\s+/g, ' ').toLowerCase();
 }
 
-/** murid_id harus konsisten antar periode (bulan) supaya grafik tren per anak tidak putus. */
+/** murid_id harus konsisten antar periode (bulan) supaya grafik tren per anak tidak putus.
+ * karakter_skor satu baris per (murid, periode, aspek) -- untuk sekolah dengan cukup banyak
+ * murid/periode/aspek, query tanpa paginasi diam-diam terpotong di batas 1000 baris PostgREST
+ * (lihat catatan fetchAllRows di lib/supabase.js). Kalau terpotong, murid yang barisnya jatuh
+ * di luar 1000 pertama tidak kebaca di sini, dianggap "murid baru" tiap import, dan dapat
+ * murid_id baru yang beda tiap bulan -- grafik trennya jadi patah-patah padahal muridnya sama. */
 async function loadExistingMuridIds(sekolahId) {
-  const { data, error } = await supabase
-    .from('karakter_skor')
-    .select('murid_id, nama_murid')
-    .eq('sekolah_id', sekolahId);
+  const { data, error } = await fetchAllRows((from, to) =>
+    supabase
+      .from('karakter_skor')
+      .select('murid_id, nama_murid')
+      .eq('sekolah_id', sekolahId)
+      .range(from, to)
+  );
   if (error) throw error;
 
   const byNama = {};

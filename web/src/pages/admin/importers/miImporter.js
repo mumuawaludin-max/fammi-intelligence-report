@@ -1,5 +1,5 @@
 import * as XLSX from 'xlsx';
-import { supabase } from '../../../lib/supabase';
+import { supabase, fetchAllRows } from '../../../lib/supabase';
 import { getField, parseBulan, normalizeNama } from './karakterImporter';
 
 // Importer Multiple Intelligence. Beda dari Karakter dalam dua hal:
@@ -91,10 +91,17 @@ function buildSchoolResolver(schools) {
  * tidak putus antar periode. Dicocokkan lewat nama ternormalisasi; nama baru dapat id baru.
  * Diekspor supaya resolveMiUnresolved bisa pakai peta murid yang sama tanpa duplikasi logika. */
 export async function loadExistingMiMuridIds(sekolahId) {
-  const { data, error } = await supabase
-    .from('mi_hasil')
-    .select('murid_id, nama_siswa:detail->>nama_siswa')
-    .eq('sekolah_id', sekolahId);
+  // mi_hasil bisa lebih dari 1000 baris untuk sekolah besar yang sudah punya beberapa periode
+  // tersimpan -- tanpa paginasi, query diam-diam terpotong di batas 1000 baris PostgREST (lihat
+  // catatan fetchAllRows di lib/supabase.js), murid yang barisnya jatuh di luar 1000 pertama
+  // dianggap "murid baru" dan dapat murid_id berbeda tiap periode.
+  const { data, error } = await fetchAllRows((from, to) =>
+    supabase
+      .from('mi_hasil')
+      .select('murid_id, nama_siswa:detail->>nama_siswa')
+      .eq('sekolah_id', sekolahId)
+      .range(from, to)
+  );
   if (error) throw error;
 
   const byNama = {};

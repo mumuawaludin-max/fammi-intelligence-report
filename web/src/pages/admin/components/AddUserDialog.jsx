@@ -203,7 +203,7 @@ function BulkForm({ close }) {
             </div>
             {unmatchedCount > 0 && (
               <div style={{ padding: '10px 12px', background: '#FAF1DC', borderRadius: 8, fontSize: 12, color: '#D69219' }}>
-                ⚠️ {unmatchedCount} baris kelasnya tidak ketemu otomatis — pilih manual di dropdown kolom Kelas sebelum submit.
+                ⚠️ {unmatchedCount} baris kelasnya tidak ketemu otomatis — isi manual di kolom Kelas sebelum submit (boleh ketik nama kelas sendiri kalau belum ada di saran).
               </div>
             )}
             <div data-scroll style={{ border: '1px solid var(--line)', borderRadius: 10, overflowY: 'auto', maxHeight: '46vh', flexShrink: 0 }}>
@@ -229,11 +229,21 @@ function BulkForm({ close }) {
                       </td>
                       <td style={{ padding: '6px 10px' }}>
                         {r.peran === 'WaliKelas' ? (
-                          <select className="fld" style={{ padding: '4px 6px', fontSize: 12, borderColor: r.confidence === 'unmatched' ? '#D69219' : undefined }}
-                            value={r.cakupan[0] || ''} onChange={(e) => updateRow(idx, { cakupan: [e.target.value] })}>
-                            <option value="">— pilih kelas —</option>
-                            {r.kelasOptions.map(k => <option key={k} value={k}>{k}</option>)}
-                          </select>
+                          <>
+                            {/* Input teks + datalist, bukan <select> murni -- kelasOptions berasal dari
+                                karakter_skor yang SUDAH terimpor untuk sekolah ini. Kalau sekolah belum
+                                pernah impor data Karakter (mis. akun guru dibuat duluan sebelum skor
+                                diupload), kelasOptions kosong dan <select> murni tidak punya satu pun
+                                opsi untuk dipilih -- admin terjebak, tidak bisa submit sama sekali.
+                                Input teks dengan datalist tetap menyarankan kelas yang sudah dikenal
+                                (kalau ada) tapi selalu mengizinkan ketik manual. */}
+                            <input list={`kelas-opts-${idx}`} className="fld" style={{ padding: '4px 6px', fontSize: 12, borderColor: r.confidence === 'unmatched' ? '#D69219' : undefined }}
+                              placeholder="Ketik nama kelas"
+                              value={r.cakupan[0] || ''} onChange={(e) => updateRow(idx, { cakupan: e.target.value ? [e.target.value] : [] })} />
+                            <datalist id={`kelas-opts-${idx}`}>
+                              {r.kelasOptions.map(k => <option key={k} value={k} />)}
+                            </datalist>
+                          </>
                         ) : <span style={{ color: 'var(--ink-4)' }}>—</span>}
                       </td>
                     </tr>
