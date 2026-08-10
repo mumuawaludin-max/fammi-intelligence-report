@@ -99,6 +99,23 @@ export function aspekLabelFromRingkasan(ringkasan, aspekKode) {
  */
 export function pct(v) {
   if (v === null || v === undefined || v === "") return null;
+  // Kolom persentase di sheet summary_kelas/summary_jenjang/summary_sekolah kadang diformat
+  // sebagai "Percentage" di Excel (bukan diketik manual sebagai teks "91 %"), sehingga xlsx.js
+  // membaca NILAI SEL asli 0.91, bukan teks yang tertampil "91%" -- ditemukan di karakter_summary
+  // SMK Telkom Purwokerto (rata_rata_pencapaian_guru tersimpan 0.91, membuat pct() lama
+  // membulatkannya jadi "1%"). Baris lain di file yang sama (skor per murid) tidak kena masalah
+  // ini karena tersimpan sebagai teks "91 %", bukan angka Excel -- lihat pengecekan di bawah.
+  //
+  // Nilai numerik murni non-integer di rentang (0, 1) TIDAK MUNGKIN berasal dari kolom skor asli
+  // (karakter_skor.skor / karakter_skor_indikator.skor kolom Postgres int, cuma bisa bilangan
+  // bulat), jadi aman ditafsir sebagai pecahan Excel dan dikali 100. Titik v === 1 satu-satunya
+  // yang ambigu (bisa berarti "100%" pecahan ATAU skor asli persis 1) -- dalam data karakter yang
+  // ada, pencapaian 100% jauh lebih umum daripada skor asli 1, jadi ditafsir sebagai 100%.
+  if (typeof v === "number") {
+    if (v > 0 && v < 1) return Math.round(v * 100);
+    if (v === 1) return 100;
+    return Math.round(v);
+  }
   const n = parseFloat(String(v).replace("%", "").replace(",", ".").trim());
   return Number.isFinite(n) ? Math.round(n) : null;
 }
@@ -307,11 +324,20 @@ export function extractPlainText(raw) {
  * split-by-comma polos tidak aman -- cocokkan tiap opsi yang sudah diketahui (dari data asli)
  * sebagai substring, bukan menebak batas token.
  */
+// Data siswa SMK Telkom Purwokerto punya kategori "Keluhan" (204 baris) yang sebelumnya tidak
+// dikenali sama sekali oleh daftar ini (cuma kenal "Kritik" dari data orang tua). Keputusan
+// produk (docs/karakter-multi-sumber-refleksi-plan.md fase 0 nomor 3): satu bucket tampilan,
+// label "Kritik & Keluhan" -- makanya entri "Kritik" yang lama diganti labelnya, dan entri kedua
+// "Keluhan" ditambah dengan label PERSIS sama supaya countMultiValue menjumlahkan keduanya lewat
+// key counts yang sama (lihat komentar dedup di countMultiValue di bawah). Dicek terhadap data
+// asli: "Kritik" (orang tua) dan "Keluhan" (siswa) tidak pernah muncul bersamaan di baris yang
+// sama (beda sumber data), jadi tidak ada risiko satu baris dihitung dobel oleh dua entri ini.
 export const KATEGORI_PERNYATAAN_OPTIONS = [
   { match: "Ucapan Terimakasih", label: "Apresiasi", icon: "⭐⭐⭐⭐⭐" },
   { match: "Harapan", label: "Harapan", icon: "🌱" },
   { match: "Saran dan Masukan", label: "Saran & Masukan", icon: "💡" },
-  { match: "Kritik", label: "Kritik", icon: "⚠️" },
+  { match: "Kritik", label: "Kritik & Keluhan", icon: "⚠️" },
+  { match: "Keluhan", label: "Kritik & Keluhan", icon: "⚠️" },
 ];
 
 export const DUKUNGAN_OPTIONS = [
@@ -344,6 +370,60 @@ export const HAL_DISYUKURI_OPTIONS = [
     full: "Saya belum merasakan hal tertentu, tapi ingin tetap berproses" },
   { match: "Belum ada yang bisa syukuri di bulan ini", label: "Belum Ada Bulan Ini", icon: "🌧️",
     full: "Belum ada yang bisa syukuri di bulan ini" },
+];
+
+/**
+ * Padanan DUKUNGAN_OPTIONS untuk sumber siswa, diekstrak dari data asli SMK Telkom Purwokerto
+ * (kolom dukungan_yang_dibutuhkan_siswa, docs/karakter-multi-sumber-refleksi-plan.md 2.1).
+ * Instrumen siswa punya diksi sendiri (versi "aku"), bukan sekadar terjemahan field orang tua.
+ */
+export const DUKUNGAN_OPTIONS_SISWA = [
+  { match: "Kegiatan seru di sekolah (misalnya event, lomba, klub hobi)", label: "Kegiatan Seru Sekolah", icon: "🎉" },
+  { match: "Rekomendasi aktivitas positif di luar sekolah (misalnya olahraga, seni, volunteering)", label: "Aktivitas Positif Luar Sekolah", icon: "🏀" },
+  { match: "Bimbingan atau motivasi dari guru (supaya lebih semangat)", label: "Bimbingan dari Guru", icon: "🧑‍🏫" },
+  { match: "Diskusi atau sharing bareng teman/guru tentang hal yang bikin penasaran", label: "Diskusi Bareng Teman/Guru", icon: "🗨️" },
+  { match: "Tips belajar efektif dan manajemen waktu", label: "Tips Belajar & Waktu", icon: "⏱️" },
+  { match: "Konsultasi pribadi dengan guru atau konselor (kalau ada masalah pribadi/sekolah)", label: "Konsultasi Pribadi", icon: "🗣️" },
+  // Teks aslinya "Belum tahu, tapi ingin coba ikut kegiatan lebih aktif bulan depan" -- opsi ini
+  // mengandung koma di tengah kalimat, dan di data mentah ia kadang tersimpan terpotong jadi dua
+  // fragmen saat digabung dengan pilihan lain lewat pemisah koma (peninggalan cara multi-pilih
+  // di-serialize di sisi form/export). Match penuh kalimat awal ("Belum tahu, ...") jadi tidak
+  // bisa diandalkan selalu utuh di raw string; potongan setelah koma ini pasti utuh dan tidak
+  // dipakai opsi lain, jadi aman dipakai sebagai substring pencocokan. Diverifikasi lewat
+  // countMultiValue atas data asli: 193 baris cocok, nol baris tak dikenali.
+  { match: "tapi ingin coba ikut kegiatan lebih aktif bulan depan", label: "Ingin Lebih Aktif", icon: "🙋" },
+  { match: "Tidak ada yang saya butuhkan saat ini", label: "Tidak Butuh Dukungan", icon: "✅" },
+];
+
+/**
+ * Padanan HAL_DISYUKURI_OPTIONS untuk sumber siswa (kolom hal_yang_disyukuri_siswa, data SMK
+ * Telkom Purwokerto). `full` di sini kebetulan sama persis dengan `match` untuk sebagian besar
+ * entri (teks aslinya sudah utuh tanpa perlu dipersingkat untuk pencocokan), kecuali entri
+ * "Masih Berproses" yang alasannya sama seperti DUKUNGAN_OPTIONS_SISWA di atas (koma di tengah
+ * kalimat bikin match penuh berisiko terpotong).
+ */
+export const HAL_DISYUKURI_OPTIONS_SISWA = [
+  { match: "Ada perubahan positif kecil pada diriku (misalnya lebih rajin, lebih percaya diri)", label: "Perubahan Kecil Positif", icon: "🌱",
+    full: "Ada perubahan positif kecil pada diriku (misalnya lebih rajin, lebih percaya diri)" },
+  { match: "Aku merasa lebih mandiri (misalnya berani ambil keputusan sendiri)", label: "Lebih Mandiri", icon: "🧍",
+    full: "Aku merasa lebih mandiri (misalnya berani ambil keputusan sendiri)" },
+  { match: "Aku merasa lebih dekat dengan teman atau keluarga", label: "Lebih Dekat", icon: "❤️",
+    full: "Aku merasa lebih dekat dengan teman atau keluarga" },
+  { match: "Aku mulai bisa mengontrol emosi/masalah lebih baik", label: "Kontrol Emosi Lebih Baik", icon: "🧘",
+    full: "Aku mulai bisa mengontrol emosi/masalah lebih baik" },
+  { match: "Aku merasa lebih paham tentang diriku sendiri", label: "Lebih Paham Diri Sendiri", icon: "🪞",
+    full: "Aku merasa lebih paham tentang diriku sendiri" },
+  { match: "Guru atau sekolah peduli dan memberi perhatian pada aku", label: "Kepedulian Guru/Sekolah", icon: "🏫",
+    full: "Guru atau sekolah peduli dan memberi perhatian pada aku" },
+  // Sama seperti kasus "tapi ingin coba ikut..." di DUKUNGAN_OPTIONS_SISWA: teks asli "Aku belum
+  // merasakan hal tertentu, tapi tetap ingin berproses" mengandung koma di tengah, jadi match
+  // dipersempit ke potongan setelah koma yang pasti utuh dan unik. full tetap kalimat lengkapnya.
+  { match: "tapi tetap ingin berproses", label: "Masih Berproses", icon: "🌤️",
+    full: "Aku belum merasakan hal tertentu, tapi tetap ingin berproses" },
+  { match: "Ada hal baik lain yang bikin aku bersyukur (tuliskan)", label: "Hal Baik Lainnya", icon: "✨",
+    full: "Ada hal baik lain yang bikin aku bersyukur (tuliskan)" },
+  { match: "Belum ada yang bisa aku syukuri bulan ini", label: "Belum Ada Bulan Ini", icon: "🌧️",
+    full: "Belum ada yang bisa aku syukuri bulan ini" },
 ];
 
 /** "0" dipakai sebagai penanda tidak ada jawaban di field ini -- jangan dihitung sebagai data. */
@@ -384,14 +464,38 @@ export function countMultiValue(rows, field, options) {
     totalWithAnswer++;
     const rawNorm = normalizeChoiceText(raw);
     let matched = false;
+    // Satu baris menambah hitungan sebuah bucket paling banyak satu kali. Ini baru terasa sejak
+    // dua opsi boleh berbagi label ("Kritik" dan "Keluhan" sama-sama bucket "Kritik & Keluhan"):
+    // responden yang mencentang dua-duanya akan terhitung ganda di bucket yang sama kalau tidak
+    // dijaga di sini, membuat total bucket bisa melebihi jumlah responden.
+    const labelTerhitung = new Set();
     normOptions.forEach((o) => {
-      if (rawNorm.includes(o.matchNorm)) { counts[o.label]++; matched = true; }
+      if (!rawNorm.includes(o.matchNorm)) return;
+      matched = true;
+      if (labelTerhitung.has(o.label)) return;
+      labelTerhitung.add(o.label);
+      counts[o.label]++;
     });
     if (!matched && import.meta.env.DEV) {
       console.warn(`[karakterMeta] Opsi "${field}" tidak dikenali salah satu daftar option: "${raw}"`);
     }
   });
-  const items = options.map((o) => ({ label: o.label, icon: o.icon, count: counts[o.label] }));
+  // Dua opsi boleh berbagi label yang sama (mis. "Kritik" dan "Keluhan" sama-sama masuk bucket
+  // "Kritik & Keluhan" di KATEGORI_PERNYATAAN_OPTIONS) supaya cocok di salah satu teks saja sudah
+  // cukup menambah hitungan bucket gabungan -- counts di atas sudah menjumlahkan itu dengan benar
+  // lewat key yang sama. Tapi kalau items dibentuk polos dari options.map, dua opsi berlabel sama
+  // menghasilkan DUA entri objek dengan label dan count yang identik, dan pemanggil (StatBarMiniList
+  // dkk di KarakterShared.jsx) akan menampilkan bucket itu dua kali. Dedup by label di sini
+  // menjaga array items tetap satu entri per bucket tampilan, icon diambil dari kemunculan
+  // pertama. Pemanggil lama semuanya pakai opsi berlabel unik, jadi dedup ini tidak pernah kena
+  // untuk mereka -- perilakunya identik dengan sebelumnya.
+  const seenLabel = new Set();
+  const items = [];
+  options.forEach((o) => {
+    if (seenLabel.has(o.label)) return;
+    seenLabel.add(o.label);
+    items.push({ label: o.label, icon: o.icon, count: counts[o.label] });
+  });
   return { items, totalWithAnswer };
 }
 
@@ -412,14 +516,26 @@ const EMOSI_ORDER = [
   { key: "Positif", tone: "aman", icon: "🙂" },
   { key: "Netral", tone: "default", icon: "😐" },
   { key: "Negatif", tone: "perhatian", icon: "😟" },
+  // Ditambah untuk data siswa SMK Telkom Purwokerto (21 baris emosi_siswa = "Sangat Negatif").
+  // Ini sekaligus menutup celah lama di jalur orang tua: nilai "Sangat Negatif" yang mungkin ada
+  // di data lama selama ini dibuang diam-diam tanpa peringatan, karena countEmosi cuma menghitung
+  // apa yang ADA di EMOSI_ORDER (beda dari countMultiValue yang punya console.warn untuk nilai
+  // tak dikenal). Tone "waspada" dipakai supaya beda tegas dari "perhatian" biasa.
+  { key: "Sangat Negatif", tone: "waspada", icon: "😞" },
 ];
 
-/** Tally emosi_anak (field single-pilih, beda dari 3 field multi-pilih di atas). */
-export function countEmosi(rows) {
+/**
+ * Tally field emosi single-pilih (beda dari 3 field multi-pilih di atas). Parameter field
+ * opsional (default "emosi_anak", nama kolom DB yang sudah dipakai jalur orang tua sejak awal)
+ * supaya sumber lain yang kelak menyimpan emosinya di kolom berbeda tetap bisa pakai fungsi yang
+ * sama tanpa duplikasi logika. Pemanggil lama yang cuma kirim rows tanpa argumen kedua tetap
+ * baca emosi_anak persis seperti sebelumnya.
+ */
+export function countEmosi(rows, field = "emosi_anak") {
   const counts = {};
   let total = 0;
   rows.forEach((r) => {
-    const v = (r.emosi_anak || "").trim();
+    const v = (r[field] || "").trim();
     if (isNoAnswer(v)) return;
     counts[v] = (counts[v] || 0) + 1;
     total++;
@@ -437,6 +553,140 @@ export function isKebijakanReady(r) {
   return !!(r && r.title && r.type && r.fokus && r.term && Array.isArray(r.konkret) && r.konkret.length > 0);
 }
 
+/**
+ * Satu meta per sumber refleksi (orang tua, siswa). Ini kontraknya WS4 (useKarakterData.js) dan
+ * WS5 (KarakterShared.jsx) bergantung: semua teks yang beda per responden dibaca dari sini,
+ * bukan lagi ditanam langsung di komponen. Nilai untuk 'orangtua' DISALIN PERSIS karakter demi
+ * karakter dari string yang sudah dipakai di KarakterShared.jsx sekarang (nomor baris dicatat di
+ * komentar tiap field) -- jangan dirapikan redaksinya di sini, itu bukan lingkup WS3 dan akan
+ * mengubah tampilan sekolah existing (varian A) yang wajib tidak berubah sepiksel pun.
+ */
+export const REFLEKSI_META = {
+  orangtua: {
+    key: "orangtua",
+    label: "Orang Tua",
+    satuan: "orang tua",
+    icon: "👪",
+    emosiLabel: "Perasaan anak menurut orang tua", // KarakterShared.jsx:1178
+    sectionTitle: "Suara Orang Tua",
+    kategoriOptions: KATEGORI_PERNYATAAN_OPTIONS,
+    dukunganOptions: DUKUNGAN_OPTIONS,
+    disyukuriOptions: HAL_DISYUKURI_OPTIONS,
+    namaFallback: "Orang tua", // KarakterShared.jsx:540, 598, 638, 707
+    namaFallbackLower: "orang tua", // fallback nama di dalam teks WhatsApp, KarakterShared.jsx:576
+    waLabel: (nama) => `Masukan orang tua (${nama || "orang tua"}):`, // KarakterShared.jsx:576
+    dialogTeruskanTitle: "Teruskan masukan orang tua", // KarakterShared.jsx:597
+    headingRefleksi: "Refleksi orang tua", // KarakterShared.jsx:723
+    labelPesan: "Pesan orang tua", // KarakterShared.jsx:733
+    voiceTabs: [ // VOICE_TABS, KarakterShared.jsx:497-502
+      { id: "testimoni", label: "Testimoni", icon: "💬" },
+      { id: "emosi", label: "Emosi Anak", icon: "🙂" },
+      { id: "dukungan", label: "Dukungan Dibutuhkan", icon: "🤲" },
+      { id: "halDisyukuri", label: "Keberhasilan Sekolah di Mata Orang Tua", icon: "🙏" },
+    ],
+    emptyText: {
+      // ParentVoiceBento saat pernyataan kosong total, KarakterShared.jsx:787
+      blok: "Belum ada refleksi orang tua untuk periode ini.",
+      // ParentVoiceBento saat ada baris tapi tak satu dimensi pun terisi, KarakterShared.jsx:908
+      dataKosong: (adaFilterSekolah) =>
+        `Belum ada refleksi orang tua yang bisa ditampilkan${adaFilterSekolah ? " untuk sekolah ini" : ""} periode ini.`,
+      // MuridResumeDialog saat semua field lain kosong, KarakterShared.jsx:757
+      dialogLain: "Orang tua belum mengisi refleksi lain untuk periode ini.",
+      // ReflectionBlock per murid, KarakterShared.jsx:1167
+      murid: (nama) => `Belum ada refleksi dari orang tua ${nama} periode ini.`,
+      // Kategori dipilih tapi esai bebasnya kosong, KarakterShared.jsx:977
+      tanpaEsai: (n, val) =>
+        `${n} orang tua memilih "${val}", tapi belum ada yang menuliskan pesan tertulis untuk periode ini.`,
+    },
+    summaryKeys: {
+      pencapaian: ["pencapaian_orangtua", "persentase_pencapaian_orangtua"],
+      rataPencapaian: ["rata_pencapaian_orangtua", "rata_rata_pencapaian_orangtua"],
+      rataAspekPrefix: "rata_input_orangtua_",
+      inputAspekPrefix: "input_orangtua_",
+    },
+  },
+  siswa: {
+    key: "siswa",
+    label: "Siswa",
+    satuan: "siswa",
+    icon: "🧑‍🎓",
+    // Padanan lapor-diri dari "Perasaan anak menurut orang tua" -- siswa melaporkan perasaannya
+    // sendiri, bukan dinilai pihak ketiga, jadi diksinya sengaja beda, bukan sekadar ganti kata.
+    emosiLabel: "Perasaan yang dilaporkan siswa sendiri",
+    sectionTitle: "Suara Siswa",
+    kategoriOptions: KATEGORI_PERNYATAAN_OPTIONS, // sama dengan orang tua, sudah termasuk bucket Keluhan
+    dukunganOptions: DUKUNGAN_OPTIONS_SISWA,
+    disyukuriOptions: HAL_DISYUKURI_OPTIONS_SISWA,
+    namaFallback: "Siswa",
+    namaFallbackLower: "siswa",
+    waLabel: (nama) => `Masukan siswa (${nama || "siswa"}):`,
+    dialogTeruskanTitle: "Teruskan masukan siswa",
+    headingRefleksi: "Refleksi siswa",
+    labelPesan: "Pesan siswa",
+    voiceTabs: [
+      { id: "testimoni", label: "Testimoni", icon: "💬" },
+      // "Emosi Anak" hanya benar untuk jalur orang tua (menilai perasaan anaknya). Di jalur
+      // siswa isinya lapor diri, jadi labelnya ikut sudut pandang pengisi.
+      { id: "emosi", label: "Emosi Siswa", icon: "🙂" },
+      { id: "dukungan", label: "Dukungan Dibutuhkan", icon: "🤲" },
+      { id: "halDisyukuri", label: "Keberhasilan Sekolah di Mata Siswa", icon: "🙏" },
+    ],
+    emptyText: {
+      blok: "Belum ada refleksi siswa untuk periode ini.",
+      dataKosong: (adaFilterSekolah) =>
+        `Belum ada refleksi siswa yang bisa ditampilkan${adaFilterSekolah ? " untuk sekolah ini" : ""} periode ini.`,
+      dialogLain: "Siswa belum mengisi refleksi lain untuk periode ini.",
+      murid: (nama) => `Belum ada refleksi dari siswa ${nama} periode ini.`,
+      tanpaEsai: (n, val) =>
+        `${n} siswa memilih "${val}", tapi belum ada yang menuliskan pesan tertulis untuk periode ini.`,
+    },
+    summaryKeys: {
+      pencapaian: ["pencapaian_siswa", "persentase_pencapaian_siswa"],
+      rataPencapaian: ["rata_pencapaian_siswa", "rata_rata_pencapaian_siswa"],
+      rataAspekPrefix: "rata_input_siswa_",
+      inputAspekPrefix: "input_siswa_",
+    },
+  },
+};
+
+/** Urutan tetap sumber refleksi -- dipakai untuk menyusun label gabungan dan urutan saklar/tab
+ * secara konsisten, bukan urutan kemunculan data yang bisa acak antar periode. */
+export const REFLEKSI_SUMBER_URUTAN = ["orangtua", "siswa"];
+
+/**
+ * Judul section dan judul mega-kategori, dihitung dari daftar sumber yang tersedia di periode
+ * itu. Untuk sumberList ['orangtua'] WAJIB mengembalikan string lama persis ("Suara Orang Tua" /
+ * "Perkembangan Citra Sekolah di Mata Orang Tua") supaya varian A (sekolah existing) tidak
+ * berubah sepiksel pun. Urutan gabungan selalu ikut REFLEKSI_SUMBER_URUTAN (orang tua dulu baru
+ * siswa), bukan urutan argumen sumberList, supaya "Orang Tua & Siswa" konsisten di mana pun
+ * fungsi ini dipanggil, tidak tergantung urutan deteksi di hook.
+ */
+export function judulSectionSuara(sumberList = []) {
+  const urut = REFLEKSI_SUMBER_URUTAN.filter((s) => sumberList.includes(s));
+  const label = urut.map((s) => REFLEKSI_META[s]?.label).filter(Boolean).join(" & ");
+  return {
+    section: `Suara ${label}`,
+    mega: `Perkembangan Citra Sekolah di Mata ${label}`,
+  };
+}
+
+/**
+ * Baca kunci ringkasan pertama yang benar-benar ada di jsonb karakter_summary.ringkasan dan
+ * kembalikan NILAINYA (bukan nama kuncinya). Nama kolom di data lama beda antara scope kelas
+ * (mis. "pencapaian_orangtua") dan jenjang/sekolah (mis. "persentase_pencapaian_orangtua") --
+ * peninggalan nama kolom Excel yang tidak seragam antar level -- jadi tiap summaryKeys di atas
+ * berupa daftar kandidat, dicoba berurutan sampai salah satu ketemu. Pakai hasOwnProperty
+ * (bukan sekadar truthy check) supaya nilai 0 yang sah tetap kebaca sebagai "ada", bukan
+ * dilewati seolah kuncinya tidak ada.
+ */
+export function resolveSummaryKey(ringkasan, kandidat) {
+  if (!ringkasan) return null;
+  for (const k of kandidat || []) {
+    if (Object.prototype.hasOwnProperty.call(ringkasan, k)) return ringkasan[k];
+  }
+  return null;
+}
+
 /** Ikon untuk judul-judul bagian yang sifatnya tetap di modul Karakter. */
 export const SECTION_ICON = {
   tindakLanjut: "🎯",
@@ -445,6 +695,7 @@ export const SECTION_ICON = {
   indikator: "⭐",
   skorSiswa: "📋",
   suaraOrtu: "💬",
+  suara: "💬", // judul dinamis multi-sumber (judulSectionSuara), suaraOrtu tetap ada demi kompatibilitas
   perbandinganKelas: "📊",
   perbandinganSekolah: "🏫",
   jenjang: "🎓",

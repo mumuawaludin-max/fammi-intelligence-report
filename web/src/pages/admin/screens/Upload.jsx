@@ -67,10 +67,23 @@ export function Upload() {
   const isMi = modul === 'mi';
   const isSc = modul === 'sc';
   const isPa = modul === 'pa';
+  const isKarakter = modul === 'karakter';
   // SC dan PA sama-sama tidak punya kolom periode di dalam filenya, jadi keduanya memakai input
   // periode manual yang sama di langkah 2.
   const butuhPeriodeManual = isSc || isPa;
   const sekolah = data.sekolah.find((s) => s.id === sekolahId);
+  // Ringkasan refleksi per sumber (orang tua/siswa) dari hasil parse karakterImporter. Optional
+  // chaining di seluruh rantai supaya modul lain atau hasil parse lama (tanpa field ini) tidak
+  // melempar error, blok tampilannya cukup tidak dirender.
+  const refleksiPreview = parsed?.preview?.refleksiPerSumber
+    ? {
+        orangtua: parsed.preview.refleksiPerSumber.orangtua ?? 0,
+        siswa: parsed.preview.refleksiPerSumber.siswa ?? 0,
+        sheetAda: parsed.preview.refleksiSheetAda || [],
+        dilewatiOrangtua: parsed.preview.refleksiBarisDilewati?.orangtua || 0,
+        dilewatiSiswa: parsed.preview.refleksiBarisDilewati?.siswa || 0,
+      }
+    : null;
 
   function resetFlow() {
     setStep(1); setSekolahId(''); setModul('karakter'); setFile(null);
@@ -395,7 +408,7 @@ export function Upload() {
                   : '.xlsx / .xls · satu sheet, satu baris per siswa (kolom nama_siswa, kelas_id, periode, r_inter..r_spasial, essay_*). Kolom sekolah di file boleh ada atau tidak, tidak dipakai.')
                 : modul === 'sc'
                 ? '.xlsx / .xls · sheet "Personal" (satu baris per staf) + sheet "Lembaga" (agregat sekolah)'
-                : '.xlsx / .xls · sheet detail_persentase_karakter dkk (format sama seperti data awal)'}
+                : '.xlsx / .xls · sheet detail_persentase_karakter dkk (format sama seperti data awal). Sheet detail_pernyataan_siswa opsional, untuk refleksi siswa sendiri.'}
             </div>
             <label className="btn-primary" style={{ display: 'inline-flex', cursor: 'pointer' }}>
               Pilih file
@@ -547,6 +560,28 @@ export function Upload() {
                 </div>
               ))}
             </div>
+
+            {/* Karakter: ringkasan baris refleksi per sumber (orang tua/siswa) hasil parse.
+                Sumber yang sheet-nya tidak ada di file ditulis eksplisit "tidak ada di file",
+                bukan "0 baris", supaya admin bisa membedakan sheet kosong dari sheet absen. */}
+            {isKarakter && refleksiPreview && (
+              <div style={{ marginTop: 10, padding: '10px 14px', background: (refleksiPreview.dilewatiOrangtua + refleksiPreview.dilewatiSiswa) > 0 ? 'var(--status-warn-bg)' : 'var(--status-safe-bg)', borderRadius: 10 }}>
+                <div style={{ fontSize: 12.5, fontWeight: 700, color: (refleksiPreview.dilewatiOrangtua + refleksiPreview.dilewatiSiswa) > 0 ? 'var(--status-warn)' : 'var(--status-safe)' }}>
+                  💬 Refleksi orang tua: {refleksiPreview.sheetAda.includes('orangtua') ? `${refleksiPreview.orangtua} baris` : 'tidak ada di file'} · Refleksi siswa: {refleksiPreview.sheetAda.includes('siswa') ? `${refleksiPreview.siswa} baris` : 'tidak ada di file'}
+                </div>
+                {(refleksiPreview.dilewatiOrangtua + refleksiPreview.dilewatiSiswa) > 0 && (
+                  <div style={{ fontSize: 11.5, color: 'var(--ink-2)', marginTop: 4, lineHeight: 1.5 }}>
+                    {[
+                      refleksiPreview.dilewatiOrangtua > 0 ? `${refleksiPreview.dilewatiOrangtua} baris orang tua` : null,
+                      refleksiPreview.dilewatiSiswa > 0 ? `${refleksiPreview.dilewatiSiswa} baris siswa` : null,
+                    ].filter(Boolean).join(' · ')} dilewati karena kosong (sisa spreadsheet selain kolom bulan).
+                  </div>
+                )}
+                <div style={{ fontSize: 11.5, color: 'var(--ink-2)', marginTop: 4 }}>
+                  Sumber yang tidak ada di file tidak akan dihapus dari periode yang sama.
+                </div>
+              </div>
+            )}
 
             {/* Kolom "laporan_json" (opsional): laporan siap pakai dari hulu. Ditampilkan SEBELUM
                 konfirmasi supaya admin tahu berapa orang yang tidak perlu Gemini sama sekali, dan

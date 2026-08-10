@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import SectionHeading from "../../components/SectionHeading";
 import {
   KarakterStateBox, AskMascot, AspekBarList, ScoreBarList, GoodEmptyState, Donut,
-  ParentVoiceBento, TrendChart, useSummaryTrend,
+  VoiceBento, SourceSwitch, TrendChart, useSummaryTrend,
 } from "./KarakterShared";
 import { StatCardMini, StatCardLandscape, AllGoodBanner, splitByClassify, scrollToId } from "./KarakterViewParts";
 import KebijakanGoals from "./KebijakanGoals";
@@ -14,54 +14,92 @@ import { useKarakterKepsek } from "./useKarakterData";
 import {
   pct, ringkasanAspekValue, parseTop5Pair, parseTop5Indikator, deltaVsPrevious,
   classifyPencapaian, periodeLabel, aspekIcon, avgAspek, persen, isKebijakanReady, SECTION_ICON,
+  judulSectionSuara, REFLEKSI_META, REFLEKSI_SUMBER_URUTAN, resolveSummaryKey,
 } from "./karakterMeta";
 import { KARAKTER_BAR_TONE_CUTOFF } from "../../lib/cutoffs";
 import styles from "./KarakterViews.module.css";
 
-/** Satu pie/donut per jenjang: berapa persen dinilai + rata-rata karakter, dari guru & orang tua. */
+/**
+ * Label kepala kartu penilai (JenjangPieGrid) dan label pendek untuk subtitle dialog jenjang.
+ * Teks guru dan orang tua disalin persis dari yang sudah tampil sekarang. Teks siswa sengaja
+ * "Penilaian Diri Siswa" (bukan sekadar "Penilaian Siswa") karena siswa melaporkan dirinya
+ * sendiri, beda dari guru/orang tua yang menilai pihak ketiga.
+ */
+const PENILAI_HEAD_LABEL = {
+  guru: "👨‍🏫 Penilaian Guru",
+  orangtua: "👪 Penilaian Orang Tua",
+  siswa: "🧑‍🎓 Penilaian Diri Siswa",
+};
+const PENILAI_SHORT_LABEL = { guru: "guru", orangtua: "orang tua", siswa: "siswa" };
+
+/** Sumber refleksi dianggap punya data jenjang kalau salah satu kandidat summaryKeys pencapaian
+ * atau rataPencapaian-nya benar-benar ada di ringkasan jenjang ini (lewat resolveSummaryKey). */
+function sumberAdaDiRingkasanJenjang(rk, sumber) {
+  const meta = REFLEKSI_META[sumber];
+  if (!meta) return false;
+  return resolveSummaryKey(rk, meta.summaryKeys.pencapaian) !== null
+    || resolveSummaryKey(rk, meta.summaryKeys.rataPencapaian) !== null;
+}
+
+/**
+ * Daftar penilai satu jenjang: guru selalu pertama (skema lama, tak berubah), lalu tiap sumber
+ * refleksi urut REFLEKSI_SUMBER_URUTAN yang datanya benar-benar ada di ringkasan jenjang ini.
+ * Sumber yang kuncinya tidak ada di ringkasan sama sekali tidak masuk daftar -- sekolah varian A
+ * (cuma refleksi orang tua) selalu dapat persis dua penilai seperti sebelum perubahan ini.
+ */
+function penilaiJenjangList(rk, aspek) {
+  const list = [{
+    key: "guru",
+    headLabel: PENILAI_HEAD_LABEL.guru,
+    shortLabel: PENILAI_SHORT_LABEL.guru,
+    bagian: pct(rk?.pencapaian_guru),
+    // Pakai angka rata-rata jenjang yang SUDAH final dari ringkasan (kalau sheet-nya
+    // menyediakan field itu langsung, sama seperti level sekolah), baru fallback ke
+    // avgAspek (rata-rata dari skor per aspek yang masing-masing sudah dibulatkan
+    // sendiri-sendiri). Dua rute ini bisa beda 1pp karena pembulatan bertingkat --
+    // FIR tidak boleh menghitung ulang kalau angka finalnya sudah tersedia (CLAUDE.md).
+    rata: pct(rk?.rata_pencapaian_guru) ?? avgAspek(rk, aspek, "rata_input_guru_"),
+  }];
+  REFLEKSI_SUMBER_URUTAN.forEach((sumber) => {
+    if (!sumberAdaDiRingkasanJenjang(rk, sumber)) return;
+    const meta = REFLEKSI_META[sumber];
+    list.push({
+      key: sumber,
+      headLabel: PENILAI_HEAD_LABEL[sumber] || `${meta.icon} Penilaian ${meta.label}`,
+      shortLabel: PENILAI_SHORT_LABEL[sumber] || meta.satuan,
+      bagian: pct(resolveSummaryKey(rk, meta.summaryKeys.pencapaian)),
+      rata: pct(resolveSummaryKey(rk, meta.summaryKeys.rataPencapaian)) ?? avgAspek(rk, aspek, meta.summaryKeys.rataAspekPrefix),
+    });
+  });
+  return list;
+}
+
+/** Satu pie/donut per jenjang: berapa persen dinilai + rata-rata karakter, per penilai yang tersedia. */
 function JenjangPieGrid({ rows, aspek, onSelect }) {
   if (!rows.length) return null;
   return (
     <div className={styles.jenjangGrid}>
       {rows.map((r) => {
-        const rk = r.ringkasan;
-        const guruPart = pct(rk?.pencapaian_guru);
-        // Pakai angka rata-rata jenjang yang SUDAH final dari ringkasan (kalau sheet-nya
-        // menyediakan field itu langsung, sama seperti level sekolah), baru fallback ke
-        // avgAspek (rata-rata dari skor per aspek yang masing-masing sudah dibulatkan
-        // sendiri-sendiri). Dua rute ini bisa beda 1pp karena pembulatan bertingkat --
-        // FIR tidak boleh menghitung ulang kalau angka finalnya sudah tersedia (CLAUDE.md).
-        const guruAch = pct(rk?.rata_pencapaian_guru) ?? avgAspek(rk, aspek, "rata_input_guru_");
-        const ortuPart = pct(rk?.pencapaian_orangtua);
-        const ortuAch = pct(rk?.rata_pencapaian_orangtua) ?? avgAspek(rk, aspek, "rata_input_orangtua_");
-        const donutVal = guruAch ?? ortuAch;
+        const penilaiList = penilaiJenjangList(r.ringkasan, aspek);
+        const donutVal = penilaiList.find((p) => p.rata != null)?.rata ?? null;
         return (
           <button type="button" key={r.scope_id} className={styles.jenjangCard} onClick={() => onSelect(r)}>
             <p className={styles.jenjangName}>{r.scope_id}</p>
             <Donut value={donutVal} label="Rata-rata karakter" />
             <div className={styles.jenjangStats}>
-              <div className={styles.jenjangAssessor}>
-                <p className={styles.jenjangAssessorHead}>👨‍🏫 Penilaian Guru</p>
-                <div className={styles.jenjangMetricRow}>
-                  <span className={styles.jenjangMetricLabel}>Jumlah murid yang dinilai</span>
-                  <span className={styles.jenjangMetricVal}>{persen(guruPart)}</span>
+              {penilaiList.map((p) => (
+                <div className={styles.jenjangAssessor} key={p.key}>
+                  <p className={styles.jenjangAssessorHead}>{p.headLabel}</p>
+                  <div className={styles.jenjangMetricRow}>
+                    <span className={styles.jenjangMetricLabel}>Jumlah murid yang dinilai</span>
+                    <span className={styles.jenjangMetricVal}>{persen(p.bagian)}</span>
+                  </div>
+                  <div className={styles.jenjangMetricRow}>
+                    <span className={styles.jenjangMetricLabel}>Rata-rata karakter</span>
+                    <span className={styles.jenjangMetricVal}>{persen(p.rata)}</span>
+                  </div>
                 </div>
-                <div className={styles.jenjangMetricRow}>
-                  <span className={styles.jenjangMetricLabel}>Rata-rata karakter</span>
-                  <span className={styles.jenjangMetricVal}>{persen(guruAch)}</span>
-                </div>
-              </div>
-              <div className={styles.jenjangAssessor}>
-                <p className={styles.jenjangAssessorHead}>👪 Penilaian Orang Tua</p>
-                <div className={styles.jenjangMetricRow}>
-                  <span className={styles.jenjangMetricLabel}>Jumlah murid yang dinilai</span>
-                  <span className={styles.jenjangMetricVal}>{persen(ortuPart)}</span>
-                </div>
-                <div className={styles.jenjangMetricRow}>
-                  <span className={styles.jenjangMetricLabel}>Rata-rata karakter</span>
-                  <span className={styles.jenjangMetricVal}>{persen(ortuAch)}</span>
-                </div>
-              </div>
+              ))}
             </div>
             <span className={styles.jenjangDetailHint}>Klik untuk detail ›</span>
           </button>
@@ -69,6 +107,35 @@ function JenjangPieGrid({ rows, aspek, onSelect }) {
       })}
     </div>
   );
+}
+
+/**
+ * "guru dan orang tua" / "guru, orang tua, dan siswa" dst, dipakai di subtitle section
+ * "Perkembangan Karakter per Jenjang". Guru selalu disebut (skema lama, tak berubah); sumber
+ * refleksi lain menyusul sesuai sumberRefleksi periode ini. Untuk sumberRefleksi ['orangtua']
+ * hasilnya WAJIB "guru dan orang tua" persis seperti string lama.
+ */
+function frasaPenilaiJenjang(sumberRefleksi = []) {
+  const labelSumber = REFLEKSI_SUMBER_URUTAN
+    .filter((s) => sumberRefleksi.includes(s))
+    .map((s) => PENILAI_SHORT_LABEL[s] || REFLEKSI_META[s]?.satuan)
+    .filter(Boolean);
+  const semua = ["guru", ...labelSumber];
+  if (semua.length <= 2) return semua.join(" dan ");
+  return `${semua.slice(0, -1).join(", ")}, dan ${semua[semua.length - 1]}`;
+}
+
+/**
+ * "orang tua" / "orang tua dan siswa" / "siswa", dipakai di kalimat narasi (bukan judul) yang
+ * menyebut sumber refleksi. Untuk sumberRefleksi ['orangtua'] WAJIB "orang tua" persis seperti
+ * string lama.
+ */
+function frasaSumberRefleksi(sumberRefleksi = []) {
+  return REFLEKSI_SUMBER_URUTAN
+    .filter((s) => sumberRefleksi.includes(s))
+    .map((s) => REFLEKSI_META[s]?.satuan)
+    .filter(Boolean)
+    .join(" dan ");
 }
 
 export default function KepsekView({ session, periodeId }) {
@@ -82,6 +149,10 @@ export default function KepsekView({ session, periodeId }) {
   const [kelasTab, setKelasTab] = useState("semua");
   const [selectedKelasId, setSelectedKelasId] = useState(null);
   const [selectedJenjangDialog, setSelectedJenjangDialog] = useState(null);
+  // Sumber refleksi dipilih lewat SourceSwitch di section Suara. null di awal, nilai efektif
+  // dihitung saat render (sumberEfektif di bawah) supaya selalu jatuh ke elemen pertama
+  // sumberRefleksi kalau sumberAktif belum dipilih atau sudah tidak ada lagi di periode ini.
+  const [sumberAktif, setSumberAktif] = useState(null);
 
   // Filter kelas/jenjang dan kelas terpilih di panel detail jadi tidak relevan lagi begitu
   // periode berganti (kelas yang sama belum tentu ada/cocok di periode lain).
@@ -94,8 +165,14 @@ export default function KepsekView({ session, periodeId }) {
 
   if (loading || error) return <KarakterStateBox loading={loading} error={error} />;
 
-  const { periode, aspek, sekolah, jenjang, kelas, pernyataan, tindakLanjut } = data;
+  const { periode, aspek, sekolah, jenjang, kelas, pernyataanBySumber, sumberRefleksi, tindakLanjut } = data;
   const ringkasan = sekolah?.ringkasan || null;
+
+  // Jatuh kembali ke elemen pertama sumberRefleksi kalau sumberAktif belum dipilih, atau sudah
+  // tidak ada lagi (mis. pindah ke periode yang cuma punya refleksi orang tua).
+  const sumberEfektif = sumberRefleksi.includes(sumberAktif) ? sumberAktif : sumberRefleksi[0];
+  const judulSuara = judulSectionSuara(sumberRefleksi);
+  const frasaSumber = frasaSumberRefleksi(sumberRefleksi);
 
   // Rekomendasi sekolah-wide Kepsek: baris nyata (scope='sekolah', sudah disetujui) kalau ada,
   // fallback ke contoh sampai Gemini mengisi tabelnya. kebijakanLegacy menampung baris yang
@@ -222,7 +299,7 @@ export default function KepsekView({ session, periodeId }) {
           icon={SECTION_ICON.jenjang}
           eyebrow="Rincian per jenjang"
           title="Perkembangan Karakter per Jenjang"
-          subtitle={`Tiap jenjang punya satu diagram. "Jumlah murid yang dinilai" = berapa persen murid sudah dinilai; "Rata-rata karakter" = tingkat perkembangan karakternya (0-100%), dari sisi guru dan orang tua. Ini bukan nilai akademik. Klik satu jenjang untuk rinciannya per aspek.`}
+          subtitle={`Tiap jenjang punya satu diagram. "Jumlah murid yang dinilai" = berapa persen murid sudah dinilai; "Rata-rata karakter" = tingkat perkembangan karakternya (0-100%), dari sisi ${frasaPenilaiJenjang(sumberRefleksi)}. Ini bukan nilai akademik. Klik satu jenjang untuk rinciannya per aspek.`}
         />
         {aspek.length === 0 && jenjang.length > 0 && (
           <p className={styles.emptyNote} style={{ marginBottom: 10 }}>
@@ -388,10 +465,10 @@ export default function KepsekView({ session, periodeId }) {
       {activeCategory === "citra" && (
       <div className={`${styles.megaCategory} ${styles.megaCategoryB}`}>
         <div className={styles.megaCategoryHeader}>
-          <h2 className={styles.megaCategoryTitle}>Perkembangan Citra Sekolah di Mata Orang Tua</h2>
+          <h2 className={styles.megaCategoryTitle}>{judulSuara.mega}</h2>
           <p className={styles.megaCategorySub}>
             Sinyal dari rumah tentang bagaimana karakter anak terlihat di luar sekolah, dan langkah
-            sekolah-wide yang mengikutinya untuk memperkuat kepercayaan orang tua.
+            sekolah-wide yang mengikutinya untuk memperkuat kepercayaan {frasaSumber}.
           </p>
         </div>
 
@@ -399,10 +476,17 @@ export default function KepsekView({ session, periodeId }) {
           <SectionHeading
             icon={SECTION_ICON.suaraOrtu}
             eyebrow="Sinyal dari luar sekolah"
-            title="Suara Orang Tua"
-            subtitle="Ini bukan testimoni, ini sinyal dari lingkungan rumah tentang bagaimana karakter anak terlihat di luar sekolah. Kalau banyak orang tua menyebut hal yang sama, itu sinyal kuat untuk sekolah, bukan sekadar kumpulan pendapat pribadi."
+            title={judulSuara.section}
+            subtitle={`Ini bukan testimoni, ini sinyal dari lingkungan rumah tentang bagaimana karakter anak terlihat di luar sekolah. Kalau banyak ${frasaSumber} menyebut hal yang sama, itu sinyal kuat untuk sekolah, bukan sekadar kumpulan pendapat pribadi.`}
           />
-          <ParentVoiceBento pernyataan={pernyataan} aspek={aspek} sekolahId={session.school_id} periodeId={periode} />
+          <SourceSwitch sumberList={sumberRefleksi} value={sumberEfektif} onChange={setSumberAktif} />
+          <VoiceBento
+            sumber={sumberEfektif}
+            pernyataan={pernyataanBySumber[sumberEfektif] || []}
+            aspek={aspek}
+            sekolahId={session.school_id}
+            periodeId={periode}
+          />
         </section>
 
       </div>
@@ -415,7 +499,7 @@ export default function KepsekView({ session, periodeId }) {
           <h2 className={styles.megaCategoryTitle}>Tindak Lanjut Sekolah di Periode Ini</h2>
           <p className={styles.megaCategorySub}>
             Dari Fammi berdasarkan data periode ini, bukan keputusan final. Sebagian menyasar mutu
-            layanan, sebagian menyasar citra sekolah di mata orang tua; yang perlu perhatian
+            layanan, sebagian menyasar citra sekolah di mata {frasaSumber}; yang perlu perhatian
             didahulukan, lalu yang tinggal dipertahankan. Tiap kartu bisa dibuka dan dibagikan ke WhatsApp.
           </p>
         </div>
@@ -441,7 +525,14 @@ export default function KepsekView({ session, periodeId }) {
           icon={SECTION_ICON.jenjang}
           eyebrow="Detail Jenjang"
           title={selectedJenjangDialog.scope_id}
-          subtitle={`Rata-rata karakter ${persen(avgAspek(selectedJenjangDialog.ringkasan, aspek, "rata_input_guru_"))} (guru) · ${persen(avgAspek(selectedJenjangDialog.ringkasan, aspek, "rata_input_orangtua_"))} (orang tua)`}
+          subtitle={[
+            { prefix: "rata_input_guru_", label: PENILAI_SHORT_LABEL.guru },
+            ...REFLEKSI_SUMBER_URUTAN
+              .filter((s) => sumberAdaDiRingkasanJenjang(selectedJenjangDialog.ringkasan, s))
+              .map((s) => ({ prefix: REFLEKSI_META[s].summaryKeys.rataAspekPrefix, label: PENILAI_SHORT_LABEL[s] || REFLEKSI_META[s].satuan })),
+          ]
+            .map(({ prefix, label }) => `Rata-rata karakter ${persen(avgAspek(selectedJenjangDialog.ringkasan, aspek, prefix))} (${label})`)
+            .join(" · ")}
           onClose={() => setSelectedJenjangDialog(null)}
         >
           <section>

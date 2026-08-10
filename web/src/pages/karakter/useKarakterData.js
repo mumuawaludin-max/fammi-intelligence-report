@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { supabase, fetchAllRows } from "../../lib/supabase";
-import { withAspekColor, latestPeriode, indikatorFallbackLabel, resolveAspekList, aspekKodeFromRingkasan, aspekLabelFromRingkasan } from "./karakterMeta";
+import { withAspekColor, latestPeriode, indikatorFallbackLabel, resolveAspekList, aspekKodeFromRingkasan, aspekLabelFromRingkasan, REFLEKSI_META, REFLEKSI_SUMBER_URUTAN, resolveSummaryKey, pct } from "./karakterMeta";
 
 /** Kembalikan { data, error } mentah (bukan array yang errornya sudah dibuang) supaya
  * pemanggil bisa ikut mengecek error-nya, bukan diam-diam dapat daftar aspek kosong. */
@@ -18,6 +18,46 @@ function queryIndikatorConfig(sekolahId) {
     .select("aspek_kode, indikator_kode, indikator_label, urutan")
     .eq("sekolah_id", sekolahId)
     .order("urutan", { ascending: true });
+}
+
+/**
+ * Kelompokkan baris karakter_pernyataan_ortu periode aktif berdasarkan kolom `sumber`. Baris lama
+ * yang belum punya nilai `sumber` (data sebelum kolom ini ada) jatuh ke 'orangtua', bukan hilang
+ * atau nyasar ke kelompok lain. Kunci untuk tiap REFLEKSI_SUMBER_URUTAN selalu ada di hasil
+ * (array kosong kalau tidak ada baris) supaya pemanggil tidak perlu cek undefined dulu.
+ */
+function groupPernyataanBySumber(rows) {
+  const bySumber = Object.fromEntries(REFLEKSI_SUMBER_URUTAN.map((s) => [s, []]));
+  (rows || []).forEach((r) => {
+    const sumber = r.sumber || "orangtua";
+    (bySumber[sumber] ||= []).push(r);
+  });
+  return bySumber;
+}
+
+/**
+ * Tentukan sumber refleksi yang TERSEDIA pada satu periode, terurut mengikuti
+ * REFLEKSI_SUMBER_URUTAN. Sumber dianggap tersedia kalau ada baris pernyataan dengan sumber itu
+ * (sudah diiris ke pernyataanBySumber), ATAU salah satu kandidat summaryKeys.pencapaian /
+ * rataPencapaian sumber itu ada di salah satu ringkasan (karakter_summary.ringkasan) dengan nilai
+ * bukan nol/kosong. ringkasanList berisi ringkasan scope teratas yang tersedia di hook pemanggil
+ * (sekolah untuk Kepsek/WaliKelas, satu per sekolah untuk Yayasan); boleh kosong kalau ringkasan
+ * tidak tersedia untuk periode itu, dalam hal ini pemeriksaan cukup mengandalkan baris pernyataan.
+ * pct() sudah menganggap nilai null/undefined/"" sebagai null, jadi cukup satu pengecekan untuk
+ * "kosong" maupun "bisa diparse tapi nol".
+ */
+function hitungSumberRefleksi(pernyataanBySumber, ringkasanList = []) {
+  return REFLEKSI_SUMBER_URUTAN.filter((sumber) => {
+    if ((pernyataanBySumber[sumber] || []).length > 0) return true;
+    const kandidat = [
+      ...(REFLEKSI_META[sumber]?.summaryKeys?.pencapaian || []),
+      ...(REFLEKSI_META[sumber]?.summaryKeys?.rataPencapaian || []),
+    ];
+    return (ringkasanList || []).some((ringkasan) => {
+      const angka = pct(resolveSummaryKey(ringkasan, kandidat));
+      return angka !== null && angka !== 0;
+    });
+  });
 }
 
 /**
@@ -73,7 +113,7 @@ export function useKarakterWaliKelas(session, periodeId) {
           .range(from, to)),
         fetchAllRows((from, to) => supabase
           .from("karakter_pernyataan_ortu")
-          .select("kelas_id, murid_id, nama_murid, periode_id, pernyataan, kategori_pernyataan, emosi_anak, alasan_emosi, dukungan_dibutuhkan, dukungan_lainnya, hal_disyukuri")
+          .select("kelas_id, murid_id, nama_murid, periode_id, pernyataan, kategori_pernyataan, emosi_anak, alasan_emosi, dukungan_dibutuhkan, dukungan_lainnya, hal_disyukuri, sumber")
           .eq("sekolah_id", session.school_id)
           .in("kelas_id", kelasList)
           .range(from, to)),
@@ -162,6 +202,15 @@ export function useKarakterWaliKelas(session, periodeId) {
       resolveAspekList(aspek, new Set(skorAtPeriode.map((r) => r.aspek_kode)), labelResolver)
     );
 
+    // Scope teratas yang tersedia di hook Wali Kelas untuk pemeriksaan sumberRefleksi adalah
+    // ringkasan sekolah (bukan ringkasan kelas), sejalan dengan kontrak WS4.
+    const pernyataanAtPeriode = ortuRows.filter((r) => r.periode_id === periode);
+    const pernyataanBySumber = groupPernyataanBySumber(pernyataanAtPeriode);
+    const sumberRefleksi = hitungSumberRefleksi(
+      pernyataanBySumber,
+      sekolahSummary ? [sekolahSummary.ringkasan] : []
+    );
+
     return {
       periode,
       availablePeriods,
@@ -172,7 +221,11 @@ export function useKarakterWaliKelas(session, periodeId) {
       sekolahSummary,
       skor: skorAtPeriode,
       skorIndikator: skorIndRows.filter((r) => r.periode_id === periode),
-      pernyataan: ortuRows.filter((r) => r.periode_id === periode),
+      // Field lama, dipertahankan = pernyataan orang tua saja, supaya view yang belum tersentuh
+      // WS6 tetap benar (tidak menampilkan refleksi siswa di slot orang tua).
+      pernyataan: pernyataanBySumber.orangtua,
+      pernyataanBySumber,
+      sumberRefleksi,
       briefing: briefingRows.find((r) => r.periode_id === periode) || null,
       tindakLanjut: tlRows.filter((r) => r.periode_id === periode),
     };
@@ -224,7 +277,7 @@ export function useKarakterKepsek(session, periodeId) {
         // baris diam-diam Supabase untuk sekolah menengah-besar, jadi dipaginasi penuh.
         fetchAllRows((from, to) => supabase
           .from("karakter_pernyataan_ortu")
-          .select("kelas_id, murid_id, nama_murid, periode_id, pernyataan, kategori_pernyataan, emosi_anak, alasan_emosi, dukungan_dibutuhkan, dukungan_lainnya, hal_disyukuri")
+          .select("kelas_id, murid_id, nama_murid, periode_id, pernyataan, kategori_pernyataan, emosi_anak, alasan_emosi, dukungan_dibutuhkan, dukungan_lainnya, hal_disyukuri, sumber")
           .eq("sekolah_id", sekolahId)
           .range(from, to)),
       ]);
@@ -282,16 +335,28 @@ export function useKarakterKepsek(session, periodeId) {
     };
     const aspekEffective = withAspekColor(resolveAspekList(aspek, aspekKodeHadir, labelResolver));
 
+    // Scope teratas untuk Kepsek adalah ringkasan sekolah.
+    const sekolahRow = atPeriode.find((r) => r.scope === "sekolah") || null;
+    const pernyataanAtPeriode = ortuRows.filter((r) => r.periode_id === periode);
+    const pernyataanBySumber = groupPernyataanBySumber(pernyataanAtPeriode);
+    const sumberRefleksi = hitungSumberRefleksi(
+      pernyataanBySumber,
+      sekolahRow ? [sekolahRow.ringkasan] : []
+    );
+
     return {
       periode,
       availablePeriods,
       aspek: aspekEffective,
-      sekolah: atPeriode.find((r) => r.scope === "sekolah") || null,
+      sekolah: sekolahRow,
       jenjang: atPeriode.filter((r) => r.scope === "jenjang"),
       kelas: atPeriode.filter((r) => r.scope === "kelas"),
       briefing: briefingRows.find((r) => r.periode_id === periode) || null,
       tindakLanjut: tlRows.filter((r) => r.periode_id === periode),
-      pernyataan: ortuRows.filter((r) => r.periode_id === periode),
+      // Field lama, dipertahankan = pernyataan orang tua saja (lihat catatan di useKarakterWaliKelas).
+      pernyataan: pernyataanBySumber.orangtua,
+      pernyataanBySumber,
+      sumberRefleksi,
     };
   }, [state.raw, periodeId]);
 
@@ -362,7 +427,7 @@ export function useKarakterYayasan(session, periodeId) {
         // 1000 baris Supabase, jadi dipaginasi penuh lewat fetchAllRows.
         fetchAllRows((from, to) => supabase
           .from("karakter_pernyataan_ortu")
-          .select("sekolah_id, kelas_id, murid_id, nama_murid, periode_id, pernyataan, kategori_pernyataan, emosi_anak, alasan_emosi, dukungan_dibutuhkan, dukungan_lainnya, hal_disyukuri")
+          .select("sekolah_id, kelas_id, murid_id, nama_murid, periode_id, pernyataan, kategori_pernyataan, emosi_anak, alasan_emosi, dukungan_dibutuhkan, dukungan_lainnya, hal_disyukuri, sumber")
           .in("sekolah_id", sekolahIds)
           .range(from, to)),
         // Indikator per sekolah, sudah dirata-rata di database lewat view
@@ -462,6 +527,15 @@ export function useKarakterYayasan(session, periodeId) {
       );
     });
 
+    // Scope teratas untuk Yayasan adalah ringkasan per sekolah (tidak ada satu ringkasan gabungan
+    // lintas sekolah); summaryAtPeriode di atas sudah scope="sekolah", satu baris per sekolah.
+    const pernyataanAtPeriode = ortuRows.filter((r) => r.periode_id === periode);
+    const pernyataanBySumber = groupPernyataanBySumber(pernyataanAtPeriode);
+    const sumberRefleksi = hitungSumberRefleksi(
+      pernyataanBySumber,
+      summaryAtPeriode.map((r) => r.ringkasan)
+    );
+
     return {
       periode,
       availablePeriods,
@@ -471,7 +545,10 @@ export function useKarakterYayasan(session, periodeId) {
       indikatorBySekolah,
       briefing: briefingRows.filter((r) => r.periode_id === periode),
       tindakLanjut: tlRows.filter((r) => r.periode_id === periode),
-      pernyataan: ortuRows.filter((r) => r.periode_id === periode),
+      // Field lama, dipertahankan = pernyataan orang tua saja (lihat catatan di useKarakterWaliKelas).
+      pernyataan: pernyataanBySumber.orangtua,
+      pernyataanBySumber,
+      sumberRefleksi,
     };
   }, [state.raw, periodeId]);
 

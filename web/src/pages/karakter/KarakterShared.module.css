@@ -667,10 +667,10 @@
 .voiceTabs {
   display: flex;
   flex-wrap: wrap;
-  gap: 6px;
+  gap: 8px;
   background: var(--surface-soft);
   border-radius: 100px;
-  padding: 5px;
+  padding: 6px;
   width: fit-content;
 }
 
@@ -710,7 +710,7 @@
   border: none;
   background: transparent;
   border-radius: 100px;
-  padding: 8px 16px;
+  padding: 9px 18px;
   font-family: inherit;
   font-size: 12.5px;
   font-weight: 700;
@@ -1364,4 +1364,77 @@
   font-weight: 800;
   color: var(--purple-600);
   margin-bottom: 8px;
+}
+
+/* ── Saklar sumber refleksi (SourceSwitch) ──
+   Gaya sengaja meniru .voiceTabs/.voiceTab yang sudah ada di bawahnya supaya keduanya terbaca
+   satu keluarga, bukan dua sistem kontrol berbeda. Bedanya cuma tinggi minimal 40px sebagai
+   target sentuh dan pembungkus yang boleh wrap, supaya dua pill tetap muat di layar 375px
+   tanpa memaksa halaman menggeser horizontal. */
+.sourceSwitch {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  background: var(--surface-soft);
+  border-radius: 100px;
+  padding: 6px;
+  width: fit-content;
+  max-width: 100%;
+  /* Jarak ke baris tab (Testimoni/Emosi/dst) di VoiceBento tepat di bawahnya -- tanpa ini dua
+     baris pill bertumpuk langsung tanpa jeda, kelihatan seperti satu blok tombol yang mepet. */
+  margin-bottom: 14px;
+}
+
+.sourceSwitchPill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  min-height: 40px;
+  border: none;
+  background: transparent;
+  border-radius: 100px;
+  padding: 9px 20px;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--ink-3);
+  white-space: nowrap;
+  cursor: pointer;
+  transition: background var(--transition-fast), color var(--transition-fast);
+}
+
+.sourceSwitchPill:hover {
+  color: var(--ink);
+}
+
+.sourceSwitchPillActive {
+  background: var(--purple-600);
+  color: #fff;
+}
+
+/* ── Refleksi per murid, beberapa sumber sekaligus (ReflectionBlock blocks=[...]) ── */
+.reflectionBlocks {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.reflectionBlockItem {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.reflectionSourceBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  width: fit-content;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--purple-700);
+  background: var(--purple-050);
+  border-radius: 999px;
+  padding: 4px 12px;
 }

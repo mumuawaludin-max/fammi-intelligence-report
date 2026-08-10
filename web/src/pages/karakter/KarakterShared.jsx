@@ -1,4 +1,4 @@
-import { useEffect, useId, useRef, useState } from "react";
+import { useEffect, useId, useMemo, useRef, useState } from "react";
 import BriefingHero from "../../components/BriefingHero";
 import RadarChart from "../../components/charts/RadarChart";
 import GroupedBarChart from "../../components/charts/GroupedBarChart";
@@ -7,9 +7,17 @@ import { supabase } from "../../lib/supabase";
 import styles from "./KarakterShared.module.css";
 import {
   ringkasanAspekValue, aspekIcon, periodeLabel, pct, classifyBarTone,
-  extractPlainText, isBlankEssay, KATEGORI_PERNYATAAN_OPTIONS, DUKUNGAN_OPTIONS, HAL_DISYUKURI_OPTIONS,
-  countMultiValue, matchedCategoryTags, matchedOptions, countEmosi,
+  extractPlainText, isBlankEssay, REFLEKSI_META,
+  countMultiValue, matchedOptions, countEmosi,
 } from "./karakterMeta";
+
+/**
+ * Meta sumber refleksi yang aman dipakai: sumber tak dikenal jatuh ke 'orangtua', satu-satunya
+ * sumber yang pasti ada sejak dulu. Dipanggil di beberapa komponen, jadi dijadikan satu tempat.
+ */
+function refleksiMeta(sumber) {
+  return REFLEKSI_META[sumber] || REFLEKSI_META.orangtua;
+}
 
 const ENTITY_COLOR_VARS = ["--dv-1", "--dv-2", "--dv-3", "--dv-4", "--dv-5", "--dv-6", "--dv-7", "--dv-8"];
 
@@ -485,21 +493,60 @@ function StatBarMiniList({ items, emptyText, onItemClick, activeLabel }) {
 }
 
 const QUOTE_LOAD_STEP = 10;
-const KATEGORI_MATCH_BY_LABEL = Object.fromEntries(KATEGORI_PERNYATAAN_OPTIONS.map((o) => [o.label, o.match]));
-const DUKUNGAN_MATCH_BY_LABEL = Object.fromEntries(DUKUNGAN_OPTIONS.map((o) => [o.label, o.match]));
-const HAL_DISYUKURI_MATCH_BY_LABEL = Object.fromEntries(HAL_DISYUKURI_OPTIONS.map((o) => [o.label, o.match]));
+
+/**
+ * Peta label bucket -> DAFTAR teks `match` milik bucket itu. Array, bukan string tunggal, dan
+ * ini bukan gaya-gayaan: sejak KATEGORI_PERNYATAAN_OPTIONS punya dua entri berlabel sama
+ * ("Kritik" untuk data orang tua dan "Keluhan" untuk data siswa, dua-duanya masuk bucket
+ * "Kritik & Keluhan"), Object.fromEntries yang dipakai versi sebelumnya diam-diam membuang entri
+ * pertama karena kunci yang sama ditimpa entri terakhir. Akibatnya filter kutipan bucket itu
+ * cuma menangkap baris berisi "Keluhan" dan MELEWATKAN seluruh baris "Kritik" milik sekolah
+ * lama (SDIP, KB TK) -- regresi diam tanpa error. Dengan array, satu label bisa membawa semua
+ * varian teksnya sekaligus.
+ *
+ * Dibangun per sumber (dari REFLEKSI_META[sumber].kategoriOptions/dukunganOptions/
+ * disyukuriOptions), bukan konstanta level modul dari opsi orang tua, karena opsi dukungan dan
+ * hal disyukuri milik siswa punya diksi sendiri.
+ */
+function matchMapByLabel(options = []) {
+  const map = {};
+  options.forEach((o) => {
+    if (!map[o.label]) map[o.label] = [];
+    map[o.label].push(o.match);
+  });
+  return map;
+}
+
+/** Baris cocok dengan satu bucket kalau SALAH SATU teks match bucket itu ada di nilai mentahnya. */
+function matchesLabel(rawValue, matches) {
+  if (!matches || matches.length === 0) return false;
+  const value = rawValue || "";
+  return matches.some((m) => value.includes(m));
+}
+
+/**
+ * Dua opsi boleh berbagi satu label bucket, jadi matchedOptions bisa mengembalikan dua entri
+ * berlabel sama untuk satu baris. Buang kembarannya supaya key React tidak duplikat dan tag
+ * yang sama tidak tampil dua kali.
+ */
+function dedupByLabel(tags = []) {
+  const seen = new Set();
+  return tags.filter((t) => {
+    if (seen.has(t.label)) return false;
+    seen.add(t.label);
+    return true;
+  });
+}
+
+// Kuncinya adalah LABEL bucket, bukan teks match-nya. Label "Kritik" sudah berganti jadi
+// "Kritik & Keluhan" saat bucket Keluhan digabung; kunci lama bikin kartu kritik diam-diam
+// jatuh ke gaya default tanpa ada yang error.
 const QUOTE_TONE_CLASS = {
   "Apresiasi": "quoteCardApresiasi",
   "Harapan": "quoteCardHarapan",
   "Saran & Masukan": "quoteCardMasukan",
-  "Kritik": "quoteCardKritik",
+  "Kritik & Keluhan": "quoteCardKritik",
 };
-const VOICE_TABS = [
-  { id: "testimoni", label: "Testimoni", icon: "💬" },
-  { id: "emosi", label: "Emosi Anak", icon: "🙂" },
-  { id: "dukungan", label: "Dukungan Dibutuhkan", icon: "🤲" },
-  { id: "halDisyukuri", label: "Keberhasilan Sekolah di Mata Orang Tua", icon: "🙏" },
-];
 
 /** Kolom esai mentah per tab -- tiap dimensi punya sumber teksnya sendiri, bukan berbagi satu kolom. */
 function essayFieldForTab(tabId) {
@@ -509,8 +556,8 @@ function essayFieldForTab(tabId) {
   return null; // halDisyukuri: tidak ada kolom esai bebas terpisah, teks diambil dari opsi yang cocok
 }
 
-function toneClassForQuote(q) {
-  const tags = matchedCategoryTags(q.kategori_pernyataan);
+function toneClassForQuote(q, meta) {
+  const tags = matchedOptions(q.kategori_pernyataan, meta.kategoriOptions);
   return styles[QUOTE_TONE_CLASS[tags[0]?.label]] || styles.quoteCardDefault;
 }
 
@@ -519,10 +566,10 @@ function toneClassForQuote(q) {
  * jangan tampilkan tag Testimoni (Apresiasi/Harapan/dll), itu dimensi lain dan bikin esai
  * kelihatan "salah kategori". Tiap tab tampilkan tag dari field yang benar-benar jadi filter.
  */
-function tagsForActiveTab(quote, activeTab, emosiItems) {
-  if (activeTab === "testimoni") return matchedCategoryTags(quote.kategori_pernyataan);
-  if (activeTab === "dukungan") return matchedOptions(quote.dukungan_dibutuhkan, DUKUNGAN_OPTIONS);
-  if (activeTab === "halDisyukuri") return matchedOptions(quote.hal_disyukuri, HAL_DISYUKURI_OPTIONS);
+function tagsForActiveTab(quote, activeTab, emosiItems, meta) {
+  if (activeTab === "testimoni") return dedupByLabel(matchedOptions(quote.kategori_pernyataan, meta.kategoriOptions));
+  if (activeTab === "dukungan") return dedupByLabel(matchedOptions(quote.dukungan_dibutuhkan, meta.dukunganOptions));
+  if (activeTab === "halDisyukuri") return dedupByLabel(matchedOptions(quote.hal_disyukuri, meta.disyukuriOptions));
   if (activeTab === "emosi") {
     const match = emosiItems.find((e) => e.label === (quote.emosi_anak || "").trim());
     return match ? [{ label: match.label, icon: match.icon }] : [];
@@ -530,14 +577,14 @@ function tagsForActiveTab(quote, activeTab, emosiItems) {
   return [];
 }
 
-function VoiceCardFooter({ quote, size }) {
+function VoiceCardFooter({ quote, size, meta }) {
   const avatarClass = size === "lg" ? styles.voiceAvatarLg : styles.voiceAvatarSm;
   const nameClass = size === "lg" ? styles.voiceCardNameLg : styles.voiceCardNameSm;
   return (
     <div className={styles.voiceCardFooter}>
       <span className={avatarClass}>{(quote.nama_murid || "?").charAt(0).toUpperCase()}</span>
       <div>
-        <p className={nameClass}>{quote.nama_murid || "Orang tua"}</p>
+        <p className={nameClass}>{quote.nama_murid || meta.namaFallback}</p>
         <p className={styles.voiceCardRole}>{quote.kelas_id || "—"}</p>
       </div>
     </div>
@@ -545,10 +592,10 @@ function VoiceCardFooter({ quote, size }) {
 }
 
 /** Kartu kutipan, satu narasi per kartu, tag mengikuti dimensi tab yang sedang aktif. */
-function VoiceGridCard({ quote, activeTab, emosiItems, onShare }) {
-  const tags = tagsForActiveTab(quote, activeTab, emosiItems);
+function VoiceGridCard({ quote, activeTab, emosiItems, onShare, meta }) {
+  const tags = tagsForActiveTab(quote, activeTab, emosiItems, meta);
   return (
-    <div className={`${styles.quoteBentoCard} ${toneClassForQuote(quote)}`}>
+    <div className={`${styles.quoteBentoCard} ${toneClassForQuote(quote, meta)}`}>
       {tags.length > 0 && (
         <div className={styles.quoteBentoTags}>
           {tags.map((t) => <span key={t.label} className={styles.quoteBentoTag}>{t.icon} {t.label}</span>)}
@@ -556,7 +603,7 @@ function VoiceGridCard({ quote, activeTab, emosiItems, onShare }) {
       )}
       <p className={styles.quoteBentoText}>“{quote.text}”</p>
       <div className={styles.voiceCardBottom}>
-        <VoiceCardFooter quote={quote} size="sm" />
+        <VoiceCardFooter quote={quote} size="sm" meta={meta} />
         {onShare && (
           <button type="button" className={styles.voiceShareBtn} onClick={() => onShare(quote)}>
             <span aria-hidden="true">↗</span> Teruskan
@@ -567,13 +614,15 @@ function VoiceGridCard({ quote, activeTab, emosiItems, onShare }) {
   );
 }
 
-/** Teks WhatsApp untuk kartu suara orang tua: bingkai sebagai pengingat, bukan sekadar forward. */
-function voiceReminderText(quote) {
+/** Teks WhatsApp untuk kartu suara responden: bingkai sebagai pengingat, bukan sekadar forward. */
+function voiceReminderText(quote, meta) {
   const kelas = quote.kelas_id || "—";
   return [
     `*Diteruskan lewat Rapor Karakter Fammi*`,
     `Kelas: ${kelas}`,
-    `Masukan orang tua (${quote.nama_murid || "orang tua"}):`,
+    // waLabel sendiri sudah punya fallback nama huruf kecil ("orang tua"/"siswa"), sama persis
+    // dengan fallback yang dulu ditulis inline di sini.
+    meta.waLabel(quote.nama_murid),
     ``,
     `"${quote.text}"`,
     ``,
@@ -585,17 +634,18 @@ function voiceReminderText(quote) {
  * Dialog konfirmasi sebelum share ke WhatsApp: pimpinan lihat dulu isinya, dengan pengingat
  * bahwa ini untuk mengingatkan wali kelas/guru terkait, bukan untuk disebar sembarangan.
  */
-function VoiceShareDialog({ quote, onClose }) {
+function VoiceShareDialog({ quote, onClose, sumber = "orangtua" }) {
+  const meta = refleksiMeta(sumber);
   function kirim() {
-    window.open(`https://wa.me/?text=${encodeURIComponent(voiceReminderText(quote))}`, "_blank", "noopener,noreferrer");
+    window.open(`https://wa.me/?text=${encodeURIComponent(voiceReminderText(quote, meta))}`, "_blank", "noopener,noreferrer");
     onClose();
   }
   return (
     <DetailDialog
       icon="↗"
       eyebrow="Teruskan kepada yang berkepentingan"
-      title="Teruskan masukan orang tua"
-      subtitle={`${quote.nama_murid || "Orang tua"} · ${quote.kelas_id || "—"}`}
+      title={meta.dialogTeruskanTitle}
+      subtitle={`${quote.nama_murid || meta.namaFallback} · ${quote.kelas_id || "—"}`}
       onClose={onClose}
     >
       <section>
@@ -621,7 +671,7 @@ function VoiceShareDialog({ quote, onClose }) {
  * ditampilkan. Ganti dengan daftar nama murid yang memilih kategori itu, biar kelihatan
  * siapa saja. Tiap nama bisa diklik untuk membuka resume karakter anak + refleksi orang tuanya.
  */
-function NamesGrid({ rows, onSelect }) {
+function NamesGrid({ rows, onSelect, meta }) {
   return (
     <div className={styles.pvNamesGrid}>
       {rows.map((r, i) => {
@@ -635,7 +685,7 @@ function NamesGrid({ rows, onSelect }) {
           >
             <span className={styles.pvNameAvatar}>{(r.nama_murid || "?").charAt(0).toUpperCase()}</span>
             <div className={styles.pvNameMeta}>
-              <span className={styles.pvNameText}>{r.nama_murid || "Orang tua"}</span>
+              <span className={styles.pvNameText}>{r.nama_murid || meta.namaFallback}</span>
               <span className={styles.pvNameKelas}>{r.kelas_id || "—"}</span>
             </div>
             {onSelect && <span className={styles.pvNameArrow}>›</span>}
@@ -672,7 +722,7 @@ function useMuridAspek(sekolahId, muridId, periodeId) {
   return state;
 }
 
-/** Satu baris refleksi orang tua di dialog resume (label + isi), disembunyikan kalau kosong. */
+/** Satu baris refleksi di dialog resume (label + isi), disembunyikan kalau kosong. */
 function ReflectionRow({ label, children }) {
   return (
     <div className={styles.resumeRow}>
@@ -684,27 +734,29 @@ function ReflectionRow({ label, children }) {
 
 /**
  * Dialog resume satu anak: hasil karakter per aspek (kalau data & konfigurasi tersedia) plus
- * refleksi orang tuanya (apresiasi/harapan, emosi anak, dukungan yang diminta, hal yang disyukuri).
+ * refleksi respondennya (apresiasi/harapan, emosi anak, dukungan yang diminta, hal yang
+ * disyukuri). Semua teks dan daftar opsi mengikuti sumber refleksi yang sedang dibuka.
  */
-function MuridResumeDialog({ row, aspek, sekolahId, periodeId, onClose }) {
+function MuridResumeDialog({ row, aspek, sekolahId, periodeId, onClose, sumber = "orangtua" }) {
+  const meta = refleksiMeta(sumber);
   const { loading, skorByAspek } = useMuridAspek(sekolahId, row.murid_id, periodeId);
   const hasSkor = Object.keys(skorByAspek).length > 0;
 
-  const kategoriTags = matchedCategoryTags(row.kategori_pernyataan);
+  const kategoriTags = dedupByLabel(matchedOptions(row.kategori_pernyataan, meta.kategoriOptions));
   const quote = extractPlainText(row.pernyataan);
   const showQuote = !isBlankEssay(row.pernyataan);
   const emosi = (row.emosi_anak || "").trim();
   const showEmosi = emosi && emosi !== "0";
   const alasan = extractPlainText(row.alasan_emosi);
   const showAlasan = !isBlankEssay(row.alasan_emosi);
-  const dukungan = matchedOptions(row.dukungan_dibutuhkan, DUKUNGAN_OPTIONS);
-  const disyukuri = matchedOptions(row.hal_disyukuri, HAL_DISYUKURI_OPTIONS);
+  const dukungan = dedupByLabel(matchedOptions(row.dukungan_dibutuhkan, meta.dukunganOptions));
+  const disyukuri = dedupByLabel(matchedOptions(row.hal_disyukuri, meta.disyukuriOptions));
 
   return (
     <DetailDialog
       icon="🧑‍🎓"
       eyebrow="Resume Anak"
-      title={row.nama_murid || "Orang tua"}
+      title={row.nama_murid || meta.namaFallback}
       subtitle={row.kelas_id || "—"}
       onClose={onClose}
     >
@@ -720,7 +772,7 @@ function MuridResumeDialog({ row, aspek, sekolahId, periodeId, onClose }) {
       </section>
 
       <section>
-        <p className={styles.dialogSectionTitle}>Refleksi orang tua</p>
+        <p className={styles.dialogSectionTitle}>{meta.headingRefleksi}</p>
         <div className={styles.resumeReflection}>
           {kategoriTags.length > 0 && (
             <ReflectionRow label="Jenis masukan">
@@ -730,7 +782,7 @@ function MuridResumeDialog({ row, aspek, sekolahId, periodeId, onClose }) {
             </ReflectionRow>
           )}
           {showQuote && (
-            <ReflectionRow label="Pesan orang tua">
+            <ReflectionRow label={meta.labelPesan}>
               <p className={styles.resumeQuote}>“{quote}”</p>
             </ReflectionRow>
           )}
@@ -754,7 +806,7 @@ function MuridResumeDialog({ row, aspek, sekolahId, periodeId, onClose }) {
             </ReflectionRow>
           )}
           {kategoriTags.length === 0 && !showQuote && !showEmosi && dukungan.length === 0 && disyukuri.length === 0 && (
-            <p className={styles.briefingEmptyText}>Orang tua belum mengisi refleksi lain untuk periode ini.</p>
+            <p className={styles.briefingEmptyText}>{meta.emptyText.dialogLain}</p>
           )}
         </div>
       </section>
@@ -763,18 +815,23 @@ function MuridResumeDialog({ row, aspek, sekolahId, periodeId, onClose }) {
 }
 
 /**
- * Ringkasan kualitatif suara orang tua, gaya bento, dipakai di level Kepsek/Yayasan (agregat
- * lintas kelas/sekolah). Empat sub-menu terpisah, satu dimensi aktif dalam satu waktu, tiap
- * dimensi punya kolom esai sendiri (bukan berbagi satu kolom `pernyataan` untuk semuanya):
- * Testimoni (kategori_pernyataan, esai dari pernyataan), Emosi Anak (emosi_anak, esai dari
- * alasan_emosi), Dukungan Dibutuhkan (dukungan_dibutuhkan, esai dari dukungan_lainnya -- baris
- * tanpa esai nyata di kolom ini tidak ditampilkan), Hal Disyukuri (hal_disyukuri, esai berupa
- * teks lengkap opsi yang dipilih karena tidak ada kolom esai bebas terpisah untuk dimensi ini).
- * Pilih satu nilai di dalam sub-menu yang aktif untuk melihat esai aslinya -- kutipan terpanjang/
- * paling substantif jadi kartu besar, sisanya jadi grid pendukung, tampil 10 dulu lalu bisa
- * dimuat semua. Tidak pernah menampilkan baris kosong/placeholder seolah ada isinya.
+ * Ringkasan kualitatif suara satu sumber refleksi (orang tua atau siswa), gaya bento, dipakai di
+ * level Kepsek/Yayasan (agregat lintas kelas/sekolah). Empat sub-menu terpisah, satu dimensi
+ * aktif dalam satu waktu, tiap dimensi punya kolom esai sendiri (bukan berbagi satu kolom
+ * `pernyataan` untuk semuanya): Testimoni (kategori_pernyataan, esai dari pernyataan), Emosi Anak
+ * (emosi_anak, esai dari alasan_emosi), Dukungan Dibutuhkan (dukungan_dibutuhkan, esai dari
+ * dukungan_lainnya -- baris tanpa esai nyata di kolom ini tidak ditampilkan), Hal Disyukuri
+ * (hal_disyukuri, esai berupa teks lengkap opsi yang dipilih karena tidak ada kolom esai bebas
+ * terpisah untuk dimensi ini). Pilih satu nilai di dalam sub-menu yang aktif untuk melihat esai
+ * aslinya -- kutipan terpanjang/paling substantif jadi kartu besar, sisanya jadi grid pendukung,
+ * tampil 10 dulu lalu bisa dimuat semua. Tidak pernah menampilkan baris kosong/placeholder seolah
+ * ada isinya.
+ *
+ * Seluruh teks dan daftar opsi datang dari REFLEKSI_META[sumber]; komponen ini tidak lagi menanam
+ * satu pun kalimat "orang tua" di badannya. Default sumber "orangtua" menjaga pemanggil lama
+ * (lewat alias ParentVoiceBento) menghasilkan tampilan yang sama persis seperti sebelumnya.
  */
-export function ParentVoiceBento({ pernyataan, aspek, sekolahId, periodeId, sekolahOptions, aspekBySekolah }) {
+export function VoiceBento({ sumber = "orangtua", pernyataan, aspek, sekolahId, periodeId, sekolahOptions, aspekBySekolah }) {
   const [activeTab, setActiveTab] = useState("testimoni");
   const [selectedValue, setSelectedValue] = useState(null);
   const [showAllQuotes, setShowAllQuotes] = useState(false);
@@ -783,8 +840,17 @@ export function ParentVoiceBento({ pernyataan, aspek, sekolahId, periodeId, seko
   const [selectedMurid, setSelectedMurid] = useState(null);
   const [shareTarget, setShareTarget] = useState(null);
 
+  const meta = refleksiMeta(sumber);
+  // Peta pencocokan dibangun dari opsi milik sumber ini, bukan dari opsi orang tua yang dulu
+  // jadi konstanta level modul. Lihat matchMapByLabel untuk alasan bentuknya array.
+  const matchMaps = useMemo(() => ({
+    kategori: matchMapByLabel(meta.kategoriOptions),
+    dukungan: matchMapByLabel(meta.dukunganOptions),
+    disyukuri: matchMapByLabel(meta.disyukuriOptions),
+  }), [meta]);
+
   if (!pernyataan || pernyataan.length === 0) {
-    return <p className={styles.briefingEmptyText}>Belum ada refleksi orang tua untuk periode ini.</p>;
+    return <p className={styles.briefingEmptyText}>{meta.emptyText.blok}</p>;
   }
 
   const hasSekolahFilter = sekolahOptions && sekolahOptions.length > 0;
@@ -792,10 +858,13 @@ export function ParentVoiceBento({ pernyataan, aspek, sekolahId, periodeId, seko
   // narasi kanan selalu konsisten merujuk sekolah yang sama saat sekolah tertentu dipilih.
   const basePernyataan = filterSekolah ? pernyataan.filter((p) => p.sekolah_id === filterSekolah) : pernyataan;
 
+  // Emosi tetap dibaca dari kolom emosi_anak untuk kedua sumber: importer menulis kolom Excel
+  // emosi_siswa ke kolom DB yang sama (nama tabel/kolom peninggalan, tidak diganti demi
+  // kompatibilitas), jadi yang berbeda antar sumber cuma label tampilannya (meta.emosiLabel).
   const emosi = countEmosi(basePernyataan);
-  const dukungan = countMultiValue(basePernyataan, "dukungan_dibutuhkan", DUKUNGAN_OPTIONS);
-  const testimoni = countMultiValue(basePernyataan, "kategori_pernyataan", KATEGORI_PERNYATAAN_OPTIONS);
-  const halDisyukuri = countMultiValue(basePernyataan, "hal_disyukuri", HAL_DISYUKURI_OPTIONS);
+  const dukungan = countMultiValue(basePernyataan, "dukungan_dibutuhkan", meta.dukunganOptions);
+  const testimoni = countMultiValue(basePernyataan, "kategori_pernyataan", meta.kategoriOptions);
+  const halDisyukuri = countMultiValue(basePernyataan, "hal_disyukuri", meta.disyukuriOptions);
 
   const hasAnyData = emosi.total > 0 || dukungan.totalWithAnswer > 0 || testimoni.totalWithAnswer > 0 || halDisyukuri.totalWithAnswer > 0;
 
@@ -837,8 +906,8 @@ export function ParentVoiceBento({ pernyataan, aspek, sekolahId, periodeId, seko
   let matchedRows = [];
   if (effectiveValue) {
     if (isNamesMode) {
-      const match = HAL_DISYUKURI_MATCH_BY_LABEL[effectiveValue];
-      matchedRows = basePernyataan.filter((p) => (p.hal_disyukuri || "").includes(match));
+      const matches = matchMaps.disyukuri[effectiveValue];
+      matchedRows = basePernyataan.filter((p) => matchesLabel(p.hal_disyukuri, matches));
     } else {
       const field = essayFieldForTab(activeTab);
       let base = basePernyataan
@@ -847,11 +916,11 @@ export function ParentVoiceBento({ pernyataan, aspek, sekolahId, periodeId, seko
       if (activeTab === "emosi") {
         base = base.filter((q) => (q.emosi_anak || "").trim() === effectiveValue);
       } else if (activeTab === "dukungan") {
-        const match = DUKUNGAN_MATCH_BY_LABEL[effectiveValue];
-        base = base.filter((q) => (q.dukungan_dibutuhkan || "").includes(match));
+        const matches = matchMaps.dukungan[effectiveValue];
+        base = base.filter((q) => matchesLabel(q.dukungan_dibutuhkan, matches));
       } else {
-        const match = KATEGORI_MATCH_BY_LABEL[effectiveValue];
-        base = base.filter((q) => (q.kategori_pernyataan || "").includes(match));
+        const matches = matchMaps.kategori[effectiveValue];
+        base = base.filter((q) => matchesLabel(q.kategori_pernyataan, matches));
       }
       matchedRows = base.sort((a, b) => b.text.length - a.text.length);
     }
@@ -878,7 +947,7 @@ export function ParentVoiceBento({ pernyataan, aspek, sekolahId, periodeId, seko
     <div className={styles.parentVoiceWrap}>
       <div className={styles.voiceTabsRow}>
         <div className={styles.voiceTabs}>
-          {VOICE_TABS.map((t) => (
+          {meta.voiceTabs.map((t) => (
             <button
               key={t.id} type="button"
               className={`${styles.voiceTab} ${activeTab === t.id ? styles.voiceTabActive : ""}`}
@@ -904,12 +973,10 @@ export function ParentVoiceBento({ pernyataan, aspek, sekolahId, periodeId, seko
       </div>
 
       {!hasAnyData ? (
-        <p className={styles.briefingEmptyText}>
-          Belum ada refleksi orang tua yang bisa ditampilkan{filterSekolah ? " untuk sekolah ini" : ""} periode ini.
-        </p>
+        <p className={styles.briefingEmptyText}>{meta.emptyText.dataKosong(Boolean(filterSekolah))}</p>
       ) : (
       <>
-      {/* Dua kolom: hitungan per kategori di kiri, narasi orang tua yang cocok langsung di kanan.
+      {/* Dua kolom: hitungan per kategori di kiri, narasi responden yang cocok langsung di kanan.
           Semua tab memakai tampilan yang sama supaya konsisten. */}
       <div className={styles.pvTwoCol}>
         <div className={styles.pvColLeft}>
@@ -928,7 +995,7 @@ export function ParentVoiceBento({ pernyataan, aspek, sekolahId, periodeId, seko
                 <p className={styles.pvColRightHead}>
                   {badgeIcon ? `${badgeIcon} ` : ""}{effectiveValue}
                   <span className={styles.pvColRightCount}>
-                    {rows.length} {isNamesMode ? "orang tua" : "narasi"}
+                    {rows.length} {isNamesMode ? meta.satuan : "narasi"}
                   </span>
                 </p>
                 {kelasOptions.length > 1 && (
@@ -946,7 +1013,7 @@ export function ParentVoiceBento({ pernyataan, aspek, sekolahId, periodeId, seko
               {rows.length === 0 ? (
                 <p className={styles.briefingEmptyText}>Tidak ada di kelas ini.</p>
               ) : isNamesMode ? (
-                <NamesGrid rows={visibleRows} onSelect={setSelectedMurid} />
+                <NamesGrid rows={visibleRows} onSelect={setSelectedMurid} meta={meta} />
               ) : (
                 <div className={styles.pvEssayList}>
                   {visibleRows.map((q, i) => (
@@ -956,6 +1023,7 @@ export function ParentVoiceBento({ pernyataan, aspek, sekolahId, periodeId, seko
                       activeTab={activeTab}
                       emosiItems={emosi.items}
                       onShare={setShareTarget}
+                      meta={meta}
                     />
                   ))}
                 </div>
@@ -974,7 +1042,7 @@ export function ParentVoiceBento({ pernyataan, aspek, sekolahId, periodeId, seko
             </>
           ) : categoryTotalCount > 0 ? (
             <p className={styles.briefingEmptyText}>
-              {categoryTotalCount} orang tua memilih "{effectiveValue}", tapi belum ada yang menuliskan pesan tertulis untuk periode ini.
+              {meta.emptyText.tanpaEsai(categoryTotalCount, effectiveValue)}
             </p>
           ) : (
             <p className={styles.briefingEmptyText}>Belum ada data untuk pilihan ini.</p>
@@ -990,11 +1058,50 @@ export function ParentVoiceBento({ pernyataan, aspek, sekolahId, periodeId, seko
           aspek={(aspekBySekolah && selectedMurid.sekolah_id) ? (aspekBySekolah[selectedMurid.sekolah_id] || aspek) : aspek}
           sekolahId={selectedMurid.sekolah_id || sekolahId}
           periodeId={periodeId}
+          sumber={meta.key}
           onClose={() => setSelectedMurid(null)}
         />
       )}
 
-      {shareTarget && <VoiceShareDialog quote={shareTarget} onClose={() => setShareTarget(null)} />}
+      {shareTarget && <VoiceShareDialog quote={shareTarget} sumber={meta.key} onClose={() => setShareTarget(null)} />}
+    </div>
+  );
+}
+
+/**
+ * Alias tipis untuk pemanggil lama (KepsekView, WaliKelasView, YayasanView) yang belum tahu soal
+ * multi-sumber. Nama ekspor sengaja dipertahankan supaya tidak ada berkas lain yang perlu ikut
+ * berubah di batch ini; jalur orang tua lewat alias ini identik dengan sebelum refactor.
+ */
+export function ParentVoiceBento(props) {
+  return <VoiceBento sumber="orangtua" {...props} />;
+}
+
+/**
+ * Saklar sumber refleksi di kepala section Suara. Null kalau cuma satu sumber tersedia, jadi
+ * sekolah yang cuma punya refleksi orang tua tidak melihat jejak apa pun dari fitur ini.
+ */
+export function SourceSwitch({ sumberList, value, onChange }) {
+  const list = (sumberList || []).filter((s) => REFLEKSI_META[s]);
+  if (list.length < 2) return null;
+  return (
+    <div className={styles.sourceSwitch} role="group" aria-label="Sumber refleksi">
+      {list.map((s) => {
+        const meta = REFLEKSI_META[s];
+        const active = value === s;
+        return (
+          <button
+            key={s}
+            type="button"
+            aria-pressed={active}
+            className={`${styles.sourceSwitchPill} ${active ? styles.sourceSwitchPillActive : ""}`}
+            onClick={() => onChange && onChange(s)}
+          >
+            <span aria-hidden="true">{meta.icon}</span>
+            {meta.label}
+          </button>
+        );
+      })}
     </div>
   );
 }
@@ -1161,11 +1268,8 @@ export function IndikatorGrid({ items, onSelect }) {
   );
 }
 
-/** Kartu refleksi orang tua untuk satu murid. */
-export function ReflectionBlock({ pernyataan, namaMurid }) {
-  if (!pernyataan) {
-    return <p className={styles.briefingEmptyText}>Belum ada refleksi dari orang tua {namaMurid} periode ini.</p>;
-  }
+/** Isi satu kartu refleksi; label emosinya ikut sumber (orang tua menilai anak, siswa lapor diri). */
+function ReflectionCard({ pernyataan, meta }) {
   return (
     <div className={styles.reflectionCard}>
       {pernyataan.kategori_pernyataan && (
@@ -1175,7 +1279,7 @@ export function ReflectionBlock({ pernyataan, namaMurid }) {
       <div className={styles.reflectionMetaGrid}>
         {pernyataan.emosi_anak && (
           <div>
-            <span className={styles.metaLabel}>Perasaan anak menurut orang tua</span>
+            <span className={styles.metaLabel}>{meta.emosiLabel}</span>
             <span className={styles.metaVal}>{pernyataan.emosi_anak}</span>
           </div>
         )}
@@ -1194,6 +1298,45 @@ export function ReflectionBlock({ pernyataan, namaMurid }) {
       </div>
     </div>
   );
+}
+
+/**
+ * Kartu refleksi untuk satu murid.
+ *
+ * Dua bentuk pemakaian, keduanya sah:
+ * - lama, satu sumber: `pernyataan` (satu baris atau null) + `namaMurid`. DOM-nya persis sama
+ *   dengan sebelum multi-sumber, tanpa badge, karena satu-satunya sumber saat itu orang tua.
+ * - baru, multi-sumber: `blocks = [{ sumber, row }]`. Satu kartu per entri dengan badge sumber,
+ *   dan entri yang `row`-nya kosong tetap dirender sebagai empty state milik sumber itu supaya
+ *   kelihatan sumber mana yang belum mengisi, bukan hilang tanpa jejak.
+ */
+export function ReflectionBlock({ pernyataan, namaMurid, blocks }) {
+  if (Array.isArray(blocks)) {
+    return (
+      <div className={styles.reflectionBlocks}>
+        {blocks.map(({ sumber, row }) => {
+          const meta = refleksiMeta(sumber);
+          return (
+            <div key={meta.key} className={styles.reflectionBlockItem}>
+              <span className={styles.reflectionSourceBadge}>
+                <span aria-hidden="true">{meta.icon}</span>
+                {meta.label}
+              </span>
+              {row
+                ? <ReflectionCard pernyataan={row} meta={meta} />
+                : <p className={styles.briefingEmptyText}>{meta.emptyText.murid(namaMurid)}</p>}
+            </div>
+          );
+        })}
+      </div>
+    );
+  }
+
+  const meta = REFLEKSI_META.orangtua;
+  if (!pernyataan) {
+    return <p className={styles.briefingEmptyText}>{meta.emptyText.murid(namaMurid)}</p>;
+  }
+  return <ReflectionCard pernyataan={pernyataan} meta={meta} />;
 }
 
 /** Ranking sederhana (dipakai untuk detail satu indikator: siapa saja skornya berapa). */

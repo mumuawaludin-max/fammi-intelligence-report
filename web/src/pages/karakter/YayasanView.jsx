@@ -4,7 +4,7 @@ import SampleTag from "../../components/SampleTag";
 import FollowupRibbon from "../../components/FollowupRibbon";
 import {
   KarakterStateBox, AskMascot, ScoreBarList, GoodEmptyState, Donut,
-  ParentVoiceBento, TrendChart, useSummaryTrend,
+  VoiceBento, SourceSwitch, TrendChart, useSummaryTrend,
 } from "./KarakterShared";
 import { StatCardMini, StatCardLandscape, AllGoodBanner, splitByClassify, scrollToId } from "./KarakterViewParts";
 import KebijakanGoals from "./KebijakanGoals";
@@ -13,6 +13,7 @@ import { useKarakterYayasan } from "./useKarakterData";
 import {
   pct, deltaVsPrevious, classifyPencapaian, periodeLabel, aspekIcon,
   avgAspek, ringkasanAspekValue, isKebijakanReady, SECTION_ICON,
+  REFLEKSI_META, REFLEKSI_SUMBER_URUTAN, judulSectionSuara,
 } from "./karakterMeta";
 import { KARAKTER_BAR_TONE_CUTOFF } from "../../lib/cutoffs";
 import styles from "./KarakterViews.module.css";
@@ -21,11 +22,38 @@ const WHO_YAYASAN = { short: "untuk Pengurus Yayasan", long: "untuk Yayasan" };
 // Yayasan: short 6 bulan, long 12 bulan (skalanya kebijakan lintas sekolah, bukan aksi harian).
 const RANGES_YAYASAN = { short: "6 Bulan ke Depan", long: "12 Bulan ke Depan" };
 
+/**
+ * Narasi kategori 2 (megaCategorySub, subtitle section Suara) dan kategori 3 (megaCategorySub
+ * tindak lanjut) yang menyebut sumber refleksi. Untuk sumberRefleksi = ["orangtua"] (varian A,
+ * sekolah existing) WAJIB mengembalikan string lama persis, disalin karakter demi karakter dari
+ * teks yang digantikannya; kombinasi lain disusun dari REFLEKSI_META[sumber].satuan lewat urutan
+ * tetap REFLEKSI_SUMBER_URUTAN.
+ */
+function narasiSuara(sumberList) {
+  const urut = REFLEKSI_SUMBER_URUTAN.filter((s) => sumberList.includes(s));
+  if (urut.length === 1 && urut[0] === "orangtua") {
+    return {
+      megaSub: "Sinyal dari rumah lintas sekolah yayasan: bagaimana karakter anak terlihat di luar sekolah, dan kepercayaan seperti apa yang sedang terbentuk di mata orang tua.",
+      sectionSubtitle: "Ini bukan testimoni, ini sinyal dari lingkungan rumah. Kalau banyak orang tua lintas sekolah menyebut hal yang sama, itu sinyal kuat untuk yayasan. Saring per sekolah untuk fokus ke satu sekolah.",
+      tindakLanjutSub: "Dari Fammi berdasarkan data lintas sekolah periode ini, bukan keputusan final. Sebagian menyasar mutu pembinaan, sebagian menyasar citra yayasan di mata orang tua; yang perlu perhatian didahulukan. Tiap kartu bisa dibuka dan dibagikan ke WhatsApp.",
+    };
+  }
+  const satuan = urut.map((s) => REFLEKSI_META[s]?.satuan).filter(Boolean).join(" dan ") || "orang tua";
+  return {
+    megaSub: `Sinyal dari rumah lintas sekolah yayasan: bagaimana karakter anak terlihat di luar sekolah, dan kepercayaan seperti apa yang sedang terbentuk di mata ${satuan}.`,
+    sectionSubtitle: `Ini bukan testimoni, ini sinyal dari lingkungan rumah. Kalau banyak ${satuan} lintas sekolah menyebut hal yang sama, itu sinyal kuat untuk yayasan. Saring per sekolah untuk fokus ke satu sekolah.`,
+    tindakLanjutSub: `Dari Fammi berdasarkan data lintas sekolah periode ini, bukan keputusan final. Sebagian menyasar mutu pembinaan, sebagian menyasar citra yayasan di mata ${satuan}; yang perlu perhatian didahulukan. Tiap kartu bisa dibuka dan dibagikan ke WhatsApp.`,
+  };
+}
+
 export default function YayasanView({ session, periodeId }) {
   const { loading, error, data } = useKarakterYayasan(session, periodeId);
   const [activeCategory, setActiveCategory] = useState("kualitas");
   const [sekolahTab, setSekolahTab] = useState("semua");
   const [selectedSekolahId, setSelectedSekolahId] = useState(null);
+  // Sumber refleksi aktif di section Suara; nilai efektifnya (sumberEfektif di bawah) dihitung
+  // ulang tiap render, tahan ganti periode/sekolah tanpa perlu useEffect.
+  const [sumberAktif, setSumberAktif] = useState("orangtua");
 
   // Satu baris per sekolah: identitas + ringkasan resmi periode berjalan.
   const sekolahRows = useMemo(() => {
@@ -48,7 +76,12 @@ export default function YayasanView({ session, periodeId }) {
 
   if (loading || error) return <KarakterStateBox loading={loading} error={error} />;
 
-  const { periode, aspekBySekolah, indikatorBySekolah, pernyataan, tindakLanjut } = data;
+  const { periode, aspekBySekolah, indikatorBySekolah, pernyataanBySumber, sumberRefleksi, tindakLanjut } = data;
+  // Kalau sumber aktif hilang dari daftar tersedia (ganti periode/sekolah), jatuh ke sumber
+  // pertama yang tersedia; fallback "orangtua" untuk kasus tanpa data refleksi sama sekali.
+  const sumberEfektif = sumberRefleksi.includes(sumberAktif) ? sumberAktif : (sumberRefleksi[0] || "orangtua");
+  const judulSuara = judulSectionSuara(sumberRefleksi);
+  const narasiSuaraTeks = narasiSuara(sumberRefleksi);
 
   // Baris nyata (sudah disetujui) kalau ada, fallback ke contoh sampai Gemini mengisi tabelnya.
   // kebijakanLegacy: sudah disetujui tapi berskema lama (belum lolos isKebijakanReady) --
@@ -82,7 +115,15 @@ export default function YayasanView({ session, periodeId }) {
     value: ringkasanAspekValue(activeSekolah?.ringkasan, a.aspek_kode, "rata_input_guru_"),
   }));
   const guruAch = activeSekolah ? avgAspek(activeSekolah.ringkasan, activeAspek, "rata_input_guru_") : null;
-  const ortuAch = activeSekolah ? avgAspek(activeSekolah.ringkasan, activeAspek, "rata_input_orangtua_") : null;
+  // Dulu selalu satu donut "orang tua" (satu-satunya sumber refleksi lama). Sekarang dirender
+  // per sumber di REFLEKSI_SUMBER_URUTAN yang datanya benar-benar ada di ringkasan sekolah ini,
+  // supaya sekolah dengan refleksi siswa (varian B) dapat donut tambahan, sementara sekolah yang
+  // cuma punya refleksi orang tua (varian A) tetap satu donut berlabel persis sama seperti dulu.
+  const refleksiDonutList = REFLEKSI_SUMBER_URUTAN.map((sumber) => {
+    const meta = REFLEKSI_META[sumber];
+    const value = activeSekolah ? avgAspek(activeSekolah.ringkasan, activeAspek, meta.summaryKeys.rataAspekPrefix) : null;
+    return { sumber, label: `Rata-rata karakter (${meta.satuan})`, value };
+  }).filter((d) => d.value != null);
   // Indikator diagregat dari skor murid tiap sekolah (bukan dari summary sekolah yang tak punya top5 indikator).
   const activeIndikator = activeSekolah ? (indikatorBySekolah[activeSekolah.id] || []) : [];
   const adaIndikator = activeIndikator.length > 0;
@@ -224,7 +265,9 @@ export default function YayasanView({ session, periodeId }) {
                         <p className={styles.dialogSectionTitle}>🧭 Dua sisi penilaian</p>
                         <div className={styles.detail2col}>
                           <Donut value={guruAch} label="Rata-rata karakter (guru)" />
-                          <Donut value={ortuAch} label="Rata-rata karakter (orang tua)" />
+                          {refleksiDonutList.map((d) => (
+                            <Donut key={d.sumber} value={d.value} label={d.label} />
+                          ))}
                         </div>
                       </section>
 
@@ -270,22 +313,21 @@ export default function YayasanView({ session, periodeId }) {
       {activeCategory === "citra" && (
       <div className={`${styles.megaCategory} ${styles.megaCategoryB}`}>
         <div className={styles.megaCategoryHeader}>
-          <h2 className={styles.megaCategoryTitle}>Perkembangan Citra Sekolah di Mata Orang Tua</h2>
-          <p className={styles.megaCategorySub}>
-            Sinyal dari rumah lintas sekolah yayasan: bagaimana karakter anak terlihat di luar sekolah,
-            dan kepercayaan seperti apa yang sedang terbentuk di mata orang tua.
-          </p>
+          <h2 className={styles.megaCategoryTitle}>{judulSuara.mega}</h2>
+          <p className={styles.megaCategorySub}>{narasiSuaraTeks.megaSub}</p>
         </div>
 
         <section className={styles.section}>
           <SectionHeading
             icon={SECTION_ICON.suaraOrtu}
             eyebrow="Sinyal dari luar sekolah"
-            title="Suara Orang Tua"
-            subtitle="Ini bukan testimoni, ini sinyal dari lingkungan rumah. Kalau banyak orang tua lintas sekolah menyebut hal yang sama, itu sinyal kuat untuk yayasan. Saring per sekolah untuk fokus ke satu sekolah."
+            title={judulSuara.section}
+            subtitle={narasiSuaraTeks.sectionSubtitle}
           />
-          <ParentVoiceBento
-            pernyataan={pernyataan}
+          <SourceSwitch sumberList={sumberRefleksi} value={sumberEfektif} onChange={setSumberAktif} />
+          <VoiceBento
+            sumber={sumberEfektif}
+            pernyataan={pernyataanBySumber[sumberEfektif] || []}
             aspekBySekolah={aspekBySekolah}
             sekolahOptions={sekolahRows.map((s) => ({ id: s.id, nama: s.nama }))}
             periodeId={periode}
@@ -299,11 +341,7 @@ export default function YayasanView({ session, periodeId }) {
       <div className={styles.megaCategory}>
         <div className={styles.megaCategoryHeader}>
           <h2 className={styles.megaCategoryTitle}>Tindak Lanjut Yayasan di Periode Ini</h2>
-          <p className={styles.megaCategorySub}>
-            Dari Fammi berdasarkan data lintas sekolah periode ini, bukan keputusan final. Sebagian
-            menyasar mutu pembinaan, sebagian menyasar citra yayasan di mata orang tua; yang perlu
-            perhatian didahulukan. Tiap kartu bisa dibuka dan dibagikan ke WhatsApp.
-          </p>
+          <p className={styles.megaCategorySub}>{narasiSuaraTeks.tindakLanjutSub}</p>
         </div>
 
         <section className={styles.section}>

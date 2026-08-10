@@ -50,6 +50,22 @@ export function getField(row, ...names) {
   return key ? row[key] : undefined;
 }
 
+/**
+ * true kalau seluruh kolom baris ini kosong KECUALI kolom bulan/periode. Bentuk ini muncul
+ * sebagai sisa spreadsheet: satu tanggal nyasar di kolom bulan, kolom lain (termasuk nama)
+ * kosong semua. Baris seperti ini bukan kesalahan pengisian yang berguna dilaporkan per baris,
+ * jadi dilewati seperti baris kosong di sheet summary, bukan digagalkan lewat aturan "nama
+ * kosong". Baris yang punya isi lain tapi namanya kosong TETAP dilaporkan, karena itu memang
+ * data rusak yang perlu dibetulkan di sumbernya.
+ */
+function isBarisKosongSelainBulan(row) {
+  return Object.entries(row).every(([k, v]) => {
+    const key = normalizeKey(k);
+    if (key === 'bulan' || key === 'periode' || key === 'periode_id') return true;
+    return String(v ?? '').trim() === '';
+  });
+}
+
 /** Serial tanggal Excel (basis 1899-12-30) diubah ke Date. */
 function excelSerialToDate(n) {
   return new Date(Math.round((n - 25569) * 86400 * 1000));
@@ -167,9 +183,42 @@ async function loadExistingMuridIds(sekolahId) {
 }
 
 /**
+ * Sheet refleksi yang dikenali, beserta nama kolom yang beda antar sumber. Dulu hanya ada satu
+ * sheet (`detail_pernyataan_orangtua`) dan nama kolomnya ditulis langsung di loop parsing; sejak
+ * SMK Telkom Purwokerto, satu file bisa memuat blok refleksi kedua dari siswa dengan struktur
+ * paralel persis, cuma beda akhiran nama kolom. Daftar ini yang jadi satu-satunya tempat nama
+ * kolom per sumber ditulis, jadi menambah sumber ketiga nanti cukup menambah satu entri di sini.
+ *
+ * `kolomPenanda` dipakai pre-flight: kalau sheet-nya hadir tapi kolom itu tidak ketemu, parse
+ * digagalkan dengan daftar header asli (lihat alasannya di dekat pengecekan itu). Kolom yang
+ * namanya SAMA di semua sumber (`kategori_pernyataan`, `dukungan_lainya`/`dukungan_lainnya`,
+ * nama/kelas/bulan) sengaja tidak masuk sini, tetap dibaca lewat getField langsung.
+ */
+const REFLEKSI_SHEETS = [
+  {
+    sheet: 'detail_pernyataan_orangtua', sumber: 'orangtua',
+    label: 'testimoni orang tua', kolomPenanda: 'pernyataan_orangtua',
+    kolom: {
+      pernyataan: 'pernyataan_orangtua', emosi_anak: 'emosi_anak', alasan_emosi: 'alasan_emosi_anak',
+      dukungan_dibutuhkan: 'dukungan_yang_dibutuhkan_orangtua', hal_disyukuri: 'hal_yang_disyukuri_orangtua',
+    },
+  },
+  {
+    sheet: 'detail_pernyataan_siswa', sumber: 'siswa',
+    label: 'testimoni siswa', kolomPenanda: 'pernyataan_siswa',
+    kolom: {
+      pernyataan: 'pernyataan_siswa', emosi_anak: 'emosi_siswa', alasan_emosi: 'alasan_emosi_siswa',
+      dukungan_dibutuhkan: 'dukungan_yang_dibutuhkan_siswa', hal_disyukuri: 'hal_yang_disyukuri_siswa',
+    },
+  },
+];
+
+/**
  * Baca workbook Excel (format sama seperti yang dipakai SDIP Al Madani: sheet
  * detail_persentase_karakter / detail_persentase_indikator / detail_pernyataan_orangtua /
  * summary_kelas / summary_jenjang / summary_sekolah) dan siapkan baris siap-insert.
+ * Sheet refleksi kedua `detail_pernyataan_siswa` opsional: kalau ada ikut terbaca dan tiap
+ * barisnya ditandai sumber='siswa', kalau tidak ada file tetap sah tanpa peringatan apa pun.
  * murid_id di-resolve terhadap data yang sudah ada di sekolah itu, bukan digenerate ulang
  * dari nol, supaya konsisten dipakai lintas periode. periode_id TIDAK diketik admin, tapi
  * dibaca per baris dari kolom "bulan" di sheet itu sendiri, karena satu file bisa memuat
@@ -182,20 +231,32 @@ export async function parseKarakterWorkbook(file, { sekolahId }) {
 
   const dk = sheet('detail_persentase_karakter');
   const di = sheet('detail_persentase_indikator');
-  const po = sheet('detail_pernyataan_orangtua');
+  // Sheet refleksi dibaca sebagai daftar, bukan variabel per sheet: yang absen tinggal berisi
+  // array kosong dan otomatis terlewat di pre-flight maupun loop parsing di bawah.
+  const refleksi = REFLEKSI_SHEETS.map((cfg) => ({ cfg, rows: sheet(cfg.sheet) }));
   const sk = sheet('summary_kelas');
   const sj = sheet('summary_jenjang');
   const ss = sheet('summary_sekolah');
 
+  // Objek yang sama dipasang ke preview lalu diisi saat loop parsing jalan, jadi pratinjau
+  // menghitung baris yang BENAR-BENAR terparse, bukan jumlah baris mentah di sheet.
+  const refleksiPerSumber = Object.fromEntries(REFLEKSI_SHEETS.map((cfg) => [cfg.sumber, 0]));
+  // Baris sisa spreadsheet yang dilewati (lihat isBarisKosongSelainBulan). Ditampilkan di
+  // pratinjau supaya admin tahu ada baris yang tidak ikut, bukan hilang diam-diam.
+  const refleksiBarisDilewati = Object.fromEntries(REFLEKSI_SHEETS.map((cfg) => [cfg.sumber, 0]));
+
   const preview = {
+    refleksiPerSumber,
+    refleksiBarisDilewati,
     sheets: [
       { name: 'detail_persentase_karakter', rows: dk.length, found: dk.length > 0 },
       { name: 'detail_persentase_indikator', rows: di.length, found: di.length > 0 },
-      { name: 'detail_pernyataan_orangtua', rows: po.length, found: po.length > 0 },
+      ...refleksi.map(({ cfg, rows }) => ({ name: cfg.sheet, rows: rows.length, found: rows.length > 0 })),
       { name: 'summary_kelas', rows: sk.length, found: sk.length > 0 },
       { name: 'summary_jenjang', rows: sj.length, found: sj.length > 0 },
       { name: 'summary_sekolah', rows: ss.length, found: ss.length > 0 },
     ],
+    refleksiSheetAda: refleksi.filter(({ rows }) => rows.length > 0).map(({ cfg }) => cfg.sumber),
   };
 
   if (dk.length === 0) {
@@ -305,47 +366,62 @@ export async function parseKarakterWorkbook(file, { sekolahId }) {
     });
   });
 
-  // Pre-flight: kolom testimoni ("pernyataan_orangtua") sengaja dicek SEBELUM loop, bukan
-  // per-baris, karena kalau kolomnya memang tidak ketemu di header, SEMUA baris akan gagal
-  // dengan cara yang sama -- lebih berguna satu pesan jelas dengan daftar header asli
-  // (seperti pengecekan kolom aspek karakter1-6 di atas) daripada mengimpor 500+ baris dengan
-  // testimoni kosong tanpa satu pun error, seperti yang sempat terjadi ke KB TK Istiqamah dua
-  // kali berturut-turut (kolom "pernyataan_orangtua" yang dicoba ternyata tidak cocok dengan
-  // nama kolom asli di file itu, bukan cuma beda kapitalisasi/spasi seperti dugaan awal).
-  if (po.length > 0 && getField(po[0], 'pernyataan_orangtua') === undefined) {
-    return {
-      preview, ok: false,
-      error: `Kolom testimoni orang tua tidak ditemukan di sheet detail_pernyataan_orangtua (dicari lewat nama "pernyataan_orangtua"). Kolom yang benar-benar ada di file: ${Object.keys(po[0]).join(', ')}. Cek nama kolom yang benar di daftar itu, lalu kabari pengembang supaya importer dicocokkan.`,
-    };
+  // Pre-flight: kolom penanda tiap sheet refleksi ("pernyataan_orangtua", "pernyataan_siswa")
+  // sengaja dicek SEBELUM loop, bukan per-baris, karena kalau kolomnya memang tidak ketemu di
+  // header, SEMUA baris akan gagal dengan cara yang sama -- lebih berguna satu pesan jelas
+  // dengan daftar header asli (seperti pengecekan kolom aspek karakter1-6 di atas) daripada
+  // mengimpor 500+ baris dengan testimoni kosong tanpa satu pun error, seperti yang sempat
+  // terjadi ke KB TK Istiqamah dua kali berturut-turut (kolom "pernyataan_orangtua" yang dicoba
+  // ternyata tidak cocok dengan nama kolom asli di file itu, bukan cuma beda kapitalisasi/spasi
+  // seperti dugaan awal). Dicek per sheet supaya pesannya menyebut sheet mana yang bermasalah;
+  // sheet yang tidak ada di file dilewati tanpa error, termasuk kalau dua-duanya tidak ada
+  // (file skor-saja tetap sah).
+  for (const { cfg, rows } of refleksi) {
+    if (rows.length > 0 && getField(rows[0], cfg.kolomPenanda) === undefined) {
+      return {
+        preview, ok: false,
+        error: `Kolom ${cfg.label} tidak ditemukan di sheet ${cfg.sheet} (dicari lewat nama "${cfg.kolomPenanda}"). Kolom yang benar-benar ada di file: ${Object.keys(rows[0]).join(', ')}. Cek nama kolom yang benar di daftar itu, lalu kabari pengembang supaya importer dicocokkan.`,
+      };
+    }
   }
 
+  // Semua sumber masuk ke SATU array pernyataanRows, dibedakan lewat kolom "sumber" per baris,
+  // bukan dipecah jadi array per sumber: importKarakterWorkbook memfilter array ini per periode
+  // saja, dan RPC di hulu yang menghapus per (sekolah, periode, sumber). Urutan sheet mengikuti
+  // urutan REFLEKSI_SHEETS, jadi file lama yang cuma punya blok orang tua menghasilkan isi dan
+  // urutan yang sama seperti sebelum sheet siswa dikenali, plus satu field sumber.
   const pernyataanRows = [];
-  po.forEach((r, i) => {
-    const nama = getField(r, 'nama');
-    if (!String(nama || '').trim()) { badRows.push(`detail_pernyataan_orangtua baris ${i + 2} (nama kosong)`); return; }
-    const namaKey = normalizeNama(nama);
-    const kelas = getField(r, 'kelas') || namaKelas[namaKey];
-    const periode = ownBulan(r) || namaPeriode[namaKey];
-    if (!periode) { badRows.push(`detail_pernyataan_orangtua baris ${i + 2} (bulan)`); return; }
-    if (!kelas) { badRows.push(`detail_pernyataan_orangtua baris ${i + 2} (kelas)`); return; }
-    countPeriode(periode);
-    // Dulu 6 kolom di bawah dibaca lewat properti langsung (r.pernyataan_orangtua dst),
-    // beda dari nama/kelas/bulan yang sudah lebih dulu case/spasi-toleran lewat getField().
-    // Bahaya nyatanya: kalau SATU SAJA kolom di header file beda kapitalisasi/spasi dari
-    // yang persis diharapkan, baris tetap ikut ter-insert (tidak masuk badRows sama sekali,
-    // karena kelas/bulan/nama-nya tetap lengkap) tapi kolom itu diam-diam jadi NULL untuk
-    // SEMUA baris -- persis yang terjadi di KB TK Istiqamah: 573/573 baris punya kolom
-    // "pernyataan" (testimoni orangtua) kosong padahal 6 kolom lain di sheet yang sama
-    // terisi penuh, ternyata cuma beda kapitalisasi/spasi di satu nama kolom itu saja.
-    // getField() sama-sama case/spasi-toleran seperti nama/kelas/bulan, jadi sekarang aman
-    // dari kelas bug yang sama untuk keenam kolom ini.
-    pernyataanRows.push({
-      sekolah_id: sekolahId, kelas_id: kelas, murid_id: muridId(nama), nama_murid: nama,
-      periode_id: periode,
-      kategori_pernyataan: getField(r, 'kategori_pernyataan'), pernyataan: getField(r, 'pernyataan_orangtua'),
-      emosi_anak: getField(r, 'emosi_anak'), alasan_emosi: getField(r, 'alasan_emosi_anak'),
-      dukungan_dibutuhkan: getField(r, 'dukungan_yang_dibutuhkan_orangtua'), dukungan_lainnya: getField(r, 'dukungan_lainya', 'dukungan_lainnya'),
-      hal_disyukuri: getField(r, 'hal_yang_disyukuri_orangtua'), status: 'disetujui',
+  refleksi.forEach(({ cfg, rows }) => {
+    rows.forEach((r, i) => {
+      if (isBarisKosongSelainBulan(r)) { refleksiBarisDilewati[cfg.sumber] += 1; return; }
+      const nama = getField(r, 'nama');
+      if (!String(nama || '').trim()) { badRows.push(`${cfg.sheet} baris ${i + 2} (nama kosong)`); return; }
+      const namaKey = normalizeNama(nama);
+      const kelas = getField(r, 'kelas') || namaKelas[namaKey];
+      const periode = ownBulan(r) || namaPeriode[namaKey];
+      if (!periode) { badRows.push(`${cfg.sheet} baris ${i + 2} (bulan)`); return; }
+      if (!kelas) { badRows.push(`${cfg.sheet} baris ${i + 2} (kelas)`); return; }
+      countPeriode(periode);
+      // Dulu 6 kolom di bawah dibaca lewat properti langsung (r.pernyataan_orangtua dst),
+      // beda dari nama/kelas/bulan yang sudah lebih dulu case/spasi-toleran lewat getField().
+      // Bahaya nyatanya: kalau SATU SAJA kolom di header file beda kapitalisasi/spasi dari
+      // yang persis diharapkan, baris tetap ikut ter-insert (tidak masuk badRows sama sekali,
+      // karena kelas/bulan/nama-nya tetap lengkap) tapi kolom itu diam-diam jadi NULL untuk
+      // SEMUA baris -- persis yang terjadi di KB TK Istiqamah: 573/573 baris punya kolom
+      // "pernyataan" (testimoni orangtua) kosong padahal 6 kolom lain di sheet yang sama
+      // terisi penuh, ternyata cuma beda kapitalisasi/spasi di satu nama kolom itu saja.
+      // getField() sama-sama case/spasi-toleran seperti nama/kelas/bulan, jadi sekarang aman
+      // dari kelas bug yang sama untuk keenam kolom ini. Nama kolom yang beda antar sumber
+      // diambil dari cfg.kolom, yang beda-nya cuma akhiran; sisanya sama di semua sumber.
+      pernyataanRows.push({
+        sekolah_id: sekolahId, kelas_id: kelas, murid_id: muridId(nama), nama_murid: nama,
+        periode_id: periode,
+        kategori_pernyataan: getField(r, 'kategori_pernyataan'), pernyataan: getField(r, cfg.kolom.pernyataan),
+        emosi_anak: getField(r, cfg.kolom.emosi_anak), alasan_emosi: getField(r, cfg.kolom.alasan_emosi),
+        dukungan_dibutuhkan: getField(r, cfg.kolom.dukungan_dibutuhkan), dukungan_lainnya: getField(r, 'dukungan_lainya', 'dukungan_lainnya'),
+        hal_disyukuri: getField(r, cfg.kolom.hal_disyukuri), sumber: cfg.sumber, status: 'disetujui',
+      });
+      refleksiPerSumber[cfg.sumber] += 1;
     });
   });
 
