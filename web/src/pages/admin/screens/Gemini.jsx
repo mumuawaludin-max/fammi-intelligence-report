@@ -22,7 +22,7 @@ const ROLES = [
 const INTERVAL_OPTIONS = [1, 3, 6, 12, 24];
 
 export function Gemini() {
-  const { data, loading, error, state, setGeminiFilter, setScreen, triggerGeminiJob, updateGeminiSchedule, refetch } = useCms();
+  const { data, loading, error, state, setGeminiFilter, setScreen, triggerGeminiJob, updateGeminiSchedule, refetch, showToast } = useCms();
   const [busyKey, setBusyKey] = useState(null);
   const [batchProgress, setBatchProgress] = useState(null); // { sekolahId, done, total } -- panel kelas
   const [batchSimple, setBatchSimple] = useState(null); // { panel: 'sekolah'|'yayasan', done, total }
@@ -88,18 +88,34 @@ export function Gemini() {
 
   async function generateSemuaSekolah(sekolahId, items) {
     setBatchProgress({ sekolahId, done: 0, total: items.length });
+    const hasil = [];
     try {
       for (let i = 0; i < items.length; i++) {
         const r = items[i];
-        await triggerGeminiJob({
+        hasil.push(await triggerGeminiJob({
           scope: 'kelas', scopeId: r.kelasId, sekolahId: r.sekolahId, modul: 'karakter',
           tipe: 'tindak_lanjut', periodeId: r.periodeId, role: 'wali_kelas',
-        });
+        }, { quiet: true }));
         setBatchProgress({ sekolahId, done: i + 1, total: items.length });
       }
     } finally {
       setBatchProgress(null);
+      laporBatch(hasil);
     }
+  }
+
+  /** Ringkasan satu batch: satu toast di akhir, lalu satu refetch. Kegagalan per item TIDAK
+   * ditelan diam-diam seperti dulu (tiap item cuma menimpa toast item sebelumnya, jadi yang
+   * tersisa di layar cuma nasib item terakhir). */
+  function laporBatch(hasil) {
+    const gagal = hasil.filter((h) => h && !h.ok);
+    const berhasil = hasil.length - gagal.length;
+    if (gagal.length === 0) {
+      showToast(`${berhasil} draf dibuat · menunggu tinjauan di Antrian Persetujuan`, 'safe', 6000);
+    } else {
+      showToast(`${berhasil} berhasil, ${gagal.length} gagal: ${gagal[0].error}`, 'warn', 9000);
+    }
+    refetch();
   }
 
   async function generateSekolah(r) {
@@ -159,25 +175,27 @@ export function Gemini() {
   // di generateSc di atas, alasan yang sama.
   async function generateSemuaLevel(panel, items, role, modul = 'karakter') {
     setBatchSimple({ panel, done: 0, total: items.length });
+    const hasil = [];
     try {
       for (let i = 0; i < items.length; i++) {
         const r = items[i];
         if (r.butuhTindakLanjut !== false) {
-          await triggerGeminiJob({
+          hasil.push(await triggerGeminiJob({
             scope: 'sekolah', scopeId: r.sekolahId, sekolahId: r.sekolahId, modul,
             tipe: 'tindak_lanjut', periodeId: r.periodeId, role,
-          });
+          }, { quiet: true }));
         }
         if (modul === 'sc' && r.butuhBriefing !== false) {
-          await triggerGeminiJob({
+          hasil.push(await triggerGeminiJob({
             scope: 'sekolah', scopeId: r.sekolahId, sekolahId: r.sekolahId, modul,
             tipe: 'briefing', periodeId: r.periodeId, role,
-          });
+          }, { quiet: true }));
         }
         setBatchSimple({ panel, done: i + 1, total: items.length });
       }
     } finally {
       setBatchSimple(null);
+      laporBatch(hasil);
     }
   }
 

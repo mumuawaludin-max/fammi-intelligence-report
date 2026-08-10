@@ -149,13 +149,24 @@ export function CmsProvider({ session, children }) {
     return result;
   }, [showToast]);
 
-  const triggerGeminiJob = useCallback(async (payload) => {
+  /**
+   * opts.quiet dipakai oleh tombol "Generate semua": tanpa itu, tiap item batch memicu satu
+   * toast plus satu refetch penuh CMS (belasan query lintas sekolah, sekarang dipaginasi
+   * pula), jadi batch 9 kelas menembak 9 muat-ulang beruntun yang saling menimpa dan bikin
+   * layar terasa menggantung. Pemanggil batch yang bertanggung jawab refetch sekali di akhir.
+   * Nilai baliknya {ok} supaya batch bisa melaporkan berapa yang gagal, bukan menelannya diam.
+   */
+  const triggerGeminiJob = useCallback(async (payload, opts = {}) => {
     try {
       await triggerGeminiJobAction(payload);
-      showToast('Draf baru dibuat · menunggu tinjauan di Antrian Persetujuan', 'safe');
-      refetch();
+      if (!opts.quiet) {
+        showToast('Draf baru dibuat · menunggu tinjauan di Antrian Persetujuan', 'safe');
+        refetch();
+      }
+      return { ok: true };
     } catch (e) {
-      showToast('Gemini gagal: ' + e.message, 'alert');
+      if (!opts.quiet) showToast('Gemini gagal: ' + e.message, 'alert');
+      return { ok: false, error: e.message };
     }
   }, [showToast, refetch]);
 

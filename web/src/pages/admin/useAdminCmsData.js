@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback } from 'react';
-import { supabase, edgeErrorDetail } from '../../lib/supabase';
+import { supabase, edgeErrorDetail, fetchAllRows } from '../../lib/supabase';
 import { importKarakterWorkbook } from './importers/karakterImporter';
 import { importScWorkbook } from './importers/scImporter';
 import { importPaWorkbook } from './importers/paImporter';
@@ -36,35 +36,57 @@ export function useAdminCmsData() {
         kelasSummaryRes, tlKelasAllRes, tlSekolahYayasanRes, scheduleRes,
         scLembagaRes, tlScRes, briefingScRes,
       ] = await Promise.all([
-        supabase.from('yayasan').select('id, nama'),
-        supabase.from('schools').select('id, nama, jenjang, yayasan_id, aktif, logo_url'),
-        supabase.from('school_modules').select('school_id, modul, aktif').eq('aktif', true),
-        supabase.from('karakter_summary').select('sekolah_id, periode_id').eq('scope', 'sekolah'),
-        supabase.from('karakter_aspek_config').select('sekolah_id, aspek_kode, aspek_label, urutan').order('urutan', { ascending: true }),
-        supabase.from('briefing').select('id, sekolah_id, modul, scope, scope_id, periode_id, teks, sumber, tema_esai, status, created_at').eq('status', 'menunggu_persetujuan'),
-        supabase.from('tindak_lanjut').select('id, sekolah_id, modul, scope, scope_id, periode_id, action, trigger_desc, priority, status, gambaran, opsi_kandidat, catatan_internal, langkah_terpilih, regenerate_dari, created_at, term, type, fokus, jenjang, icon, title, teaser, mengapa_data, mengapa_perspektif, dasar_teori, manfaat, konkret, target_role').in('status', ['menunggu_persetujuan', 'disetujui']),
+        // BUG NYATA YANG DITEMUKAN (2026-08): SELURUH query di blok ini dulu polos tanpa
+        // paginasi, padahal PostgREST/Supabase memotong hasil di 1000 baris DIAM-DIAM, tanpa
+        // error (lihat fetchAllRows di lib/supabase.js -- modul Karakter/MI sudah lama
+        // memakainya, CMS ini satu-satunya yang terlewat). Begitu tabel tindak_lanjut lewat
+        // 1000 baris (gampang: satu generate menulis 6-8 baris, dikali kelas x periode x
+        // sekolah), akibatnya berantai dan persis seperti yang dilaporkan admin:
+        //   1. tlRes terpotong -> baris menunggu_persetujuan yang BARU dibuat (posisinya di
+        //      ekor tabel) tidak pernah ikut terbaca, jadi Antrian Persetujuan tidak pernah
+        //      bertambah walau Edge Function sudah balas 200 dan toast bilang berhasil;
+        //   2. tlKelasAllRes/tlSekolahYayasanRes terpotong -> himpunan "sudah ada tindak
+        //      lanjut" bolong, jadi baris yang BARU saja digenerate tetap nongol di panel
+        //      Rekomendasi dan admin menekan Generate berulang-ulang tanpa akhir;
+        //   3. karena drafnya tidak pernah muncul di antrian, tidak ada yang bisa disetujui,
+        //      sehingga laporan Kepala Sekolah/Wali Kelas jatuh ke isi contoh (KEBIJAKAN_*
+        //      di pages/karakter/dummyKebijakan.js) yang sama persis di semua bulan.
+        // Insert-nya sendiri TIDAK PERNAH bermasalah; yang rusak cuma sisi baca. Semua query
+        // tak berbatas di bawah ini sekarang dipaginasi penuh, dengan .order() eksplisit pada
+        // kolom unik supaya urutan antar halaman stabil (tanpa order, PostgREST tidak menjamin
+        // urutan yang sama tiap request, baris bisa dobel atau terlewat antar halaman).
+        fetchAllRows((from, to) => supabase.from('yayasan').select('id, nama').order('id').range(from, to)),
+        fetchAllRows((from, to) => supabase.from('schools').select('id, nama, jenjang, yayasan_id, aktif, logo_url').order('id').range(from, to)),
+        // school_modules = sekolah x modul, jadi ratusan sekolah saja sudah lewat 1000. Kalau
+        // terpotong, sekolah kehilangan daftar modulnya dan diam-diam dilewati saat menyusun
+        // rekomendasi Kepala Sekolah/Yayasan (dicek lewat modules.includes('karakter')).
+        fetchAllRows((from, to) => supabase.from('school_modules').select('school_id, modul, aktif').eq('aktif', true).order('school_id').order('modul').range(from, to)),
+        fetchAllRows((from, to) => supabase.from('karakter_summary').select('sekolah_id, periode_id').eq('scope', 'sekolah').order('sekolah_id').order('periode_id').range(from, to)),
+        fetchAllRows((from, to) => supabase.from('karakter_aspek_config').select('sekolah_id, aspek_kode, aspek_label, urutan').order('sekolah_id').order('urutan', { ascending: true }).order('aspek_kode').range(from, to)),
+        fetchAllRows((from, to) => supabase.from('briefing').select('id, sekolah_id, modul, scope, scope_id, periode_id, teks, sumber, tema_esai, status, created_at').eq('status', 'menunggu_persetujuan').order('id').range(from, to)),
+        fetchAllRows((from, to) => supabase.from('tindak_lanjut').select('id, sekolah_id, modul, scope, scope_id, periode_id, action, trigger_desc, priority, status, gambaran, opsi_kandidat, catatan_internal, langkah_terpilih, regenerate_dari, created_at, term, type, fokus, jenjang, icon, title, teaser, mengapa_data, mengapa_perspektif, dasar_teori, manfaat, konkret, target_role').in('status', ['menunggu_persetujuan', 'disetujui']).order('id').range(from, to)),
         supabase.from('import_log').select('*').order('created_at', { ascending: false }).limit(50),
-        supabase.from('profiles').select('id, username, nama, peran, school_id, cakupan, created_at'),
+        fetchAllRows((from, to) => supabase.from('profiles').select('id, username, nama, peran, school_id, cakupan, created_at').order('id').range(from, to)),
         // Dipakai buat hitung "kelas belum ada tindak lanjut" (Rekomendasi di layar Gemini).
         // Sengaja HANYA hitung status menunggu_persetujuan/disetujui sebagai "sudah ada" --
         // kelas yang drafnya ditolak harus muncul lagi di sini supaya gampang di-generate ulang,
         // bukan malah hilang dari daftar rekomendasi selamanya.
-        supabase.from('karakter_summary').select('sekolah_id, scope_id, periode_id').eq('scope', 'kelas'),
-        supabase.from('tindak_lanjut').select('sekolah_id, scope_id, periode_id').eq('modul', 'karakter').eq('scope', 'kelas').in('status', ['menunggu_persetujuan', 'disetujui']),
+        fetchAllRows((from, to) => supabase.from('karakter_summary').select('sekolah_id, scope_id, periode_id').eq('scope', 'kelas').order('sekolah_id').order('scope_id').order('periode_id').range(from, to)),
+        fetchAllRows((from, to) => supabase.from('tindak_lanjut').select('sekolah_id, scope_id, periode_id').eq('modul', 'karakter').eq('scope', 'kelas').in('status', ['menunggu_persetujuan', 'disetujui']).order('id').range(from, to)),
         // Sama, tapi buat level sekolah (Kepala Sekolah) dan lintas sekolah (Yayasan) --
         // dua-duanya sama-sama scope='sekolah', dibedakan lewat target_role. Filter modul
         // penting: tanpa itu, baris tindak lanjut modul lain (MI/Screening) ikut menandai
         // sekolah sebagai "sudah ada" padahal belum ada draf karakternya.
-        supabase.from('tindak_lanjut').select('sekolah_id, periode_id, target_role').eq('modul', 'karakter').eq('scope', 'sekolah').in('target_role', ['kepala_sekolah', 'yayasan']).in('status', ['menunggu_persetujuan', 'disetujui']),
+        fetchAllRows((from, to) => supabase.from('tindak_lanjut').select('sekolah_id, periode_id, target_role').eq('modul', 'karakter').eq('scope', 'sekolah').in('target_role', ['kepala_sekolah', 'yayasan']).in('status', ['menunggu_persetujuan', 'disetujui']).order('id').range(from, to)),
         supabase.from('gemini_schedule').select('*').eq('id', 'default').maybeSingle(),
         // Rekomendasi School Culture: sekolah yang punya baris agregat sc_lembaga (unit=null,
         // seluruh sekolah) tapi belum ada tindak_lanjut modul='sc' untuk periode itu.
-        supabase.from('sc_lembaga').select('sekolah_id, periode_id, unit').is('unit', null),
-        supabase.from('tindak_lanjut').select('sekolah_id, periode_id, target_role').eq('modul', 'sc').eq('scope', 'sekolah').in('status', ['menunggu_persetujuan', 'disetujui']),
+        fetchAllRows((from, to) => supabase.from('sc_lembaga').select('sekolah_id, periode_id, unit').is('unit', null).order('id').range(from, to)),
+        fetchAllRows((from, to) => supabase.from('tindak_lanjut').select('sekolah_id, periode_id, target_role').eq('modul', 'sc').eq('scope', 'sekolah').in('status', ['menunggu_persetujuan', 'disetujui']).order('id').range(from, to)),
         // Padanan tlScRes tapi untuk briefing -- briefingRes di atas SENGAJA cuma menunggu_persetujuan
         // (dipakai pendingBySchool/antrian), tidak cocok dipakai di sini karena briefing yang SUDAH
         // disetujui harus tetap dianggap "sudah ada", bukan disuruh generate ulang terus-menerus.
-        supabase.from('briefing').select('sekolah_id, periode_id').eq('modul', 'sc').eq('scope', 'sekolah').in('status', ['menunggu_persetujuan', 'disetujui']),
+        fetchAllRows((from, to) => supabase.from('briefing').select('sekolah_id, periode_id').eq('modul', 'sc').eq('scope', 'sekolah').in('status', ['menunggu_persetujuan', 'disetujui']).order('id').range(from, to)),
       ]);
 
       const firstError = [yayasanRes, schoolsRes, modulesRes, summaryRes, aspekRes, briefingRes, tlRes, importLogRes, profilesRes, kelasSummaryRes, tlKelasAllRes, tlSekolahYayasanRes, scheduleRes, scLembagaRes, tlScRes, briefingScRes]
