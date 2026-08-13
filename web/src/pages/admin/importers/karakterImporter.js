@@ -155,6 +155,39 @@ export function normalizeNama(nama) {
   return String(nama || '').trim().replace(/\s+/g, ' ').toLowerCase();
 }
 
+/**
+ * Buang baris yang kunci uniknya bentrok dengan baris lain DI FILE YANG SAMA; baris terakhir
+ * yang menang, posisinya tetap di tempat kemunculan pertama.
+ *
+ * Kunci di sini sengaja dibuat persis sama dengan unique constraint tabel tujuannya
+ * (20260707120000_karakter_unique_constraints.sql dan 20260810100000 untuk pernyataan). Tanpa
+ * penyaringan ini, satu baris ganda di file membuat SELURUH periode gagal di Postgres dengan
+ * "duplicate key value violates unique constraint karakter_skor_sekolah_murid_periode_aspek_key"
+ * -- pesan mentah yang tidak menyebut murid mana pun, jadi admin tidak punya petunjuk apa yang
+ * harus diperbaiki di file. Persis itu yang menggagalkan upload TK Telkom Batam (2026-08-11).
+ *
+ * Dua asal-usul baris ganda, keduanya nyata:
+ * 1. Satu murid mengisi/terekspor dua kali untuk bulan yang sama (form diisi ulang).
+ * 2. Dua baris yang namanya cuma beda spasi/kapitalisasi digabung jadi satu murid_id oleh
+ *    normalizeNama -- termasuk kalau ternyata itu memang DUA anak berbeda yang namanya sama.
+ *
+ * Kasus 2 tidak bisa dibedakan dari kasus 1 secara otomatis, jadi baris ganda tidak dibuang
+ * diam-diam: pemanggil mengumpulkan bentrokannya ke preview.duplikat dan Upload.jsx
+ * menampilkannya sebelum admin menekan konfirmasi, lengkap dengan penanda kalau kelasnya beda
+ * (petunjuk kuat bahwa itu dua anak berbeda, bukan satu anak yang mengisi dua kali).
+ */
+function dedupeByKey(rows, keyOf) {
+  const seen = new Map();
+  const bentrok = [];
+  rows.forEach((r) => {
+    const k = keyOf(r);
+    const lama = seen.get(k);
+    if (lama) bentrok.push({ lama, baru: r });
+    seen.set(k, r);
+  });
+  return { rows: [...seen.values()], bentrok };
+}
+
 /** murid_id harus konsisten antar periode (bulan) supaya grafik tren per anak tidak putus.
  * karakter_skor satu baris per (murid, periode, aspek) -- untuk sekolah dengan cukup banyak
  * murid/periode/aspek, query tanpa paginasi diam-diam terpotong di batas 1000 baris PostgREST
@@ -480,6 +513,39 @@ export async function parseKarakterWorkbook(file, { sekolahId }) {
   });
   const summaryRows = [...summaryByKey.values()];
 
+  // Penyaringan baris ganda dilakukan di sini, setelah semua sheet terbaca, bukan per sheet:
+  // kunci uniknya memakai murid_id hasil resolve (bukan nama mentah), dan murid_id baru bisa
+  // lahir di sheet mana pun. karakter_summary tidak ikut karena summaryByKey di atas sudah
+  // menyaring dengan kunci yang sama sejak awal.
+  const skorDedupe = dedupeByKey(skorRows, (r) => `${r.murid_id}|${r.periode_id}|${r.aspek_kode}`);
+  const indikatorDedupe = dedupeByKey(skorIndikatorRows, (r) => `${r.murid_id}|${r.periode_id}|${r.aspek_kode}|${r.indikator_kode}`);
+  const pernyataanDedupe = dedupeByKey(pernyataanRows, (r) => `${r.murid_id}|${r.periode_id}|${r.sumber}`);
+
+  // Satu murid yang barisnya ganda menghasilkan sebanyak-jumlah-aspek bentrokan di skorRows,
+  // jadi yang ditampilkan ke admin adalah daftar MURID-nya, bukan hitungan baris mentah.
+  const duplikatMurid = new Map();
+  [skorDedupe, indikatorDedupe, pernyataanDedupe].forEach(({ bentrok }) => {
+    bentrok.forEach(({ lama, baru }) => {
+      const key = `${baru.murid_id}|${baru.periode_id}`;
+      let e = duplikatMurid.get(key);
+      if (!e) {
+        e = { nama: baru.nama_murid, periode: baru.periode_id, kelas: new Set() };
+        duplikatMurid.set(key, e);
+      }
+      e.kelas.add(lama.kelas_id);
+      e.kelas.add(baru.kelas_id);
+    });
+  });
+  preview.duplikat = {
+    skor: skorDedupe.bentrok.length,
+    skorIndikator: indikatorDedupe.bentrok.length,
+    pernyataan: pernyataanDedupe.bentrok.length,
+    total: skorDedupe.bentrok.length + indikatorDedupe.bentrok.length + pernyataanDedupe.bentrok.length,
+    murid: [...duplikatMurid.values()].map((e) => ({
+      nama: e.nama, periode: e.periode, kelas: [...e.kelas], bedaKelas: e.kelas.size > 1,
+    })),
+  };
+
   if (badRows.length > 0) {
     return {
       preview, ok: false,
@@ -495,7 +561,12 @@ export async function parseKarakterWorkbook(file, { sekolahId }) {
     ok: true,
     preview,
     muridBaru: seq - nextNum,
-    rows: { skorRows, skorIndikatorRows, pernyataanRows, summaryRows },
+    rows: {
+      skorRows: skorDedupe.rows,
+      skorIndikatorRows: indikatorDedupe.rows,
+      pernyataanRows: pernyataanDedupe.rows,
+      summaryRows,
+    },
   };
 }
 
@@ -518,7 +589,51 @@ export async function parseKarakterWorkbook(file, { sekolahId }) {
  * semua-atau-tidak-sama-sekali; kalau file punya beberapa periode dan salah satu gagal,
  * periode lain yang sudah sempat commit tetap tersimpan (itu batas atomik yang wajar --
  * lihat catatan Fase E1 di Rencana_Perbaikan_FIR_2026-07.md).
+ *
+ * Periode besar dipecah jadi beberapa panggilan (lihat CHUNK_ROWS). Satu panggilan = satu
+ * statement Postgres, dan statement itu dibatasi statement_timeout milik role service_role;
+ * upload SMK Telkom Purwokerto (27.522 baris, 3 bulan) mati di "canceling statement due to
+ * statement timeout" pada periode ketiga karena satu panggilan harus menghapus lalu memasukkan
+ * ~10.000 baris sekaligus. Memecahnya membuat tiap statement tetap kecil berapa pun besar
+ * berkasnya, jadi batas waktunya tidak lagi bergantung pada jumlah murid sekolah.
  */
+
+/** Batas baris per panggilan RPC (jumlah keempat tabel). Periode yang muat dalam satu chunk
+ * dikirim seperti sebelumnya: satu panggilan, satu transaksi, tetap semua-atau-tidak. Nilai ini
+ * kompromi antara jumlah panggilan (tiap panggilan kena ongkos Edge Function + PostgREST) dan
+ * lama satu statement. */
+const CHUNK_ROWS = 2000;
+
+/**
+ * Pecah baris satu periode jadi beberapa payload chunk, masing-masing maksimal `size` baris
+ * gabungan keempat tabel. Urutan tabel dipertahankan (skor, indikator, pernyataan, summary)
+ * supaya isi chunk deterministik dan mudah dicocokkan saat menelusuri kegagalan.
+ */
+function chunkPayloadRows({ skor, indikator, pernyataan, summary }, size) {
+  const kosong = () => ({ skor_rows: [], skor_indikator_rows: [], pernyataan_rows: [], summary_rows: [] });
+  const chunks = [];
+  let cur = kosong();
+  let curCount = 0;
+  const tambah = (key, rows) => {
+    let i = 0;
+    while (i < rows.length) {
+      if (curCount >= size) { chunks.push(cur); cur = kosong(); curCount = 0; }
+      const take = rows.slice(i, i + (size - curCount));
+      cur[key] = cur[key].concat(take);
+      curCount += take.length;
+      i += take.length;
+    }
+  };
+  tambah('skor_rows', skor);
+  tambah('skor_indikator_rows', indikator);
+  tambah('pernyataan_rows', pernyataan);
+  tambah('summary_rows', summary);
+  // Chunk terakhir tetap dikirim walau kosong kalau periode ini memang tidak punya baris sama
+  // sekali -- panggilan pertama yang menjalankan DELETE, jadi tidak boleh dilewati.
+  if (curCount > 0 || chunks.length === 0) chunks.push(cur);
+  return chunks;
+}
+
 export async function importKarakterWorkbook(parsed) {
   const { skorRows, skorIndikatorRows, pernyataanRows, summaryRows } = parsed.rows;
   const sekolahId = skorRows[0]?.sekolah_id || summaryRows[0]?.sekolah_id;
@@ -533,25 +648,60 @@ export async function importKarakterWorkbook(parsed) {
 
   let totalRows = 0;
   for (const periodeId of periodeIds) {
-    const payload = {
-      sekolah_id: sekolahId,
-      periode_id: periodeId,
-      skor_rows: skorRows.filter((r) => r.periode_id === periodeId),
-      skor_indikator_rows: skorIndikatorRows.filter((r) => r.periode_id === periodeId),
-      pernyataan_rows: pernyataanRows.filter((r) => r.periode_id === periodeId),
-      summary_rows: summaryRows.filter((r) => r.periode_id === periodeId),
+    const perPeriode = {
+      skor: skorRows.filter((r) => r.periode_id === periodeId),
+      indikator: skorIndikatorRows.filter((r) => r.periode_id === periodeId),
+      pernyataan: pernyataanRows.filter((r) => r.periode_id === periodeId),
+      summary: summaryRows.filter((r) => r.periode_id === periodeId),
     };
-    const { data, error } = await supabase.functions.invoke('admin-actions', {
-      body: { action: 'import-karakter', payload },
-    });
-    if (error) {
-      const detail = await edgeErrorDetail(error, 'Edge Function admin-actions gagal dipanggil.');
-      return { ok: false, rowsWritten: totalRows, error: `Periode ${periodeId}: ${detail}` };
+    // Daftar sumber refleksi dihitung dari SELURUH baris periode ini, bukan dari chunk pertama
+    // saja: RPC memakainya untuk menentukan sumber mana yang barisnya dihapus, dan chunk pertama
+    // belum tentu memuat kedua sumber. Tanpa ini, refleksi siswa dari upload sebelumnya bisa
+    // tertinggal di periode yang sedang ditimpa.
+    const pernyataanSumber = [...new Set(perPeriode.pernyataan.map((r) => r.sumber || 'orangtua'))];
+    const chunks = chunkPayloadRows(perPeriode, CHUNK_ROWS);
+
+    for (let i = 0; i < chunks.length; i++) {
+      // Chunk pertama yang menghapus data lama periode ini ('ganti'), sisanya menambah
+      // ('lanjut'). Upload ulang tetap idempoten karena chunk pertama selalu menghapus dulu.
+      const payload = {
+        sekolah_id: sekolahId,
+        periode_id: periodeId,
+        mode: i === 0 ? 'ganti' : 'lanjut',
+        ...(i === 0 ? { pernyataan_sumber: pernyataanSumber } : null),
+        ...chunks[i],
+      };
+      const { data, error } = await supabase.functions.invoke('admin-actions', {
+        body: { action: 'import-karakter', payload },
+      });
+      // Kegagalan setelah chunk pertama berarti periode ini tertulis separuh (tiap chunk
+      // transaksinya sendiri). Itu harus disebut, bukan dibiarkan admin mengira periode ini
+      // utuh atau kosong sama sekali.
+      const separuh = i > 0 ? ` Periode ini sudah tertulis sebagian (${i} dari ${chunks.length} bagian), ulangi upload berkas ini untuk memperbaikinya.` : '';
+      if (error) {
+        const detail = await edgeErrorDetail(error, 'Edge Function admin-actions gagal dipanggil.');
+        return { ok: false, rowsWritten: totalRows, error: `Periode ${periodeId}: ${detail}${separuh}` };
+      }
+      if (!data?.ok) {
+        return { ok: false, rowsWritten: totalRows, error: `Periode ${periodeId}: ${data?.error || 'Import gagal tanpa keterangan.'}${separuh}` };
+      }
+      totalRows += (data?.skor || 0) + (data?.skor_indikator || 0) + (data?.pernyataan || 0) + (data?.summary || 0);
+
+      // Gerbang urutan deploy. RPC versi lama (sebelum migration 20260814100000) mengabaikan
+      // field mode dan SELALU menghapus data periode ini lebih dulu -- kalau frontend ini
+      // terlanjur tayang sebelum migration-nya dijalankan, chunk kedua akan menghapus hasil
+      // chunk pertama, dan seterusnya, sehingga yang tersisa cuma chunk terakhir TANPA satu pun
+      // error. Kehilangan data diam-diam seperti itu jauh lebih buruk daripada import gagal,
+      // jadi dihentikan di sini: RPC baru mengembalikan field 'mode', yang lama tidak.
+      // Periode yang muat dalam satu chunk tidak lewat sini sama sekali, jadi sekolah kecil
+      // tetap bisa upload walau migration-nya belum dijalankan.
+      if (i === 0 && chunks.length > 1 && data?.mode !== 'ganti') {
+        return {
+          ok: false, rowsWritten: totalRows,
+          error: `Periode ${periodeId}: database masih memakai versi lama fungsi import_karakter_periode, yang tidak mengenal upload bertahap. Jalankan dulu migration supabase/migrations/20260814100000_karakter_import_chunk_dan_timeout.sql di Supabase SQL Editor, lalu ulangi upload berkas ini.`,
+        };
+      }
     }
-    if (!data?.ok) {
-      return { ok: false, rowsWritten: totalRows, error: `Periode ${periodeId}: ${data?.error || 'Import gagal tanpa keterangan.'}` };
-    }
-    totalRows += (data?.skor || 0) + (data?.skor_indikator || 0) + (data?.pernyataan || 0) + (data?.summary || 0);
   }
   return { ok: true, rowsWritten: totalRows };
 }

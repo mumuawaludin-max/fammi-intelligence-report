@@ -583,6 +583,35 @@ export function Upload() {
               </div>
             )}
 
+            {/* Karakter: baris ganda yang disaring importer. Dulu baris seperti ini lolos ke
+                Postgres dan menggagalkan seluruh periode dengan pesan mentah "duplicate key
+                value violates unique constraint" yang tidak menyebut satu pun nama murid.
+                Sekarang importnya jalan (baris terakhir yang dipakai), tapi daftarnya WAJIB
+                terlihat sebelum konfirmasi: kalau kelasnya beda, itu tanda kuat dua anak berbeda
+                bernama sama, bukan satu anak yang mengisi dua kali -- dan itu perlu dibetulkan
+                di berkas sumbernya, bukan diputuskan importer. */}
+            {isKarakter && parsed.preview.duplikat?.total > 0 && (
+              <div style={{ marginTop: 10, padding: '10px 14px', background: 'var(--status-warn-bg)', borderRadius: 10 }}>
+                <div style={{ fontSize: 12.5, fontWeight: 700, color: 'var(--status-warn)' }}>
+                  ⚠ {parsed.preview.duplikat.murid.length} murid punya baris ganda di file ini ({parsed.preview.duplikat.total} baris disaring)
+                </div>
+                <div style={{ fontSize: 11.5, color: 'var(--ink-2)', marginTop: 4, lineHeight: 1.5 }}>
+                  Baris terakhir untuk tiap murid yang dipakai, sisanya dibuang supaya import tidak gagal total.
+                  {parsed.preview.duplikat.murid.some((m) => m.bedaKelas) && ' Yang ditandai beda kelas kemungkinan dua anak berbeda dengan nama sama, cek berkas sumbernya.'}
+                </div>
+                <div style={{ marginTop: 6, display: 'flex', flexWrap: 'wrap', gap: 5 }}>
+                  {parsed.preview.duplikat.murid.slice(0, 12).map((m, i) => (
+                    <span key={i} className="pill" style={{ background: 'var(--surface)', color: m.bedaKelas ? 'var(--status-alert)' : 'var(--ink-2)' }}>
+                      {m.nama} · {periodeLabel(m.periode)}{m.bedaKelas ? ` · beda kelas: ${m.kelas.join(' / ')}` : ''}
+                    </span>
+                  ))}
+                  {parsed.preview.duplikat.murid.length > 12 && (
+                    <span style={{ fontSize: 11.5, color: 'var(--ink-3)', alignSelf: 'center' }}>+{parsed.preview.duplikat.murid.length - 12} murid lain</span>
+                  )}
+                </div>
+              </div>
+            )}
+
             {/* Kolom "laporan_json" (opsional): laporan siap pakai dari hulu. Ditampilkan SEBELUM
                 konfirmasi supaya admin tahu berapa orang yang tidak perlu Gemini sama sekali, dan
                 baris mana yang JSON-nya perlu diperbaiki dulu kalau tidak mau jatuh ke Gemini. */}

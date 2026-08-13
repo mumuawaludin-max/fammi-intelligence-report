@@ -43,7 +43,16 @@
 //                              selalu error.
 //   "toggle-module"            { schoolId, modul, aktif }
 //   "update-schedule"          { patch }
-//   "import-karakter"          { payload: { sekolah_id, periode_id, skor_rows, skor_indikator_rows, pernyataan_rows, summary_rows } }
+//   "import-karakter"          { payload: { sekolah_id, periode_id, skor_rows, skor_indikator_rows, pernyataan_rows, summary_rows,
+//                              mode?, pernyataan_sumber? } } -- payload diteruskan APA ADANYA ke
+//                              RPC, jadi menambah field di sisi importer tidak butuh redeploy.
+//                              `mode`: 'ganti' (default, hapus data periode ini dulu) atau
+//                              'lanjut' (isi saja). Importer memecah periode besar jadi beberapa
+//                              panggilan: chunk pertama 'ganti', sisanya 'lanjut' -- satu
+//                              panggilan berisi ~10.000 baris pernah kena statement timeout
+//                              (SMK Telkom Purwokerto, lihat migration 20260814100000).
+//                              `pernyataan_sumber`: daftar sumber refleksi seluruh periode,
+//                              dipakai RPC untuk menentukan baris mana yang dihapus saat 'ganti'.
 //   "list-mi-pending"          {}  -> { rows: [...] } daftar laporan MI menunggu persetujuan
 //   "approve-mi" | "reject-mi" { id }  setujui/tolak satu baris mi_hasil. Approve yang berhasil
 //                              otomatis buat akun OrangTua untuk murid itu kalau belum ada
