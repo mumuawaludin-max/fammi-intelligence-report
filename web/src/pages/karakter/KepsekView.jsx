@@ -10,7 +10,7 @@ import { KEBIJAKAN_KEPSEK } from "./dummyKebijakan";
 import DetailDialog from "./DetailDialog";
 import SampleTag from "../../components/SampleTag";
 import FollowupRibbon from "../../components/FollowupRibbon";
-import { useKarakterKepsek } from "./useKarakterData";
+import { useKarakterKepsek, kelasKey } from "./useKarakterData";
 import {
   pct, ringkasanAspekValue, parseTop5Pair, parseTop5Indikator, deltaVsPrevious,
   classifyPencapaian, periodeLabel, aspekIcon, avgAspek, persen, isKebijakanReady, SECTION_ICON,
@@ -165,7 +165,7 @@ export default function KepsekView({ session, periodeId }) {
 
   if (loading || error) return <KarakterStateBox loading={loading} error={error} />;
 
-  const { periode, aspek, sekolah, jenjang, kelas, pernyataanBySumber, sumberRefleksi, tindakLanjut } = data;
+  const { periode, aspek, indikatorByKelas, indikatorError, sekolah, jenjang, kelas, pernyataanBySumber, sumberRefleksi, tindakLanjut } = data;
   const ringkasan = sekolah?.ringkasan || null;
 
   // Jatuh kembali ke elemen pertama sumberRefleksi kalau sumberAktif belum dipilih, atau sudah
@@ -396,11 +396,31 @@ export default function KepsekView({ session, periodeId }) {
                     const siswaLemah = parseTop5Pair(rk?.top5_siswa_terendah, rk?.top5_nilai_siswa_terendah)
                       .map((p) => ({ label: p.nama, value: pct(p.nilai) }))
                       .filter((p) => p.value != null && p.value < KARAKTER_BAR_TONE_CUTOFF.aman);
-                    const indTerbaik = parseTop5Indikator(rk?.top5_indikator_terbaik)
+                    // Indikator punya dua sumber. Yang diutamakan tetap ringkasan kelas dari
+                    // hulu (kolom top5_indikator_* di sheet summary_kelas), supaya sekolah yang
+                    // berkasnya memuat kolom itu tampil persis seperti sebelumnya. Sekolah yang
+                    // berkasnya TIDAK memuatnya dulu kosong total di sini padahal kelas yang sama
+                    // tampil normal di Wali Kelas; sekarang jatuh ke rata-rata per kelas yang
+                    // sudah diagregasi database (view karakter_indikator_kelas_avg), bukan
+                    // dihitung di sini.
+                    const indRingkasan = parseTop5Indikator(rk?.top5_indikator_terbaik)
                       .map((it) => ({ label: it.label, value: pct(it.nilai) }));
-                    const indLemah = parseTop5Indikator(rk?.top5_indikator_terendah)
-                      .map((it) => ({ label: it.label, value: pct(it.nilai) }))
-                      .filter((it) => it.value != null && it.value < KARAKTER_BAR_TONE_CUTOFF.aman);
+                    const indKelas = [...(indikatorByKelas?.[kelasKey(activeKelasRow.scope_id)] || [])]
+                      .sort((a, b) => b.value - a.value);
+                    const adaIndikator = indRingkasan.length > 0 || indKelas.length > 0;
+                    // Kalau query rata-rata indikator gagal (mis. view-nya belum dibuat di
+                    // database), sebut kegagalannya. "Belum ada data" untuk sesuatu yang
+                    // sebenarnya gagal dimuat adalah jawaban yang salah.
+                    const indikatorEmptyText = indikatorError
+                      ? `Data indikator gagal dimuat: ${indikatorError}`
+                      : "Belum ada data indikator.";
+                    const indTerbaik = indRingkasan.length > 0 ? indRingkasan : indKelas.slice(0, 5);
+                    const indLemahSemua = indRingkasan.length > 0
+                      ? parseTop5Indikator(rk?.top5_indikator_terendah).map((it) => ({ label: it.label, value: pct(it.nilai) }))
+                      : [...indKelas].reverse();
+                    const indLemah = indLemahSemua
+                      .filter((it) => it.value != null && it.value < KARAKTER_BAR_TONE_CUTOFF.aman)
+                      .slice(0, 5);
                     return (
                       <div className={styles.detailRows}>
                         {/* Baris 1: skor per aspek, diurutkan dari tertinggi, semua tampil */}
@@ -417,13 +437,18 @@ export default function KepsekView({ session, periodeId }) {
                           </section>
                           <section>
                             <p className={styles.dialogSectionTitle}>🌱 Top 5 siswa perlu penguatan</p>
+                            {/* Kabar baik cuma boleh muncul kalau datanya memang ada. Kalau
+                                daftar siswa kelas ini kosong, "semua sudah di atas 80%" adalah
+                                klaim yang lahir dari data kosong, bukan dari temuan. */}
                             {siswaLemah.length > 0 ? (
                               <ScoreBarList items={siswaLemah} rankByNumber />
-                            ) : (
+                            ) : siswaTerbaik.length > 0 ? (
                               <GoodEmptyState
                                 title="Semua siswa sudah di atas 80%"
                                 text="Tidak ada siswa yang perlu penguatan khusus di kelas ini periode ini."
                               />
+                            ) : (
+                              <ScoreBarList items={[]} emptyText="Belum ada data siswa." />
                             )}
                           </section>
                         </div>
@@ -432,17 +457,23 @@ export default function KepsekView({ session, periodeId }) {
                         <div className={styles.detail2col}>
                           <section>
                             <p className={styles.dialogSectionTitle}>⭐ Top 5 indikator terbaik</p>
-                            <ScoreBarList items={indTerbaik} emptyText="Belum ada data indikator." />
+                            <ScoreBarList items={indTerbaik} emptyText={indikatorEmptyText} />
                           </section>
                           <section>
                             <p className={styles.dialogSectionTitle}>🔧 Top 5 indikator perlu penguatan</p>
+                            {/* Sama seperti kolom siswa: tanpa data indikator sama sekali, yang
+                                tampil sebelumnya adalah "Semua indikator sudah di atas 80%" di
+                                sebelah "Belum ada data indikator" -- dua pesan yang saling
+                                bertentangan, dan yang hijau itu yang menyesatkan. */}
                             {indLemah.length > 0 ? (
                               <ScoreBarList items={indLemah} />
-                            ) : (
+                            ) : adaIndikator ? (
                               <GoodEmptyState
                                 title="Semua indikator sudah di atas 80%"
                                 text="Tidak ada indikator di bawah 80% di kelas ini periode ini."
                               />
+                            ) : (
+                              <ScoreBarList items={[]} emptyText={indikatorEmptyText} />
                             )}
                           </section>
                         </div>

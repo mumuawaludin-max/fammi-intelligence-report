@@ -12,6 +12,14 @@ function queryAspekConfig(sekolahId) {
     .order("urutan", { ascending: true });
 }
 
+/** Kunci pencocokan nama kelas antar sheet/tabel yang tidak peduli spasi berlebih atau
+ * besar/kecil huruf. Dipakai untuk menjodohkan kelas_id (tabel detail) dengan scope_id (tabel
+ * ringkasan); keduanya diketik manusia di kolom "kelas" dua sheet berbeda. Nama ASLI tetap yang
+ * ditampilkan, ini cuma kuncinya. */
+export function kelasKey(nama) {
+  return String(nama || "").trim().replace(/\s+/g, " ").toLowerCase();
+}
+
 function queryIndikatorConfig(sekolahId) {
   return supabase
     .from("karakter_indikator_config")
@@ -250,8 +258,9 @@ export function useKarakterKepsek(session, periodeId) {
     async function run() {
       setState((s) => ({ ...s, loading: true, error: null }));
 
-      const [aspekRes, summaryRes, briefingRes, tlRes, ortuRes] = await Promise.all([
+      const [aspekRes, indikatorRes, summaryRes, briefingRes, tlRes, ortuRes, indikatorKelasRes] = await Promise.all([
         queryAspekConfig(sekolahId),
+        queryIndikatorConfig(sekolahId),
         supabase
           .from("karakter_summary")
           .select("scope, scope_id, periode_id, ringkasan")
@@ -280,10 +289,27 @@ export function useKarakterKepsek(session, periodeId) {
           .select("kelas_id, murid_id, nama_murid, periode_id, pernyataan, kategori_pernyataan, emosi_anak, alasan_emosi, dukungan_dibutuhkan, dukungan_lainnya, hal_disyukuri, sumber")
           .eq("sekolah_id", sekolahId)
           .range(from, to)),
+        // Rata-rata indikator per kelas, sudah diagregasi di database (view
+        // karakter_indikator_kelas_avg, migration 20260814110000). Dipakai panel Detail Kelas
+        // kalau ringkasan kelas dari berkas Excel tidak memuat kolom top5_indikator_* -- tanpa
+        // ini, sekolah seperti SMK Telkom Purwokerto kosong di Kepsek padahal datanya lengkap
+        // dan tampil normal di Wali Kelas. Dipaginasi: kelas x aspek x indikator x periode
+        // gampang lewat 1000 baris untuk sekolah dengan banyak kelas.
+        fetchAllRows((from, to) => supabase
+          .from("karakter_indikator_kelas_avg")
+          .select("kelas_id, periode_id, aspek_kode, indikator_kode, skor")
+          .eq("sekolah_id", sekolahId)
+          .range(from, to)),
       ]);
 
       if (!alive) return;
-      const err = aspekRes.error || summaryRes.error || briefingRes.error || tlRes.error || ortuRes.error;
+      // indikatorKelasRes SENGAJA tidak ikut daftar error fatal. View
+      // karakter_indikator_kelas_avg baru ada sejak migration 20260814110000; kalau frontend ini
+      // tayang lebih dulu, query-nya gagal, dan menjadikannya fatal berarti SELURUH halaman
+      // Karakter Kepala Sekolah mati cuma karena satu panel. Errornya tidak dibuang diam-diam:
+      // pesannya diteruskan ke panel indikator lewat indikatorError.
+      const err = aspekRes.error || indikatorRes.error || summaryRes.error || briefingRes.error
+        || tlRes.error || ortuRes.error;
       if (err) { setState({ loading: false, error: err.message, raw: null }); return; }
 
       setState({
@@ -291,10 +317,13 @@ export function useKarakterKepsek(session, periodeId) {
         error: null,
         raw: {
           aspek: aspekRes.data || [],
+          indikatorConfigRows: indikatorRes.data || [],
           summaryRows: summaryRes.data || [],
           briefingRows: briefingRes.data || [],
           tlRows: tlRes.data || [],
           ortuRows: ortuRes.data || [],
+          indikatorKelasRows: indikatorKelasRes.data || [],
+          indikatorKelasError: indikatorKelasRes.error?.message || null,
         },
       });
     }
@@ -305,7 +334,7 @@ export function useKarakterKepsek(session, periodeId) {
 
   const data = useMemo(() => {
     if (!state.raw) return null;
-    const { aspek, summaryRows, briefingRows, tlRows, ortuRows } = state.raw;
+    const { aspek, indikatorConfigRows, summaryRows, briefingRows, tlRows, ortuRows, indikatorKelasRows, indikatorKelasError } = state.raw;
 
     // Lihat catatan di useKarakterWaliKelas: periode digabung dari summary + briefing +
     // tindak lanjut, bukan cuma summary.
@@ -344,10 +373,34 @@ export function useKarakterKepsek(session, periodeId) {
       sekolahRow ? [sekolahRow.ringkasan] : []
     );
 
+    // Indikator per kelas untuk periode aktif, sudah berlabel. Bentuknya { kunci kelas:
+    // [{label, value}] } supaya panel Detail Kelas tinggal mengambil kelas yang sedang dipilih.
+    //
+    // Kuncinya DINORMALKAN (lihat kelasKey), bukan kelas_id mentah: nama kelas di sini berasal
+    // dari kolom "kelas" sheet detail_persentase_indikator, sedangkan kelas yang dipilih di panel
+    // berasal dari scope_id karakter_summary, yaitu kolom "kelas" sheet summary_kelas. Dua kolom
+    // di dua sheet berbeda pada berkas yang sama, jadi selisih spasi atau kapitalisasi antara
+    // keduanya cukup untuk membuat indikator "hilang" lagi tanpa error apa pun.
+    const indikatorLabelByKey = {};
+    (indikatorConfigRows || []).forEach((it) => {
+      indikatorLabelByKey[`${it.aspek_kode}_${it.indikator_kode}`] = it.indikator_label;
+    });
+    const indikatorByKelas = {};
+    (indikatorKelasRows || []).forEach((r) => {
+      if (r.periode_id !== periode || r.skor == null) return;
+      const key = `${r.aspek_kode}_${r.indikator_kode}`;
+      (indikatorByKelas[kelasKey(r.kelas_id)] ||= []).push({
+        label: indikatorLabelByKey[key] || indikatorFallbackLabel(r.aspek_kode, r.indikator_kode),
+        value: r.skor,
+      });
+    });
+
     return {
       periode,
       availablePeriods,
       aspek: aspekEffective,
+      indikatorByKelas,
+      indikatorError: indikatorKelasError,
       sekolah: sekolahRow,
       jenjang: atPeriode.filter((r) => r.scope === "jenjang"),
       kelas: atPeriode.filter((r) => r.scope === "kelas"),
