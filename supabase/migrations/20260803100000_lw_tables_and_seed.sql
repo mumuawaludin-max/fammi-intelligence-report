@@ -12,6 +12,20 @@
 -- dan 8 dihasilkan generator supaya agregat, kategori, dan totalnya konsisten satu sama lain;
 -- angka yang sama dipakai di web/src/pages/lw/lw.mock.js.
 
+-- ── 0. Buang tabel versi lama kalau ada ────────────────────────────────────────────────────
+-- Versi pertama berkas ini (rancangan LEAD + wellbeing, satu periode) sempat dijalankan di
+-- beberapa project. Bentuk tabelnya berbeda total dari versi sekarang: lw_lembaga tidak punya
+-- kolom jumlah_guru/indeks/narasi, dan lw_personal masih mewajibkan kolom LEAD
+-- (kesiapan_memimpin_skor dan kawan-kawan) yang sudah tidak ada lagi di modul ini. Karena
+-- "create table if not exists" akan melewati tabel lama itu begitu saja dan membuat INSERT di
+-- bawah gagal, tabelnya dibuang lebih dulu.
+--
+-- Aman dilakukan: kedua tabel ini HANYA pernah menampung data contoh modul wellbeing
+-- (TKN-PEMBINA-BANDUNG lalu YP-FAMMI), tidak ada data lembaga sungguhan di dalamnya, dan
+-- seluruh isinya memang ditulis ulang oleh migration ini.
+drop table if exists public.lw_personal cascade;
+drop table if exists public.lw_lembaga cascade;
+
 -- ── 1. Tabel agregat lembaga ────────────────────────────────────────────────────────────────
 -- Satu baris per (sekolah, periode, unit). unit NULL = agregat seluruh yayasan, unit terisi =
 -- satu jenjang. Pola sama dengan sc_lembaga/pa_lembaga.
@@ -187,10 +201,10 @@ on conflict (school_id, modul) do update set aktif = true;
 
 -- Bersih-bersih supaya migration ini aman dijalankan ulang, sekaligus membuang sisa seed
 -- percobaan sebelumnya (TKN-PEMBINA-BANDUNG) kalau versi awal berkas ini sempat dijalankan.
+-- Isi lw_lembaga dan lw_personal tidak perlu dihapus di sini: kedua tabelnya sudah dibuang dan
+-- dibuat ulang di bagian 0.
 delete from public.tindak_lanjut where modul = 'lw' and sekolah_id in ('TKN-PEMBINA-BANDUNG', 'YP-FAMMI');
 delete from public.briefing where modul = 'lw' and sekolah_id in ('TKN-PEMBINA-BANDUNG', 'YP-FAMMI');
-delete from public.lw_personal where sekolah_id in ('TKN-PEMBINA-BANDUNG', 'YP-FAMMI');
-delete from public.lw_lembaga where sekolah_id in ('TKN-PEMBINA-BANDUNG', 'YP-FAMMI');
 delete from public.school_modules where school_id = 'TKN-PEMBINA-BANDUNG' and modul = 'lw';
 
 -- ── 7. Agregat lembaga: 3 periode x (1 yayasan + 4 jenjang) = 15 baris ─────────────────────
@@ -553,7 +567,8 @@ insert into public.lw_personal (
 -- ── 9. Catatan pendampingan, langkah, dan refleksi (periode terakhir) ──────────────────────
 -- Ditulis psikolog Fammi, hanya untuk periode berjalan. Guru yang seluruh dimensinya Baik
 -- tetap mendapat catatan singkat supaya pimpinan punya bahan percakapan penguatan.
-update public.lw_personal set catatan = v.catatan, langkah = v.langkah::jsonb, refleksi = v.refleksi::jsonb
+update public.lw_personal as p
+set catatan = v.catatan, langkah = v.langkah::jsonb, refleksi = v.refleksi::jsonb
 from (values
   ('Sari Wulandari, S.Pd',
    'Satu-satunya guru dengan skor total di bawah ambang Baik, dan turun di setiap periode. Lima dari enam dimensi berada di bawah Baik, tiga di antaranya masuk Waspada: Penerimaan Diri, Tujuan Hidup, dan Kemandirian. Beban rangkap mengajar dan administrasi kurikulum muncul konsisten di jawaban terbukanya. Ini kasus yang perlu percakapan pribadi dalam dua pekan ini, bukan program kelompok.',
@@ -596,13 +611,14 @@ from (values
    '["Bagikan mekanisme observasi kelas dua arah ke SD dan SMP.","Pastikan Fajar Ramadhan, satu-satunya guru SMA yang menurun, ikut mendapat pendampingan."]',
    '[{"tema":"Kemitraan sekolah","isi":"Menjalin kerja sama magang dengan dunia usaha lokal untuk memperluas ruang belajar siswa."}]')
 ) as v(nama, catatan, langkah, refleksi)
-where public.lw_personal.nama = v.nama
-  and public.lw_personal.sekolah_id = 'YP-FAMMI'
-  and public.lw_personal.periode_id = '2025-07';
+where p.nama = v.nama
+  and p.sekolah_id = 'YP-FAMMI'
+  and p.periode_id = '2025-07';
 
 -- Guru yang belum punya catatan khusus tetap diberi refleksi singkat, supaya laporan
 -- individunya tidak kosong sama sekali saat dibuka pimpinan.
-update public.lw_personal set refleksi = v.refleksi::jsonb
+update public.lw_personal as p
+set refleksi = v.refleksi::jsonb
 from (values
   ('Lina Marlina, S.Pd.AUD', '[{"tema":"Inovasi pembelajaran","isi":"Membuat media belajar dari barang bekas bersama anak-anak, sekaligus mengenalkan konsep daur ulang sejak dini."}]'),
   ('Dewi Lestari, S.Pd', '[{"tema":"Mengelola tim","isi":"Berbagi tugas dengan rekan sejawat saat kegiatan besar sekolah supaya beban tidak menumpuk di satu orang."}]'),
@@ -615,9 +631,9 @@ from (values
   ('Agus Setiawan, M.Pd', '[{"tema":"Mengelola tim","isi":"Menjadi mentor guru baru lewat observasi kelas dua arah, saling memberi umpan balik."}]'),
   ('Nur Aini, S.Pd', '[{"tema":"Kolaborasi dengan orang tua","isi":"Konsultasi rutin perencanaan studi lanjut bersama siswa dan orang tua kelas XII."}]')
 ) as v(nama, refleksi)
-where public.lw_personal.nama = v.nama
-  and public.lw_personal.sekolah_id = 'YP-FAMMI'
-  and public.lw_personal.periode_id = '2025-07';
+where p.nama = v.nama
+  and p.sekolah_id = 'YP-FAMMI'
+  and p.periode_id = '2025-07';
 
 -- ── 10. Rencana tindak lanjut prioritas ────────────────────────────────────────────────────
 insert into public.tindak_lanjut (
