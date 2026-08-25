@@ -424,6 +424,11 @@ export function useKarakterKepsek(session, periodeId) {
 export function useKarakterYayasan(session, periodeId) {
   const [state, setState] = useState({ loading: true, error: null, raw: null });
   const yayasanId = Array.isArray(session.cakupan) ? session.cakupan[0] : null;
+  // Daftar sekolah naungan sekarang sudah diresolusi sekali di auth.js (session.schools) supaya
+  // tidak diulang tiap modul. Query di bawah tinggal jaring pengaman untuk sesi lama yang tersimpan
+  // di sessionStorage sebelum perubahan itu; refreshSession() akan mengisinya saat App dimuat.
+  const sekolahDariSesi = Array.isArray(session.schools) ? session.schools : null;
+  const sekolahKey = sekolahDariSesi ? sekolahDariSesi.map((s) => s.id).join(",") : null;
 
   useEffect(() => {
     let alive = true;
@@ -435,14 +440,18 @@ export function useKarakterYayasan(session, periodeId) {
       }
       setState((s) => ({ ...s, loading: true, error: null }));
 
-      const { data: sekolahRows, error: sekolahErr } = await supabase
-        .from("schools")
-        .select("id, nama")
-        .eq("yayasan_id", yayasanId)
-        .eq("aktif", true);
+      let sekolahRows = sekolahDariSesi;
+      if (!sekolahRows) {
+        const { data, error: sekolahErr } = await supabase
+          .from("schools")
+          .select("id, nama")
+          .eq("yayasan_id", yayasanId)
+          .eq("aktif", true);
 
-      if (!alive) return;
-      if (sekolahErr) { setState({ loading: false, error: sekolahErr.message, raw: null }); return; }
+        if (!alive) return;
+        if (sekolahErr) { setState({ loading: false, error: sekolahErr.message, raw: null }); return; }
+        sekolahRows = data || [];
+      }
 
       const sekolahIds = (sekolahRows || []).map((s) => s.id);
       if (sekolahIds.length === 0) {
@@ -526,7 +535,7 @@ export function useKarakterYayasan(session, periodeId) {
 
     run();
     return () => { alive = false; };
-  }, [yayasanId]);
+  }, [yayasanId, sekolahKey]);
 
   const data = useMemo(() => {
     if (!state.raw) return null;

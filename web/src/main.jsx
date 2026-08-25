@@ -16,6 +16,9 @@ import ScPagePreview from "./pages/sc/ScPagePreview.jsx";
 import ScKaryawanPreview from "./pages/sc/ScKaryawanPreview.jsx";
 import PaPreview from "./pages/pa/PaPreview.jsx";
 import PaAgregatPreview from "./pages/pa/PaAgregatPreview.jsx";
+import LwPreview from "./pages/lw/LwPreview.jsx";
+import YptPreview from "./pages/ypt/YptPreview.jsx";
+import YptPreviewData from "./pages/ypt/YptPreviewData.jsx";
 
 // Preview lepas-login untuk komponen CW/SC yang belum dirakit ke halaman produk final, dibuka
 // lewat ?preview=... di URL dev server. Project ini tidak pakai Storybook, jadi ini pengganti
@@ -35,6 +38,9 @@ const PREVIEWS = {
   "sc-karyawan": ScKaryawanPreview,
   "pa": PaPreview,
   "pa-agregat": PaAgregatPreview,
+  "lw": LwPreview,
+  "ypt": YptPreview,
+  "ypt-data": YptPreviewData,
 };
 const previewParam = new URLSearchParams(window.location.search).get("preview");
 const RootComponent = PREVIEWS[previewParam] || App;

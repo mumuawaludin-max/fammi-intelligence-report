@@ -1,0 +1,221 @@
+/* Menu Dokumentasi Kegiatan: empat baris carousel (Video, Foto, Link, File). */
+
+.section { margin-bottom: 34px; }
+
+.rail {
+  display: grid;
+  gap: 16px;
+  grid-auto-flow: column;
+  grid-auto-columns: calc((100% - 48px) / 4);
+  overflow-x: auto;
+  scroll-behavior: smooth;
+  scrollbar-width: none;
+  padding-bottom: 4px;
+}
+
+.rail::-webkit-scrollbar { display: none; }
+
+/* Baris foto memakai kartu besar: dua per layar, sesuai Figma. */
+.railFoto { grid-auto-columns: calc((100% - 16px) / 2); }
+
+/* Mode "Lihat Semua": rail horizontal berubah jadi grid membungkus seluruh item. */
+.railSemua {
+  grid-auto-flow: row;
+  grid-template-columns: repeat(4, 1fr);
+  overflow-x: visible;
+}
+
+.railSemua.railFoto { grid-template-columns: repeat(2, 1fr); }
+
+.aksiRow {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.lihatSemua {
+  border: none;
+  border-radius: 8px;
+  background: var(--ypt-navy);
+  color: #fff;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 8px 16px;
+  height: 32px;
+  cursor: pointer;
+}
+
+.kartu {
+  background: var(--ypt-surface);
+  border: 1px solid var(--ypt-border);
+  border-radius: var(--ypt-radius-md);
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  align-self: flex-start;
+  border: 1px solid var(--ypt-border);
+  border-radius: var(--ypt-radius-sm);
+  padding: 7px 13px;
+  font-size: 13px;
+  color: var(--ypt-ink-2);
+}
+
+.badgeIkon { color: var(--ypt-red); font-size: 14px; }
+
+.judul {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--ypt-navy);
+  line-height: 1.45;
+  margin: 0;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.judulFoto {
+  -webkit-line-clamp: 2;
+  font-size: 15px;
+  margin-top: 4px;
+}
+
+.thumb {
+  width: 100%;
+  aspect-ratio: 16 / 10;
+  object-fit: cover;
+  border-radius: var(--ypt-radius-sm);
+  border: 1.5px solid var(--ypt-navy);
+  background: var(--ypt-navy-soft);
+  display: block;
+}
+
+.thumbFoto {
+  aspect-ratio: 16 / 9;
+  border-radius: var(--ypt-radius-sm);
+}
+
+.thumbKosong {
+  width: 100%;
+  aspect-ratio: 16 / 10;
+  border-radius: var(--ypt-radius-sm);
+  background: var(--ypt-navy-soft);
+  display: grid;
+  place-items: center;
+  font-size: 28px;
+  color: var(--ypt-navy);
+}
+
+/* CTA kartu: tautan merah bergaris bawah dengan panah, sesuai mockup (bukan tombol outline). */
+.tombol {
+  margin-top: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  align-self: flex-start;
+  border: none;
+  background: none;
+  color: var(--ypt-red);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  padding: 2px 0;
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 4px;
+}
+
+.tombol:hover { color: var(--ypt-red-dark); }
+
+.kosong {
+  background: var(--ypt-surface);
+  border: 1px solid var(--ypt-border);
+  border-radius: var(--ypt-radius-md);
+  padding: 40px 28px;
+  text-align: center;
+  color: var(--ypt-ink-3);
+  font-size: 13px;
+}
+
+/* ── Modal pratinjau ────────────────────────────────────────────────────────────────────── */
+.modalBackdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(23, 37, 84, 0.55);
+  display: grid;
+  place-items: center;
+  z-index: 100;
+  padding: 40px;
+}
+
+.modal {
+  background: var(--ypt-surface);
+  border-radius: var(--ypt-radius-lg);
+  width: min(1000px, 100%);
+  max-height: 86vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.modalHead {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 16px 22px;
+  border-bottom: 1px solid var(--ypt-border);
+}
+
+.modalJudul {
+  flex: 1;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--ypt-navy);
+}
+
+.modalTutup {
+  border: none;
+  background: none;
+  font-size: 26px;
+  line-height: 1;
+  color: var(--ypt-ink-3);
+  cursor: pointer;
+  padding: 0 4px;
+}
+
+.modalFrame {
+  width: 100%;
+  height: 70vh;
+  border: none;
+  display: block;
+}
+
+.modalFoto {
+  width: 100%;
+  max-height: 74vh;
+  object-fit: contain;
+  display: block;
+  background: var(--ypt-navy-soft);
+}
+
+.modalKosong {
+  padding: 48px 28px;
+  text-align: center;
+  color: var(--ypt-ink-3);
+  font-size: 13px;
+}
+
+.modalLink {
+  display: inline-block;
+  margin-top: 14px;
+  color: var(--ypt-red);
+  font-weight: 700;
+}

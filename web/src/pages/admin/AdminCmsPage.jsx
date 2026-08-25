@@ -18,6 +18,7 @@ import { Upload } from './screens/Upload';
 import { Gemini } from './screens/Gemini';
 import { Sekolah } from './screens/Sekolah';
 import { Pengguna } from './screens/Pengguna';
+import { SinkronYpt } from './screens/SinkronYpt';
 
 function Screen({ name }) {
   switch (name) {
@@ -29,6 +30,7 @@ function Screen({ name }) {
     case 'gemini': return <Gemini />;
     case 'sekolah': return <Sekolah />;
     case 'pengguna': return <Pengguna />;
+    case 'sinkron-ypt': return <SinkronYpt />;
     default: return <Dashboard />;
   }
 }

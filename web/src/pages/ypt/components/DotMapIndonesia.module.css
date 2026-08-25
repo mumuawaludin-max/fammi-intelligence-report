@@ -1,0 +1,117 @@
+.wrap {
+  background: var(--ypt-surface);
+  border: 1px solid var(--ypt-border);
+  border-radius: var(--ypt-radius-md);
+  padding: 22px;
+}
+
+/* aspect-ratio dipasang inline dari PETA_RASIO (yptMeta.js) supaya selalu sama dengan bingkai
+   proyeksi peta -- lihat komentar panjang di DotMapIndonesia.jsx. */
+.canvas {
+  position: relative;
+  width: 100%;
+}
+
+.basemap {
+  width: 100%;
+  height: 100%;
+  display: block;
+  opacity: 0.9;
+}
+
+.marker {
+  position: absolute;
+  width: 12px;
+  height: 12px;
+  margin: -6px 0 0 -6px;
+  padding: 0;
+  border: 2px solid #fff;
+  border-radius: 50%;
+  cursor: pointer;
+  transition: transform 0.15s ease;
+  box-shadow: 0 1px 3px rgba(23, 37, 84, 0.35);
+}
+
+.marker:hover { transform: scale(1.4); }
+
+.markerActive {
+  transform: scale(1.5);
+  /* Warna ring mengikuti warna marker (diisi inline lewat --marker-warna). */
+  box-shadow: 0 0 0 5px color-mix(in srgb, var(--marker-warna, var(--ypt-red)) 22%, transparent);
+}
+
+.tooltip {
+  position: absolute;
+  transform: translate(-50%, calc(-100% - 16px));
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  background: var(--ypt-surface);
+  border: 1px solid var(--ypt-border);
+  border-radius: var(--ypt-radius-sm);
+  box-shadow: var(--ypt-shadow-md);
+  padding: 8px 14px;
+  pointer-events: none;
+  white-space: nowrap;
+  z-index: 5;
+}
+
+.tooltipNama {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--ypt-ink);
+}
+
+.tooltipSub {
+  font-size: 11px;
+  color: var(--ypt-red);
+}
+
+.legend {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px 16px;
+  margin-top: 16px;
+  padding-top: 14px;
+  border-top: 1px solid var(--ypt-border);
+}
+
+.legendJudul {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--ypt-ink);
+}
+
+.legendItem {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--ypt-ink-2);
+}
+
+.legendDot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  border: 1.5px solid #fff;
+  box-shadow: 0 0 0 1px var(--ypt-border);
+}
+
+.belum {
+  margin: 12px 0 0;
+  font-size: 12px;
+  color: var(--ypt-ink-3);
+  line-height: 1.7;
+}
+
+.belumBtn {
+  border: none;
+  background: none;
+  font: inherit;
+  color: var(--ypt-red);
+  cursor: pointer;
+  padding: 0 4px 0 0;
+  text-decoration: underline;
+}

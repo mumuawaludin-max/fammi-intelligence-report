@@ -3,7 +3,7 @@ import { useCms } from '../store/CmsStore';
 import { moduleColor, moduleLabel } from '../data/helpers';
 import { IconX } from './icons';
 
-const MODULES = ['karakter', 'mi', 'screening', 'cw', 'sc', 'pa'];
+const MODULES = ['karakter', 'mi', 'screening', 'cw', 'sc', 'pa', 'lw', 'kp'];
 // Daycare..SMK = jenjang akademik (sekolah K-12). "Semua Jenjang" untuk satu Yayasan yang
 // mendaftar sebagai SATU baris `schools`/satu login tapi mencakup beberapa jenjang sekaligus
 // (mis. Sekolah Islam Athirah: SD/SMP/SMA dalam satu wadah) -- label ini murni deskriptif untuk

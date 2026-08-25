@@ -1,0 +1,47 @@
+import { useEffect, useState } from "react";
+import { supabase } from "../../lib/supabase";
+
+/**
+ * Daftar periode yang benar-benar punya data untuk sekolah-sekolah satu yayasan, terurut terbaru
+ * lebih dulu. Dipakai pemilih periode di topbar YptApp.
+ *
+ * Digabung dari tiga sumber karena tiap menu punya siklus datanya sendiri: Rapor Karakter dan
+ * Citra Sekolah ikut periode impor Karakter, Survey Kepuasan dan Testimoni ikut bulan respons
+ * form masuk. Kalau cuma memakai salah satu, bulan yang datanya ada di menu lain akan hilang dari
+ * pilihan dan seolah-olah tidak pernah ada.
+ */
+export function useYptPeriodes(session) {
+  const [periodes, setPeriodes] = useState([]);
+  const sekolahIds = (session?.schools || []).map((s) => s.id);
+  const key = sekolahIds.join(",");
+
+  useEffect(() => {
+    let alive = true;
+    if (sekolahIds.length === 0) { setPeriodes([]); return; }
+
+    async function run() {
+      const [karakterRes, kpRes, testiRes] = await Promise.all([
+        supabase.from("ypt_k_sekolah").select("periode_id").in("sekolah_id", sekolahIds),
+        supabase.from("kp_responden").select("periode_id").in("sekolah_id", sekolahIds),
+        supabase.from("cs_testimoni").select("periode_id").in("sekolah_id", sekolahIds),
+      ]);
+
+      if (!alive) return;
+
+      // Galat per sumber sengaja diabaikan (bukan dilempar): tabel kp/testimoni bisa saja belum
+      // terisi di sekolah ini, dan itu bukan alasan untuk mengosongkan pemilih periode yang sudah
+      // benar dari data Karakter.
+      const set = new Set();
+      [karakterRes, kpRes, testiRes].forEach((res) => {
+        (res.data || []).forEach((r) => r.periode_id && set.add(r.periode_id));
+      });
+
+      setPeriodes(Array.from(set).sort((a, b) => (a > b ? -1 : 1)));
+    }
+
+    run();
+    return () => { alive = false; };
+  }, [key]);
+
+  return periodes;
+}

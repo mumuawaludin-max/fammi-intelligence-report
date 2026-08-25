@@ -11,6 +11,23 @@ import { supabase } from "./supabase";
 
 const SESSION_KEY = "fir_session";
 
+/**
+ * Peran Yayasan punya dua bentuk yang sama-sama sah, dan keduanya harus tetap jalan:
+ *   a. Yayasan MULTI-SEKOLAH -- cakupan[0] berisi id yayasan (berprefiks "YAY-"), menaungi banyak
+ *      baris schools. Contoh: Yayasan Pendidikan Telkom.
+ *   b. Yayasan SATU SEKOLAH  -- cakupan kosong, cakupannya "seluruh sekolah" dalam satu school_id
+ *      saja, praktis sama dengan Kepala Sekolah. Contoh: yayasantkfammi.
+ *
+ * Pembedanya cuma bentuk cakupan, bukan peran. Catatan: profiles.cakupan adalah kolom yang
+ * di-overload -- untuk WaliKelas isinya daftar kelas_id, untuk Yayasan isinya id yayasan (lihat
+ * migration 20260810130000). Prefiks "YAY-" yang membuat penafsiran itu aman ditebak di sini.
+ */
+function yayasanIdDariCakupan(peran, cakupan) {
+  if (peran !== "Yayasan" || !Array.isArray(cakupan)) return null;
+  const first = cakupan[0];
+  return typeof first === "string" && first.startsWith("YAY-") ? first : null;
+}
+
 /** Baca profiles + school_modules aktif untuk satu user_id. Dipakai bareng oleh login dan
  * refreshSession supaya keduanya selalu membangun bentuk sesi yang sama persis. */
 async function fetchProfileSession(userId) {
@@ -22,13 +39,56 @@ async function fetchProfileSession(userId) {
 
   if (profileError || !profile) throw new Error("Profil pengguna tidak ditemukan.");
 
-  const { data: modulRows } = await supabase
-    .from("school_modules")
-    .select("modul")
-    .eq("school_id", profile.school_id)
-    .eq("aktif", true);
+  const yayasanId = yayasanIdDariCakupan(profile.peran, profile.cakupan);
 
-  const modules = (modulRows || []).map((r) => r.modul);
+  // Yayasan multi-sekolah: daftar sekolah naungan diresolusi SEKALI di sini, bukan diulang di tiap
+  // modul. Sebelumnya cuma useKarakterYayasan() yang melakukannya sendiri; begitu modul kedua dan
+  // ketiga butuh daftar yang sama (dashboard YPT: Rapor Karakter, Citra Sekolah, Survey Kepuasan,
+  // Dokumentasi), menduplikasi query itu tiga kali lagi cuma menunggu jadi sumber bug.
+  //
+  // Entitlement ikut berubah bentuk: session.modules untuk Yayasan multi-sekolah adalah GABUNGAN
+  // modul aktif seluruh sekolahnya, bukan modul satu sekolah jangkar. Tanpa ini, akun yayasan
+  // yang school_id jangkarnya kebetulan cuma punya modul "karakter" tidak akan pernah melihat
+  // modul yang aktif di sekolah lain naungannya.
+  let schools = null;
+  let modulesBySchool = null;
+  let modules = [];
+
+  if (yayasanId) {
+    const { data: sekolahRows } = await supabase
+      .from("schools")
+      .select("id, nama, jenjang, kota")
+      .eq("yayasan_id", yayasanId)
+      .eq("aktif", true)
+      .order("nama");
+
+    schools = sekolahRows || [];
+    const ids = schools.map((s) => s.id);
+
+    if (ids.length > 0) {
+      const { data: modulRows } = await supabase
+        .from("school_modules")
+        .select("school_id, modul")
+        .in("school_id", ids)
+        .eq("aktif", true);
+
+      modulesBySchool = {};
+      const union = new Set();
+      (modulRows || []).forEach((r) => {
+        (modulesBySchool[r.school_id] ||= []).push(r.modul);
+        union.add(r.modul);
+      });
+      modules = Array.from(union);
+    }
+  } else {
+    const { data: modulRows } = await supabase
+      .from("school_modules")
+      .select("modul")
+      .eq("school_id", profile.school_id)
+      .eq("aktif", true);
+
+    modules = (modulRows || []).map((r) => r.modul);
+  }
 
   return {
     user_id: userId,
@@ -40,6 +100,11 @@ async function fetchProfileSession(userId) {
     murid_id: profile.murid_id,
     sc_responden_id: profile.sc_responden_id,
     modules,
+    // Tiga field di bawah HANYA terisi untuk Yayasan multi-sekolah; null untuk semua akun lain,
+    // supaya kode yang mengeceknya bisa memakai `session.schools?` sebagai penanda bentuk sesi.
+    yayasan_id: yayasanId,
+    schools,
+    modulesBySchool,
   };
 }
 

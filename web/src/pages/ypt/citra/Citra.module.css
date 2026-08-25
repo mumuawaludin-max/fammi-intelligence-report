@@ -1,0 +1,257 @@
+/* Gaya bersama keempat tab menu Citra Sekolah. */
+
+.grid3 {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 18px;
+}
+
+.grid4 {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 18px;
+  margin-bottom: 30px;
+}
+
+.grid5 {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 16px;
+  margin-bottom: 30px;
+}
+
+/* ── Kartu kategori (tab Keberhasilan) ──────────────────────────────────────────────────── */
+.kartu {
+  background: var(--ypt-surface);
+  border: 1px solid var(--ypt-border);
+  border-radius: var(--ypt-radius-md);
+  padding: 22px 20px;
+}
+
+.kartuIkon {
+  font-size: 30px;
+  line-height: 1;
+  margin-bottom: 18px;
+  color: var(--ypt-navy);
+}
+
+.kartuNama {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--ypt-navy);
+  margin: 0 0 6px;
+}
+
+.kartuAngka {
+  font-size: 13px;
+  color: var(--ypt-ink-3);
+  margin: 0 0 18px;
+}
+
+.kartuPersen {
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--ypt-red);
+  margin-right: 8px;
+}
+
+.kartuDot { margin-right: 8px; color: var(--ypt-ink-4); }
+
+/* Sebaran per jenjang di dalam kartu */
+.jenjangBaris { margin-top: 12px; }
+
+.jenjangBarisTop {
+  display: flex;
+  justify-content: space-between;
+  font-size: 11px;
+  color: var(--ypt-ink-2);
+  margin-bottom: 5px;
+}
+
+.jenjangBarisNilai { color: var(--ypt-ink-2); }
+
+/* ── Kartu ring (tab Dukungan) ──────────────────────────────────────────────────────────── */
+.ringKartu {
+  background: var(--ypt-surface);
+  border: 1px solid var(--ypt-border);
+  border-radius: var(--ypt-radius-md);
+  padding: 22px 20px;
+  text-align: left;
+  font: inherit;
+  cursor: pointer;
+  transition: box-shadow 0.15s ease;
+}
+
+.ringKartu:hover { box-shadow: var(--ypt-shadow-md); }
+.ringKartuActive { box-shadow: inset 0 0 0 2px var(--ypt-navy); }
+
+.ringTop {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 18px;
+}
+
+.ringNilai {
+  font-size: 24px;
+  font-weight: 700;
+  color: var(--ypt-red);
+  line-height: 1.1;
+}
+
+.ringSub {
+  font-size: 12px;
+  color: var(--ypt-ink-3);
+}
+
+.ringNama {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--ypt-navy);
+  line-height: 1.4;
+  margin: 0;
+}
+
+/* ── Kartu sentimen (tab Emosi) ─────────────────────────────────────────────────────────── */
+.sentimenKartu {
+  background: var(--ypt-surface);
+  border: 1px solid var(--ypt-border);
+  border-radius: var(--ypt-radius-md);
+  overflow: hidden;
+}
+
+.sentimenHead {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 16px 18px;
+  color: #fff;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.sentimenBody { padding: 16px 18px; }
+
+.sentimenTotal {
+  font-size: 20px;
+  font-weight: 700;
+  margin: 0 0 4px;
+}
+
+.sentimenSub {
+  font-size: 11px;
+  color: var(--ypt-ink-3);
+  margin: 0 0 14px;
+}
+
+/* ── Kartu donut (tab Testimoni) ────────────────────────────────────────────────────────── */
+.donutKartu {
+  background: var(--ypt-surface);
+  border: 1px solid var(--ypt-border);
+  border-radius: var(--ypt-radius-md);
+  padding: 20px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  text-align: left;
+  font: inherit;
+  cursor: pointer;
+  border-bottom-width: 4px;
+  border-bottom-style: solid;
+}
+
+.donutKartuActive { box-shadow: inset 0 0 0 2px currentColor; }
+
+.donutNilai {
+  font-size: 22px;
+  font-weight: 700;
+  line-height: 1.1;
+}
+
+.donutNama {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--ypt-navy);
+  margin: 4px 0 2px;
+  line-height: 1.3;
+}
+
+.donutSub {
+  font-size: 12px;
+  color: var(--ypt-ink-3);
+}
+
+/* ── Esai ───────────────────────────────────────────────────────────────────────────────── */
+.esaiHead {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin: 30px 0 14px;
+}
+
+.esaiSelect {
+  font: inherit;
+  font-size: 13px;
+  color: var(--ypt-ink-2);
+  background: var(--ypt-surface);
+  border: 1px solid var(--ypt-border);
+  border-radius: var(--ypt-radius-sm);
+  padding: 10px 14px;
+  min-width: 260px;
+  cursor: pointer;
+}
+
+.esaiGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  align-items: start;
+}
+
+.esaiKartu {
+  background: var(--ypt-surface);
+  border: 1px solid var(--ypt-border);
+  border-radius: var(--ypt-radius-md);
+  padding: 18px 20px;
+  border-bottom-width: 3px;
+  border-bottom-style: solid;
+  border-bottom-color: var(--ypt-border);
+}
+
+.esaiTop {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.esaiNama {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--ypt-navy);
+}
+
+.esaiBadge {
+  border: 1px solid var(--ypt-border);
+  border-radius: var(--ypt-radius-sm);
+  padding: 6px 12px;
+  font-size: 11px;
+  color: var(--ypt-ink-2);
+  white-space: nowrap;
+}
+
+.esaiBadgeSekolah { color: var(--ypt-red); font-weight: 600; }
+
+.esaiTeks {
+  font-size: 13px;
+  color: var(--ypt-ink-2);
+  line-height: 1.6;
+  margin: 0;
+}
+
+.kosong {
+  font-size: 13px;
+  color: var(--ypt-ink-3);
+  padding: 8px 0;
+}

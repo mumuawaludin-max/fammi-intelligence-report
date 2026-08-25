@@ -15,8 +15,11 @@ import CwKaryawanPage from "./pages/cw/CwKaryawanPage";
 import ScPage from "./pages/sc/ScPage";
 import ScKaryawanPage from "./pages/sc/ScKaryawanPage";
 import PaPage from "./pages/pa/PaPage";
+import LwPage from "./pages/lw/LwPage";
 import SiswaPage from "./pages/siswa/SiswaPage";
 import AdminCmsPage from "./pages/admin/AdminCmsPage";
+import YptApp from "./pages/ypt/YptApp";
+import { YPT_ID } from "./pages/ypt/yptMeta";
 import styles from "./App.module.css";
 
 function periodeLabel(periodeId) {
@@ -81,7 +84,7 @@ function isSingleModuleShellPeran(peran) {
 // Urutan prioritas kalau session.modules punya lebih dari satu entitlement aktif -- dipakai
 // supaya modul default begitu login stabil dan cocok dengan tab paling kiri yang terlihat di
 // NavBar (lihat NAV_ITEMS di components/NavBar.jsx), bukan urutan acak dari database.
-const URUTAN_MODUL_DEFAULT = ["karakter", "screening", "mi", "cw", "sc", "pa"];
+const URUTAN_MODUL_DEFAULT = ["karakter", "screening", "mi", "cw", "sc", "pa", "lw"];
 
 /**
  * Modul default begitu login (atau kalau session.modules kosong). SEBELUMNYA hardcode
@@ -198,6 +201,17 @@ export default function App() {
     return <AdminCmsPage session={session} onLogout={handleLogout} />;
   }
 
+  // Yayasan Pendidikan Telkom: shell dan tampilan sendiri sepenuhnya (empat menu, palet Telkom,
+  // lintas puluhan sekolah), instruksi eksplisit pemilik produk 2026-08-25.
+  //
+  // Gerbangnya sengaja per-YAYASAN, bukan per-peran: akun Yayasan lain (mis. yayasantkfammi yang
+  // cakupannya satu sekolah) HARUS tetap jatuh ke shell FIR biasa di bawah, tidak ikut terseret
+  // ke tampilan ini. Kalau nanti yayasan kedua minta tampilan serupa, naikkan penanda ini jadi
+  // kolom konfigurasi di tabel yayasan -- jangan tambah cabang hardcode kedua di sini.
+  if (session.peran === "Yayasan" && session.yayasan_id === YPT_ID) {
+    return <YptApp session={session} onLogout={handleLogout} />;
+  }
+
   const bulananOptions = availablePeriods.map((id) => ({ id, label: periodeLabel(id) }));
   const shellModules = (session.modules || []).filter((m) => m !== "overview");
   const modules = isKepsekShell
@@ -278,6 +292,10 @@ export default function App() {
         {/* Perilaku Anak: modul tampilan-dulu, data masih contoh (lihat pa/pa.mock.js).
             Aktif untuk sekolah yang punya penanda "pa" di school_modules. */}
         {activeTab === "pa" && <PaPage session={{ ...session, school_name: overview.schoolName }} />}
+
+        {/* Leadership & Wellbeing Assessment: laporan pimpinan, desktop-first, drill-down per
+            kandidat lewat LwKandidatTable -- lihat catatan LwPage.jsx. */}
+        {activeTab === "lw" && <LwPage session={session} />}
 
         {activeTab === "screening" && (
           <div className={styles.placeholder}>

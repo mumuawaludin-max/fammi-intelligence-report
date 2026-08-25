@@ -1,0 +1,198 @@
+/* Shell dashboard Yayasan Pendidikan Telkom. Semua warna lewat token --ypt-* (yptTokens.module.css). */
+
+.app {
+  min-height: 100vh;
+  background: var(--ypt-bg);
+  color: var(--ypt-ink-2);
+}
+
+/* ── Topbar ─────────────────────────────────────────────────────────────────────────────── */
+.topbar {
+  background: var(--ypt-surface);
+  border-bottom: 1px solid var(--ypt-border);
+  position: sticky;
+  top: 0;
+  z-index: 20;
+}
+
+.topbarInner {
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 14px 40px;
+  display: flex;
+  align-items: center;
+  gap: 24px;
+}
+
+.logo {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
+}
+
+.logoMark {
+  width: 30px;
+  height: 30px;
+  flex-shrink: 0;
+}
+
+.logoText {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.05;
+}
+
+.logoTop {
+  font-size: 9px;
+  font-weight: 600;
+  color: var(--ypt-ink-2);
+  letter-spacing: 0.01em;
+}
+
+.logoBottom {
+  font-size: 17px;
+  font-weight: 700;
+  color: var(--ypt-ink);
+  letter-spacing: -0.02em;
+}
+
+.menuNav {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-left: auto;
+}
+
+.menuBtn {
+  border: none;
+  background: var(--ypt-bg);
+  color: var(--ypt-ink-3);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 500;
+  padding: 10px 22px;
+  border-radius: 999px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.menuBtn:hover {
+  background: var(--ypt-navy-soft);
+  color: var(--ypt-ink-2);
+}
+
+.menuBtnActive,
+.menuBtnActive:hover {
+  background: var(--ypt-red);
+  color: #fff;
+  font-weight: 700;
+}
+
+/* Pemilih periode. Tidak digambar di Figma; ditambahkan karena seluruh data dashboard ini
+   berdimensi periode dan tanpa pemilih, yayasan terkunci di satu bulan. Sengaja dibuat setenang
+   mungkin (teks abu, tanpa kotak tebal) supaya tidak mengganggu komposisi nav. */
+.periodWrap {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-left: 18px;
+  padding-left: 18px;
+  border-left: 1px solid var(--ypt-border);
+}
+
+.periodLabel {
+  font-size: 11px;
+  color: var(--ypt-ink-3);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.periodSelect {
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ypt-ink);
+  background: transparent;
+  border: 1px solid var(--ypt-border);
+  border-radius: 8px;
+  padding: 6px 10px;
+  cursor: pointer;
+}
+
+.logoutBtn {
+  border: none;
+  background: transparent;
+  color: var(--ypt-ink-3);
+  font: inherit;
+  font-size: 12px;
+  cursor: pointer;
+  padding: 8px;
+  margin-left: 4px;
+}
+
+.logoutBtn:hover { color: var(--ypt-red); }
+
+/* ── Isi ────────────────────────────────────────────────────────────────────────────────── */
+.main {
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 26px 40px 64px;
+}
+
+.sectionTitle {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--ypt-ink);
+  margin: 0 0 14px;
+}
+
+/* ── Status kosong / muat / galat ───────────────────────────────────────────────────────── */
+.state {
+  background: var(--ypt-surface);
+  border: 1px solid var(--ypt-border);
+  border-radius: var(--ypt-radius-md);
+  padding: 48px 32px;
+  text-align: center;
+  color: var(--ypt-ink-3);
+  font-size: 14px;
+}
+
+.stateTitle {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--ypt-ink);
+  margin: 0 0 6px;
+}
+
+/* ── Gerbang desktop ────────────────────────────────────────────────────────────────────── */
+/* Yayasan desktop-only (keputusan arsitektur nomor 8 di CLAUDE.md). Dashboard ini padat tabel
+   dan peta; memaksakannya ke layar sempit menghasilkan tampilan yang tidak bisa dibaca, jadi
+   lebih jujur meminta pengguna membuka di layar lebar. */
+.desktopOnly { display: none; }
+
+@media (max-width: 1023px) {
+  .shellBody { display: none; }
+  .desktopOnly {
+    display: block;
+    max-width: 420px;
+    margin: 80px auto;
+    padding: 32px 28px;
+    background: var(--ypt-surface);
+    border: 1px solid var(--ypt-border);
+    border-radius: var(--ypt-radius-md);
+    text-align: center;
+  }
+  .desktopOnly h2 {
+    font-size: 17px;
+    color: var(--ypt-ink);
+    margin: 0 0 10px;
+  }
+  .desktopOnly p {
+    font-size: 13px;
+    color: var(--ypt-ink-3);
+    margin: 0;
+    line-height: 1.6;
+  }
+}

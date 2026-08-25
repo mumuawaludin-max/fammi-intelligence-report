@@ -8,7 +8,10 @@ import { IconMoreVertical } from '../components/icons';
 
 // Urutannya harus sama dengan kolom <th> di tabel bawah -- baris data dirender dengan
 // MODULES.map, jadi menambah modul di sini tanpa menambah header bikin kolom bergeser.
-const MODULES = ['karakter', 'mi', 'screening', 'cw', 'sc', 'pa'];
+// 'lw' sempat tertinggal di sini padahal modulnya sudah jalan (Leadership & Wellbeing,
+// migration 20260803100000) -- akibatnya entitlement-nya cuma bisa diatur lewat SQL, tidak lewat
+// CMS. 'kp' (Survey Kepuasan YPT) ditambahkan sekalian.
+const MODULES = ['karakter', 'mi', 'screening', 'cw', 'sc', 'pa', 'lw', 'kp'];
 
 export function Sekolah() {
   const { data, loading, error, setAddSchoolOpen, setAddYayasanOpen, setEditSchoolTarget, showToast, isModuleOn, toggleModule, refetch } = useCms();
@@ -48,6 +51,8 @@ export function Sekolah() {
                 <th>Culture</th>
                 <th>School Culture</th>
                 <th>Perilaku Anak</th>
+                <th>Leadership</th>
+                <th>Kepuasan</th>
                 <th>Aspek config</th>
                 <th>Aktif</th>
                 <th style={{ width: 36 }}></th>

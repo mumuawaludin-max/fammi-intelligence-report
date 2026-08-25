@@ -1,0 +1,68 @@
+.wrap {
+  display: flex;
+  align-items: stretch;
+  background: var(--ypt-surface);
+  border: 1px solid var(--ypt-border);
+  border-radius: var(--ypt-radius-md);
+  overflow: hidden;
+  margin-bottom: 26px;
+}
+
+.step {
+  flex: 1;
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 10px;
+  padding: 18px 20px 18px 26px;
+  border: none;
+  background: var(--ypt-surface);
+  color: var(--ypt-ink-3);
+  font: inherit;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: color 0.15s ease;
+}
+
+.step:first-child { padding-left: 24px; }
+
+.step:hover { color: var(--ypt-ink-2); }
+
+/* Takik panah: sisi kanan tiap segmen meruncing, sisi kirinya bertakik masuk supaya segmen
+   berikutnya terlihat menyatu seperti anak panah berantai. Segmen terakhir tidak meruncing. */
+.step:not(:last-child) {
+  clip-path: polygon(0 0, calc(100% - 18px) 0, 100% 50%, calc(100% - 18px) 100%, 0 100%, 18px 50%);
+  margin-right: -18px;
+}
+
+.step:first-child:not(:last-child) {
+  clip-path: polygon(0 0, calc(100% - 18px) 0, 100% 50%, calc(100% - 18px) 100%, 0 100%);
+}
+
+.step:last-child:not(:first-child) {
+  clip-path: polygon(0 0, 100% 0, 100% 100%, 0 100%, 18px 50%);
+}
+
+/* Segmen aktif: kartu putih dengan bingkai navy, diangkat di atas tetangganya lewat z-index
+   inline (lihat StepTabs.jsx) supaya bingkainya tidak terpotong takik segmen sebelahnya. */
+.stepActive,
+.stepActive:hover {
+  color: var(--ypt-ink);
+  font-weight: 700;
+  box-shadow: inset 0 0 0 1.5px var(--ypt-navy);
+  border-radius: 2px;
+}
+
+.icon {
+  font-size: 16px;
+  line-height: 1;
+  color: var(--ypt-ink-4);
+  flex-shrink: 0;
+}
+
+.stepActive .icon { color: var(--ypt-navy); }
+
+.label { overflow: hidden; text-overflow: ellipsis; }
