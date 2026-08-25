@@ -55,7 +55,75 @@ export function rakitLaporanLw({ sekolahNama, lembagaRow, personalRows, tlRows, 
     temuanPerDimensi.get(t.dimensi).push({ pernyataan: t.pernyataan, persen: t.persen, jumlah: t.jumlah });
   }
 
+  // Ringkasan per dimensi untuk kartu HEART-style: DIAMBIL dari lembagaRow.protek_dimensi
+  // (angka final dokumen sumber, mis. E=13% bukan 12.5%), BUKAN di-tally ulang dari personal.
+  const ringkasanKesehatan = PROTEK_DIMENSI_URUTAN.map((kode) => {
+    const info = PROTEK_DIMENSI_INFO[kode];
+    const row = (lembagaRow.protek_dimensi || []).find((d) => d.kode === kode);
+    return {
+      kode,
+      huruf: info.icon,
+      label: info.label,
+      deskripsi: info.deskripsi,
+      baik: { persen: row?.baik_persen ?? 0, jumlah: row?.baik_jumlah ?? 0 },
+      perluPerhatian: { persen: row?.perlu_perhatian_persen ?? 0, jumlah: row?.perlu_perhatian_jumlah ?? 0 },
+      waspada: { persen: row?.waspada_persen ?? 0, jumlah: row?.waspada_jumlah ?? 0 },
+    };
+  });
+
+  // Tally kategori final per unit dari baris personal -- BUKAN menghitung skor/status baru,
+  // cuma menghitung berapa orang per kategori yang sudah final (preseden tally sebaran di
+  // useScData.js). Persen di sini murni tally tampilan; angka organisasi tetap dari lembagaRow.
+  const unitUrutan = [];
+  for (const p of personalRows) {
+    if (!unitUrutan.includes(p.unit)) unitUrutan.push(p.unit);
+  }
+  const perUnitKesehatan = unitUrutan.map((unit) => {
+    const guruUnit = personalRows.filter((p) => p.unit === unit);
+    return {
+      unit,
+      jumlahGuru: guruUnit.length,
+      dimensi: PROTEK_DIMENSI_URUTAN.map((kode) => {
+        const info = PROTEK_DIMENSI_INFO[kode];
+        let baik = 0, perluPerhatian = 0, waspada = 0;
+        for (const p of guruUnit) {
+          const kategori = (p.protek_dimensi || []).find((d) => d.kode === kode)?.kategori;
+          if (kategori === "Perlu Perhatian") perluPerhatian += 1;
+          else if (kategori === "Waspada" || kategori === "Perlu Konsultasi") waspada += 1;
+          else baik += 1;
+        }
+        const persen = (n) => (guruUnit.length ? Math.round((n / guruUnit.length) * 100) : 0);
+        return {
+          kode,
+          huruf: info.icon,
+          label: info.label,
+          baik: { persen: persen(baik), jumlah: baik },
+          perluPerhatian: { persen: persen(perluPerhatian), jumlah: perluPerhatian },
+          waspada: { persen: persen(waspada), jumlah: waspada },
+        };
+      }),
+    };
+  });
+
+  // Daftar guru non-Baik per dimensi untuk dialog "Lihat Daftar Nama" -- murni filter kategori
+  // final di lw_personal.protek_dimensi, terurut skor terendah dulu (paling perlu perhatian).
+  const daftarPerhatian = {};
+  for (const kode of PROTEK_DIMENSI_URUTAN) {
+    daftarPerhatian[kode] = personalRows
+      .map((p) => {
+        const d = (p.protek_dimensi || []).find((x) => x.kode === kode);
+        return d && d.kategori && d.kategori !== "Baik"
+          ? { id: p.id, nama: p.nama, unit: p.unit, nilai: d.nilai, kategori: d.kategori }
+          : null;
+      })
+      .filter(Boolean)
+      .sort((a, b) => (a.nilai ?? 0) - (b.nilai ?? 0));
+  }
+
   const kesehatan = {
+    ringkasan: ringkasanKesehatan,
+    perUnit: perUnitKesehatan,
+    daftarPerhatian,
     distribusi: (lembagaRow.protek_distribusi || []).map((d) => ({ ...d, toneVar: protekKategoriTone(d.kategori) })),
     dimensi: PROTEK_DIMENSI_URUTAN.map((kode) => {
       // Nilai rata-rata dimensi (skala 0-42) dirakit dari rata-rata skor final tiap kandidat --

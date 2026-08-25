@@ -2,22 +2,21 @@
 -- plus pemakaian tabel generik tindak_lanjut/briefing yang sudah ada, mengikuti pola SC/PA.
 --
 -- BEDA PENTING dari migration SC/PA sebelumnya: modul ini TIDAK punya RPC impor massal
--- (import_lw_periode) karena datanya bukan pipeline CMS berulang -- ini SATU laporan final,
--- satu lembaga, satu periode (Juli 2025), dari Dinas Pendidikan Kota Bandung, langsung
--- diimplementasikan sebagai data produksi atas instruksi eksplisit pemilik produk. Kalau nanti
--- ada laporan lain (sekolah/periode berbeda), migration baru dengan pola serupa cukup, atau RPC
--- impor bisa ditambah kalau frekuensinya sudah butuh CMS.
+-- (import_lw_periode) karena datanya bukan pipeline CMS berulang. Kalau nanti ada lembaga lain,
+-- migration baru dengan pola serupa cukup, atau RPC impor bisa ditambah kalau frekuensinya
+-- sudah butuh CMS.
 --
--- CATATAN SENSITIVITAS: seluruh data guru di bawah (nama, skor kesehatan mental, skor
--- kepemimpinan) berasal dari dokumen berklasifikasi "RAHASIA -- Hanya untuk Pimpinan dan Yang
--- Berwenang". RLS di bawah membatasi baca ke peran pimpinan sekolah ini saja (KepalaSekolah/
--- WakilKepalaSekolah/Manajemen/Yayasan) + Admin Fammi, sama seperti pola SC/PA.
+-- SEED: data CONTOH (dummy) "Yayasan Pendidikan Fammi" -- 20 guru di 4 jenjang (TK/SD/SMP/SMA),
+-- periode Juli 2025, dibuat untuk demo/presentasi ke pimpinan yayasan atas instruksi eksplisit
+-- pemilik produk (2026-08-25, menggantikan seed data asli Dinas Pendidikan Kota Bandung yang
+-- sempat ada di versi awal berkas ini). Angka-angkanya BUKAN hasil asesmen sungguhan; nilainya
+-- sinkron persis dengan web/src/pages/lw/lw.mock.js. Alur cerita datanya: seluruh guru Baik
+-- secara keseluruhan, tapi dimensi Kemandirian/Penerimaan Diri/Eksplorasi Lingkungan punya
+-- guru yang perlu perhatian, terkonsentrasi di unit SMP.
 
 -- ── 1. Tabel agregat lembaga ────────────────────────────────────────────────────────────────
--- Satu baris per (sekolah, periode). Modul ini belum punya kebutuhan breakdown per unit di
--- level agregat (4 unit TKN yang ada semuanya digabung jadi satu gambaran lembaga, sesuai
--- dokumen sumber) -- kolom `unit` tetap disediakan (selalu null untuk saat ini) supaya skema
--- konsisten dengan sc_lembaga/pa_lembaga kalau nanti dibutuhkan breakdown per unit.
+-- Satu baris per (sekolah, periode). Kolom `unit` disediakan (selalu null untuk saat ini)
+-- supaya skema konsisten dengan sc_lembaga/pa_lembaga kalau nanti dibutuhkan breakdown per unit.
 create table if not exists public.lw_lembaga (
   id uuid primary key default gen_random_uuid(),
   sekolah_id text not null references public.schools(id) on delete cascade,
@@ -47,12 +46,12 @@ create table if not exists public.lw_personal (
   kesiapan_memimpin_skor int not null,
   kesiapan_memimpin_kategori text not null,
   kondisi_psikologis_skor int not null,
-  kondisi_psikologis_kategori text not null,   -- skala 4-tingkat (Baik/Perlu Perhatian/Waspada/Perlu Konsultasi), dari Laporan Analisis Kesehatan Mental Guru
+  kondisi_psikologis_kategori text not null,   -- skala 4-tingkat (Baik/Perlu Perhatian/Waspada/Perlu Konsultasi) skor total PROTEK
   kondisi_psikologis_label text,               -- label tri-state dokumen Leadership (mis. "Aman"), disimpan terpisah -- BUKAN dihitung ulang dari kategori di atas
   lead_aspek jsonb,       -- [{kode, nilai}] x4 (L/E/A/D)
   protek_dimensi jsonb,   -- [{kode, nilai, kategori}] x6 (P/R/O/T/E/K)
   narasi_pengalaman jsonb,  -- [{tema, isi}] jawaban skenario kepemimpinan
-  cerita_terbaik jsonb,     -- [{judul, isi, bullet_poin}] kutipan lampiran "Cerita Pengalaman Terbaik", [] kalau tidak ada
+  cerita_terbaik jsonb,     -- [{judul, isi, bullet_poin}] kutipan cerita pengalaman terbaik, [] kalau tidak ada
   created_at timestamptz not null default now()
 );
 
@@ -184,279 +183,335 @@ begin
 end $$;
 
 -- ── 6. Sekolah + entitlement ────────────────────────────────────────────────────────────────
--- Entitas baru: klaster TK Negeri Pembina Kota Bandung, empat unit (TKN Pembina Citarip/
--- Sadang Serang/Centeh/04 Batununggal) dalam SATU baris schools -- pola sama dengan Sekolah
--- Islam Athirah (satu baris schools/satu login mencakup beberapa unit sekaligus, lihat
--- 20260801140000_school_jenjang.sql).
+-- Entitas demo: Yayasan Pendidikan Fammi, empat jenjang (TK/SD/SMP/SMA) dalam SATU baris
+-- schools -- pola sama dengan Sekolah Islam Athirah (satu baris schools/satu login mencakup
+-- beberapa unit sekaligus, lihat 20260801140000_school_jenjang.sql).
 insert into public.schools (id, nama, jenjang)
-values ('TKN-PEMBINA-BANDUNG', 'TK Negeri Pembina Kota Bandung', 'TK')
+values ('YP-FAMMI', 'Yayasan Pendidikan Fammi', 'Semua Jenjang')
 on conflict (id) do nothing;
 
 insert into public.school_modules (school_id, modul, aktif)
-values ('TKN-PEMBINA-BANDUNG', 'lw', true)
+values ('YP-FAMMI', 'lw', true)
 on conflict (school_id, modul) do update set aktif = true;
 
+-- Bersih-bersih: hapus seed lama Dinas Pendidikan Kota Bandung (TKN-PEMBINA-BANDUNG) kalau
+-- versi awal berkas ini sempat dijalankan, sekaligus membuat blok seed di bawah idempoten
+-- (menjalankan migration ini dua kali tidak menggandakan baris). Baris schools TKN lama
+-- dibiarkan kalau ada (tidak mengganggu); akun dinasbandung lama, kalau sempat dibuat,
+-- hapus manual lewat Supabase Auth.
+delete from public.tindak_lanjut where modul = 'lw' and sekolah_id in ('TKN-PEMBINA-BANDUNG', 'YP-FAMMI');
+delete from public.briefing where modul = 'lw' and sekolah_id in ('TKN-PEMBINA-BANDUNG', 'YP-FAMMI');
+delete from public.lw_personal where sekolah_id in ('TKN-PEMBINA-BANDUNG', 'YP-FAMMI');
+delete from public.lw_lembaga where sekolah_id in ('TKN-PEMBINA-BANDUNG', 'YP-FAMMI');
+delete from public.school_modules where school_id = 'TKN-PEMBINA-BANDUNG' and modul = 'lw';
+
 -- ── 7. Data agregat lembaga (periode 2025-07) ───────────────────────────────────────────────
--- Seluruh angka di bawah dikutip/dirata-ratakan langsung dari "Hasil Pemetaan Asesmen Wellbeing
--- & Leadership" dan "Laporan Analisis Kesehatan Mental Guru" (Dinas Pendidikan Kota Bandung,
--- Juli 2025). lead_aspek dan protek_dimensi (nilai rata-rata) dihitung sebagai rata-rata
--- sederhana dari 8 skor kandidat yang SUDAH FINAL di lw_personal (bagian 8) -- bukan skor baru,
--- murni rata-rata angka yang sudah ada, konsisten dengan cara sc_lembaga/pa_lembaga dirakit.
+-- Angka agregat konsisten dengan tally 20 baris lw_personal di bagian 8 (n=20, jadi 1 guru=5%).
 insert into public.lw_lembaga (
   sekolah_id, periode_id, unit,
   lead_distribusi, lead_aspek, lead_top_skill, lead_skill_gap,
   protek_distribusi, protek_dimensi, protek_temuan_spesifik
 ) values (
-  'TKN-PEMBINA-BANDUNG', '2025-07', null,
+  'YP-FAMMI', '2025-07', null,
   '[
-    {"kategori":"Istimewa","persen":50,"jumlah":4},
-    {"kategori":"Sangat Baik","persen":50,"jumlah":4},
-    {"kategori":"Baik","persen":0,"jumlah":0},
+    {"kategori":"Istimewa","persen":15,"jumlah":3},
+    {"kategori":"Sangat Baik","persen":70,"jumlah":14},
+    {"kategori":"Baik","persen":15,"jumlah":3},
     {"kategori":"Cukup Baik","persen":0,"jumlah":0},
     {"kategori":"Perlu Penguatan","persen":0,"jumlah":0}
   ]'::jsonb,
   '[
-    {"kode":"L","nilai":76.9},
-    {"kode":"E","nilai":78.3},
-    {"kode":"A","nilai":84.0},
-    {"kode":"D","nilai":80.5}
+    {"kode":"L","nilai":70.1},
+    {"kode":"E","nilai":73.0},
+    {"kode":"A","nilai":71.9},
+    {"kode":"D","nilai":72.9}
   ]'::jsonb,
   '[
-    {"indikator":"Berorientasi pada Siswa dan Orangtua","nilai":92.6},
-    {"indikator":"Manajemen Keuangan","nilai":92.6},
-    {"indikator":"Empati","nilai":90.0},
-    {"indikator":"Adaptif","nilai":87.6},
-    {"indikator":"Kolaboratif (Internal)","nilai":87.6}
+    {"indikator":"Empati","nilai":88.4},
+    {"indikator":"Berorientasi Pada Siswa & Orangtua","nilai":86.2},
+    {"indikator":"Kolaboratif (Internal)","nilai":84.5},
+    {"indikator":"Teladan & Integritas","nilai":83.9},
+    {"indikator":"Adaptif","nilai":82.7}
   ]'::jsonb,
   '[
-    {"indikator":"Problem Solving","nilai":47.6},
-    {"indikator":"Inovatif","nilai":75.0},
-    {"indikator":"Kepemimpinan Digital","nilai":77.6}
+    {"indikator":"Kepemimpinan Digital","nilai":58.3},
+    {"indikator":"Problem Solving","nilai":62.1},
+    {"indikator":"Komersial & Pendanaan Sekolah","nilai":64.5}
   ]'::jsonb,
   '[
-    {"kategori":"Baik","persen":100,"jumlah":8},
+    {"kategori":"Baik","persen":100,"jumlah":20},
     {"kategori":"Perlu Perhatian","persen":0,"jumlah":0},
     {"kategori":"Waspada","persen":0,"jumlah":0},
     {"kategori":"Perlu Konsultasi","persen":0,"jumlah":0}
   ]'::jsonb,
   '[
-    {"kode":"P","baik_persen":75,"baik_jumlah":6,"perlu_perhatian_persen":25,"perlu_perhatian_jumlah":2,"waspada_persen":0,"waspada_jumlah":0},
-    {"kode":"R","baik_persen":100,"baik_jumlah":8,"perlu_perhatian_persen":0,"perlu_perhatian_jumlah":0,"waspada_persen":0,"waspada_jumlah":0},
-    {"kode":"O","baik_persen":100,"baik_jumlah":8,"perlu_perhatian_persen":0,"perlu_perhatian_jumlah":0,"waspada_persen":0,"waspada_jumlah":0},
-    {"kode":"T","baik_persen":100,"baik_jumlah":8,"perlu_perhatian_persen":0,"perlu_perhatian_jumlah":0,"waspada_persen":0,"waspada_jumlah":0},
-    {"kode":"E","baik_persen":87,"baik_jumlah":7,"perlu_perhatian_persen":13,"perlu_perhatian_jumlah":1,"waspada_persen":0,"waspada_jumlah":0},
-    {"kode":"K","baik_persen":75,"baik_jumlah":6,"perlu_perhatian_persen":25,"perlu_perhatian_jumlah":2,"waspada_persen":0,"waspada_jumlah":0}
+    {"kode":"P","baik_persen":85,"baik_jumlah":17,"perlu_perhatian_persen":15,"perlu_perhatian_jumlah":3,"waspada_persen":0,"waspada_jumlah":0},
+    {"kode":"R","baik_persen":100,"baik_jumlah":20,"perlu_perhatian_persen":0,"perlu_perhatian_jumlah":0,"waspada_persen":0,"waspada_jumlah":0},
+    {"kode":"O","baik_persen":95,"baik_jumlah":19,"perlu_perhatian_persen":5,"perlu_perhatian_jumlah":1,"waspada_persen":0,"waspada_jumlah":0},
+    {"kode":"T","baik_persen":90,"baik_jumlah":18,"perlu_perhatian_persen":10,"perlu_perhatian_jumlah":2,"waspada_persen":0,"waspada_jumlah":0},
+    {"kode":"E","baik_persen":85,"baik_jumlah":17,"perlu_perhatian_persen":15,"perlu_perhatian_jumlah":3,"waspada_persen":0,"waspada_jumlah":0},
+    {"kode":"K","baik_persen":80,"baik_jumlah":16,"perlu_perhatian_persen":15,"perlu_perhatian_jumlah":3,"waspada_persen":5,"waspada_jumlah":1}
   ]'::jsonb,
   '[
-    {"dimensi":"Penerimaan Diri","pernyataan":"Sikap terhadap diri sendiri cenderung lebih negatif dari kebanyakan orang.","persen":25,"jumlah":2},
-    {"dimensi":"Penerimaan Diri","pernyataan":"Tidak menyukai sebagian besar kepribadian diri sendiri.","persen":13,"jumlah":1},
-    {"dimensi":"Penerimaan Diri","pernyataan":"Tidak nyaman dengan diri sendiri saat dibandingkan dengan orang lain.","persen":13,"jumlah":1},
-    {"dimensi":"Tujuan Hidup","pernyataan":"Sering merasa tidak ada lagi yang perlu dilakukan dalam hidup.","persen":63,"jumlah":5},
-    {"dimensi":"Eksplorasi Lingkungan","pernyataan":"Kesulitan mengatur hidup agar memuaskan diri sendiri.","persen":13,"jumlah":1},
-    {"dimensi":"Eksplorasi Lingkungan","pernyataan":"Sering merasa terbebani oleh tanggung jawab yang dimiliki.","persen":13,"jumlah":1},
-    {"dimensi":"Kemandirian","pernyataan":"Keputusan sering kali dipengaruhi oleh tindakan orang lain.","persen":25,"jumlah":2},
-    {"dimensi":"Kemandirian","pernyataan":"Sering terpengaruh oleh orang-orang yang memiliki pendapat kuat.","persen":13,"jumlah":1},
-    {"dimensi":"Kemandirian","pernyataan":"Menilai diri sendiri berdasarkan standar orang lain, bukan nilai pribadi.","persen":13,"jumlah":1}
+    {"dimensi":"Penerimaan Diri","pernyataan":"Merasa kurang puas dengan pencapaian diri selama menjadi pendidik.","persen":15,"jumlah":3},
+    {"dimensi":"Penerimaan Diri","pernyataan":"Tidak nyaman saat membandingkan diri dengan rekan sejawat.","persen":10,"jumlah":2},
+    {"dimensi":"Tujuan Hidup","pernyataan":"Merasa rutinitas mengajar berjalan tanpa arah pengembangan yang jelas.","persen":10,"jumlah":2},
+    {"dimensi":"Eksplorasi Lingkungan","pernyataan":"Sering merasa terbebani tanggung jawab administrasi di luar mengajar.","persen":15,"jumlah":3},
+    {"dimensi":"Kemandirian","pernyataan":"Keputusan sering menunggu arahan pimpinan sebelum berani diambil.","persen":20,"jumlah":4},
+    {"dimensi":"Kemandirian","pernyataan":"Khawatir terhadap penilaian rekan kerja saat menyampaikan pendapat berbeda.","persen":10,"jumlah":2}
   ]'::jsonb
 );
 
--- ── 8. Data per kandidat (8 kandidat, periode 2025-07) ──────────────────────────────────────
+-- ── 8. Data per guru (20 guru: 5 per jenjang, periode 2025-07) ──────────────────────────────
 insert into public.lw_personal (
   sekolah_id, periode_id, unit, nama, is_kepsek_saat_ini,
   kesiapan_memimpin_skor, kesiapan_memimpin_kategori,
   kondisi_psikologis_skor, kondisi_psikologis_kategori, kondisi_psikologis_label,
   lead_aspek, protek_dimensi, narasi_pengalaman, cerita_terbaik
 ) values
+-- TK Fammi (unit paling sehat: seluruh dimensi Baik)
 (
-  'TKN-PEMBINA-BANDUNG', '2025-07', 'TKN Pembina Citarip', 'Nenden Teja', false,
-  90, 'Istimewa', 247, 'Baik', 'Aman',
-  '[{"kode":"L","nilai":88},{"kode":"E","nilai":92},{"kode":"A","nilai":93},{"kode":"D","nilai":88}]'::jsonb,
-  '[{"kode":"P","nilai":42,"kategori":"Baik"},{"kode":"R","nilai":42,"kategori":"Baik"},{"kode":"O","nilai":41,"kategori":"Baik"},{"kode":"T","nilai":42,"kategori":"Baik"},{"kode":"E","nilai":41,"kategori":"Baik"},{"kode":"K","nilai":39,"kategori":"Baik"}]'::jsonb,
+  'YP-FAMMI', '2025-07', 'TK Fammi', 'Rina Kartika, S.Pd', true,
+  84, 'Istimewa', 228, 'Baik', 'Aman',
+  '[{"kode":"L","nilai":82},{"kode":"E","nilai":85},{"kode":"A","nilai":84},{"kode":"D","nilai":85}]'::jsonb,
+  '[{"kode":"P","nilai":38,"kategori":"Baik"},{"kode":"R","nilai":40,"kategori":"Baik"},{"kode":"O","nilai":39,"kategori":"Baik"},{"kode":"T","nilai":37,"kategori":"Baik"},{"kode":"E","nilai":38,"kategori":"Baik"},{"kode":"K","nilai":36,"kategori":"Baik"}]'::jsonb,
   '[
-    {"tema":"Kolaborasi dengan Siswa dan Orangtua","isi":"Selalu melibatkan anak dan orang tua dalam membuat kebijakan dan terbuka dalam menerima saran dan kritikan, serta senantiasa memotivasi orang tua untuk mau belajar dan berubah demi kepentingan perkembangan anak."},
-    {"tema":"Kemitraan Strategis Sekolah","isi":"Mengundang dan meminta mitra dari berbagai unsur untuk duduk bersama dan membuat MoU kerja sama untuk mendukung dan mewujudkan pendidikan yang baik dan memfasilitasi anak untuk tumbuh kembang dengan optimal."},
-    {"tema":"Pengalaman Mengelola Tim","isi":"Membuat RKAS sesuai kebutuhan dan menentukan skala prioritas untuk menentukan anggaran yang akan terserap, serta membuat jaringan partisipasi masyarakat agar ikut membantu dalam pemenuhan kebutuhan sekolah."},
-    {"tema":"Kepemimpinan di Masa Perubahan","isi":"Mengorganisir tim, mempelajari dan memahami akar permasalahan, membuka ruang diskusi untuk menemukan masalah dan menyelesaikan masalah berdasarkan argumen dan hipotesis di lapangan, lalu menentukan solusi."}
+    {"tema":"Kepemimpinan di Masa Perubahan","isi":"Perubahan kurikulum di unit TK dijalankan bertahap: sosialisasi ke guru dulu, lalu pendampingan mingguan, supaya tidak ada yang merasa ditinggal."},
+    {"tema":"Kolaborasi dengan Siswa dan Orangtua","isi":"Forum orang tua bulanan dan kegiatan market day membuat orang tua terlibat langsung dalam pembelajaran anak."}
   ]'::jsonb,
+  '[{"judul":"Membangun Kebiasaan Positif Sejak TK","isi":"Program penyambutan pagi oleh guru bergilir membuat suasana sekolah hangat dan orang tua makin percaya.","bullet_poin":[]}]'::jsonb
+),
+(
+  'YP-FAMMI', '2025-07', 'TK Fammi', 'Lina Marlina, S.Pd.AUD', false,
+  76, 'Sangat Baik', 211, 'Baik', 'Aman',
+  '[{"kode":"L","nilai":74},{"kode":"E","nilai":78},{"kode":"A","nilai":75},{"kode":"D","nilai":77}]'::jsonb,
+  '[{"kode":"P","nilai":35,"kategori":"Baik"},{"kode":"R","nilai":38,"kategori":"Baik"},{"kode":"O","nilai":36,"kategori":"Baik"},{"kode":"T","nilai":34,"kategori":"Baik"},{"kode":"E","nilai":35,"kategori":"Baik"},{"kode":"K","nilai":33,"kategori":"Baik"}]'::jsonb,
+  '[{"tema":"Inovasi yang Membawa Dampak Nyata","isi":"Membuat media belajar dari barang bekas bersama anak-anak, sekaligus mengenalkan konsep daur ulang sejak dini."}]'::jsonb,
   '[]'::jsonb
 ),
 (
-  'TKN-PEMBINA-BANDUNG', '2025-07', 'TKN Pembina Sadang Serang', 'Ani Yuliani', false,
-  84, 'Istimewa', 188, 'Baik', 'Aman',
-  '[{"kode":"L","nilai":74},{"kode":"E","nilai":82},{"kode":"A","nilai":92},{"kode":"D","nilai":89}]'::jsonb,
-  '[{"kode":"P","nilai":28,"kategori":"Perlu Perhatian"},{"kode":"R","nilai":33,"kategori":"Baik"},{"kode":"O","nilai":34,"kategori":"Baik"},{"kode":"T","nilai":35,"kategori":"Baik"},{"kode":"E","nilai":28,"kategori":"Perlu Perhatian"},{"kode":"K","nilai":30,"kategori":"Baik"}]'::jsonb,
-  '[
-    {"tema":"Pengalaman Mengelola Tim","isi":"Dapat dilakukan beberapa upaya seperti pelatihan dan pengembangan yang berkelanjutan, pemberian tugas sesuai keahlian, menciptakan lingkungan kerja yang positif, memberikan kesempatan untuk brainstorming, dan menerapkan sistem reward dan punishment yang adil."},
-    {"tema":"Menyelesaikan Masalah yang Pelik","isi":"Ketika ada permasalahan, kami diskusikan dulu dengan tim, keputusan diambil berdasarkan kesepakatan dan relevan."},
-    {"tema":"Inovasi yang Membawa Dampak Nyata","isi":"Membuat ide-ide dalam pembelajaran seperti media pembelajaran, biasanya juga berkolaborasi dengan guru/teman sejawat lainnya."},
-    {"tema":"Kepemimpinan di Masa Perubahan","isi":"Ketika dihadapkan pada perubahan, biasanya membutuhkan kombinasi strategi seperti komunikasi yang jelas dengan tim, pembentukan budaya positif, pendelegasian tugas yang tepat, serta pengembangan anggota tim, karena pemimpin yang baik harus mampu memotivasi dan menangani konflik secara efektif."}
-  ]'::jsonb,
+  'YP-FAMMI', '2025-07', 'TK Fammi', 'Dewi Lestari, S.Pd', false,
+  71, 'Sangat Baik', 204, 'Baik', 'Aman',
+  '[{"kode":"L","nilai":70},{"kode":"E","nilai":72},{"kode":"A","nilai":71},{"kode":"D","nilai":71}]'::jsonb,
+  '[{"kode":"P","nilai":34,"kategori":"Baik"},{"kode":"R","nilai":36,"kategori":"Baik"},{"kode":"O","nilai":33,"kategori":"Baik"},{"kode":"T","nilai":35,"kategori":"Baik"},{"kode":"E","nilai":34,"kategori":"Baik"},{"kode":"K","nilai":32,"kategori":"Baik"}]'::jsonb,
+  '[{"tema":"Pengalaman Mengelola Tim","isi":"Berbagi tugas dengan rekan sejawat saat kegiatan besar sekolah supaya beban tidak menumpuk di satu orang."}]'::jsonb,
   '[]'::jsonb
 ),
 (
-  'TKN-PEMBINA-BANDUNG', '2025-07', 'TKN Centeh', 'Dewi Rosmawati, S.Pd.AUD', true,
-  83, 'Istimewa', 204, 'Baik', 'Aman',
-  '[{"kode":"L","nilai":85},{"kode":"E","nilai":81},{"kode":"A","nilai":81},{"kode":"D","nilai":84}]'::jsonb,
-  '[{"kode":"P","nilai":32,"kategori":"Baik"},{"kode":"R","nilai":35,"kategori":"Baik"},{"kode":"O","nilai":35,"kategori":"Baik"},{"kode":"T","nilai":33,"kategori":"Baik"},{"kode":"E","nilai":37,"kategori":"Baik"},{"kode":"K","nilai":32,"kategori":"Baik"}]'::jsonb,
-  '[
-    {"tema":"Kepemimpinan di Masa Perubahan","isi":"Melakukan perencanaan yang sesuai dengan perubahan di sekolah, dilakukan bersama-sama dengan seluruh PTK, berkomunikasi yang baik, berkolaborasi memberikan kesempatan kepada seluruh PTK untuk menyampaikan pendapatnya, lalu membuat keputusan dari hasil kesepakatan."},
-    {"tema":"Efisiensi Tanpa Mengorbankan Mutu","isi":"Melakukan identifikasi kebutuhan sekolah, membuat Rencana Anggaran Sekolah, dan melakukan penganggaran/pembelian sesuai rencana bersama guru, TU, dan operator."},
-    {"tema":"Kolaborasi dengan Siswa dan Orangtua","isi":"Mensosialisasikan program sekolah dan melibatkan orang tua dalam penutupan MPLS, peringatan HUT RI, dan kegiatan lain -- orang tua merasa dihargai dan pembentukan karakter anak dapat berlanjut di rumah."}
-  ]'::jsonb,
-  '[
-    {"judul":"Menciptakan Solusi Inovatif di Sekolah","isi":"Ketika pertama masuk sekolah baru, ditemukan pengaturan penganggaran yang belum tersusun transparan, sehingga dilakukan perubahan membuat laporan keuangan lebih transparan dengan strategi yang sudah terbukti di sekolah sebelumnya.","bullet_poin":[]},
-    {"judul":"Menghadapi Perubahan Besar di Sekolah","isi":"Perencanaan perubahan dilakukan bersama seluruh PTK lewat komunikasi dan kolaborasi terbuka, keputusan diambil dari hasil kesepakatan, dengan pendekatan percakapan coaching yang terbukti berhasil.","bullet_poin":[]}
-  ]'::jsonb
+  'YP-FAMMI', '2025-07', 'TK Fammi', 'Yuni Astuti, S.Pd.AUD', false,
+  68, 'Sangat Baik', 199, 'Baik', 'Aman',
+  '[{"kode":"L","nilai":66},{"kode":"E","nilai":69},{"kode":"A","nilai":68},{"kode":"D","nilai":69}]'::jsonb,
+  '[{"kode":"P","nilai":33,"kategori":"Baik"},{"kode":"R","nilai":35,"kategori":"Baik"},{"kode":"O","nilai":34,"kategori":"Baik"},{"kode":"T","nilai":32,"kategori":"Baik"},{"kode":"E","nilai":33,"kategori":"Baik"},{"kode":"K","nilai":32,"kategori":"Baik"}]'::jsonb,
+  '[{"tema":"Kolaborasi dengan Siswa dan Orangtua","isi":"Melibatkan orang tua sebagai narasumber kelas sesuai profesi masing-masing."}]'::jsonb,
+  '[]'::jsonb
 ),
 (
-  'TKN-PEMBINA-BANDUNG', '2025-07', 'TKN 04 Batununggal', 'Nenden Susilowati, M.Pd', true,
-  83, 'Istimewa', 237, 'Baik', 'Aman',
-  '[{"kode":"L","nilai":89},{"kode":"E","nilai":76},{"kode":"A","nilai":87},{"kode":"D","nilai":81}]'::jsonb,
-  '[{"kode":"P","nilai":41,"kategori":"Baik"},{"kode":"R","nilai":35,"kategori":"Baik"},{"kode":"O","nilai":42,"kategori":"Baik"},{"kode":"T","nilai":36,"kategori":"Baik"},{"kode":"E","nilai":40,"kategori":"Baik"},{"kode":"K","nilai":38,"kategori":"Baik"}]'::jsonb,
+  'YP-FAMMI', '2025-07', 'TK Fammi', 'Ratna Sari, S.Pd', false,
+  63, 'Sangat Baik', 196, 'Baik', 'Aman',
+  '[{"kode":"L","nilai":61},{"kode":"E","nilai":64},{"kode":"A","nilai":63},{"kode":"D","nilai":64}]'::jsonb,
+  '[{"kode":"P","nilai":32,"kategori":"Baik"},{"kode":"R","nilai":34,"kategori":"Baik"},{"kode":"O","nilai":33,"kategori":"Baik"},{"kode":"T","nilai":33,"kategori":"Baik"},{"kode":"E","nilai":32,"kategori":"Baik"},{"kode":"K","nilai":32,"kategori":"Baik"}]'::jsonb,
+  '[{"tema":"Inovasi yang Membawa Dampak Nyata","isi":"Mengubah sudut baca kelas menjadi area bermain literasi yang membuat anak lebih betah membaca."}]'::jsonb,
+  '[]'::jsonb
+),
+-- SD Fammi (2 guru dengan dimensi perlu perhatian)
+(
+  'YP-FAMMI', '2025-07', 'SD Fammi', 'Ahmad Fauzi, M.Pd', true,
+  86, 'Istimewa', 234, 'Baik', 'Aman',
+  '[{"kode":"L","nilai":85},{"kode":"E","nilai":87},{"kode":"A","nilai":86},{"kode":"D","nilai":86}]'::jsonb,
+  '[{"kode":"P","nilai":39,"kategori":"Baik"},{"kode":"R","nilai":41,"kategori":"Baik"},{"kode":"O","nilai":40,"kategori":"Baik"},{"kode":"T","nilai":38,"kategori":"Baik"},{"kode":"E","nilai":39,"kategori":"Baik"},{"kode":"K","nilai":37,"kategori":"Baik"}]'::jsonb,
   '[
-    {"tema":"Kepemimpinan di Masa Perubahan","isi":"Selalu melakukan komunikasi dengan seluruh warga sekolah, dimulai dari alasan dan tujuan perubahan, membentuk tim perubahan bersama guru dan pendukung lainnya, dilakukan secara bertahap agar guru lebih memahami, serta terus memonitor dan merefleksikan perubahan yang terjadi."},
-    {"tema":"Keputusan Sulit demi Integritas","isi":"Keputusan sulit diambil ketika orang tua protes anaknya tidak dilibatkan dalam satu kegiatan prasiaga -- diberikan pengertian bahwa pelibatan dilakukan pembina dari luar, dan pihak sekolah tetap terbuka menerima kembali jika ingin bersekolah."},
-    {"tema":"Kolaborasi dengan Siswa dan Orangtua","isi":"Sekolah melibatkan siswa dan orang tua lewat forum komunikasi via WhatsApp dan parenting, kolaborasi kegiatan orang tua-anak seperti market day dan gebyar prasiaga, serta pelibatan orang tua sebagai guru inspiratif di kelas."}
+    {"tema":"Kepemimpinan di Masa Perubahan","isi":"Transisi ke Kurikulum Merdeka dikawal lewat komunitas belajar internal; guru saling berbagi praktik tiap Jumat."},
+    {"tema":"Efisiensi Tanpa Mengorbankan Mutu","isi":"RKAS disusun terbuka bersama guru dan komite supaya prioritas anggaran dipahami semua pihak."}
   ]'::jsonb,
-  '[
-    {"judul":"Memimpin Tim Menghadapi Perubahan Besar","isi":"Dalam menghadapi perubahan besar di sekolah, kami selalu melakukan komunikasi dengan seluruh warga sekolah, dimulai dengan alasan dan tujuan perubahan itu sendiri, lalu membentuk tim perubahan bersama guru dan pendukung lainnya.","bullet_poin":["Melakukan komunikasi dengan seluruh warga sekolah","Membentuk tim perubahan bersama guru dan pendukung lainnya","Memfasilitasi/mengikuti informasi dan pelatihan terkait perubahan","Memonitor dan mengevaluasi perubahan yang terjadi","Berkolaborasi agar perubahan sesuai yang diharapkan"]},
-    {"judul":"Melibatkan Siswa dan Orang Tua dalam Program Sekolah","isi":"Sekolah melibatkan siswa dan orang tua lewat forum komunikasi via WhatsApp dan parenting, kolaborasi kegiatan orang tua-anak seperti market day dan gebyar prasiaga, serta pelibatan orang tua sebagai guru inspiratif di kelas.","bullet_poin":[]}
-  ]'::jsonb
+  '[{"judul":"Komunitas Belajar Guru SD","isi":"Komunitas belajar internal tiap Jumat membuat praktik baik cepat menular antarguru tanpa menunggu pelatihan eksternal.","bullet_poin":[]}]'::jsonb
 ),
 (
-  'TKN-PEMBINA-BANDUNG', '2025-07', 'TKN 04 Batununggal', 'Siti Sutini, S.Pd. AUD, M.Pd', false,
-  80, 'Sangat Baik', 223, 'Baik', 'Aman',
-  '[{"kode":"L","nilai":71},{"kode":"E","nilai":71},{"kode":"A","nilai":91},{"kode":"D","nilai":87}]'::jsonb,
-  '[{"kode":"P","nilai":39,"kategori":"Baik"},{"kode":"R","nilai":42,"kategori":"Baik"},{"kode":"O","nilai":39,"kategori":"Baik"},{"kode":"T","nilai":35,"kategori":"Baik"},{"kode":"E","nilai":35,"kategori":"Baik"},{"kode":"K","nilai":33,"kategori":"Baik"}]'::jsonb,
-  '[
-    {"tema":"Inovasi yang Membawa Dampak Nyata","isi":"Halaman samping sekolah yang tidak tertata diubah menjadi taman yang indah dan rapi atas ide yang disampaikan kepada Kepala Sekolah dan disetujui."},
-    {"tema":"Efisiensi Tanpa Mengorbankan Mutu","isi":"Membuat rencana anggaran sekolah berupa pendapatan dan pengeluaran, dengan prioritas pengeluaran dibagi ke beberapa unsur seperti kurikulum, APE, dan pemeliharaan sarana prasarana."},
-    {"tema":"Kolaborasi dengan Siswa dan Orangtua","isi":"Salah satu kegiatan P5 di bulan Ramadan yaitu berbagi sembako kepada anak yatim dan duafa, melibatkan siswa dan orang tua, menanamkan nilai moral agama."},
-    {"tema":"Keputusan Sulit demi Integritas","isi":"Keputusan sulit diambil saat mengingatkan guru yang sering datang terlambat, karena kedisiplinan guru berdampak terhadap siswa dan sekolah."}
-  ]'::jsonb,
-  '[
-    {"judul":"Menciptakan Solusi Inovatif di Sekolah","isi":"Halaman samping sekolah yang tidak tertata diubah menjadi taman yang indah dan rapi atas ide yang disampaikan kepada Kepala Sekolah dan disetujui.","bullet_poin":[]}
-  ]'::jsonb
+  'YP-FAMMI', '2025-07', 'SD Fammi', 'Dewi Anggraini, S.Pd', false,
+  66, 'Sangat Baik', 184, 'Baik', 'Aman',
+  '[{"kode":"L","nilai":64},{"kode":"E","nilai":67},{"kode":"A","nilai":66},{"kode":"D","nilai":67}]'::jsonb,
+  '[{"kode":"P","nilai":27,"kategori":"Perlu Perhatian"},{"kode":"R","nilai":34,"kategori":"Baik"},{"kode":"O","nilai":33,"kategori":"Baik"},{"kode":"T","nilai":32,"kategori":"Baik"},{"kode":"E","nilai":26,"kategori":"Perlu Perhatian"},{"kode":"K","nilai":32,"kategori":"Baik"}]'::jsonb,
+  '[{"tema":"Pengalaman Mengelola Kelas","isi":"Menangani kelas besar dengan rotasi kelompok belajar supaya tiap anak tetap mendapat perhatian."}]'::jsonb,
+  '[]'::jsonb
 ),
 (
-  'TKN-PEMBINA-BANDUNG', '2025-07', 'TKN Pembina Citarip', 'Siti Romadoh', true,
-  76, 'Sangat Baik', 239, 'Baik', 'Aman',
-  '[{"kode":"L","nilai":74},{"kode":"E","nilai":79},{"kode":"A","nilai":80},{"kode":"D","nilai":70}]'::jsonb,
-  '[{"kode":"P","nilai":41,"kategori":"Baik"},{"kode":"R","nilai":40,"kategori":"Baik"},{"kode":"O","nilai":41,"kategori":"Baik"},{"kode":"T","nilai":41,"kategori":"Baik"},{"kode":"E","nilai":41,"kategori":"Baik"},{"kode":"K","nilai":35,"kategori":"Baik"}]'::jsonb,
-  '[
-    {"tema":"Pengalaman Mengelola Tim","isi":"Melihat kemampuan guru masing-masing yang perlu ditingkatkan, memanggil narasumber untuk memberikan pembelajaran tambahan, dan melakukan kombel pada bagian yang dirasa masih kurang."},
-    {"tema":"Inovasi yang Membawa Dampak Nyata","isi":"Saat jumlah guru berkurang karena P3K dan pensiun, seluruh guru berembuk mengikuti acara gugus 4 TK Negeri, saling melatih dan membagi tugas sehingga seluruh permasalahan tetap terselesaikan."},
-    {"tema":"Efisiensi Tanpa Mengorbankan Mutu","isi":"Saat menerima anak yang tidak mampu, dilaksanakan subsidi silang agar kebutuhan anak tetap terserap sesuai kebutuhan tanpa menurunkan kualitas pembelajaran."},
-    {"tema":"Kepemimpinan di Masa Perubahan","isi":"Saat pandemi Covid-19, pembelajaran dialihkan ke daring lewat Zoom, dengan sebagian kecil tatap muka terbatas dua kali seminggu agar tidak terjadi kerumunan."}
-  ]'::jsonb,
-  '[
-    {"judul":"Menciptakan Jalur Pertumbuhan SDM Jangka Panjang","isi":"Saat jumlah guru berkurang karena P3K dan pensiun, seluruh guru berembuk mengikuti acara gugus 4 TK Negeri, saling melatih dan membagi tugas sehingga seluruh permasalahan tetap terselesaikan.","bullet_poin":[]},
-    {"judul":"Mengambil Keputusan Sulit demi Integritas","isi":"Saat pandemi Covid-19, pembelajaran dialihkan ke daring lewat Zoom, dengan sebagian kecil tatap muka terbatas dua kali seminggu agar tidak terjadi kerumunan.","bullet_poin":[]}
-  ]'::jsonb
+  'YP-FAMMI', '2025-07', 'SD Fammi', 'Budi Santoso, S.Pd', false,
+  58, 'Baik', 193, 'Baik', 'Aman',
+  '[{"kode":"L","nilai":56},{"kode":"E","nilai":59},{"kode":"A","nilai":58},{"kode":"D","nilai":59}]'::jsonb,
+  '[{"kode":"P","nilai":33,"kategori":"Baik"},{"kode":"R","nilai":35,"kategori":"Baik"},{"kode":"O","nilai":34,"kategori":"Baik"},{"kode":"T","nilai":33,"kategori":"Baik"},{"kode":"E","nilai":32,"kategori":"Baik"},{"kode":"K","nilai":26,"kategori":"Perlu Perhatian"}]'::jsonb,
+  '[{"tema":"Inovasi yang Membawa Dampak Nyata","isi":"Membuat bank soal digital sederhana yang bisa dipakai bergantian oleh semua guru kelas atas."}]'::jsonb,
+  '[]'::jsonb
 ),
 (
-  'TKN-PEMBINA-BANDUNG', '2025-07', 'TKN Pembina Sadang Serang', 'Tita Ariyanti', true,
-  73, 'Sangat Baik', 185, 'Baik', 'Aman',
-  '[{"kode":"L","nilai":70},{"kode":"E","nilai":74},{"kode":"A","nilai":74},{"kode":"D","nilai":73}]'::jsonb,
-  '[{"kode":"P","nilai":28,"kategori":"Perlu Perhatian"},{"kode":"R","nilai":36,"kategori":"Baik"},{"kode":"O","nilai":33,"kategori":"Baik"},{"kode":"T","nilai":29,"kategori":"Baik"},{"kode":"E","nilai":34,"kategori":"Baik"},{"kode":"K","nilai":25,"kategori":"Perlu Perhatian"}]'::jsonb,
-  '[
-    {"tema":"Inovasi yang Membawa Dampak Nyata","isi":"Menciptakan solusi inovatif lewat pendekatan yang lebih manusiawi dengan membuat analisa SWOT sehingga permasalahan yang harus diangkat menjadi lebih fokus dan terarah."},
-    {"tema":"Kemitraan Strategis Sekolah","isi":"Kemitraan parenting kesehatan gigi membuka wawasan anak sekaligus mendorong orang tua berkolaborasi lewat pemeriksaan gigi bersama."},
-    {"tema":"Kepemimpinan di Masa Perubahan","isi":"Memimpin tim sekolah menghadapi perubahan dimulai dari komunikasi yang jelas, membangun empati, menyusun strategi yang terencana dan terbuka, menyampaikan visi-misi yang jelas, menerima masukan tim, dan selalu melibatkan tim dalam setiap proses perubahan."},
-    {"tema":"Kolaborasi dengan Siswa dan Orangtua","isi":"Inisiatif program beasiswa dan pendidikan gratis mengurangi beban finansial orang tua sehingga anak lebih berfokus pada pembelajaran, sekaligus mendorong pemerataan pendidikan."}
-  ]'::jsonb,
-  '[
-    {"judul":"Melibatkan Siswa dan Orang Tua dalam Program Sekolah","isi":"Inisiatif program beasiswa dan pendidikan gratis mengurangi beban finansial orang tua sehingga anak lebih berfokus pada pembelajaran, sekaligus mendorong pemerataan pendidikan.","bullet_poin":[]}
-  ]'::jsonb
+  'YP-FAMMI', '2025-07', 'SD Fammi', 'Rahmat Hidayat, S.Pd', false,
+  74, 'Sangat Baik', 210, 'Baik', 'Aman',
+  '[{"kode":"L","nilai":72},{"kode":"E","nilai":75},{"kode":"A","nilai":74},{"kode":"D","nilai":75}]'::jsonb,
+  '[{"kode":"P","nilai":35,"kategori":"Baik"},{"kode":"R","nilai":37,"kategori":"Baik"},{"kode":"O","nilai":36,"kategori":"Baik"},{"kode":"T","nilai":34,"kategori":"Baik"},{"kode":"E","nilai":35,"kategori":"Baik"},{"kode":"K","nilai":33,"kategori":"Baik"}]'::jsonb,
+  '[{"tema":"Kolaborasi dengan Siswa dan Orangtua","isi":"Program sarapan literasi tiap pagi melibatkan orang tua sebagai pembaca tamu."}]'::jsonb,
+  '[]'::jsonb
 ),
 (
-  'TKN-PEMBINA-BANDUNG', '2025-07', 'TKN Centeh', 'Siti Maesaroh, S.Pd', false,
-  70, 'Sangat Baik', 205, 'Baik', 'Aman',
-  '[{"kode":"L","nilai":64},{"kode":"E","nilai":71},{"kode":"A","nilai":74},{"kode":"D","nilai":72}]'::jsonb,
-  '[{"kode":"P","nilai":31,"kategori":"Baik"},{"kode":"R","nilai":37,"kategori":"Baik"},{"kode":"O","nilai":38,"kategori":"Baik"},{"kode":"T","nilai":35,"kategori":"Baik"},{"kode":"E","nilai":36,"kategori":"Baik"},{"kode":"K","nilai":28,"kategori":"Perlu Perhatian"}]'::jsonb,
+  'YP-FAMMI', '2025-07', 'SD Fammi', 'Siti Nurhaliza, S.Pd', false,
+  79, 'Sangat Baik', 217, 'Baik', 'Aman',
+  '[{"kode":"L","nilai":77},{"kode":"E","nilai":80},{"kode":"A","nilai":79},{"kode":"D","nilai":80}]'::jsonb,
+  '[{"kode":"P","nilai":36,"kategori":"Baik"},{"kode":"R","nilai":38,"kategori":"Baik"},{"kode":"O","nilai":37,"kategori":"Baik"},{"kode":"T","nilai":36,"kategori":"Baik"},{"kode":"E","nilai":36,"kategori":"Baik"},{"kode":"K","nilai":34,"kategori":"Baik"}]'::jsonb,
+  '[{"tema":"Pengalaman Mengelola Tim","isi":"Menjadi koordinator lomba antarkelas dan membagi peran panitia ke guru muda supaya regenerasi berjalan."}]'::jsonb,
+  '[{"judul":"Regenerasi Panitia Kegiatan","isi":"Membagi peran panitia ke guru muda membuat kegiatan sekolah tidak lagi bergantung pada orang yang sama.","bullet_poin":[]}]'::jsonb
+),
+-- SMP Fammi (unit paling tertekan: 3 guru dengan dimensi non-Baik)
+(
+  'YP-FAMMI', '2025-07', 'SMP Fammi', 'Hendra Gunawan, M.Pd', true,
+  82, 'Istimewa', 226, 'Baik', 'Aman',
+  '[{"kode":"L","nilai":80},{"kode":"E","nilai":83},{"kode":"A","nilai":82},{"kode":"D","nilai":83}]'::jsonb,
+  '[{"kode":"P","nilai":37,"kategori":"Baik"},{"kode":"R","nilai":40,"kategori":"Baik"},{"kode":"O","nilai":38,"kategori":"Baik"},{"kode":"T","nilai":37,"kategori":"Baik"},{"kode":"E","nilai":38,"kategori":"Baik"},{"kode":"K","nilai":36,"kategori":"Baik"}]'::jsonb,
   '[
-    {"tema":"Kemitraan Strategis Sekolah","isi":"Kemitraan dengan Museum Geologi, pasar tradisional dan modern, serta stasiun kereta api dan pemadam kebakaran memperluas pengenalan anak terhadap lingkungan sekitar."},
-    {"tema":"Kolaborasi dengan Siswa dan Orangtua","isi":"Bekerja sama dengan orang tua dalam proses pembelajaran, misalnya tugas membawa benda sesuai huruf awalan supaya anak mengenal huruf tanpa drilling."},
-    {"tema":"Kepemimpinan di Masa Perubahan","isi":"Perubahan dari Kurikulum 13 ke Kurikulum Merdeka berhasil diimplementasikan dan dibagikan sebagai praktik baik ke PAUD terdekat dan IGTKI kecamatan."}
+    {"tema":"Kepemimpinan di Masa Perubahan","isi":"Digitalisasi administrasi dimulai dari hal kecil: presensi dan jurnal kelas daring, sebelum masuk ke rapor digital."},
+    {"tema":"Keputusan Sulit demi Integritas","isi":"Menegakkan aturan disiplin yang sama untuk semua siswa tanpa pandang latar belakang, dengan komunikasi baik ke orang tuanya."}
   ]'::jsonb,
+  '[{"judul":"Digitalisasi Bertahap di SMP","isi":"Dimulai dari presensi daring, kini seluruh jurnal kelas terdokumentasi rapi dan bisa dipantau bersama.","bullet_poin":[]}]'::jsonb
+),
+(
+  'YP-FAMMI', '2025-07', 'SMP Fammi', 'Sari Wulandari, S.Pd', false,
+  55, 'Baik', 162, 'Baik', 'Aman',
+  '[{"kode":"L","nilai":53},{"kode":"E","nilai":56},{"kode":"A","nilai":55},{"kode":"D","nilai":56}]'::jsonb,
+  '[{"kode":"P","nilai":26,"kategori":"Perlu Perhatian"},{"kode":"R","nilai":33,"kategori":"Baik"},{"kode":"O","nilai":28,"kategori":"Perlu Perhatian"},{"kode":"T","nilai":27,"kategori":"Perlu Perhatian"},{"kode":"E","nilai":26,"kategori":"Perlu Perhatian"},{"kode":"K","nilai":22,"kategori":"Waspada"}]'::jsonb,
+  '[{"tema":"Pengalaman Mengelola Kelas","isi":"Mengajar sambil merangkap tugas administrasi kurikulum; sedang belajar memilah mana yang bisa didelegasikan."}]'::jsonb,
+  '[]'::jsonb
+),
+(
+  'YP-FAMMI', '2025-07', 'SMP Fammi', 'Andi Prasetyo, S.Pd', false,
+  60, 'Baik', 187, 'Baik', 'Aman',
+  '[{"kode":"L","nilai":58},{"kode":"E","nilai":61},{"kode":"A","nilai":60},{"kode":"D","nilai":61}]'::jsonb,
+  '[{"kode":"P","nilai":27,"kategori":"Perlu Perhatian"},{"kode":"R","nilai":34,"kategori":"Baik"},{"kode":"O","nilai":33,"kategori":"Baik"},{"kode":"T","nilai":32,"kategori":"Baik"},{"kode":"E","nilai":33,"kategori":"Baik"},{"kode":"K","nilai":28,"kategori":"Perlu Perhatian"}]'::jsonb,
+  '[{"tema":"Inovasi yang Membawa Dampak Nyata","isi":"Memakai proyek sederhana berbasis lingkungan sekolah supaya siswa belajar IPA dari hal nyata."}]'::jsonb,
+  '[]'::jsonb
+),
+(
+  'YP-FAMMI', '2025-07', 'SMP Fammi', 'Citra Ayu, S.Pd', false,
+  72, 'Sangat Baik', 199, 'Baik', 'Aman',
+  '[{"kode":"L","nilai":70},{"kode":"E","nilai":73},{"kode":"A","nilai":72},{"kode":"D","nilai":73}]'::jsonb,
+  '[{"kode":"P","nilai":34,"kategori":"Baik"},{"kode":"R","nilai":36,"kategori":"Baik"},{"kode":"O","nilai":35,"kategori":"Baik"},{"kode":"T","nilai":28,"kategori":"Perlu Perhatian"},{"kode":"E","nilai":34,"kategori":"Baik"},{"kode":"K","nilai":32,"kategori":"Baik"}]'::jsonb,
+  '[{"tema":"Kolaborasi dengan Siswa dan Orangtua","isi":"Membuat grup diskusi orang tua per angkatan untuk menyalurkan aspirasi sebelum jadi keluhan."}]'::jsonb,
+  '[]'::jsonb
+),
+(
+  'YP-FAMMI', '2025-07', 'SMP Fammi', 'Maya Puspita, M.Pd', false,
+  77, 'Sangat Baik', 215, 'Baik', 'Aman',
+  '[{"kode":"L","nilai":75},{"kode":"E","nilai":78},{"kode":"A","nilai":77},{"kode":"D","nilai":78}]'::jsonb,
+  '[{"kode":"P","nilai":36,"kategori":"Baik"},{"kode":"R","nilai":38,"kategori":"Baik"},{"kode":"O","nilai":36,"kategori":"Baik"},{"kode":"T","nilai":35,"kategori":"Baik"},{"kode":"E","nilai":36,"kategori":"Baik"},{"kode":"K","nilai":34,"kategori":"Baik"}]'::jsonb,
+  '[{"tema":"Pengalaman Mengelola Tim","isi":"Memimpin tim penyusun modul ajar lintas mapel dan menjaga tenggat lewat papan kerja bersama."}]'::jsonb,
+  '[]'::jsonb
+),
+-- SMA Fammi (1 guru dengan dimensi perlu perhatian)
+(
+  'YP-FAMMI', '2025-07', 'SMA Fammi', 'Bambang Wijaya, M.Pd', true,
+  80, 'Sangat Baik', 222, 'Baik', 'Aman',
+  '[{"kode":"L","nilai":78},{"kode":"E","nilai":81},{"kode":"A","nilai":80},{"kode":"D","nilai":81}]'::jsonb,
+  '[{"kode":"P","nilai":37,"kategori":"Baik"},{"kode":"R","nilai":39,"kategori":"Baik"},{"kode":"O","nilai":38,"kategori":"Baik"},{"kode":"T","nilai":36,"kategori":"Baik"},{"kode":"E","nilai":37,"kategori":"Baik"},{"kode":"K","nilai":35,"kategori":"Baik"}]'::jsonb,
   '[
-    {"judul":"Menciptakan Solusi Inovatif Lainnya di Sekolah","isi":"Sebagai guru inti, ilmu yang didapat diimplementasikan lewat RPP baru dan pembelajaran berdiferensiasi bersama seluruh guru, termasuk pengimbasan ke PAUD terdekat.","bullet_poin":[]}
-  ]'::jsonb
+    {"tema":"Kepemimpinan di Masa Perubahan","isi":"Menyiapkan guru menghadapi kelas berbasis pilihan mapel lewat pemetaan kompetensi dan pelatihan bergilir."},
+    {"tema":"Kemitraan Strategis Sekolah","isi":"Menjalin kerja sama magang dengan dunia usaha lokal untuk memperluas ruang belajar siswa."}
+  ]'::jsonb,
+  '[{"judul":"Kemitraan Magang SMA","isi":"Kerja sama dengan dunia usaha lokal membuka ruang belajar nyata bagi siswa dan memperkuat citra sekolah.","bullet_poin":[]}]'::jsonb
+),
+(
+  'YP-FAMMI', '2025-07', 'SMA Fammi', 'Fajar Ramadhan, S.Pd', false,
+  65, 'Sangat Baik', 189, 'Baik', 'Aman',
+  '[{"kode":"L","nilai":63},{"kode":"E","nilai":66},{"kode":"A","nilai":65},{"kode":"D","nilai":66}]'::jsonb,
+  '[{"kode":"P","nilai":33,"kategori":"Baik"},{"kode":"R","nilai":35,"kategori":"Baik"},{"kode":"O","nilai":34,"kategori":"Baik"},{"kode":"T","nilai":33,"kategori":"Baik"},{"kode":"E","nilai":27,"kategori":"Perlu Perhatian"},{"kode":"K","nilai":27,"kategori":"Perlu Perhatian"}]'::jsonb,
+  '[{"tema":"Pengalaman Mengelola Kelas","isi":"Menyeimbangkan tugas wali kelas dan pembina ekskul; sedang menata ulang prioritas supaya keduanya tidak saling mengorbankan."}]'::jsonb,
+  '[]'::jsonb
+),
+(
+  'YP-FAMMI', '2025-07', 'SMA Fammi', 'Indah Permatasari, S.Pd', false,
+  78, 'Sangat Baik', 216, 'Baik', 'Aman',
+  '[{"kode":"L","nilai":76},{"kode":"E","nilai":79},{"kode":"A","nilai":78},{"kode":"D","nilai":79}]'::jsonb,
+  '[{"kode":"P","nilai":36,"kategori":"Baik"},{"kode":"R","nilai":38,"kategori":"Baik"},{"kode":"O","nilai":37,"kategori":"Baik"},{"kode":"T","nilai":35,"kategori":"Baik"},{"kode":"E","nilai":36,"kategori":"Baik"},{"kode":"K","nilai":34,"kategori":"Baik"}]'::jsonb,
+  '[{"tema":"Inovasi yang Membawa Dampak Nyata","isi":"Kelas menulis opini yang hasilnya dimuat di media sekolah menumbuhkan kepercayaan diri siswa."}]'::jsonb,
+  '[]'::jsonb
+),
+(
+  'YP-FAMMI', '2025-07', 'SMA Fammi', 'Agus Setiawan, M.Pd', false,
+  75, 'Sangat Baik', 211, 'Baik', 'Aman',
+  '[{"kode":"L","nilai":73},{"kode":"E","nilai":76},{"kode":"A","nilai":75},{"kode":"D","nilai":76}]'::jsonb,
+  '[{"kode":"P","nilai":35,"kategori":"Baik"},{"kode":"R","nilai":37,"kategori":"Baik"},{"kode":"O","nilai":36,"kategori":"Baik"},{"kode":"T","nilai":35,"kategori":"Baik"},{"kode":"E","nilai":35,"kategori":"Baik"},{"kode":"K","nilai":33,"kategori":"Baik"}]'::jsonb,
+  '[{"tema":"Pengalaman Mengelola Tim","isi":"Menjadi mentor guru baru lewat observasi kelas dua arah, saling memberi umpan balik."}]'::jsonb,
+  '[]'::jsonb
+),
+(
+  'YP-FAMMI', '2025-07', 'SMA Fammi', 'Nur Aini, S.Pd', false,
+  70, 'Sangat Baik', 206, 'Baik', 'Aman',
+  '[{"kode":"L","nilai":68},{"kode":"E","nilai":71},{"kode":"A","nilai":70},{"kode":"D","nilai":71}]'::jsonb,
+  '[{"kode":"P","nilai":34,"kategori":"Baik"},{"kode":"R","nilai":36,"kategori":"Baik"},{"kode":"O","nilai":35,"kategori":"Baik"},{"kode":"T","nilai":34,"kategori":"Baik"},{"kode":"E","nilai":34,"kategori":"Baik"},{"kode":"K","nilai":33,"kategori":"Baik"}]'::jsonb,
+  '[{"tema":"Kolaborasi dengan Siswa dan Orangtua","isi":"Konsultasi rutin perencanaan studi lanjut bersama siswa dan orang tua kelas XII."}]'::jsonb,
+  '[]'::jsonb
 );
 
--- ── 9. Rekomendasi tindak lanjut prioritas (4 program pengembangan) ─────────────────────────
--- Dua baris terakhir (Manajemen Risiko & Krisis, Kepemimpinan Digital) punya catatan di
--- hal_diwaspadai: fokus materi/learning outcome-nya tidak terbaca bersih dari PDF sumber akibat
--- tata letak dua kolom -- ditandai jujur, bukan dikarang. Lihat catatan lengkap di
--- extract_leadership_guru_part1 (percakapan sesi ini) untuk detail ambiguitas ekstraksi.
+-- ── 9. Rekomendasi tindak lanjut prioritas (3 program) ──────────────────────────────────────
 insert into public.tindak_lanjut (
   sekolah_id, periode_id, modul, fokus, scope, scope_id, target_role, status, type,
   dimensi, title, teaser, mengapa_data, manfaat, hal_diwaspadai
 ) values
 (
-  'TKN-PEMBINA-BANDUNG', '2025-07', 'lw', 'lead', 'sekolah', 'TKN-PEMBINA-BANDUNG', 'yayasan', 'disetujui', 'perlu_perhatian',
-  'Problem Solving', 'Pelatihan Creative Problem Solving & Decision Making',
-  'Teknik berpikir analitis & kreatif untuk menyelesaikan masalah, root cause analysis untuk kasus di sekolah, dan studi kasus keseharian guru TK.',
-  'Menjawab gap terbesar organisasi: indikator Problem Solving rata-rata 47,60 dari 100, skor terendah di antara seluruh indikator LEAD.',
-  '{"learning_outcome":"Peserta mampu mengidentifikasi masalah, mencari akar penyebab, dan memilih solusi praktis yang bisa langsung diterapkan di kelas atau manajemen sekolah."}'::jsonb,
+  'YP-FAMMI', '2025-07', 'lw', 'lead', 'sekolah', 'YP-FAMMI', 'yayasan', 'disetujui', 'perlu_perhatian',
+  'Kepemimpinan Digital', 'Pelatihan Kepemimpinan Digital untuk Guru & Kepala Sekolah',
+  'Pemanfaatan platform digital (Google Workspace, aplikasi penilaian, media sosial sekolah) untuk manajemen dan pembelajaran.',
+  'Menjawab gap terbesar organisasi: indikator Kepemimpinan Digital rata-rata 58,30 dari 100, skor terendah di antara seluruh indikator LEAD.',
+  '{"learning_outcome":"Guru dan kepala sekolah mampu memakai platform digital untuk komunikasi, administrasi, dan promosi sekolah."}'::jsonb,
   null
 ),
 (
-  'TKN-PEMBINA-BANDUNG', '2025-07', 'lw', 'lead', 'sekolah', 'TKN-PEMBINA-BANDUNG', 'yayasan', 'disetujui', 'perlu_perhatian',
-  'Inovatif', 'Workshop Design Thinking for Educators',
-  'Tahap empathize-define-ideate-prototype-test, mengembangkan ide kegiatan belajar yang seru dan bermakna, hingga menyusun kolaborasi antar guru untuk menciptakan inovasi.',
-  'Menjawab gap indikator Inovatif, rata-rata organisasi 75,00 dari 100 -- salah satu dari tiga indikator yang paling perlu penguatan.',
-  '{"learning_outcome":"Peserta menghasilkan minimal 1 prototipe inovasi pembelajaran kegiatan sekolah yang siap diuji di semester berjalan."}'::jsonb,
+  'YP-FAMMI', '2025-07', 'lw', 'lead', 'sekolah', 'YP-FAMMI', 'yayasan', 'disetujui', 'perlu_perhatian',
+  'Problem Solving', 'Pelatihan Creative Problem Solving untuk Tim Pengajar',
+  'Teknik berpikir analitis dan kreatif, root cause analysis, dan studi kasus keseharian di tiap jenjang.',
+  'Menjawab gap indikator Problem Solving, rata-rata organisasi 62,10 dari 100.',
+  '{"learning_outcome":"Peserta mampu mengidentifikasi akar masalah dan memilih solusi praktis yang bisa langsung diterapkan."}'::jsonb,
   null
 ),
 (
-  'TKN-PEMBINA-BANDUNG', '2025-07', 'lw', 'lead', 'sekolah', 'TKN-PEMBINA-BANDUNG', 'yayasan', 'disetujui', 'perlu_perhatian',
-  null, 'Pelatihan Manajemen Risiko & Krisis Program Sekolah',
-  null,
-  'Bagian dari salah satu indikator inti Leadership & Innovation (Manajemen Krisis dan Risiko).',
-  null,
-  '["Fokus materi dan learning outcome untuk program ini tidak terbaca bersih dari dokumen sumber (tata letak dua kolom PDF) -- perlu diverifikasi ulang ke berkas asli sebelum ditampilkan sebagai final."]'::jsonb
-),
-(
-  'TKN-PEMBINA-BANDUNG', '2025-07', 'lw', 'lead', 'sekolah', 'TKN-PEMBINA-BANDUNG', 'yayasan', 'disetujui', 'perlu_perhatian',
-  'Kepemimpinan Digital', 'Pelatihan Kepemimpinan Digital untuk Sekolah',
-  null,
-  'Menjawab gap indikator Kepemimpinan Digital, rata-rata organisasi 77,60 dari 100.',
-  '{"learning_outcome":"Peningkatan keterampilan kepala sekolah dan guru dalam menggunakan platform digital (WhatsApp Broadcast, Google Workspace, aplikasi penilaian, media sosial) untuk mendukung manajemen dan pembelajaran."}'::jsonb,
-  '["Judul program ini tidak tertulis eksplisit di dokumen sumber (hilang akibat tata letak dua kolom); dirumuskan dari isi learning outcome-nya yang cocok dengan gap \"Kepemimpinan Digital\"."]'::jsonb
+  'YP-FAMMI', '2025-07', 'lw', 'protek', 'sekolah', 'YP-FAMMI', 'yayasan', 'disetujui', 'perlu_perhatian',
+  'Kemandirian', 'Program Pendampingan Kemandirian & Kepercayaan Diri Guru',
+  'Sesi coaching berkala untuk melatih pengambilan keputusan mandiri dan keberanian menyuarakan pendapat.',
+  'Menjawab temuan wellbeing: 4 dari 20 guru berkategori non-Baik pada dimensi Kemandirian, terbanyak di antara enam dimensi PROTEK.',
+  '{"learning_outcome":"Guru terdampak menunjukkan peningkatan kategori Kemandirian pada asesmen periode berikutnya."}'::jsonb,
+  null
 );
 
--- ── 10. Briefing (ringkasan eksekutif) ──────────────────────────────────────────────────────
+-- ── 10. Briefing (ringkasan eksekutif, fokus wellbeing) ─────────────────────────────────────
+-- Rilis pertama modul ini hanya menampilkan laporan Kesehatan Mental (keputusan pemilik produk
+-- 2026-08-25), jadi briefing tidak menyebut bagian kesiapan memimpin/pengembangan yang
+-- disembunyikan. Sinkron dengan lw.mock.js.
 insert into public.briefing (sekolah_id, periode_id, modul, scope, scope_id, status, teks)
 values (
-  'TKN-PEMBINA-BANDUNG', '2025-07', 'lw', 'sekolah', 'TKN-PEMBINA-BANDUNG', 'disetujui',
-  'Dari 8 calon pemimpin yang dinilai di empat unit TK Negeri Pembina Kota Bandung, seluruhnya berada di kategori kesiapan memimpin Istimewa atau Sangat Baik, dengan kondisi psikologis aman di semua unit. Kekuatan utama ada pada orientasi terhadap siswa dan orang tua serta pengelolaan keuangan, sementara problem solving dan kepemimpinan digital masih perlu penguatan lebih lanjut. Empat program pengembangan prioritas sudah dirancang untuk menjawab celah tersebut.'
+  'YP-FAMMI', '2025-07', 'lw', 'sekolah', 'YP-FAMMI', 'disetujui',
+  'Kondisi kesehatan mental 20 guru di empat jenjang Yayasan Pendidikan Fammi (TK, SD, SMP, SMA) secara keseluruhan berkategori Baik. Meski begitu, tiga dimensi menunjukkan guru yang perlu perhatian: Kemandirian (3 guru Perlu Perhatian dan 1 guru Waspada), Penerimaan Diri (3 guru), serta Eksplorasi Lingkungan (3 guru). Tekanan paling terkonsentrasi di unit SMP, sementara unit TK dalam kondisi paling sehat. Daftar nama tiap dimensi tersedia di bawah untuk ditindaklanjuti pimpinan.'
 );
 
--- ── 11. (OPSIONAL) Akun uji Yayasan untuk lembaga ini ───────────────────────────────────────
--- Jalankan blok ini HANYA kalau Anda ingin akun login untuk memverifikasi modul ini di browser
--- sungguhan. Ganti password 'gantiSandiIni2026' sebelum dipakai -- data di baris 7-10 di atas
--- berklasifikasi RAHASIA (nama guru, skor kesehatan mental), jadi kredensial akun ini wajib
--- dijaga seketat data itu sendiri. Pola provisioning sama seperti akun uji Yayasan sebelumnya
--- (lihat memori sesi: provision_yayasan_mumu.sql) -- auth.users + auth.identities + profiles,
--- HARUS dijalankan manual lewat Supabase SQL Editor (bukan dari anon key browser).
---
--- insert into auth.users (
---   instance_id, id, aud, role, email, encrypted_password, email_confirmed_at,
---   raw_app_meta_data, raw_user_meta_data, created_at, updated_at,
---   confirmation_token, recovery_token, email_change, email_change_token_new
--- ) values (
---   '00000000-0000-0000-0000-000000000000', gen_random_uuid(), 'authenticated', 'authenticated',
---   'dinasbandung@fammi.internal', crypt('gantiSandiIni2026', gen_salt('bf')), now(),
---   '{"provider":"email","providers":["email"]}'::jsonb, '{}'::jsonb, now(), now(), '', '', '', ''
--- );
---
--- insert into auth.identities (id, user_id, identity_data, provider, provider_id, last_sign_in_at, created_at, updated_at)
--- select gen_random_uuid(), id, jsonb_build_object('sub', id::text, 'email', email), 'email', id::text, now(), now(), now()
--- from auth.users where email = 'dinasbandung@fammi.internal';
---
--- insert into public.profiles (id, username, nama, peran, school_id)
--- select id, 'dinasbandung', 'Dinas Pendidikan Kota Bandung', 'Yayasan', 'TKN-PEMBINA-BANDUNG'
--- from auth.users where email = 'dinasbandung@fammi.internal';
---
--- Login: username "dinasbandung", kode "gantiSandiIni2026" (atau apa pun yang Anda ganti di atas).
+-- ── 11. Akun demo Yayasan (dipakai presentasi ke Yayasan) ───────────────────────────────────
+-- Login: username "ypfammi", kode "ypfammi". Peran Yayasan, school_id YP-FAMMI -- begitu login
+-- langsung mendarat di tab Leadership & Wellbeing karena itu satu-satunya modul aktif sekolah
+-- ini (lihat defaultModuleForPeran di App.jsx). Ganti kodenya lewat Supabase Auth setelah
+-- presentasi kalau akun ini mau dipakai jangka panjang. Pola provisioning sama seperti akun
+-- uji Yayasan sebelumnya: auth.users + auth.identities + profiles, dijalankan lewat Supabase
+-- SQL Editor. Idempoten: aman dijalankan ulang.
+insert into auth.users (
+  instance_id, id, aud, role, email, encrypted_password, email_confirmed_at,
+  raw_app_meta_data, raw_user_meta_data, created_at, updated_at,
+  confirmation_token, recovery_token, email_change, email_change_token_new
+)
+select
+  '00000000-0000-0000-0000-000000000000', gen_random_uuid(), 'authenticated', 'authenticated',
+  'ypfammi@fammi.internal', crypt('ypfammi', gen_salt('bf')), now(),
+  '{"provider":"email","providers":["email"]}'::jsonb, '{}'::jsonb, now(), now(), '', '', '', ''
+where not exists (select 1 from auth.users where email = 'ypfammi@fammi.internal');
+
+insert into auth.identities (id, user_id, identity_data, provider, provider_id, last_sign_in_at, created_at, updated_at)
+select gen_random_uuid(), u.id, jsonb_build_object('sub', u.id::text, 'email', u.email), 'email', u.id::text, now(), now(), now()
+from auth.users u
+where u.email = 'ypfammi@fammi.internal'
+  and not exists (select 1 from auth.identities i where i.user_id = u.id and i.provider = 'email');
+
+insert into public.profiles (id, username, nama, peran, school_id)
+select u.id, 'ypfammi', 'Yayasan Pendidikan Fammi', 'Yayasan', 'YP-FAMMI'
+from auth.users u
+where u.email = 'ypfammi@fammi.internal'
+  and not exists (select 1 from public.profiles p where p.id = u.id);

@@ -1,265 +1,363 @@
-import { leadKategoriTone, protekKategoriTone } from "./lwMeta";
+import { rakitLaporanLw } from "./lwAssembler";
 
 /**
- * lw.mock.js -- data CONTOH untuk pratinjau lepas-login (LwPreview.jsx), sama persis dengan
- * angka final Leadership & Wellbeing Assessment TK Negeri Pembina Kota Bandung (Dinas Pendidikan
- * Kota Bandung, periode Juli 2025) yang juga dipakai di migration seed Supabase -- lihat
- * supabase/migrations/20260803100000_lw_tables_and_seed.sql. Bukan data karangan.
+ * lw.mock.js -- data CONTOH (dummy) untuk pratinjau lepas-login (LwPreview.jsx) modul
+ * Leadership & Wellbeing: Yayasan Pendidikan Fammi, 20 guru di 4 jenjang (TK/SD/SMP/SMA),
+ * periode Juli 2025. Angkanya sama persis dengan seed di migration
+ * 20260803100000_lw_tables_and_seed.sql (data demo, bukan hasil asesmen sungguhan).
+ *
+ * Bentuk datanya SENGAJA berupa baris mentah seperti tabel Supabase (lembagaRow/personalRows/
+ * tlRows/briefingRow), lalu dirakit lewat rakitLaporanLw yang sama dengan jalur produksi --
+ * supaya pratinjau tidak pernah bisa beda bentuk dari data asli.
+ *
+ * Alur cerita datanya dibuat supaya pimpinan yayasan mudah membacanya:
+ * - Seluruh guru berkategori Baik secara keseluruhan (skor total 141-252).
+ * - Tiga dimensi menonjol: Kemandirian (3 Perlu Perhatian + 1 Waspada), Penerimaan Diri (3),
+ *   Eksplorasi Lingkungan (3); Relasi Positif 100% Baik.
+ * - Tekanan terkonsentrasi di unit SMP (Sari Wulandari paling berat), TK paling sehat.
  */
-export const LW_LAPORAN_CONTOH = {
-  meta: { organisasiNama: "TK Negeri Pembina Kota Bandung", periodeId: "2025-07", jumlahKandidat: 8 },
-  briefing: {
-    teks: "Dari 8 calon pemimpin yang dinilai di empat unit TK Negeri Pembina Kota Bandung, seluruhnya berada di kategori kesiapan memimpin Istimewa atau Sangat Baik, dengan kondisi psikologis aman di semua unit. Kekuatan utama ada pada orientasi terhadap siswa dan orang tua serta pengelolaan keuangan, sementara problem solving dan kepemimpinan digital masih perlu penguatan lebih lanjut. Empat program pengembangan prioritas sudah dirancang untuk menjawab celah tersebut.",
-  },
-  kesiapan: {
-    distribusi: [
-      { kategori: "Istimewa", persen: 50, jumlah: 4, toneVar: leadKategoriTone("Istimewa") },
-      { kategori: "Sangat Baik", persen: 50, jumlah: 4, toneVar: leadKategoriTone("Sangat Baik") },
-      { kategori: "Baik", persen: 0, jumlah: 0, toneVar: leadKategoriTone("Baik") },
-      { kategori: "Cukup Baik", persen: 0, jumlah: 0, toneVar: leadKategoriTone("Cukup Baik") },
-      { kategori: "Perlu Penguatan", persen: 0, jumlah: 0, toneVar: leadKategoriTone("Perlu Penguatan") },
-    ],
-    aspek: [
-      { kode: "L", label: "Leadership & Innovation", nilai: 76.9 },
-      { kode: "E", label: "External Collaboration", nilai: 78.3 },
-      { kode: "A", label: "Administrative Excellence", nilai: 84.0 },
-      { kode: "D", label: "Dedication to Growth", nilai: 80.5 },
-    ],
-    topSkill: [
-      { indikator: "Berorientasi pada Siswa dan Orangtua", nilai: 92.6 },
-      { indikator: "Manajemen Keuangan", nilai: 92.6 },
-      { indikator: "Empati", nilai: 90.0 },
-      { indikator: "Adaptif", nilai: 87.6 },
-      { indikator: "Kolaboratif (Internal)", nilai: 87.6 },
-    ],
-    skillGap: [
-      { indikator: "Problem Solving", nilai: 47.6 },
-      { indikator: "Inovatif", nilai: 75.0 },
-      { indikator: "Kepemimpinan Digital", nilai: 77.6 },
-    ],
-    kandidat: [
-      { id: "nenden-teja", nama: "Nenden Teja", unit: "TKN Pembina Citarip", isKepsek: false, kesiapanSkor: 90, kesiapanKategori: "Istimewa", kondisiSkor: 247, kondisiKategori: "Baik" },
-      { id: "ani-yuliani", nama: "Ani Yuliani", unit: "TKN Pembina Sadang Serang", isKepsek: false, kesiapanSkor: 84, kesiapanKategori: "Istimewa", kondisiSkor: 188, kondisiKategori: "Baik" },
-      { id: "dewi-rosmawati", nama: "Dewi Rosmawati, S.Pd.AUD", unit: "TKN Centeh", isKepsek: true, kesiapanSkor: 83, kesiapanKategori: "Istimewa", kondisiSkor: 204, kondisiKategori: "Baik" },
-      { id: "nenden-susilowati", nama: "Nenden Susilowati, M.Pd", unit: "TKN 04 Batununggal", isKepsek: true, kesiapanSkor: 83, kesiapanKategori: "Istimewa", kondisiSkor: 237, kondisiKategori: "Baik" },
-      { id: "siti-sutini", nama: "Siti Sutini, S.Pd. AUD, M.Pd", unit: "TKN 04 Batununggal", isKepsek: false, kesiapanSkor: 80, kesiapanKategori: "Sangat Baik", kondisiSkor: 223, kondisiKategori: "Baik" },
-      { id: "siti-romadoh", nama: "Siti Romadoh", unit: "TKN Pembina Citarip", isKepsek: true, kesiapanSkor: 76, kesiapanKategori: "Sangat Baik", kondisiSkor: 239, kondisiKategori: "Baik" },
-      { id: "tita-ariyanti", nama: "Tita Ariyanti", unit: "TKN Pembina Sadang Serang", isKepsek: true, kesiapanSkor: 73, kesiapanKategori: "Sangat Baik", kondisiSkor: 185, kondisiKategori: "Baik" },
-      { id: "siti-maesaroh", nama: "Siti Maesaroh, S.Pd", unit: "TKN Centeh", isKepsek: false, kesiapanSkor: 70, kesiapanKategori: "Sangat Baik", kondisiSkor: 205, kondisiKategori: "Baik" },
-    ],
-  },
-  kesehatan: {
-    distribusi: [
-      { kategori: "Baik", persen: 100, jumlah: 8, toneVar: protekKategoriTone("Baik") },
-      { kategori: "Perlu Perhatian", persen: 0, jumlah: 0, toneVar: protekKategoriTone("Perlu Perhatian") },
-      { kategori: "Waspada", persen: 0, jumlah: 0, toneVar: protekKategoriTone("Waspada") },
-      { kategori: "Perlu Konsultasi", persen: 0, jumlah: 0, toneVar: protekKategoriTone("Perlu Konsultasi") },
-    ],
-    dimensi: [
-      { kode: "P", label: "Penerimaan Diri", nilai: 35.3 },
-      { kode: "R", label: "Relasi Positif dengan Orang Lain", nilai: 38.1 },
-      { kode: "O", label: "Optimalisasi Potensi Diri", nilai: 37.9 },
-      { kode: "T", label: "Tujuan Hidup", nilai: 35.8 },
-      { kode: "E", label: "Eksplorasi Lingkungan", nilai: 36.5 },
-      { kode: "K", label: "Kemandirian", nilai: 32.5 },
-    ],
-    perbandingan: [
-      { key: "P", label: "Penerimaan Diri", baikPersen: 75, baikJumlah: 6, perluPerhatianPersen: 25, perluPerhatianJumlah: 2, waspadaPersen: 0, waspadaJumlah: 0 },
-      { key: "R", label: "Relasi Positif dengan Orang Lain", baikPersen: 100, baikJumlah: 8, perluPerhatianPersen: 0, perluPerhatianJumlah: 0, waspadaPersen: 0, waspadaJumlah: 0 },
-      { key: "O", label: "Optimalisasi Potensi Diri", baikPersen: 100, baikJumlah: 8, perluPerhatianPersen: 0, perluPerhatianJumlah: 0, waspadaPersen: 0, waspadaJumlah: 0 },
-      { key: "T", label: "Tujuan Hidup", baikPersen: 100, baikJumlah: 8, perluPerhatianPersen: 0, perluPerhatianJumlah: 0, waspadaPersen: 0, waspadaJumlah: 0 },
-      { key: "E", label: "Eksplorasi Lingkungan", baikPersen: 87, baikJumlah: 7, perluPerhatianPersen: 13, perluPerhatianJumlah: 1, waspadaPersen: 0, waspadaJumlah: 0 },
-      { key: "K", label: "Kemandirian", baikPersen: 75, baikJumlah: 6, perluPerhatianPersen: 25, perluPerhatianJumlah: 2, waspadaPersen: 0, waspadaJumlah: 0 },
-    ],
-    temuanSpesifik: [
-      { dimensi: "Penerimaan Diri", temuan: [
-        { pernyataan: "Sikap terhadap diri sendiri cenderung lebih negatif dari kebanyakan orang.", persen: 25, jumlah: 2 },
-        { pernyataan: "Tidak menyukai sebagian besar kepribadian diri sendiri.", persen: 13, jumlah: 1 },
-        { pernyataan: "Tidak nyaman dengan diri sendiri saat dibandingkan dengan orang lain.", persen: 13, jumlah: 1 },
-      ] },
-      { dimensi: "Relasi Positif dengan Orang Lain", temuan: [] },
-      { dimensi: "Optimalisasi Potensi Diri", temuan: [] },
-      { dimensi: "Tujuan Hidup", temuan: [
-        { pernyataan: "Sering merasa tidak ada lagi yang perlu dilakukan dalam hidup.", persen: 63, jumlah: 5 },
-      ] },
-      { dimensi: "Eksplorasi Lingkungan", temuan: [
-        { pernyataan: "Kesulitan mengatur hidup agar memuaskan diri sendiri.", persen: 13, jumlah: 1 },
-        { pernyataan: "Sering merasa terbebani oleh tanggung jawab yang dimiliki.", persen: 13, jumlah: 1 },
-      ] },
-      { dimensi: "Kemandirian", temuan: [
-        { pernyataan: "Keputusan sering kali dipengaruhi oleh tindakan orang lain.", persen: 25, jumlah: 2 },
-        { pernyataan: "Sering terpengaruh oleh orang-orang yang memiliki pendapat kuat.", persen: 13, jumlah: 1 },
-        { pernyataan: "Menilai diri sendiri berdasarkan standar orang lain, bukan nilai pribadi.", persen: 13, jumlah: 1 },
-      ] },
-    ],
-  },
-  pengembangan: {
-    pelatihan: [
-      {
-        key: "pelatihan-problem-solving", judul: "Pelatihan Creative Problem Solving & Decision Making", dimensi: "Problem Solving",
-        teaser: "Teknik berpikir analitis & kreatif untuk menyelesaikan masalah, root cause analysis untuk kasus di sekolah, dan studi kasus keseharian guru TK.",
-        mengapaData: "Menjawab gap terbesar organisasi: indikator Problem Solving rata-rata 47,60 dari 100, skor terendah di antara seluruh indikator LEAD.",
-        learningOutcome: "Peserta mampu mengidentifikasi masalah, mencari akar penyebab, dan memilih solusi praktis yang bisa langsung diterapkan di kelas atau manajemen sekolah.",
-      },
-      {
-        key: "pelatihan-design-thinking", judul: "Workshop Design Thinking for Educators", dimensi: "Inovatif",
-        teaser: "Tahap empathize-define-ideate-prototype-test, mengembangkan ide kegiatan belajar yang seru dan bermakna, hingga menyusun kolaborasi antar guru untuk menciptakan inovasi.",
-        mengapaData: "Menjawab gap indikator Inovatif, rata-rata organisasi 75,00 dari 100 -- salah satu dari tiga indikator yang paling perlu penguatan.",
-        learningOutcome: "Peserta menghasilkan minimal 1 prototipe inovasi pembelajaran kegiatan sekolah yang siap diuji di semester berjalan.",
-      },
-      {
-        key: "pelatihan-manajemen-risiko", judul: "Pelatihan Manajemen Risiko & Krisis Program Sekolah", dimensi: null,
-        teaser: null,
-        mengapaData: "Bagian dari salah satu indikator inti Leadership & Innovation (Manajemen Krisis dan Risiko).",
-        learningOutcome: null,
-        catatan: "Fokus materi dan learning outcome untuk program ini tidak terbaca bersih dari dokumen sumber (tata letak dua kolom PDF) -- perlu diverifikasi ulang ke berkas asli sebelum ditampilkan sebagai final.",
-      },
-      {
-        key: "pelatihan-kepemimpinan-digital", judul: "Pelatihan Kepemimpinan Digital untuk Sekolah", dimensi: "Kepemimpinan Digital",
-        teaser: null,
-        mengapaData: "Menjawab gap indikator Kepemimpinan Digital, rata-rata organisasi 77,60 dari 100.",
-        learningOutcome: "Peningkatan keterampilan kepala sekolah dan guru dalam menggunakan platform digital (WhatsApp Broadcast, Google Workspace, aplikasi penilaian, media sosial) untuk mendukung manajemen dan pembelajaran.",
-        catatan: "Judul program ini tidak tertulis eksplisit di dokumen sumber (hilang akibat tata letak dua kolom); dirumuskan dari isi learning outcome-nya yang cocok dengan gap \"Kepemimpinan Digital\".",
-      },
-    ],
-    cerita: [
-      { key: "c1", tema: "Memimpin Tim Menghadapi Perubahan Besar", nama: "Nenden Susilowati, M.Pd", unit: "TKN 04 Batununggal",
-        isi: "Dalam menghadapi perubahan besar di sekolah, kami selalu melakukan komunikasi dengan seluruh warga sekolah, dimulai dengan alasan dan tujuan perubahan itu sendiri, lalu membentuk tim perubahan bersama guru dan pendukung lainnya.",
-        bulletPoin: ["Melakukan komunikasi dengan seluruh warga sekolah", "Membentuk tim perubahan bersama guru dan pendukung lainnya", "Memfasilitasi/mengikuti informasi dan pelatihan terkait perubahan", "Memonitor dan mengevaluasi perubahan yang terjadi", "Berkolaborasi agar perubahan sesuai yang diharapkan"] },
-      { key: "c2", tema: "Melibatkan Siswa dan Orang Tua dalam Program Sekolah", nama: "Nenden Susilowati, M.Pd", unit: "TKN 04 Batununggal",
-        isi: "Sekolah melibatkan siswa dan orang tua lewat forum komunikasi via WhatsApp dan parenting, kolaborasi kegiatan orang tua-anak seperti market day dan gebyar prasiaga, serta pelibatan orang tua sebagai guru inspiratif di kelas.", bulletPoin: [] },
-      { key: "c3", tema: "Menciptakan Solusi Inovatif di Sekolah", nama: "Siti Sutini, S.Pd. AUD, M.Pd", unit: "TKN 04 Batununggal",
-        isi: "Halaman samping sekolah yang tidak tertata diubah menjadi taman yang indah dan rapi atas ide yang disampaikan kepada Kepala Sekolah dan disetujui.", bulletPoin: [] },
-      { key: "c4", tema: "Menciptakan Solusi Inovatif di Sekolah", nama: "Dewi Rosmawati, S.Pd.AUD", unit: "TKN Centeh",
-        isi: "Saat pertama masuk sekolah baru, ditemukan pengaturan penganggaran yang belum transparan, sehingga dilakukan perubahan membuat laporan keuangan lebih transparan dengan strategi yang sudah terbukti di sekolah sebelumnya.", bulletPoin: [] },
-      { key: "c5", tema: "Menciptakan Jalur Pertumbuhan SDM Jangka Panjang", nama: "Siti Romadoh", unit: "TKN Pembina Citarip",
-        isi: "Saat jumlah guru berkurang karena P3K dan pensiun, seluruh guru berembuk mengikuti acara gugus 4 TK Negeri, saling melatih dan membagi tugas sehingga seluruh permasalahan tetap terselesaikan.", bulletPoin: [] },
-      { key: "c6", tema: "Menciptakan Solusi Inovatif Lainnya di Sekolah", nama: "Siti Maesaroh, S.Pd", unit: "TKN Centeh",
-        isi: "Sebagai guru inti, ilmu yang didapat diimplementasikan lewat RPP baru dan pembelajaran berdiferensiasi bersama seluruh guru, termasuk pengimbasan ke PAUD terdekat.", bulletPoin: [] },
-      { key: "c7", tema: "Melibatkan Siswa dan Orang Tua dalam Program Sekolah", nama: "Tita Ariyanti", unit: "TKN Pembina Sadang Serang",
-        isi: "Inisiatif program beasiswa dan pendidikan gratis mengurangi beban finansial orang tua sehingga anak lebih berfokus pada pembelajaran, sekaligus mendorong pemerataan pendidikan.", bulletPoin: [] },
-      { key: "c8", tema: "Menghadapi Perubahan Besar di Sekolah", nama: "Dewi Rosmawati, S.Pd.AUD", unit: "TKN Centeh",
-        isi: "Perencanaan perubahan dilakukan bersama seluruh PTK lewat komunikasi dan kolaborasi terbuka, keputusan diambil dari hasil kesepakatan, dengan pendekatan percakapan coaching yang terbukti berhasil.", bulletPoin: [] },
-      { key: "c9", tema: "Mengambil Keputusan Sulit demi Integritas", nama: "Siti Romadoh", unit: "TKN Pembina Citarip",
-        isi: "Saat pandemi Covid-19, pembelajaran dialihkan ke daring lewat Zoom, dengan sebagian kecil tatap muka terbatas dua kali seminggu agar tidak terjadi kerumunan.", bulletPoin: [] },
-    ],
-  },
-  personalById: {
-    "nenden-teja": {
-      nama: "Nenden Teja", unit: "TKN Pembina Citarip", isKepsek: false,
-      kesiapanSkor: 90, kesiapanKategori: "Istimewa", kondisiSkor: 247, kondisiKategori: "Baik", kondisiLabel: "Aman",
-      leadAspek: [{ kode: "L", label: "Leadership & Innovation", nilai: 88 }, { kode: "E", label: "External Collaboration", nilai: 92 }, { kode: "A", label: "Administrative Excellence", nilai: 93 }, { kode: "D", label: "Dedication to Growth", nilai: 88 }],
-      protekDimensi: [{ kode: "P", label: "Penerimaan Diri", nilai: 42, kategori: "Baik" }, { kode: "R", label: "Relasi Positif dengan Orang Lain", nilai: 42, kategori: "Baik" }, { kode: "O", label: "Optimalisasi Potensi Diri", nilai: 41, kategori: "Baik" }, { kode: "T", label: "Tujuan Hidup", nilai: 42, kategori: "Baik" }, { kode: "E", label: "Eksplorasi Lingkungan", nilai: 41, kategori: "Baik" }, { kode: "K", label: "Kemandirian", nilai: 39, kategori: "Baik" }],
-      narasi: [
-        { tema: "Kolaborasi dengan Siswa dan Orangtua", isi: "Selalu melibatkan anak dan orang tua dalam membuat kebijakan dan terbuka dalam menerima saran dan kritikan, serta senantiasa memotivasi orang tua untuk mau belajar dan berubah demi kepentingan perkembangan anak." },
-        { tema: "Kemitraan Strategis Sekolah", isi: "Mengundang dan meminta mitra dari berbagai unsur untuk duduk bersama dan membuat MoU kerja sama untuk mendukung dan mewujudkan pendidikan yang baik dan memfasilitasi anak untuk tumbuh kembang dengan optimal." },
-        { tema: "Pengalaman Mengelola Tim", isi: "Membuat RKAS sesuai kebutuhan dan menentukan skala prioritas untuk menentukan anggaran yang akan terserap, serta membuat jaringan partisipasi masyarakat agar ikut membantu dalam pemenuhan kebutuhan sekolah." },
-        { tema: "Kepemimpinan di Masa Perubahan", isi: "Mengorganisir tim, mempelajari dan memahami akar permasalahan, membuka ruang diskusi untuk menemukan masalah dan menyelesaikan masalah berdasarkan argumen dan hipotesis di lapangan, lalu menentukan solusi." },
-      ],
-      ceritaTerbaik: [],
-    },
-    "ani-yuliani": {
-      nama: "Ani Yuliani", unit: "TKN Pembina Sadang Serang", isKepsek: false,
-      kesiapanSkor: 84, kesiapanKategori: "Istimewa", kondisiSkor: 188, kondisiKategori: "Baik", kondisiLabel: "Aman",
-      leadAspek: [{ kode: "L", label: "Leadership & Innovation", nilai: 74 }, { kode: "E", label: "External Collaboration", nilai: 82 }, { kode: "A", label: "Administrative Excellence", nilai: 92 }, { kode: "D", label: "Dedication to Growth", nilai: 89 }],
-      protekDimensi: [{ kode: "P", label: "Penerimaan Diri", nilai: 28, kategori: "Perlu Perhatian" }, { kode: "R", label: "Relasi Positif dengan Orang Lain", nilai: 33, kategori: "Baik" }, { kode: "O", label: "Optimalisasi Potensi Diri", nilai: 34, kategori: "Baik" }, { kode: "T", label: "Tujuan Hidup", nilai: 35, kategori: "Baik" }, { kode: "E", label: "Eksplorasi Lingkungan", nilai: 28, kategori: "Perlu Perhatian" }, { kode: "K", label: "Kemandirian", nilai: 30, kategori: "Baik" }],
-      narasi: [
-        { tema: "Pengalaman Mengelola Tim", isi: "Dapat dilakukan beberapa upaya seperti pelatihan dan pengembangan yang berkelanjutan, pemberian tugas sesuai keahlian, menciptakan lingkungan kerja yang positif, memberikan kesempatan untuk brainstorming, dan menerapkan sistem reward dan punishment yang adil." },
-        { tema: "Menyelesaikan Masalah yang Pelik", isi: "Ketika ada permasalahan, kami diskusikan dulu dengan tim, keputusan diambil berdasarkan kesepakatan dan relevan." },
-        { tema: "Inovasi yang Membawa Dampak Nyata", isi: "Membuat ide-ide dalam pembelajaran seperti media pembelajaran, biasanya juga berkolaborasi dengan guru/teman sejawat lainnya." },
-        { tema: "Kepemimpinan di Masa Perubahan", isi: "Ketika dihadapkan pada perubahan, biasanya membutuhkan kombinasi strategi seperti komunikasi yang jelas dengan tim, pembentukan budaya positif, pendelegasian tugas yang tepat, serta pengembangan anggota tim, karena pemimpin yang baik harus mampu memotivasi dan menangani konflik secara efektif." },
-      ],
-      ceritaTerbaik: [],
-    },
-    "dewi-rosmawati": {
-      nama: "Dewi Rosmawati, S.Pd.AUD", unit: "TKN Centeh", isKepsek: true,
-      kesiapanSkor: 83, kesiapanKategori: "Istimewa", kondisiSkor: 204, kondisiKategori: "Baik", kondisiLabel: "Aman",
-      leadAspek: [{ kode: "L", label: "Leadership & Innovation", nilai: 85 }, { kode: "E", label: "External Collaboration", nilai: 81 }, { kode: "A", label: "Administrative Excellence", nilai: 81 }, { kode: "D", label: "Dedication to Growth", nilai: 84 }],
-      protekDimensi: [{ kode: "P", label: "Penerimaan Diri", nilai: 32, kategori: "Baik" }, { kode: "R", label: "Relasi Positif dengan Orang Lain", nilai: 35, kategori: "Baik" }, { kode: "O", label: "Optimalisasi Potensi Diri", nilai: 35, kategori: "Baik" }, { kode: "T", label: "Tujuan Hidup", nilai: 33, kategori: "Baik" }, { kode: "E", label: "Eksplorasi Lingkungan", nilai: 37, kategori: "Baik" }, { kode: "K", label: "Kemandirian", nilai: 32, kategori: "Baik" }],
-      narasi: [
-        { tema: "Kepemimpinan di Masa Perubahan", isi: "Melakukan perencanaan yang sesuai dengan perubahan di sekolah, dilakukan bersama-sama dengan seluruh PTK, berkomunikasi yang baik, berkolaborasi memberikan kesempatan kepada seluruh PTK untuk menyampaikan pendapatnya, lalu membuat keputusan dari hasil kesepakatan." },
-        { tema: "Efisiensi Tanpa Mengorbankan Mutu", isi: "Melakukan identifikasi kebutuhan sekolah, membuat Rencana Anggaran Sekolah, dan melakukan penganggaran/pembelian sesuai rencana bersama guru, TU, dan operator." },
-        { tema: "Kolaborasi dengan Siswa dan Orangtua", isi: "Mensosialisasikan program sekolah dan melibatkan orang tua dalam penutupan MPLS, peringatan HUT RI, dan kegiatan lain -- orang tua merasa dihargai dan pembentukan karakter anak dapat berlanjut di rumah." },
-      ],
-      ceritaTerbaik: [
-        { judul: "Menciptakan Solusi Inovatif di Sekolah", isi: "Ketika pertama masuk sekolah baru, ditemukan pengaturan penganggaran yang belum tersusun transparan, sehingga dilakukan perubahan membuat laporan keuangan lebih transparan dengan strategi yang sudah terbukti di sekolah sebelumnya.", bulletPoin: [] },
-        { judul: "Menghadapi Perubahan Besar di Sekolah", isi: "Perencanaan perubahan dilakukan bersama seluruh PTK lewat komunikasi dan kolaborasi terbuka, keputusan diambil dari hasil kesepakatan, dengan pendekatan percakapan coaching yang terbukti berhasil.", bulletPoin: [] },
-      ],
-    },
-    "nenden-susilowati": {
-      nama: "Nenden Susilowati, M.Pd", unit: "TKN 04 Batununggal", isKepsek: true,
-      kesiapanSkor: 83, kesiapanKategori: "Istimewa", kondisiSkor: 237, kondisiKategori: "Baik", kondisiLabel: "Aman",
-      leadAspek: [{ kode: "L", label: "Leadership & Innovation", nilai: 89 }, { kode: "E", label: "External Collaboration", nilai: 76 }, { kode: "A", label: "Administrative Excellence", nilai: 87 }, { kode: "D", label: "Dedication to Growth", nilai: 81 }],
-      protekDimensi: [{ kode: "P", label: "Penerimaan Diri", nilai: 41, kategori: "Baik" }, { kode: "R", label: "Relasi Positif dengan Orang Lain", nilai: 35, kategori: "Baik" }, { kode: "O", label: "Optimalisasi Potensi Diri", nilai: 42, kategori: "Baik" }, { kode: "T", label: "Tujuan Hidup", nilai: 36, kategori: "Baik" }, { kode: "E", label: "Eksplorasi Lingkungan", nilai: 40, kategori: "Baik" }, { kode: "K", label: "Kemandirian", nilai: 38, kategori: "Baik" }],
-      narasi: [
-        { tema: "Kepemimpinan di Masa Perubahan", isi: "Selalu melakukan komunikasi dengan seluruh warga sekolah, dimulai dari alasan dan tujuan perubahan, membentuk tim perubahan bersama guru dan pendukung lainnya, dilakukan secara bertahap agar guru lebih memahami, serta terus memonitor dan merefleksikan perubahan yang terjadi." },
-        { tema: "Keputusan Sulit demi Integritas", isi: "Keputusan sulit diambil ketika orang tua protes anaknya tidak dilibatkan dalam satu kegiatan prasiaga -- diberikan pengertian bahwa pelibatan dilakukan pembina dari luar, dan pihak sekolah tetap terbuka menerima kembali jika ingin bersekolah." },
-        { tema: "Kolaborasi dengan Siswa dan Orangtua", isi: "Sekolah melibatkan siswa dan orang tua lewat forum komunikasi via WhatsApp dan parenting, kolaborasi kegiatan orang tua-anak seperti market day dan gebyar prasiaga, serta pelibatan orang tua sebagai guru inspiratif di kelas." },
-      ],
-      ceritaTerbaik: [
-        { judul: "Memimpin Tim Menghadapi Perubahan Besar", isi: "Dalam menghadapi perubahan besar di sekolah, kami selalu melakukan komunikasi dengan seluruh warga sekolah, dimulai dengan alasan dan tujuan perubahan itu sendiri, lalu membentuk tim perubahan bersama guru dan pendukung lainnya.", bulletPoin: ["Melakukan komunikasi dengan seluruh warga sekolah", "Membentuk tim perubahan bersama guru dan pendukung lainnya", "Memfasilitasi/mengikuti informasi dan pelatihan terkait perubahan", "Memonitor dan mengevaluasi perubahan yang terjadi", "Berkolaborasi agar perubahan sesuai yang diharapkan"] },
-        { judul: "Melibatkan Siswa dan Orang Tua dalam Program Sekolah", isi: "Sekolah melibatkan siswa dan orang tua lewat forum komunikasi via WhatsApp dan parenting, kolaborasi kegiatan orang tua-anak seperti market day dan gebyar prasiaga, serta pelibatan orang tua sebagai guru inspiratif di kelas.", bulletPoin: [] },
-      ],
-    },
-    "siti-sutini": {
-      nama: "Siti Sutini, S.Pd. AUD, M.Pd", unit: "TKN 04 Batununggal", isKepsek: false,
-      kesiapanSkor: 80, kesiapanKategori: "Sangat Baik", kondisiSkor: 223, kondisiKategori: "Baik", kondisiLabel: "Aman",
-      leadAspek: [{ kode: "L", label: "Leadership & Innovation", nilai: 71 }, { kode: "E", label: "External Collaboration", nilai: 71 }, { kode: "A", label: "Administrative Excellence", nilai: 91 }, { kode: "D", label: "Dedication to Growth", nilai: 87 }],
-      protekDimensi: [{ kode: "P", label: "Penerimaan Diri", nilai: 39, kategori: "Baik" }, { kode: "R", label: "Relasi Positif dengan Orang Lain", nilai: 42, kategori: "Baik" }, { kode: "O", label: "Optimalisasi Potensi Diri", nilai: 39, kategori: "Baik" }, { kode: "T", label: "Tujuan Hidup", nilai: 35, kategori: "Baik" }, { kode: "E", label: "Eksplorasi Lingkungan", nilai: 35, kategori: "Baik" }, { kode: "K", label: "Kemandirian", nilai: 33, kategori: "Baik" }],
-      narasi: [
-        { tema: "Inovasi yang Membawa Dampak Nyata", isi: "Halaman samping sekolah yang tidak tertata diubah menjadi taman yang indah dan rapi atas ide yang disampaikan kepada Kepala Sekolah dan disetujui." },
-        { tema: "Efisiensi Tanpa Mengorbankan Mutu", isi: "Membuat rencana anggaran sekolah berupa pendapatan dan pengeluaran, dengan prioritas pengeluaran dibagi ke beberapa unsur seperti kurikulum, APE, dan pemeliharaan sarana prasarana." },
-        { tema: "Kolaborasi dengan Siswa dan Orangtua", isi: "Salah satu kegiatan P5 di bulan Ramadan yaitu berbagi sembako kepada anak yatim dan duafa, melibatkan siswa dan orang tua, menanamkan nilai moral agama." },
-        { tema: "Keputusan Sulit demi Integritas", isi: "Keputusan sulit diambil saat mengingatkan guru yang sering datang terlambat, karena kedisiplinan guru berdampak terhadap siswa dan sekolah." },
-      ],
-      ceritaTerbaik: [
-        { judul: "Menciptakan Solusi Inovatif di Sekolah", isi: "Halaman samping sekolah yang tidak tertata diubah menjadi taman yang indah dan rapi atas ide yang disampaikan kepada Kepala Sekolah dan disetujui.", bulletPoin: [] },
-      ],
-    },
-    "siti-romadoh": {
-      nama: "Siti Romadoh", unit: "TKN Pembina Citarip", isKepsek: true,
-      kesiapanSkor: 76, kesiapanKategori: "Sangat Baik", kondisiSkor: 239, kondisiKategori: "Baik", kondisiLabel: "Aman",
-      leadAspek: [{ kode: "L", label: "Leadership & Innovation", nilai: 74 }, { kode: "E", label: "External Collaboration", nilai: 79 }, { kode: "A", label: "Administrative Excellence", nilai: 80 }, { kode: "D", label: "Dedication to Growth", nilai: 70 }],
-      protekDimensi: [{ kode: "P", label: "Penerimaan Diri", nilai: 41, kategori: "Baik" }, { kode: "R", label: "Relasi Positif dengan Orang Lain", nilai: 40, kategori: "Baik" }, { kode: "O", label: "Optimalisasi Potensi Diri", nilai: 41, kategori: "Baik" }, { kode: "T", label: "Tujuan Hidup", nilai: 41, kategori: "Baik" }, { kode: "E", label: "Eksplorasi Lingkungan", nilai: 41, kategori: "Baik" }, { kode: "K", label: "Kemandirian", nilai: 35, kategori: "Baik" }],
-      narasi: [
-        { tema: "Pengalaman Mengelola Tim", isi: "Melihat kemampuan guru masing-masing yang perlu ditingkatkan, memanggil narasumber untuk memberikan pembelajaran tambahan, dan melakukan kombel pada bagian yang dirasa masih kurang." },
-        { tema: "Inovasi yang Membawa Dampak Nyata", isi: "Saat jumlah guru berkurang karena P3K dan pensiun, seluruh guru berembuk mengikuti acara gugus 4 TK Negeri, saling melatih dan membagi tugas sehingga seluruh permasalahan tetap terselesaikan." },
-        { tema: "Efisiensi Tanpa Mengorbankan Mutu", isi: "Saat menerima anak yang tidak mampu, dilaksanakan subsidi silang agar kebutuhan anak tetap terserap sesuai kebutuhan tanpa menurunkan kualitas pembelajaran." },
-        { tema: "Kepemimpinan di Masa Perubahan", isi: "Saat pandemi Covid-19, pembelajaran dialihkan ke daring lewat Zoom, dengan sebagian kecil tatap muka terbatas dua kali seminggu agar tidak terjadi kerumunan." },
-      ],
-      ceritaTerbaik: [
-        { judul: "Menciptakan Jalur Pertumbuhan SDM Jangka Panjang", isi: "Saat jumlah guru berkurang karena P3K dan pensiun, seluruh guru berembuk mengikuti acara gugus 4 TK Negeri, saling melatih dan membagi tugas sehingga seluruh permasalahan tetap terselesaikan.", bulletPoin: [] },
-        { judul: "Mengambil Keputusan Sulit demi Integritas", isi: "Saat pandemi Covid-19, pembelajaran dialihkan ke daring lewat Zoom, dengan sebagian kecil tatap muka terbatas dua kali seminggu agar tidak terjadi kerumunan.", bulletPoin: [] },
-      ],
-    },
-    "tita-ariyanti": {
-      nama: "Tita Ariyanti", unit: "TKN Pembina Sadang Serang", isKepsek: true,
-      kesiapanSkor: 73, kesiapanKategori: "Sangat Baik", kondisiSkor: 185, kondisiKategori: "Baik", kondisiLabel: "Aman",
-      leadAspek: [{ kode: "L", label: "Leadership & Innovation", nilai: 70 }, { kode: "E", label: "External Collaboration", nilai: 74 }, { kode: "A", label: "Administrative Excellence", nilai: 74 }, { kode: "D", label: "Dedication to Growth", nilai: 73 }],
-      protekDimensi: [{ kode: "P", label: "Penerimaan Diri", nilai: 28, kategori: "Perlu Perhatian" }, { kode: "R", label: "Relasi Positif dengan Orang Lain", nilai: 36, kategori: "Baik" }, { kode: "O", label: "Optimalisasi Potensi Diri", nilai: 33, kategori: "Baik" }, { kode: "T", label: "Tujuan Hidup", nilai: 29, kategori: "Baik" }, { kode: "E", label: "Eksplorasi Lingkungan", nilai: 34, kategori: "Baik" }, { kode: "K", label: "Kemandirian", nilai: 25, kategori: "Perlu Perhatian" }],
-      narasi: [
-        { tema: "Inovasi yang Membawa Dampak Nyata", isi: "Menciptakan solusi inovatif lewat pendekatan yang lebih manusiawi dengan membuat analisa SWOT sehingga permasalahan yang harus diangkat menjadi lebih fokus dan terarah." },
-        { tema: "Kemitraan Strategis Sekolah", isi: "Kemitraan parenting kesehatan gigi membuka wawasan anak sekaligus mendorong orang tua berkolaborasi lewat pemeriksaan gigi bersama." },
-        { tema: "Kepemimpinan di Masa Perubahan", isi: "Memimpin tim sekolah menghadapi perubahan dimulai dari komunikasi yang jelas, membangun empati, menyusun strategi yang terencana dan terbuka, menyampaikan visi-misi yang jelas, menerima masukan tim, dan selalu melibatkan tim dalam setiap proses perubahan." },
-        { tema: "Kolaborasi dengan Siswa dan Orangtua", isi: "Inisiatif program beasiswa dan pendidikan gratis mengurangi beban finansial orang tua sehingga anak lebih berfokus pada pembelajaran, sekaligus mendorong pemerataan pendidikan." },
-      ],
-      ceritaTerbaik: [
-        { judul: "Melibatkan Siswa dan Orang Tua dalam Program Sekolah", isi: "Inisiatif program beasiswa dan pendidikan gratis mengurangi beban finansial orang tua sehingga anak lebih berfokus pada pembelajaran, sekaligus mendorong pemerataan pendidikan.", bulletPoin: [] },
-      ],
-    },
-    "siti-maesaroh": {
-      nama: "Siti Maesaroh, S.Pd", unit: "TKN Centeh", isKepsek: false,
-      kesiapanSkor: 70, kesiapanKategori: "Sangat Baik", kondisiSkor: 205, kondisiKategori: "Baik", kondisiLabel: "Aman",
-      leadAspek: [{ kode: "L", label: "Leadership & Innovation", nilai: 64 }, { kode: "E", label: "External Collaboration", nilai: 71 }, { kode: "A", label: "Administrative Excellence", nilai: 74 }, { kode: "D", label: "Dedication to Growth", nilai: 72 }],
-      protekDimensi: [{ kode: "P", label: "Penerimaan Diri", nilai: 31, kategori: "Baik" }, { kode: "R", label: "Relasi Positif dengan Orang Lain", nilai: 37, kategori: "Baik" }, { kode: "O", label: "Optimalisasi Potensi Diri", nilai: 38, kategori: "Baik" }, { kode: "T", label: "Tujuan Hidup", nilai: 35, kategori: "Baik" }, { kode: "E", label: "Eksplorasi Lingkungan", nilai: 36, kategori: "Baik" }, { kode: "K", label: "Kemandirian", nilai: 28, kategori: "Perlu Perhatian" }],
-      narasi: [
-        { tema: "Kemitraan Strategis Sekolah", isi: "Kemitraan dengan Museum Geologi, pasar tradisional dan modern, serta stasiun kereta api dan pemadam kebakaran memperluas pengenalan anak terhadap lingkungan sekitar." },
-        { tema: "Kolaborasi dengan Siswa dan Orangtua", isi: "Bekerja sama dengan orang tua dalam proses pembelajaran, misalnya tugas membawa benda sesuai huruf awalan supaya anak mengenal huruf tanpa drilling." },
-        { tema: "Kepemimpinan di Masa Perubahan", isi: "Perubahan dari Kurikulum 13 ke Kurikulum Merdeka berhasil diimplementasikan dan dibagikan sebagai praktik baik ke PAUD terdekat dan IGTKI kecamatan." },
-      ],
-      ceritaTerbaik: [
-        { judul: "Menciptakan Solusi Inovatif Lainnya di Sekolah", isi: "Sebagai guru inti, ilmu yang didapat diimplementasikan lewat RPP baru dan pembelajaran berdiferensiasi bersama seluruh guru, termasuk pengimbasan ke PAUD terdekat.", bulletPoin: [] },
-      ],
-    },
-  },
+
+const LEMBAGA_ROW = {
+  periode_id: "2025-07",
+  unit: null,
+  lead_distribusi: [
+    { kategori: "Istimewa", persen: 15, jumlah: 3 },
+    { kategori: "Sangat Baik", persen: 70, jumlah: 14 },
+    { kategori: "Baik", persen: 15, jumlah: 3 },
+    { kategori: "Cukup Baik", persen: 0, jumlah: 0 },
+    { kategori: "Perlu Penguatan", persen: 0, jumlah: 0 },
+  ],
+  lead_aspek: [
+    { kode: "L", nilai: 70.1 },
+    { kode: "E", nilai: 73.0 },
+    { kode: "A", nilai: 71.9 },
+    { kode: "D", nilai: 72.9 },
+  ],
+  lead_top_skill: [
+    { indikator: "Empati", nilai: 88.4 },
+    { indikator: "Berorientasi Pada Siswa & Orangtua", nilai: 86.2 },
+    { indikator: "Kolaboratif (Internal)", nilai: 84.5 },
+    { indikator: "Teladan & Integritas", nilai: 83.9 },
+    { indikator: "Adaptif", nilai: 82.7 },
+  ],
+  lead_skill_gap: [
+    { indikator: "Kepemimpinan Digital", nilai: 58.3 },
+    { indikator: "Problem Solving", nilai: 62.1 },
+    { indikator: "Komersial & Pendanaan Sekolah", nilai: 64.5 },
+  ],
+  protek_distribusi: [
+    { kategori: "Baik", persen: 100, jumlah: 20 },
+    { kategori: "Perlu Perhatian", persen: 0, jumlah: 0 },
+    { kategori: "Waspada", persen: 0, jumlah: 0 },
+    { kategori: "Perlu Konsultasi", persen: 0, jumlah: 0 },
+  ],
+  protek_dimensi: [
+    { kode: "P", baik_persen: 85, baik_jumlah: 17, perlu_perhatian_persen: 15, perlu_perhatian_jumlah: 3, waspada_persen: 0, waspada_jumlah: 0 },
+    { kode: "R", baik_persen: 100, baik_jumlah: 20, perlu_perhatian_persen: 0, perlu_perhatian_jumlah: 0, waspada_persen: 0, waspada_jumlah: 0 },
+    { kode: "O", baik_persen: 95, baik_jumlah: 19, perlu_perhatian_persen: 5, perlu_perhatian_jumlah: 1, waspada_persen: 0, waspada_jumlah: 0 },
+    { kode: "T", baik_persen: 90, baik_jumlah: 18, perlu_perhatian_persen: 10, perlu_perhatian_jumlah: 2, waspada_persen: 0, waspada_jumlah: 0 },
+    { kode: "E", baik_persen: 85, baik_jumlah: 17, perlu_perhatian_persen: 15, perlu_perhatian_jumlah: 3, waspada_persen: 0, waspada_jumlah: 0 },
+    { kode: "K", baik_persen: 80, baik_jumlah: 16, perlu_perhatian_persen: 15, perlu_perhatian_jumlah: 3, waspada_persen: 5, waspada_jumlah: 1 },
+  ],
+  protek_temuan_spesifik: [
+    { dimensi: "Penerimaan Diri", pernyataan: "Merasa kurang puas dengan pencapaian diri selama menjadi pendidik.", persen: 15, jumlah: 3 },
+    { dimensi: "Penerimaan Diri", pernyataan: "Tidak nyaman saat membandingkan diri dengan rekan sejawat.", persen: 10, jumlah: 2 },
+    { dimensi: "Tujuan Hidup", pernyataan: "Merasa rutinitas mengajar berjalan tanpa arah pengembangan yang jelas.", persen: 10, jumlah: 2 },
+    { dimensi: "Eksplorasi Lingkungan", pernyataan: "Sering merasa terbebani tanggung jawab administrasi di luar mengajar.", persen: 15, jumlah: 3 },
+    { dimensi: "Kemandirian", pernyataan: "Keputusan sering menunggu arahan pimpinan sebelum berani diambil.", persen: 20, jumlah: 4 },
+    { dimensi: "Kemandirian", pernyataan: "Khawatir terhadap penilaian rekan kerja saat menyampaikan pendapat berbeda.", persen: 10, jumlah: 2 },
+  ],
 };
+
+function protek(p, r, o, t, e, k, kategoriMap = {}) {
+  const kat = (kode) => kategoriMap[kode] || "Baik";
+  return [
+    { kode: "P", nilai: p, kategori: kat("P") },
+    { kode: "R", nilai: r, kategori: kat("R") },
+    { kode: "O", nilai: o, kategori: kat("O") },
+    { kode: "T", nilai: t, kategori: kat("T") },
+    { kode: "E", nilai: e, kategori: kat("E") },
+    { kode: "K", nilai: k, kategori: kat("K") },
+  ];
+}
+
+function lead(l, e, a, d) {
+  return [
+    { kode: "L", nilai: l },
+    { kode: "E", nilai: e },
+    { kode: "A", nilai: a },
+    { kode: "D", nilai: d },
+  ];
+}
+
+const PERSONAL_ROWS = [
+  // ── TK Fammi (unit paling sehat: seluruh dimensi Baik) ─────────────────────────────────
+  {
+    id: "rina-kartika", unit: "TK Fammi", nama: "Rina Kartika, S.Pd", is_kepsek_saat_ini: true,
+    kesiapan_memimpin_skor: 84, kesiapan_memimpin_kategori: "Istimewa",
+    kondisi_psikologis_skor: 228, kondisi_psikologis_kategori: "Baik", kondisi_psikologis_label: "Aman",
+    lead_aspek: lead(82, 85, 84, 85), protek_dimensi: protek(38, 40, 39, 37, 38, 36),
+    narasi_pengalaman: [
+      { tema: "Kepemimpinan di Masa Perubahan", isi: "Perubahan kurikulum di unit TK dijalankan bertahap: sosialisasi ke guru dulu, lalu pendampingan mingguan, supaya tidak ada yang merasa ditinggal." },
+      { tema: "Kolaborasi dengan Siswa dan Orangtua", isi: "Forum orang tua bulanan dan kegiatan market day membuat orang tua terlibat langsung dalam pembelajaran anak." },
+    ],
+    cerita_terbaik: [
+      { judul: "Membangun Kebiasaan Positif Sejak TK", isi: "Program penyambutan pagi oleh guru bergilir membuat suasana sekolah hangat dan orang tua makin percaya.", bullet_poin: [] },
+    ],
+  },
+  {
+    id: "lina-marlina", unit: "TK Fammi", nama: "Lina Marlina, S.Pd.AUD", is_kepsek_saat_ini: false,
+    kesiapan_memimpin_skor: 76, kesiapan_memimpin_kategori: "Sangat Baik",
+    kondisi_psikologis_skor: 211, kondisi_psikologis_kategori: "Baik", kondisi_psikologis_label: "Aman",
+    lead_aspek: lead(74, 78, 75, 77), protek_dimensi: protek(35, 38, 36, 34, 35, 33),
+    narasi_pengalaman: [
+      { tema: "Inovasi yang Membawa Dampak Nyata", isi: "Membuat media belajar dari barang bekas bersama anak-anak, sekaligus mengenalkan konsep daur ulang sejak dini." },
+    ],
+    cerita_terbaik: [],
+  },
+  {
+    id: "dewi-lestari", unit: "TK Fammi", nama: "Dewi Lestari, S.Pd", is_kepsek_saat_ini: false,
+    kesiapan_memimpin_skor: 71, kesiapan_memimpin_kategori: "Sangat Baik",
+    kondisi_psikologis_skor: 204, kondisi_psikologis_kategori: "Baik", kondisi_psikologis_label: "Aman",
+    lead_aspek: lead(70, 72, 71, 71), protek_dimensi: protek(34, 36, 33, 35, 34, 32),
+    narasi_pengalaman: [
+      { tema: "Pengalaman Mengelola Tim", isi: "Berbagi tugas dengan rekan sejawat saat kegiatan besar sekolah supaya beban tidak menumpuk di satu orang." },
+    ],
+    cerita_terbaik: [],
+  },
+  {
+    id: "yuni-astuti", unit: "TK Fammi", nama: "Yuni Astuti, S.Pd.AUD", is_kepsek_saat_ini: false,
+    kesiapan_memimpin_skor: 68, kesiapan_memimpin_kategori: "Sangat Baik",
+    kondisi_psikologis_skor: 199, kondisi_psikologis_kategori: "Baik", kondisi_psikologis_label: "Aman",
+    lead_aspek: lead(66, 69, 68, 69), protek_dimensi: protek(33, 35, 34, 32, 33, 32),
+    narasi_pengalaman: [
+      { tema: "Kolaborasi dengan Siswa dan Orangtua", isi: "Melibatkan orang tua sebagai narasumber kelas sesuai profesi masing-masing." },
+    ],
+    cerita_terbaik: [],
+  },
+  {
+    id: "ratna-sari", unit: "TK Fammi", nama: "Ratna Sari, S.Pd", is_kepsek_saat_ini: false,
+    kesiapan_memimpin_skor: 63, kesiapan_memimpin_kategori: "Sangat Baik",
+    kondisi_psikologis_skor: 196, kondisi_psikologis_kategori: "Baik", kondisi_psikologis_label: "Aman",
+    lead_aspek: lead(61, 64, 63, 64), protek_dimensi: protek(32, 34, 33, 33, 32, 32),
+    narasi_pengalaman: [
+      { tema: "Inovasi yang Membawa Dampak Nyata", isi: "Mengubah sudut baca kelas menjadi area bermain literasi yang membuat anak lebih betah membaca." },
+    ],
+    cerita_terbaik: [],
+  },
+
+  // ── SD Fammi (2 guru dengan dimensi perlu perhatian) ───────────────────────────────────
+  {
+    id: "ahmad-fauzi", unit: "SD Fammi", nama: "Ahmad Fauzi, M.Pd", is_kepsek_saat_ini: true,
+    kesiapan_memimpin_skor: 86, kesiapan_memimpin_kategori: "Istimewa",
+    kondisi_psikologis_skor: 234, kondisi_psikologis_kategori: "Baik", kondisi_psikologis_label: "Aman",
+    lead_aspek: lead(85, 87, 86, 86), protek_dimensi: protek(39, 41, 40, 38, 39, 37),
+    narasi_pengalaman: [
+      { tema: "Kepemimpinan di Masa Perubahan", isi: "Transisi ke Kurikulum Merdeka dikawal lewat komunitas belajar internal; guru saling berbagi praktik tiap Jumat." },
+      { tema: "Efisiensi Tanpa Mengorbankan Mutu", isi: "RKAS disusun terbuka bersama guru dan komite supaya prioritas anggaran dipahami semua pihak." },
+    ],
+    cerita_terbaik: [
+      { judul: "Komunitas Belajar Guru SD", isi: "Komunitas belajar internal tiap Jumat membuat praktik baik cepat menular antarguru tanpa menunggu pelatihan eksternal.", bullet_poin: [] },
+    ],
+  },
+  {
+    id: "dewi-anggraini", unit: "SD Fammi", nama: "Dewi Anggraini, S.Pd", is_kepsek_saat_ini: false,
+    kesiapan_memimpin_skor: 66, kesiapan_memimpin_kategori: "Sangat Baik",
+    kondisi_psikologis_skor: 184, kondisi_psikologis_kategori: "Baik", kondisi_psikologis_label: "Aman",
+    lead_aspek: lead(64, 67, 66, 67),
+    protek_dimensi: protek(27, 34, 33, 32, 26, 32, { P: "Perlu Perhatian", E: "Perlu Perhatian" }),
+    narasi_pengalaman: [
+      { tema: "Pengalaman Mengelola Kelas", isi: "Menangani kelas besar dengan rotasi kelompok belajar supaya tiap anak tetap mendapat perhatian." },
+    ],
+    cerita_terbaik: [],
+  },
+  {
+    id: "budi-santoso", unit: "SD Fammi", nama: "Budi Santoso, S.Pd", is_kepsek_saat_ini: false,
+    kesiapan_memimpin_skor: 58, kesiapan_memimpin_kategori: "Baik",
+    kondisi_psikologis_skor: 193, kondisi_psikologis_kategori: "Baik", kondisi_psikologis_label: "Aman",
+    lead_aspek: lead(56, 59, 58, 59),
+    protek_dimensi: protek(33, 35, 34, 33, 32, 26, { K: "Perlu Perhatian" }),
+    narasi_pengalaman: [
+      { tema: "Inovasi yang Membawa Dampak Nyata", isi: "Membuat bank soal digital sederhana yang bisa dipakai bergantian oleh semua guru kelas atas." },
+    ],
+    cerita_terbaik: [],
+  },
+  {
+    id: "rahmat-hidayat", unit: "SD Fammi", nama: "Rahmat Hidayat, S.Pd", is_kepsek_saat_ini: false,
+    kesiapan_memimpin_skor: 74, kesiapan_memimpin_kategori: "Sangat Baik",
+    kondisi_psikologis_skor: 210, kondisi_psikologis_kategori: "Baik", kondisi_psikologis_label: "Aman",
+    lead_aspek: lead(72, 75, 74, 75), protek_dimensi: protek(35, 37, 36, 34, 35, 33),
+    narasi_pengalaman: [
+      { tema: "Kolaborasi dengan Siswa dan Orangtua", isi: "Program sarapan literasi tiap pagi melibatkan orang tua sebagai pembaca tamu." },
+    ],
+    cerita_terbaik: [],
+  },
+  {
+    id: "siti-nurhaliza", unit: "SD Fammi", nama: "Siti Nurhaliza, S.Pd", is_kepsek_saat_ini: false,
+    kesiapan_memimpin_skor: 79, kesiapan_memimpin_kategori: "Sangat Baik",
+    kondisi_psikologis_skor: 217, kondisi_psikologis_kategori: "Baik", kondisi_psikologis_label: "Aman",
+    lead_aspek: lead(77, 80, 79, 80), protek_dimensi: protek(36, 38, 37, 36, 36, 34),
+    narasi_pengalaman: [
+      { tema: "Pengalaman Mengelola Tim", isi: "Menjadi koordinator lomba antarkelas dan membagi peran panitia ke guru muda supaya regenerasi berjalan." },
+    ],
+    cerita_terbaik: [
+      { judul: "Regenerasi Panitia Kegiatan", isi: "Membagi peran panitia ke guru muda membuat kegiatan sekolah tidak lagi bergantung pada orang yang sama.", bullet_poin: [] },
+    ],
+  },
+
+  // ── SMP Fammi (unit paling tertekan: 3 guru dengan dimensi non-Baik) ───────────────────
+  {
+    id: "hendra-gunawan", unit: "SMP Fammi", nama: "Hendra Gunawan, M.Pd", is_kepsek_saat_ini: true,
+    kesiapan_memimpin_skor: 82, kesiapan_memimpin_kategori: "Istimewa",
+    kondisi_psikologis_skor: 226, kondisi_psikologis_kategori: "Baik", kondisi_psikologis_label: "Aman",
+    lead_aspek: lead(80, 83, 82, 83), protek_dimensi: protek(37, 40, 38, 37, 38, 36),
+    narasi_pengalaman: [
+      { tema: "Kepemimpinan di Masa Perubahan", isi: "Digitalisasi administrasi dimulai dari hal kecil: presensi dan jurnal kelas daring, sebelum masuk ke rapor digital." },
+      { tema: "Keputusan Sulit demi Integritas", isi: "Menegakkan aturan disiplin yang sama untuk semua siswa tanpa pandang latar belakang, dengan komunikasi baik ke orang tuanya." },
+    ],
+    cerita_terbaik: [
+      { judul: "Digitalisasi Bertahap di SMP", isi: "Dimulai dari presensi daring, kini seluruh jurnal kelas terdokumentasi rapi dan bisa dipantau bersama.", bullet_poin: [] },
+    ],
+  },
+  {
+    id: "sari-wulandari", unit: "SMP Fammi", nama: "Sari Wulandari, S.Pd", is_kepsek_saat_ini: false,
+    kesiapan_memimpin_skor: 55, kesiapan_memimpin_kategori: "Baik",
+    kondisi_psikologis_skor: 162, kondisi_psikologis_kategori: "Baik", kondisi_psikologis_label: "Aman",
+    lead_aspek: lead(53, 56, 55, 56),
+    protek_dimensi: protek(26, 33, 28, 27, 26, 22, { P: "Perlu Perhatian", O: "Perlu Perhatian", T: "Perlu Perhatian", E: "Perlu Perhatian", K: "Waspada" }),
+    narasi_pengalaman: [
+      { tema: "Pengalaman Mengelola Kelas", isi: "Mengajar sambil merangkap tugas administrasi kurikulum; sedang belajar memilah mana yang bisa didelegasikan." },
+    ],
+    cerita_terbaik: [],
+  },
+  {
+    id: "andi-prasetyo", unit: "SMP Fammi", nama: "Andi Prasetyo, S.Pd", is_kepsek_saat_ini: false,
+    kesiapan_memimpin_skor: 60, kesiapan_memimpin_kategori: "Baik",
+    kondisi_psikologis_skor: 187, kondisi_psikologis_kategori: "Baik", kondisi_psikologis_label: "Aman",
+    lead_aspek: lead(58, 61, 60, 61),
+    protek_dimensi: protek(27, 34, 33, 32, 33, 28, { P: "Perlu Perhatian", K: "Perlu Perhatian" }),
+    narasi_pengalaman: [
+      { tema: "Inovasi yang Membawa Dampak Nyata", isi: "Memakai proyek sederhana berbasis lingkungan sekolah supaya siswa belajar IPA dari hal nyata." },
+    ],
+    cerita_terbaik: [],
+  },
+  {
+    id: "citra-ayu", unit: "SMP Fammi", nama: "Citra Ayu, S.Pd", is_kepsek_saat_ini: false,
+    kesiapan_memimpin_skor: 72, kesiapan_memimpin_kategori: "Sangat Baik",
+    kondisi_psikologis_skor: 199, kondisi_psikologis_kategori: "Baik", kondisi_psikologis_label: "Aman",
+    lead_aspek: lead(70, 73, 72, 73),
+    protek_dimensi: protek(34, 36, 35, 28, 34, 32, { T: "Perlu Perhatian" }),
+    narasi_pengalaman: [
+      { tema: "Kolaborasi dengan Siswa dan Orangtua", isi: "Membuat grup diskusi orang tua per angkatan untuk menyalurkan aspirasi sebelum jadi keluhan." },
+    ],
+    cerita_terbaik: [],
+  },
+  {
+    id: "maya-puspita", unit: "SMP Fammi", nama: "Maya Puspita, M.Pd", is_kepsek_saat_ini: false,
+    kesiapan_memimpin_skor: 77, kesiapan_memimpin_kategori: "Sangat Baik",
+    kondisi_psikologis_skor: 215, kondisi_psikologis_kategori: "Baik", kondisi_psikologis_label: "Aman",
+    lead_aspek: lead(75, 78, 77, 78), protek_dimensi: protek(36, 38, 36, 35, 36, 34),
+    narasi_pengalaman: [
+      { tema: "Pengalaman Mengelola Tim", isi: "Memimpin tim penyusun modul ajar lintas mapel dan menjaga tenggat lewat papan kerja bersama." },
+    ],
+    cerita_terbaik: [],
+  },
+
+  // ── SMA Fammi (1 guru dengan dimensi perlu perhatian) ──────────────────────────────────
+  {
+    id: "bambang-wijaya", unit: "SMA Fammi", nama: "Bambang Wijaya, M.Pd", is_kepsek_saat_ini: true,
+    kesiapan_memimpin_skor: 80, kesiapan_memimpin_kategori: "Sangat Baik",
+    kondisi_psikologis_skor: 222, kondisi_psikologis_kategori: "Baik", kondisi_psikologis_label: "Aman",
+    lead_aspek: lead(78, 81, 80, 81), protek_dimensi: protek(37, 39, 38, 36, 37, 35),
+    narasi_pengalaman: [
+      { tema: "Kepemimpinan di Masa Perubahan", isi: "Menyiapkan guru menghadapi kelas berbasis pilihan mapel lewat pemetaan kompetensi dan pelatihan bergilir." },
+      { tema: "Kemitraan Strategis Sekolah", isi: "Menjalin kerja sama magang dengan dunia usaha lokal untuk memperluas ruang belajar siswa." },
+    ],
+    cerita_terbaik: [
+      { judul: "Kemitraan Magang SMA", isi: "Kerja sama dengan dunia usaha lokal membuka ruang belajar nyata bagi siswa dan memperkuat citra sekolah.", bullet_poin: [] },
+    ],
+  },
+  {
+    id: "fajar-ramadhan", unit: "SMA Fammi", nama: "Fajar Ramadhan, S.Pd", is_kepsek_saat_ini: false,
+    kesiapan_memimpin_skor: 65, kesiapan_memimpin_kategori: "Sangat Baik",
+    kondisi_psikologis_skor: 189, kondisi_psikologis_kategori: "Baik", kondisi_psikologis_label: "Aman",
+    lead_aspek: lead(63, 66, 65, 66),
+    protek_dimensi: protek(33, 35, 34, 33, 27, 27, { E: "Perlu Perhatian", K: "Perlu Perhatian" }),
+    narasi_pengalaman: [
+      { tema: "Pengalaman Mengelola Kelas", isi: "Menyeimbangkan tugas wali kelas dan pembina ekskul; sedang menata ulang prioritas supaya keduanya tidak saling mengorbankan." },
+    ],
+    cerita_terbaik: [],
+  },
+  {
+    id: "indah-permatasari", unit: "SMA Fammi", nama: "Indah Permatasari, S.Pd", is_kepsek_saat_ini: false,
+    kesiapan_memimpin_skor: 78, kesiapan_memimpin_kategori: "Sangat Baik",
+    kondisi_psikologis_skor: 216, kondisi_psikologis_kategori: "Baik", kondisi_psikologis_label: "Aman",
+    lead_aspek: lead(76, 79, 78, 79), protek_dimensi: protek(36, 38, 37, 35, 36, 34),
+    narasi_pengalaman: [
+      { tema: "Inovasi yang Membawa Dampak Nyata", isi: "Kelas menulis opini yang hasilnya dimuat di media sekolah menumbuhkan kepercayaan diri siswa." },
+    ],
+    cerita_terbaik: [],
+  },
+  {
+    id: "agus-setiawan", unit: "SMA Fammi", nama: "Agus Setiawan, M.Pd", is_kepsek_saat_ini: false,
+    kesiapan_memimpin_skor: 75, kesiapan_memimpin_kategori: "Sangat Baik",
+    kondisi_psikologis_skor: 211, kondisi_psikologis_kategori: "Baik", kondisi_psikologis_label: "Aman",
+    lead_aspek: lead(73, 76, 75, 76), protek_dimensi: protek(35, 37, 36, 35, 35, 33),
+    narasi_pengalaman: [
+      { tema: "Pengalaman Mengelola Tim", isi: "Menjadi mentor guru baru lewat observasi kelas dua arah, saling memberi umpan balik." },
+    ],
+    cerita_terbaik: [],
+  },
+  {
+    id: "nur-aini", unit: "SMA Fammi", nama: "Nur Aini, S.Pd", is_kepsek_saat_ini: false,
+    kesiapan_memimpin_skor: 70, kesiapan_memimpin_kategori: "Sangat Baik",
+    kondisi_psikologis_skor: 206, kondisi_psikologis_kategori: "Baik", kondisi_psikologis_label: "Aman",
+    lead_aspek: lead(68, 71, 70, 71), protek_dimensi: protek(34, 36, 35, 34, 34, 33),
+    narasi_pengalaman: [
+      { tema: "Kolaborasi dengan Siswa dan Orangtua", isi: "Konsultasi rutin perencanaan studi lanjut bersama siswa dan orang tua kelas XII." },
+    ],
+    cerita_terbaik: [],
+  },
+];
+
+const TL_ROWS = [
+  {
+    id: "tl-kepemimpinan-digital",
+    title: "Pelatihan Kepemimpinan Digital untuk Guru & Kepala Sekolah",
+    dimensi: "Kepemimpinan Digital",
+    teaser: "Pemanfaatan platform digital (Google Workspace, aplikasi penilaian, media sosial sekolah) untuk manajemen dan pembelajaran.",
+    mengapa_data: "Menjawab gap terbesar organisasi: indikator Kepemimpinan Digital rata-rata 58,30 dari 100, skor terendah di antara seluruh indikator LEAD.",
+    manfaat: { learning_outcome: "Guru dan kepala sekolah mampu memakai platform digital untuk komunikasi, administrasi, dan promosi sekolah." },
+    hal_diwaspadai: null,
+  },
+  {
+    id: "tl-problem-solving",
+    title: "Pelatihan Creative Problem Solving untuk Tim Pengajar",
+    dimensi: "Problem Solving",
+    teaser: "Teknik berpikir analitis dan kreatif, root cause analysis, dan studi kasus keseharian di tiap jenjang.",
+    mengapa_data: "Menjawab gap indikator Problem Solving, rata-rata organisasi 62,10 dari 100.",
+    manfaat: { learning_outcome: "Peserta mampu mengidentifikasi akar masalah dan memilih solusi praktis yang bisa langsung diterapkan." },
+    hal_diwaspadai: null,
+  },
+  {
+    id: "tl-pendampingan-kemandirian",
+    title: "Program Pendampingan Kemandirian & Kepercayaan Diri Guru",
+    dimensi: "Kemandirian",
+    teaser: "Sesi coaching berkala untuk melatih pengambilan keputusan mandiri dan keberanian menyuarakan pendapat.",
+    mengapa_data: "Menjawab temuan wellbeing: 4 dari 20 guru berkategori non-Baik pada dimensi Kemandirian, terbanyak di antara enam dimensi PROTEK.",
+    manfaat: { learning_outcome: "Guru terdampak menunjukkan peningkatan kategori Kemandirian pada asesmen periode berikutnya." },
+    hal_diwaspadai: null,
+  },
+];
+
+const BRIEFING_ROW = {
+  teks: "Kondisi kesehatan mental 20 guru di empat jenjang Yayasan Pendidikan Fammi (TK, SD, SMP, SMA) secara keseluruhan berkategori Baik. Meski begitu, tiga dimensi menunjukkan guru yang perlu perhatian: Kemandirian (3 guru Perlu Perhatian dan 1 guru Waspada), Penerimaan Diri (3 guru), serta Eksplorasi Lingkungan (3 guru). Tekanan paling terkonsentrasi di unit SMP, sementara unit TK dalam kondisi paling sehat. Daftar nama tiap dimensi tersedia di bawah untuk ditindaklanjuti pimpinan.",
+};
+
+export const LW_LAPORAN_CONTOH = rakitLaporanLw({
+  sekolahNama: "Yayasan Pendidikan Fammi",
+  lembagaRow: LEMBAGA_ROW,
+  personalRows: PERSONAL_ROWS,
+  tlRows: TL_ROWS,
+  briefingRow: BRIEFING_ROW,
+});
