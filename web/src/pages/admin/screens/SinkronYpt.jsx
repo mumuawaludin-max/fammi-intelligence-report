@@ -34,15 +34,19 @@ export function SinkronYpt() {
   }
 
   // Empat view Rapor Karakter YPT (ypt_k_sekolah dkk) adalah materialized view -- cepat dibaca,
-  // tapi tidak otomatis ikut berubah saat admin mengimpor data Karakter baru. Tombol ini memanggil
-  // RPC refresh_ypt_karakter_views() (migration 20260826130000) yang menghitung ulang keempatnya.
-  // Makan waktu belasan detik (data ratusan ribu baris), makanya ada indikator "Menghitung ulang…"
-  // terpisah dari tombol sinkronisasi spreadsheet di atas.
+  // tapi tidak otomatis ikut berubah saat admin mengimpor data Karakter baru. Tombol ini memicu
+  // Edge Function refresh-ypt-views (bukan RPC langsung) supaya jalan sebagai service_role --
+  // panggilan langsung sebagai role authenticated TERBUKTI kena statement_timeout connection
+  // pooler Supabase yang tidak bisa ditimpa dari SET LOCAL maupun ALTER ROLE (dicoba dan gagal
+  // 2026-08-26, lihat catatan di supabase/functions/refresh-ypt-views/index.ts). Makan waktu
+  // belasan detik (data ratusan ribu baris), makanya ada indikator "Menghitung ulang…" terpisah
+  // dari tombol sinkronisasi spreadsheet di atas.
   async function refreshRingkasan() {
     setRefreshJalan(true);
     try {
-      const { error } = await supabase.rpc('refresh_ypt_karakter_views');
-      if (error) throw new Error(error.message);
+      const { data, error } = await supabase.functions.invoke('refresh-ypt-views');
+      if (error) throw new Error(await edgeErrorDetail(error, 'Refresh gagal.'));
+      if (data?.error) throw new Error(data.error);
       showToast('Ringkasan Rapor Karakter YPT sudah terbaru.', 'safe');
     } catch (e) {
       showToast('Gagal refresh: ' + e.message, 'alert');
