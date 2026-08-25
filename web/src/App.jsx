@@ -293,8 +293,8 @@ export default function App() {
             Aktif untuk sekolah yang punya penanda "pa" di school_modules. */}
         {activeTab === "pa" && <PaPage session={{ ...session, school_name: overview.schoolName }} />}
 
-        {/* Leadership & Wellbeing Assessment: laporan pimpinan, desktop-first, drill-down per
-            kandidat lewat LwKandidatTable -- lihat catatan LwPage.jsx. */}
+        {/* Wellbeing Guru (kerangka PROTEK): laporan pimpinan, desktop-first, empat layar
+            dengan drill-down per guru -- lihat catatan LwLaporanPage.jsx. */}
         {activeTab === "lw" && <LwPage session={session} />}
 
         {activeTab === "screening" && (

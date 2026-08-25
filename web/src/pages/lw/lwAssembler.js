@@ -1,193 +1,195 @@
-import { LEAD_ASPEK_INFO, LEAD_ASPEK_URUTAN, PROTEK_DIMENSI_INFO, PROTEK_DIMENSI_URUTAN, leadKategoriTone, protekKategoriTone } from "./lwMeta";
+import { PROTEK_URUTAN, PROTEK_INFO, katDimensi, labelPeriode } from "./lwMeta";
 
 /**
- * rakitLaporanLw -- padanan rakitLaporanPa/useScAgregat: mengubah baris Supabase mentah (sudah
- * final dari sumbernya) menjadi bentuk `laporan` siap-pakai LwLaporanPage/LwLaporanIndividuPage.
- * TIDAK menghitung skor atau kategori baru -- hanya merangkai ulang (mapping label, penggabungan
- * daftar) dari angka yang sudah final di lw_lembaga/lw_personal/tindak_lanjut/briefing.
+ * rakitLaporanLw -- padanan rakitLaporanPa/useScAgregat: mengubah baris mentah Supabase
+ * (lw_lembaga, lw_personal, tindak_lanjut, briefing) menjadi bentuk laporan siap-pakai
+ * komponen tampilan.
+ *
+ * FIR tidak menghitung skor atau kategori baru. Yang dilakukan di sini hanya merangkai ulang:
+ * memilih baris periode, memetakan label, dan men-tally kategori yang SUDAH final per guru
+ * untuk kebutuhan peta jenjang x dimensi. Tally kategori final adalah preseden yang sudah
+ * dipakai useScData.js untuk sebaran School Culture.
  */
-export function rakitLaporanLw({ sekolahNama, lembagaRow, personalRows, tlRows, briefingRow }) {
-  if (!lembagaRow) return null;
+export function rakitLaporanLw({ sekolahNama, lembagaRows, personalRows, tlRows, briefingRows }) {
+  const lembaga = lembagaRows || [];
+  const personal = personalRows || [];
+  if (lembaga.length === 0 || personal.length === 0) return null;
 
-  const meta = {
-    organisasiNama: sekolahNama,
-    periodeId: lembagaRow.periode_id,
-    jumlahKandidat: personalRows.length,
-  };
+  const periodeList = Array.from(new Set(lembaga.map((r) => r.periode_id))).sort();
+  const periodeTerakhir = periodeList[periodeList.length - 1];
+  const unitList = Array.from(new Set(personal.map((r) => r.unit)));
 
-  const kesiapan = {
-    distribusi: (lembagaRow.lead_distribusi || []).map((d) => ({ ...d, toneVar: leadKategoriTone(d.kategori) })),
-    aspek: LEAD_ASPEK_URUTAN.map((kode) => {
-      const row = (lembagaRow.lead_aspek || []).find((a) => a.kode === kode);
-      return { kode, label: LEAD_ASPEK_INFO[kode].label, nilai: row?.nilai ?? 0 };
-    }),
-    topSkill: lembagaRow.lead_top_skill || [],
-    skillGap: lembagaRow.lead_skill_gap || [],
-    kandidat: personalRows.map((p) => ({
-      id: p.id,
-      nama: p.nama,
-      unit: p.unit,
-      isKepsek: p.is_kepsek_saat_ini,
-      kesiapanSkor: p.kesiapan_memimpin_skor,
-      kesiapanKategori: p.kesiapan_memimpin_kategori,
-      kondisiSkor: p.kondisi_psikologis_skor,
-      kondisiKategori: p.kondisi_psikologis_kategori,
+  const yayasanRow = (per) => lembaga.find((r) => r.periode_id === per && !r.unit) || null;
+  const unitRow = (per, unit) => lembaga.find((r) => r.periode_id === per && r.unit === unit) || null;
+
+  /** Data satu periode, dipakai ulang oleh seluruh layar. */
+  function periode(per) {
+    const y = yayasanRow(per);
+    if (!y) return null;
+    const guru = personal.filter((r) => r.periode_id === per);
+
+    // Dimensi tingkat yayasan: angka final dari lw_lembaga, bukan dihitung ulang di sini.
+    const dimensi = PROTEK_URUTAN.map((kode) => {
+      const row = (y.protek_dimensi || []).find((d) => d.kode === kode) || {};
+      const info = PROTEK_INFO[kode];
+      return {
+        kode,
+        label: info.label,
+        pendek: info.pendek,
+        ringkas: info.ringkas,
+        deskripsi: info.deskripsi,
+        arti: info.arti,
+        nilai: Number(row.nilai ?? 0),
+        baik: { jumlah: row.baik_jumlah ?? 0, persen: row.baik_persen ?? 0 },
+        perluPerhatian: { jumlah: row.perlu_perhatian_jumlah ?? 0, persen: row.perlu_perhatian_persen ?? 0 },
+        waspada: { jumlah: row.waspada_jumlah ?? 0, persen: row.waspada_persen ?? 0 },
+      };
+    });
+
+    // Peta jenjang x dimensi: tally nilai final tiap guru per unit.
+    const perUnit = unitList.map((unit) => {
+      const list = guru.filter((g) => g.unit === unit);
+      const row = unitRow(per, unit);
+      return {
+        unit,
+        jumlahGuru: list.length,
+        indeks: Number(row?.indeks ?? 0),
+        dimensi: PROTEK_URUTAN.map((kode) => {
+          const nilaiList = list.map((g) => (g.protek_dimensi || []).find((d) => d.kode === kode)?.nilai ?? 0);
+          const rerata = nilaiList.length ? nilaiList.reduce((a, b) => a + b, 0) / nilaiList.length : 0;
+          const hitung = (kat) => nilaiList.filter((v) => katDimensi(v) === kat).length;
+          const n = nilaiList.length || 1;
+          const b = hitung("Baik"), p = hitung("Perlu Perhatian"), w = hitung("Waspada");
+          return {
+            kode,
+            label: PROTEK_INFO[kode].label,
+            nilai: Math.round(rerata * 100) / 100,
+            baik: { jumlah: b, persen: Math.round((b / n) * 100) },
+            perluPerhatian: { jumlah: p, persen: Math.round((p / n) * 100) },
+            waspada: { jumlah: w, persen: Math.round((w / n) * 100) },
+          };
+        }),
+      };
+    });
+
+    return {
+      periodeId: per,
+      label: labelPeriode(per),
+      labelPendek: labelPeriode(per, true),
+      indeks: Number(y.indeks ?? 0),
+      jumlahGuru: y.jumlah_guru ?? guru.length,
+      distribusi: y.protek_distribusi || [],
+      dimensi,
+      perUnit,
+      temuanSpesifik: y.protek_temuan_spesifik || [],
+      narasi: y.narasi || [],
+      guru,
+    };
+  }
+
+  const perPeriode = periodeList.map(periode).filter(Boolean);
+  const kini = perPeriode[perPeriode.length - 1];
+  const awal = perPeriode[0];
+
+  // Tren indeks: satu deret untuk yayasan, satu per jenjang.
+  const trenYayasan = perPeriode.map((p) => ({ periodeId: p.periodeId, label: p.labelPendek, nilai: p.indeks }));
+  const trenUnit = unitList.map((unit) => ({
+    unit,
+    titik: perPeriode.map((p) => ({
+      periodeId: p.periodeId,
+      label: p.labelPendek,
+      nilai: p.perUnit.find((u) => u.unit === unit)?.indeks ?? 0,
     })),
-  };
+  }));
 
-  const perbandingan = PROTEK_DIMENSI_URUTAN.map((kode) => {
-    const row = (lembagaRow.protek_dimensi || []).find((d) => d.kode === kode);
-    return {
-      key: kode,
-      label: PROTEK_DIMENSI_INFO[kode].label,
-      baikPersen: row?.baik_persen ?? 0,
-      baikJumlah: row?.baik_jumlah ?? 0,
-      perluPerhatianPersen: row?.perlu_perhatian_persen ?? 0,
-      perluPerhatianJumlah: row?.perlu_perhatian_jumlah ?? 0,
-      waspadaPersen: row?.waspada_persen ?? 0,
-      waspadaJumlah: row?.waspada_jumlah ?? 0,
-    };
-  });
-
-  const temuanPerDimensi = new Map();
-  for (const t of lembagaRow.protek_temuan_spesifik || []) {
-    if (!temuanPerDimensi.has(t.dimensi)) temuanPerDimensi.set(t.dimensi, []);
-    temuanPerDimensi.get(t.dimensi).push({ pernyataan: t.pernyataan, persen: t.persen, jumlah: t.jumlah });
+  // Riwayat skor total tiap guru, dipakai sparkline di daftar prioritas dan grafik individu.
+  const trenGuru = {};
+  for (const g of personal) {
+    if (!trenGuru[g.nama]) trenGuru[g.nama] = [];
+    trenGuru[g.nama].push({ periodeId: g.periode_id, label: labelPeriode(g.periode_id, true), total: g.skor_total });
+  }
+  for (const nama of Object.keys(trenGuru)) {
+    trenGuru[nama].sort((a, b) => (a.periodeId < b.periodeId ? -1 : 1));
   }
 
-  // Ringkasan per dimensi untuk kartu HEART-style: DIAMBIL dari lembagaRow.protek_dimensi
-  // (angka final dokumen sumber, mis. E=13% bukan 12.5%), BUKAN di-tally ulang dari personal.
-  const ringkasanKesehatan = PROTEK_DIMENSI_URUTAN.map((kode) => {
-    const info = PROTEK_DIMENSI_INFO[kode];
-    const row = (lembagaRow.protek_dimensi || []).find((d) => d.kode === kode);
-    return {
-      kode,
-      huruf: info.icon,
-      label: info.label,
-      deskripsi: info.deskripsi,
-      baik: { persen: row?.baik_persen ?? 0, jumlah: row?.baik_jumlah ?? 0 },
-      perluPerhatian: { persen: row?.perlu_perhatian_persen ?? 0, jumlah: row?.perlu_perhatian_jumlah ?? 0 },
-      waspada: { persen: row?.waspada_persen ?? 0, jumlah: row?.waspada_jumlah ?? 0 },
-    };
-  });
-
-  // Tally kategori final per unit dari baris personal -- BUKAN menghitung skor/status baru,
-  // cuma menghitung berapa orang per kategori yang sudah final (preseden tally sebaran di
-  // useScData.js). Persen di sini murni tally tampilan; angka organisasi tetap dari lembagaRow.
-  const unitUrutan = [];
-  for (const p of personalRows) {
-    if (!unitUrutan.includes(p.unit)) unitUrutan.push(p.unit);
-  }
-  const perUnitKesehatan = unitUrutan.map((unit) => {
-    const guruUnit = personalRows.filter((p) => p.unit === unit);
-    return {
-      unit,
-      jumlahGuru: guruUnit.length,
-      dimensi: PROTEK_DIMENSI_URUTAN.map((kode) => {
-        const info = PROTEK_DIMENSI_INFO[kode];
-        let baik = 0, perluPerhatian = 0, waspada = 0;
-        for (const p of guruUnit) {
-          const kategori = (p.protek_dimensi || []).find((d) => d.kode === kode)?.kategori;
-          if (kategori === "Perlu Perhatian") perluPerhatian += 1;
-          else if (kategori === "Waspada" || kategori === "Perlu Konsultasi") waspada += 1;
-          else baik += 1;
-        }
-        const persen = (n) => (guruUnit.length ? Math.round((n / guruUnit.length) * 100) : 0);
+  // Profil guru pada periode terakhir, lengkap dengan riwayat dan catatan pendampingan.
+  const guruDetail = kini.guru
+    .map((g) => {
+      const dim = PROTEK_URUTAN.map((kode) => {
+        const row = (g.protek_dimensi || []).find((d) => d.kode === kode) || {};
+        const nilai = row.nilai ?? 0;
         return {
           kode,
-          huruf: info.icon,
-          label: info.label,
-          baik: { persen: persen(baik), jumlah: baik },
-          perluPerhatian: { persen: persen(perluPerhatian), jumlah: perluPerhatian },
-          waspada: { persen: persen(waspada), jumlah: waspada },
+          label: PROTEK_INFO[kode].label,
+          pendek: PROTEK_INFO[kode].pendek,
+          nilai,
+          kategori: row.kategori || katDimensi(nilai),
         };
-      }),
-    };
-  });
+      });
+      const lemah = dim.filter((d) => d.kategori !== "Baik").sort((a, b) => a.nilai - b.nilai);
+      const tren = trenGuru[g.nama] || [];
+      const selisih = tren.length > 1 ? tren[tren.length - 1].total - tren[0].total : 0;
+      // Tiga tingkat prioritas. Skor total di bawah Baik atau ada dimensi Waspada berarti
+      // ditangani lebih dulu; dimensi tertinggal tanpa itu cukup lewat program kelompok.
+      const tingkat = g.kategori_total !== "Baik" || lemah.some((d) => d.kategori === "Waspada")
+        ? "segera"
+        : lemah.length > 0 ? "pendampingan" : "stabil";
+      return {
+        id: g.id || `${g.nama}-${g.periode_id}`,
+        nama: g.nama,
+        unit: g.unit,
+        isKepsek: !!g.is_kepsek_saat_ini,
+        total: g.skor_total,
+        kategoriTotal: g.kategori_total,
+        dimensi: dim,
+        lemah,
+        tingkat,
+        tren,
+        selisih,
+        catatan: g.catatan || null,
+        langkah: g.langkah || [],
+        refleksi: g.refleksi || [],
+      };
+    })
+    .sort((a, b) => a.total - b.total);
 
-  // Daftar guru non-Baik per dimensi untuk dialog "Lihat Daftar Nama" -- murni filter kategori
-  // final di lw_personal.protek_dimensi, terurut skor terendah dulu (paling perlu perhatian).
-  const daftarPerhatian = {};
-  for (const kode of PROTEK_DIMENSI_URUTAN) {
-    daftarPerhatian[kode] = personalRows
-      .map((p) => {
-        const d = (p.protek_dimensi || []).find((x) => x.kode === kode);
-        return d && d.kategori && d.kategori !== "Baik"
-          ? { id: p.id, nama: p.nama, unit: p.unit, nilai: d.nilai, kategori: d.kategori }
-          : null;
-      })
-      .filter(Boolean)
-      .sort((a, b) => (a.nilai ?? 0) - (b.nilai ?? 0));
-  }
+  const guruById = {};
+  for (const g of guruDetail) guruById[g.id] = g;
 
-  const kesehatan = {
-    ringkasan: ringkasanKesehatan,
-    perUnit: perUnitKesehatan,
-    daftarPerhatian,
-    distribusi: (lembagaRow.protek_distribusi || []).map((d) => ({ ...d, toneVar: protekKategoriTone(d.kategori) })),
-    dimensi: PROTEK_DIMENSI_URUTAN.map((kode) => {
-      // Nilai rata-rata dimensi (skala 0-42) dirakit dari rata-rata skor final tiap kandidat --
-      // bukan dihitung dari rumus baru, murni rata-rata angka yang sudah final per orang.
-      const nilaiRows = personalRows
-        .map((p) => (p.protek_dimensi || []).find((d) => d.kode === kode)?.nilai)
-        .filter((v) => v != null);
-      const nilai = nilaiRows.length ? nilaiRows.reduce((a, b) => a + b, 0) / nilaiRows.length : 0;
-      return { kode, label: PROTEK_DIMENSI_INFO[kode].label, nilai: Math.round(nilai * 10) / 10 };
-    }),
-    perbandingan,
-    temuanSpesifik: PROTEK_DIMENSI_URUTAN.map((kode) => ({
-      dimensi: PROTEK_DIMENSI_INFO[kode].label,
-      temuan: temuanPerDimensi.get(PROTEK_DIMENSI_INFO[kode].label) || [],
-    })),
-  };
-
-  const pengembangan = {
-    pelatihan: (tlRows || []).map((t) => ({
-      key: t.id,
-      judul: t.title,
+  const tindakLanjut = (tlRows || [])
+    .filter((t) => t.periode_id === periodeTerakhir)
+    .map((t) => ({
+      id: t.id,
       dimensi: t.dimensi,
+      judul: t.title,
       teaser: t.teaser,
-      mengapaData: t.mengapa_data,
-      learningOutcome: t.manfaat?.learning_outcome,
-      catatan: (t.hal_diwaspadai || [])[0],
-    })),
-    cerita: personalRows.flatMap((p) =>
-      (p.cerita_terbaik || []).map((c, i) => ({
-        key: `${p.id}-${i}`, tema: c.judul, isi: c.isi, bulletPoin: c.bullet_poin, nama: p.nama, unit: p.unit,
-      }))
-    ),
-  };
+      mengapa: t.mengapa_data,
+      waktu: t.manfaat?.waktu || null,
+      sasaran: t.manfaat?.sasaran || null,
+      ukuran: t.manfaat?.learning_outcome || null,
+      catatan: (t.hal_diwaspadai || [])[0] || null,
+      tipe: t.type,
+    }));
 
-  const personalById = {};
-  for (const p of personalRows) {
-    personalById[p.id] = {
-      nama: p.nama,
-      unit: p.unit,
-      isKepsek: p.is_kepsek_saat_ini,
-      kesiapanSkor: p.kesiapan_memimpin_skor,
-      kesiapanKategori: p.kesiapan_memimpin_kategori,
-      kondisiSkor: p.kondisi_psikologis_skor,
-      kondisiKategori: p.kondisi_psikologis_kategori,
-      kondisiLabel: p.kondisi_psikologis_label,
-      leadAspek: LEAD_ASPEK_URUTAN.map((kode) => ({
-        kode, label: LEAD_ASPEK_INFO[kode].label,
-        nilai: (p.lead_aspek || []).find((a) => a.kode === kode)?.nilai ?? 0,
-      })),
-      protekDimensi: PROTEK_DIMENSI_URUTAN.map((kode) => {
-        const row = (p.protek_dimensi || []).find((d) => d.kode === kode);
-        return { kode, label: PROTEK_DIMENSI_INFO[kode].label, nilai: row?.nilai ?? 0, kategori: row?.kategori || "Baik" };
-      }),
-      narasi: p.narasi_pengalaman || [],
-      ceritaTerbaik: (p.cerita_terbaik || []).map((c) => ({ judul: c.judul, isi: c.isi, bulletPoin: c.bullet_poin })),
-    };
-  }
+  const briefing = (briefingRows || []).find((b) => b.periode_id === periodeTerakhir) || null;
 
   return {
-    meta,
-    briefing: briefingRow ? { teks: briefingRow.teks } : null,
-    kesiapan,
-    kesehatan,
-    pengembangan,
-    personalById,
+    meta: {
+      organisasiNama: sekolahNama,
+      periodeTerakhir,
+      labelPeriodeTerakhir: labelPeriode(periodeTerakhir),
+      jumlahGuru: kini.jumlahGuru,
+      jumlahJenjang: unitList.length,
+      periodeList,
+    },
+    briefing,
+    perPeriode,
+    kini,
+    awal,
+    trenYayasan,
+    trenUnit,
+    guru: guruDetail,
+    guruById,
+    tindakLanjut,
   };
 }

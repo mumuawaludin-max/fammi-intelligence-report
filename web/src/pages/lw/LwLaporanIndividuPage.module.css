@@ -1,188 +1,442 @@
-.page {
+.layar {
   display: flex;
   flex-direction: column;
-  gap: 8px;
-  width: min(calc(100% - 40px), 1000px);
-  margin-inline: auto;
-  padding-bottom: 48px;
+  gap: 16px;
 }
 
-.backButton {
-  align-self: flex-start;
-  margin: 24px 0 8px;
-  padding: 8px 4px;
-  border: none;
-  background: none;
-  color: var(--lw-primary);
-  font: inherit;
-  font-weight: 700;
-  font-size: 13px;
-  cursor: pointer;
-}
-
-.hero {
-  padding: 28px;
-  border-radius: var(--lw-radius-lg);
-  background: var(--lw-surface);
-  border: 1px solid var(--lw-border);
-  box-shadow: var(--lw-shadow-md);
-}
-
-.heroHead {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 20px;
-}
-
-.heroHead h1 {
-  margin: 0 0 4px;
-  color: var(--lw-heading);
-  font-size: clamp(20px, 2.4vw, 26px);
-  font-weight: 780;
-}
-
-.unit {
-  margin: 0;
-  color: var(--lw-muted);
-  font-size: 13px;
-}
-
-.heroBadges {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 10px;
-}
-
-.heroBadge {
-  display: flex;
-  flex-direction: column;
-  gap: 3px;
-  padding: 10px 16px;
-  border-radius: var(--lw-radius-sm);
-  min-width: 170px;
-}
-
-.heroBadge span {
-  font-size: 11px;
-  font-weight: 650;
-  opacity: 0.85;
-}
-
-.heroBadge strong {
-  font-size: 15px;
-  font-weight: 780;
-}
-
-.scoreSection {
-  margin-top: 28px;
-}
-
-.scoreSection h2 {
-  margin: 0 0 14px;
-  color: var(--lw-heading);
-  font-size: 16px;
-  font-weight: 760;
-}
-
-.scoreGrid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
-  gap: 10px;
-}
-
-.scoreCard {
-  position: relative;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 4px;
-  padding: 16px 10px;
-  border: 1px solid var(--lw-border);
-  border-radius: var(--lw-radius-md);
-  background: var(--lw-surface);
-  box-shadow: var(--lw-shadow-sm);
-}
-
-.scoreValue {
-  color: var(--lw-heading);
-  font-size: 22px;
-  font-weight: 760;
-}
-
-.scoreLabel {
-  color: var(--lw-muted);
-  font-size: 11.5px;
-  font-weight: 620;
+.kosong {
+  padding: 60px 0;
+  color: var(--lw-muted-2);
+  font-size: 14px;
   text-align: center;
 }
 
-.scoreFlag {
-  position: absolute;
-  top: -8px;
-  padding: 2px 8px;
-  border-radius: 999px;
-  background: var(--lw-protek-perlu-perhatian);
-  color: white;
-  font-size: 9.5px;
-  font-weight: 720;
-}
+/* ── Pemilih guru ───────────────────────────────────────────────────────────── */
 
-.narasiSection {
-  margin-top: 28px;
-}
-
-.narasiSection h2 {
-  margin: 0 0 14px;
-  color: var(--lw-heading);
-  font-size: 16px;
-  font-weight: 760;
-}
-
-.narasiGrid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+.pemilih {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
   gap: 12px;
 }
 
-.narasiCard {
-  padding: 16px 18px;
+.pemilihLabel {
+  color: var(--lw-muted-2);
+  font-size: 11.5px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.filterUnit {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+}
+
+.unitChip {
+  padding: 6px 13px;
   border: 1px solid var(--lw-border);
-  border-radius: var(--lw-radius-md);
+  border-radius: 999px;
+  background: var(--lw-surface);
+  color: var(--lw-ink);
+  cursor: pointer;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 640;
+  transition: border-color 180ms ease, background-color 180ms ease, color 180ms ease;
+}
+
+.unitChip:hover {
+  border-color: var(--lw-primary);
+  color: var(--lw-primary);
+}
+
+.unitChipAktif {
+  border-color: var(--lw-primary);
+  background: var(--lw-primary);
+  color: #fff;
+  font-weight: 720;
+}
+
+.daftarChip {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+}
+
+.guruChip {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 7px 14px;
+  border: 1px solid var(--lw-border);
+  border-radius: 999px;
+  background: var(--lw-surface);
+  color: var(--lw-ink);
+  cursor: pointer;
+  font: inherit;
+  font-size: 12.5px;
+  font-weight: 640;
+  transition: border-color 180ms ease, background-color 180ms ease, color 180ms ease;
+}
+
+.guruChip:hover {
+  border-color: var(--lw-primary);
+}
+
+.guruChipAktif {
+  border-color: var(--lw-primary);
+  background: var(--lw-soft);
+  color: var(--lw-primary);
+  font-weight: 730;
+}
+
+.guruChipTitik {
+  width: 7px;
+  height: 7px;
+  border-radius: 999px;
+}
+
+/* ── Susunan utama ──────────────────────────────────────────────────────────── */
+
+.utama {
+  display: grid;
+  grid-template-columns: 1fr 434px;
+  gap: 16px;
+  align-items: start;
+}
+
+.sisiKanan {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.kartu {
+  padding: 24px 26px;
+  border: 1px solid var(--lw-border);
+  border-radius: 18px;
   background: var(--lw-surface);
   box-shadow: var(--lw-shadow-sm);
 }
 
-.narasiTema {
-  margin: 0 0 6px;
-  color: var(--lw-primary);
-  font-size: 11px;
-  font-weight: 780;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
+.profilKartu {
+  padding: 30px 34px;
+  border: 1px solid var(--lw-border);
+  border-radius: 20px;
+  background: var(--lw-surface);
+  box-shadow: var(--lw-shadow-sm);
 }
 
-.narasiIsi {
+.profilHead {
+  display: flex;
+  align-items: flex-start;
+  gap: 18px;
+}
+
+.avatar {
+  display: inline-grid;
+  place-items: center;
+  flex: 0 0 auto;
+  width: 62px;
+  height: 62px;
+  border-radius: 18px;
+  font-size: 21px;
+  font-weight: 800;
+}
+
+.profilTeks {
+  flex: 1;
+}
+
+.profilNama {
+  margin: 0 0 5px;
+  color: var(--lw-heading);
+  font-size: 25px;
+  font-weight: 790;
+  letter-spacing: -0.024em;
+}
+
+.profilMeta {
+  margin: 0 0 14px;
+  color: var(--lw-muted);
+  font-size: 13.5px;
+}
+
+.pilRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 9px;
+}
+
+.pil {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 7px;
+  padding: 8px 15px;
+  border-radius: 12px;
+}
+
+.pilLabel {
+  color: var(--lw-muted);
+  font-size: 11.5px;
+  font-weight: 680;
+  opacity: 0.9;
+}
+
+.pilNilai {
+  color: var(--lw-heading);
+  font-size: 14px;
+  font-weight: 790;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ── Radar + daftar dimensi ─────────────────────────────────────────────────── */
+
+.radarBlok {
+  display: grid;
+  grid-template-columns: 336px 1fr;
+  gap: 30px;
+  align-items: center;
+  margin-top: 26px;
+  padding-top: 26px;
+  border-top: 1px solid #f3efe8;
+}
+
+.radar {
+  display: block;
+  width: 100%;
+  height: auto;
+  overflow: visible;
+}
+
+.blokJudul {
+  margin: 0 0 4px;
+  color: var(--lw-heading);
+  font-size: 13px;
+  font-weight: 760;
+}
+
+.blokSub {
+  margin: 0 0 16px;
+  color: var(--lw-muted-2);
+  font-size: 12px;
+}
+
+.dimList {
+  display: flex;
+  flex-direction: column;
+}
+
+.dimBaris {
+  display: grid;
+  grid-template-columns: 26px minmax(0, 1fr) 100px;
+  align-items: center;
+  gap: 11px;
+  padding: 8px 0;
+  border-top: 1px solid #f3efe8;
+}
+
+.dimHuruf {
+  display: inline-grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 8px;
+  font-size: 11.5px;
+  font-weight: 800;
+}
+
+.dimNama {
+  margin: 0 0 4px;
+  color: var(--lw-ink);
+  font-size: 12.5px;
+  font-weight: 680;
+}
+
+.dimTrack {
+  position: relative;
+  height: 7px;
+  border-radius: 999px;
+  background: #f0ece4;
+}
+
+.dimIsi {
+  position: absolute;
+  inset: 0 auto 0 0;
+  border-radius: 999px;
+  transition: width 700ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.dimPenanda {
+  position: absolute;
+  top: -3px;
+  bottom: -3px;
+  width: 2px;
+  background: rgba(28, 23, 41, 0.3);
+}
+
+.dimAngka {
+  text-align: right;
+}
+
+.dimNilai {
+  display: block;
+  font-size: 14px;
+  font-weight: 790;
+  font-variant-numeric: tabular-nums;
+}
+
+.dimKat {
+  display: block;
+  font-size: 10.5px;
+  font-weight: 700;
+}
+
+.catatanKecil {
+  margin: 12px 0 0;
+  color: var(--lw-muted-2);
+  font-size: 11px;
+  font-style: italic;
+  line-height: 1.5;
+}
+
+/* ── Catatan pendampingan ───────────────────────────────────────────────────── */
+
+.catatanKartu {
+  padding: 24px 26px;
+  border: 1px solid var(--lw-border);
+  border-radius: 18px;
+}
+
+.catatanEyebrow {
+  margin: 0 0 10px;
+  font-size: 11px;
+  font-weight: 790;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+}
+
+.catatanTeks {
+  margin: 0;
+  color: var(--lw-heading);
+  font-size: 14px;
+  font-weight: 550;
+  line-height: 1.66;
+  text-wrap: pretty;
+}
+
+.catatanKosong {
+  margin: 0;
+  color: var(--lw-muted);
+  font-size: 13px;
+  font-style: italic;
+  line-height: 1.6;
+}
+
+.trenGrafik {
+  display: block;
+  width: 100%;
+  height: auto;
+  overflow: visible;
+}
+
+/* ── Langkah ────────────────────────────────────────────────────────────────── */
+
+.langkahBaris {
+  display: flex;
+  gap: 12px;
+  padding: 11px 0;
+  border-top: 1px solid #f3efe8;
+}
+
+.langkahNo {
+  display: inline-grid;
+  place-items: center;
+  flex: 0 0 auto;
+  width: 22px;
+  height: 22px;
+  border-radius: 7px;
+  background: var(--lw-soft);
+  color: var(--lw-primary);
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.langkahTeks {
   margin: 0;
   color: var(--lw-ink);
   font-size: 12.5px;
   line-height: 1.6;
+  text-wrap: pretty;
 }
 
-.bulletList {
-  margin: 8px 0 0;
-  padding-left: 18px;
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  color: var(--lw-muted);
-  font-size: 12px;
-  line-height: 1.5;
+/* ── Refleksi ───────────────────────────────────────────────────────────────── */
+
+.refleksiGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 16px;
+}
+
+.refleksiKartu {
+  padding: 20px 22px;
+  border-left: 3px solid var(--lw-primary);
+  border-radius: 14px;
+  background: #fbf9f5;
+}
+
+.refleksiTema {
+  margin: 0 0 8px;
+  color: var(--lw-primary);
+  font-size: 10.5px;
+  font-weight: 790;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.refleksiIsi {
+  margin: 0;
+  color: var(--lw-ink);
+  font-size: 13px;
+  line-height: 1.66;
+  text-wrap: pretty;
+}
+
+.catatanKaki {
+  margin: 2px 0 0;
+  color: var(--lw-muted-2);
+  font-size: 11.5px;
+  font-style: italic;
+  line-height: 1.6;
+  text-wrap: pretty;
+}
+
+/* ── Responsive ─────────────────────────────────────────────────────────────── */
+
+@media (max-width: 1180px) {
+  .utama {
+    grid-template-columns: 1fr;
+  }
+
+  .radarBlok {
+    grid-template-columns: 1fr;
+    gap: 22px;
+  }
+
+  .radar {
+    max-width: 336px;
+    margin-inline: auto;
+  }
 }
 
 @media (max-width: 760px) {
-  .heroHead {
+  .profilHead {
     flex-direction: column;
+  }
+
+  .dimBaris {
+    grid-template-columns: 26px minmax(0, 1fr) 84px;
   }
 }

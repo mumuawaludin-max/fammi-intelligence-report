@@ -1,187 +1,111 @@
-import { useMemo, useState } from "react";
-import { LwSectionSelector } from "./LwSectionSelector";
-import { LwDimensiRingkasan } from "./LwDimensiRingkasan";
-import { LwKandidatTable } from "./LwKandidatTable";
-import { LwTopSkill } from "./LwTopSkill";
-import { LwProtekPerbandingan } from "./LwProtekPerbandingan";
-import { LwTemuanSpesifik } from "./LwTemuanSpesifik";
-import { LwPelatihanList } from "./LwPelatihanList";
-import { LwCeritaInspiratif } from "./LwCeritaInspiratif";
-import { LwWellbeingHasil } from "./LwWellbeingHasil";
-import { LwInsightBanner } from "./LwInsightBanner";
-import { LwReveal } from "./LwReveal";
-import { LEAD_ASPEK_INFO, PROTEK_CUTOFF } from "./lwMeta";
+import { useState } from "react";
+import { LwRingkasan } from "./LwRingkasan";
+import { LwAnalisisDimensi } from "./LwAnalisisDimensi";
+import { LwPrioritas } from "./LwPrioritas";
+import { LwLaporanIndividuPage } from "./LwLaporanIndividuPage";
+import { labelPeriode } from "./lwMeta";
 import tokens from "./lwTokens.module.css";
 import styles from "./LwLaporanPage.module.css";
 
-/**
- * Rilis pertama modul ini HANYA laporan Wellbeing (Kesehatan Mental/PROTEK) -- keputusan
- * pemilik produk 2026-08-25. Seluruh section lama (selector 3 kartu + Kesiapan Memimpin +
- * Tindak Lanjut & Pengembangan) SENGAJA dipertahankan utuh di blok bawah, digerbang flag ini,
- * supaya rilis berikutnya tinggal menyalakannya kembali tanpa menggali ulang kode.
- */
-const TAMPILKAN_SECTION_LEGACY = false;
-
-const SECTIONS = [
-  { key: "kesiapan", number: "01", icon: "kesiapan", label: "Kesiapan Memimpin" },
-  { key: "kesehatan", number: "02", icon: "kesehatan", label: "Kesehatan Mental & Wellbeing" },
-  { key: "pengembangan", number: "03", icon: "pengembangan", label: "Tindak Lanjut & Pengembangan" },
+const TAB = [
+  { id: "ringkasan", label: "Ringkasan" },
+  { id: "dimensi", label: "Analisis Dimensi" },
+  { id: "prioritas", label: "Prioritas Tindak Lanjut" },
+  { id: "guru", label: "Laporan Guru" },
 ];
 
-function tertinggiDari(items) {
-  return (items || []).reduce((acc, d) => (acc == null || (d.value ?? 0) > (acc.value ?? 0) ? d : acc), null);
-}
-
 /**
- * LwLaporanPage -- dashboard "Laporan Lembaga" Leadership & Wellbeing Assessment. Tampilan
- * aktif: laporan Wellbeing satu-scroll, gabungan gaya School Culture (heading index pill) dan
- * pola HEART Perilaku Anak (LwWellbeingHasil). Struktur: hero, insight banner, distribusi
- * kategori organisasi, hasil per dimensi PROTEK (01), temuan spesifik (02), footer skala.
+ * LwLaporanPage -- kerangka modul Wellbeing Guru: identitas lembaga, pemilih periode, dan
+ * empat layar yang mengikuti alur baca pimpinan yayasan:
+ *   1 Ringkasan       seberapa sehat tim dan ke mana arahnya
+ *   2 Analisis Dimensi di dimensi dan jenjang mana persoalannya
+ *   3 Prioritas       siapa yang dibantu lebih dulu, apa langkahnya
+ *   4 Laporan Guru    profil satu orang saat akan diajak bicara
+ *
+ * Pemilih periode hanya tampil di Ringkasan karena hanya layar itu yang punya angka tiga
+ * periode; tiga layar lain memuat rincian yang cuma ada untuk periode terakhir. Menampilkan
+ * pemilih yang tidak mengubah apa pun cuma bikin bingung.
  */
-export default function LwLaporanPage({ laporan, onSelectKandidat }) {
-  const { meta, briefing, kesiapan, kesehatan, pengembangan } = laporan;
-  const [sectionAktif, setSectionAktif] = useState("kesiapan");
+export default function LwLaporanPage({ laporan }) {
+  const { meta } = laporan;
+  const [tab, setTab] = useState("ringkasan");
+  const [periodeId, setPeriodeId] = useState(meta.periodeTerakhir);
+  const [jenjang, setJenjang] = useState("semua");
+  const [guruId, setGuruId] = useState(() => laporan.guru[0]?.id || null);
 
-  // ── State/derivasi milik blok legacy (Kesiapan Memimpin) -- tetap hidup untuk rilis
-  //    berikutnya, murah dihitung, lihat catatan TAMPILKAN_SECTION_LEGACY di atas. ─────────
-  const kesiapanItems = useMemo(
-    () => kesiapan.aspek.map((a) => ({ key: a.kode, label: a.label, value: a.nilai })),
-    [kesiapan.aspek]
-  );
-  const kesiapanDominan = useMemo(() => tertinggiDari(kesiapanItems), [kesiapanItems]);
-  const [kesiapanKey, setKesiapanKey] = useState(() => kesiapanDominan?.key || null);
-  const kesiapanSelectedKey = kesiapanKey || kesiapanDominan?.key;
-  const kesiapanMeaningFacets = useMemo(() => {
-    const info = LEAD_ASPEK_INFO[kesiapanSelectedKey];
-    if (!info) return [];
-    return [{ detail: info.deskripsi }, ...info.indikator.map((label) => ({ detail: label }))];
-  }, [kesiapanSelectedKey]);
+  function bukaGuru(id) {
+    setGuruId(id);
+    setTab("guru");
+    if (typeof window !== "undefined") window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+
+  const periodeAktif = tab === "ringkasan" ? periodeId : meta.periodeTerakhir;
 
   return (
-    <div className={styles.page}>
-      {/* ── Laporan Wellbeing (rilis aktif) ─────────────────────────────────────────────── */}
-      <section className={`${tokens.scope} ${styles.hero}`}>
-        <LwReveal>
-          <h1>Laporan Wellbeing Guru</h1>
-          <p className={styles.heroSub}>
-            {meta.organisasiNama} · Periode Juli 2025 · {meta.jumlahKandidat} guru di {kesehatan.perUnit?.length || 0} jenjang
-          </p>
-        </LwReveal>
-      </section>
+    <div className={styles.halaman}>
+      <div className={`${tokens.scope} ${styles.topbar}`}>
+        <div className={styles.identitas}>
+          <span className={styles.logo} aria-hidden="true">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2"
+              strokeLinecap="round" strokeLinejoin="round">
+              <path d="M12 21s-7-4.35-7-9.5A4.5 4.5 0 0 1 12 8a4.5 4.5 0 0 1 7 3.5C19 16.65 12 21 12 21z" />
+            </svg>
+          </span>
+          <div>
+            <p className={styles.namaLembaga}>{meta.organisasiNama}</p>
+            <p className={styles.subLembaga}>Laporan Wellbeing Guru &middot; kerangka PROTEK</p>
+          </div>
+        </div>
 
-      <div className={styles.bannerWrap}>
-        <LwInsightBanner teks={briefing?.teks} />
+        {tab === "ringkasan" ? (
+          <div className={styles.periodeRow}>
+            <span className={styles.periodeLabel}>Periode</span>
+            {meta.periodeList.map((p) => (
+              <button
+                key={p}
+                type="button"
+                className={`${styles.periodePil} ${periodeId === p ? styles.periodePilAktif : ""}`}
+                aria-pressed={periodeId === p}
+                onClick={() => setPeriodeId(p)}
+              >
+                {labelPeriode(p, true)}
+              </button>
+            ))}
+          </div>
+        ) : (
+          <span className={styles.periodeTetap}>{labelPeriode(meta.periodeTerakhir, true)}</span>
+        )}
       </div>
 
-      {kesehatan.distribusi?.length > 0 && (
-        <LwReveal className={`${tokens.scope} ${styles.distribusiRow}`} delay={0.04}>
-          {kesehatan.distribusi.map((d) => (
-            <span
-              key={d.kategori}
-              className={styles.distribusiPill}
-              style={{ color: `var(${d.toneVar})`, background: `color-mix(in srgb, var(${d.toneVar}) 12%, white)` }}
-            >
-              <strong>{d.kategori}</strong>
-              <span>{d.persen}% ({d.jumlah} orang)</span>
-            </span>
-          ))}
-        </LwReveal>
-      )}
+      <nav className={`${tokens.scope} ${styles.tabBar}`} aria-label="Bagian laporan">
+        {TAB.map((t) => (
+          <button
+            key={t.id}
+            type="button"
+            className={`${styles.tab} ${tab === t.id ? styles.tabAktif : ""}`}
+            aria-current={tab === t.id ? "page" : undefined}
+            onClick={() => setTab(t.id)}
+          >
+            {t.label}
+          </button>
+        ))}
+      </nav>
 
-      <LwWellbeingHasil
-        sectionIndex="01"
-        ringkasan={kesehatan.ringkasan}
-        perUnit={kesehatan.perUnit}
-        daftarPerhatian={kesehatan.daftarPerhatian}
-        namaLembaga={meta.organisasiNama}
-        onSelectKandidat={onSelectKandidat}
-      />
-
-      <LwTemuanSpesifik
-        sectionIndex="02"
-        title="Temuan Spesifik yang Perlu Diwaspadai"
-        subtitle="Pernyataan spesifik yang mengindikasikan kerentanan, per dimensi"
-        items={kesehatan.temuanSpesifik}
-      />
-
-      <section className={`${tokens.scope} ${styles.cutoffStrip}`}>
-        <p className={styles.cutoffTitle}>Skala penilaian kondisi kesehatan mental (skor total PROTEK, 6 dimensi x 7 item)</p>
-        <div className={styles.cutoffRow}>
-          {PROTEK_CUTOFF.map((c) => (
-            <span key={c.kategori} className={styles.cutoffItem} style={{ color: `var(${c.toneVar})` }}>
-              <strong>{c.kategori}</strong> {c.min}-{c.max}
-            </span>
-          ))}
-        </div>
-        <p className={styles.cutoffNote}>
-          Seluruh skor dan kategori berasal langsung dari laporan asesmen yang sudah dianalisis ahli dan psikolog Fammi; dashboard ini menampilkan, bukan menghitung ulang.
-        </p>
-      </section>
-
-      {/* ── Blok legacy: 3 section lengkap, dinonaktifkan sementara ─────────────────────── */}
-      {TAMPILKAN_SECTION_LEGACY && (
-        <>
-          <LwSectionSelector sections={SECTIONS} active={sectionAktif} onSelect={setSectionAktif} namaLembaga={meta.organisasiNama} />
-
-          {sectionAktif === "kesiapan" && (
-            <>
-              <LwDimensiRingkasan
-                sectionIndex="01-A"
-                sectionTitle="Kesiapan Memimpin (LEAD)"
-                subtitle="Rata-rata skor empat aspek LEAD seluruh kandidat di lembaga ini"
-                dominantPrefix="Aspek Terkuat:"
-                dominant={kesiapanDominan}
-                items={kesiapanItems}
-                selectedKey={kesiapanKey}
-                onSelect={setKesiapanKey}
-                namaLembaga={meta.organisasiNama}
-                meaningFacets={kesiapanMeaningFacets}
-                distribusi={kesiapan.distribusi}
-              />
-              <LwKandidatTable
-                sectionIndex="01-B"
-                title="Perbandingan Antar Kandidat"
-                subtitle="Kesiapan memimpin dan kondisi psikologis tiap kandidat di seluruh unit"
-                items={kesiapan.kandidat}
-                onSelect={onSelectKandidat}
-              />
-              <LwTopSkill
-                sectionIndex="01-C"
-                title="Kekuatan dan Prioritas Pengembangan"
-                subtitle="Indikator LEAD dengan skor tertinggi dan terendah di lembaga ini"
-                topSkill={kesiapan.topSkill}
-                skillGap={kesiapan.skillGap}
-              />
-            </>
-          )}
-
-          {sectionAktif === "kesehatan" && (
-            <LwProtekPerbandingan
-              sectionIndex="02-B"
-              title="Sebaran Kategori per Dimensi"
-              subtitle="Area utama yang perlu perhatian lebih, dilihat dari sebaran kategori tiap dimensi"
-              items={kesehatan.perbandingan}
-            />
-          )}
-
-          {sectionAktif === "pengembangan" && (
-            <>
-              <LwPelatihanList
-                sectionIndex="03-A"
-                title="Rekomendasi Aksi Tindak Lanjut Prioritas"
-                subtitle="Program pengembangan yang menjawab celah kompetensi lembaga ini"
-                items={pengembangan.pelatihan}
-              />
-              <LwCeritaInspiratif
-                sectionIndex="03-B"
-                title="Cerita Pengalaman Terbaik Leadership dari Para Guru"
-                subtitle="Praktik baik kepemimpinan yang sudah terjadi di lembaga ini"
-                items={pengembangan.cerita}
-              />
-            </>
-          )}
-        </>
-      )}
+      <div className={styles.isi}>
+        {tab === "ringkasan" && (
+          <LwRingkasan
+            laporan={laporan}
+            periodeId={periodeAktif}
+            jenjang={jenjang}
+            onPilihJenjang={setJenjang}
+          />
+        )}
+        {tab === "dimensi" && <LwAnalisisDimensi laporan={laporan} periodeId={periodeAktif} />}
+        {tab === "prioritas" && <LwPrioritas laporan={laporan} onPilihGuru={bukaGuru} />}
+        {tab === "guru" && (
+          <LwLaporanIndividuPage laporan={laporan} guruId={guruId} onPilihGuru={setGuruId} />
+        )}
+      </div>
     </div>
   );
 }

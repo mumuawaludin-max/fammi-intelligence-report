@@ -1,107 +1,118 @@
 /**
- * Kamus statis modul Leadership & Wellbeing -- padanan scMeta.js. Definisi, daftar indikator,
- * dan cutoff kategori di sini dikutip persis dari kedua laporan sumber (Hasil Pemetaan Asesmen
- * Wellbeing & Leadership, dan Laporan Analisis Kesehatan Mental Guru, Dinas Pendidikan Kota
- * Bandung). Cutoff HANYA dipakai untuk catatan tampilan (footnote skala) -- kategori tiap baris
- * data sudah final dari sumbernya, FIR tidak menghitung ulang status dari skor di sini.
+ * Kamus statis modul Wellbeing Guru (kerangka PROTEK) -- padanan scMeta.js/paTokens.
+ * Definisi dimensi dan ambang kategori di sini dikutip dari instrumen PROTEK yang dipakai
+ * psikolog Fammi. Ambang HANYA untuk keperluan tampilan (legenda, warna, catatan kaki);
+ * kategori tiap baris data sudah final dari hulu, FIR tidak menghitung ulang status.
  */
 
-export const LEAD_ASPEK_INFO = {
-  L: {
-    label: "Leadership & Innovation",
-    deskripsi: "Kemampuan memimpin perubahan, mengelola risiko, dan berkolaborasi secara internal di tengah keberagaman tim.",
-    indikator: ["Inovatif", "Manajemen Krisis dan Risiko", "Adaptif", "Mengelola Keberagaman", "Kolaboratif (Internal)"],
-  },
-  E: {
-    label: "External Collaboration",
-    deskripsi: "Kemampuan membangun kemitraan, kolaborasi, dan eksekusi program bersama siswa, orang tua, serta mitra sekolah.",
-    indikator: ["Kepemimpinan Digital", "Berorientasi Pada Siswa & Orangtua", "Kemitraan & Kolaborasi", "Perencanaan Strategis", "Mendorong Eksekusi Program"],
-  },
-  A: {
-    label: "Administrative Excellence",
-    deskripsi: "Kemampuan mengelola keuangan, operasional, teknologi, dan pengembangan SDM sekolah.",
-    indikator: ["Manajemen Keuangan", "Komersial & Pendanaan Sekolah", "Sistem & Operasional Sekolah", "Tech Savvy (Paham Teknologi)", "Pengembangan SDM"],
-  },
-  D: {
-    label: "Dedication to Growth",
-    deskripsi: "Keteladanan, integritas, dan kemampuan menyelesaikan masalah serta berkomunikasi secara efektif dan empatik.",
-    indikator: ["Teladan & Integritas", "Problem Solving", "Manajemen Waktu & Prioritas", "Komunikasi Efektif", "Empati"],
-  },
-};
+export const PROTEK_URUTAN = ["P", "R", "O", "T", "E", "K"];
 
-/** Urutan tampilan 4 aspek LEAD, dipakai kartu skor section 01-A. */
-export const LEAD_ASPEK_URUTAN = ["L", "E", "A", "D"];
-
-/** Cutoff persentase skor LEAD -> kategori kesiapan memimpin (skala 0-100), dikutip persis dari
- * legenda "PENILAIAN ASESMEN KEPEMIMPINAN (LEADERSHIP)" di dokumen sumber. */
-export const LEAD_CUTOFF = [
-  { kategori: "Perlu Penguatan", min: 0, max: 20, toneVar: "--lw-lead-perlu-penguatan" },
-  { kategori: "Cukup Baik", min: 21, max: 40, toneVar: "--lw-lead-cukup-baik" },
-  { kategori: "Baik", min: 41, max: 60, toneVar: "--lw-lead-baik" },
-  { kategori: "Sangat Baik", min: 61, max: 80, toneVar: "--lw-lead-sangat-baik" },
-  { kategori: "Istimewa", min: 81, max: 100, toneVar: "--lw-lead-istimewa" },
-];
-
-export function leadKategoriTone(kategori) {
-  return LEAD_CUTOFF.find((c) => c.kategori === kategori)?.toneVar || "--lw-lead-baik";
-}
-
-export const PROTEK_DIMENSI_INFO = {
+export const PROTEK_INFO = {
   P: {
     label: "Penerimaan Diri",
-    icon: "P",
-    deskripsi: "Sikap positif terhadap diri sendiri dengan menerima kekurangan dan pengalaman masa lalu sebagai bagian dari pertumbuhan pribadi.",
+    pendek: "Penerimaan",
+    ringkas: "Menerima diri apa adanya",
+    deskripsi: "Sikap positif terhadap diri sendiri: menerima kekurangan dan pengalaman masa lalu sebagai bagian dari pertumbuhan pribadi.",
+    arti: "Guru yang sulit menerima diri cenderung menahan diri mencoba hal baru. Perbaikannya lewat umpan balik yang spesifik, bukan pujian umum.",
   },
   R: {
-    label: "Relasi Positif dengan Orang Lain",
-    icon: "R",
-    deskripsi: "Kemampuan membangun hubungan kerja yang hangat, bermakna, serta didasari empati dan kepedulian.",
+    label: "Relasi Positif",
+    pendek: "Relasi",
+    ringkas: "Hubungan hangat antarrekan",
+    deskripsi: "Kemampuan membangun hubungan kerja yang hangat dan bermakna, didasari empati dan kepedulian antarrekan.",
+    arti: "Dimensi ini biasanya jadi modal terkuat sebuah lembaga. Kalau kuat, ia bisa dipakai sebagai jalur pendampingan antarrekan untuk dimensi lain yang lemah.",
   },
   O: {
-    label: "Optimalisasi Potensi Diri",
-    icon: "O",
-    deskripsi: "Kesadaran untuk terus mengembangkan keterampilan dan kompetensi guna mencapai performa terbaik.",
+    label: "Optimalisasi Potensi",
+    pendek: "Optimalisasi",
+    ringkas: "Terus mengembangkan diri",
+    deskripsi: "Kesadaran untuk terus mengembangkan keterampilan dan kompetensi guna mencapai performa terbaik sebagai pendidik.",
+    arti: "Kalau hanya sedikit guru yang tertinggal di dimensi ini, persoalannya biasanya individual dan bukan sistemik.",
   },
   T: {
     label: "Tujuan Hidup",
-    icon: "T",
+    pendek: "Tujuan",
+    ringkas: "Arah yang jelas dalam bekerja",
     deskripsi: "Kejelasan visi dan arah dalam bekerja serta keyakinan terhadap tujuan jangka panjang yang ingin dicapai.",
+    arti: "Dimensi ini merespons percakapan pengembangan karier, bukan pelatihan teknis. Guru perlu tahu jalur lima tahun ke depannya seperti apa.",
   },
   E: {
     label: "Eksplorasi Lingkungan",
-    icon: "Ek",
-    deskripsi: "Kemampuan menciptakan lingkungan kerja yang kondusif untuk pertumbuhan psikologis dan kolaborasi aktif.",
+    pendek: "Eksplorasi",
+    ringkas: "Menata beban dan lingkungan",
+    deskripsi: "Kemampuan menata beban dan menciptakan lingkungan kerja yang kondusif bagi pertumbuhan psikologis serta kolaborasi.",
+    arti: "Keluhan di dimensi ini biasanya menunjuk beban administrasi di luar mengajar, dan itu bisa diperbaiki lewat penataan proses, bukan pelatihan mental.",
   },
   K: {
     label: "Kemandirian",
-    icon: "K",
+    pendek: "Kemandirian",
+    ringkas: "Berani memutuskan sendiri",
     deskripsi: "Kemampuan mengambil keputusan berdasarkan standar profesional tanpa bergantung pada validasi eksternal.",
+    arti: "Kalau banyak guru tertinggal di dimensi ini, akarnya sering ada pada kebiasaan pengambilan keputusan di sekolah, jadi perbaikannya di sisi pimpinan.",
   },
 };
 
-/** Urutan tampilan 6 dimensi PROTEK, dipakai kartu skor section 02-A. */
-export const PROTEK_DIMENSI_URUTAN = ["P", "R", "O", "T", "E", "K"];
+/** Ambang kategori per dimensi (skala 0-42) yang dipakai psikolog Fammi. */
+export const AMBANG_DIMENSI = { baik: 29, perluPerhatian: 23 };
 
-/** Cutoff skor total PROTEK (gabungan 6 dimensi x 7 item, skala 1-252) -> kategori kondisi
- * kesehatan mental, dikutip persis dari halaman 4 Laporan Analisis Kesehatan Mental Guru.
- * Tidak ada cutoff resmi per-dimensi di dokumen sumber -- kategori per-dimensi tiap guru
- * dipakai apa adanya dari data, bukan dihitung ulang dari rentang ini. */
-export const PROTEK_CUTOFF = [
-  { kategori: "Perlu Konsultasi", min: 1, max: 35, toneVar: "--lw-protek-perlu-konsultasi" },
-  { kategori: "Waspada", min: 36, max: 70, toneVar: "--lw-protek-waspada" },
-  { kategori: "Perlu Perhatian", min: 71, max: 140, toneVar: "--lw-protek-perlu-perhatian" },
-  { kategori: "Baik", min: 141, max: 252, toneVar: "--lw-protek-baik" },
-];
-
-export function protekKategoriTone(kategori) {
-  return PROTEK_CUTOFF.find((c) => c.kategori === kategori)?.toneVar || "--lw-protek-baik";
+export function katDimensi(nilai) {
+  if (nilai >= AMBANG_DIMENSI.baik) return "Baik";
+  if (nilai >= AMBANG_DIMENSI.perluPerhatian) return "Perlu Perhatian";
+  return "Waspada";
 }
 
-/** Tone kotak status per kategori dimensi (Baik/Perlu Perhatian/Waspada), dipakai kartu
- * perbandingan section 02-B -- padanan statusTone() di ScDimensiPerbandingan.jsx. */
-export function protekStatusTone(kategori) {
-  if (kategori === "Baik") return "aligned";
-  if (kategori === "Perlu Perhatian") return "attention";
-  if (kategori === "Waspada" || kategori === "Perlu Konsultasi") return "attention";
-  return "light";
+/**
+ * Ambang skor total (skala 1-252) mengikuti instrumen aslinya. Perhatikan bahwa ambang ini
+ * TIDAK sebangun dengan ambang per dimensi di atas: keduanya diturunkan dari sumber berbeda,
+ * jadi seorang guru bisa berkategori Baik pada skor total sekaligus punya dimensi tertinggal.
+ * Itu bukan bug, dan catatan kaki di layar Analisis Dimensi menjelaskannya ke pengguna.
+ */
+export const PROTEK_CUTOFF = [
+  { kategori: "Perlu Konsultasi", min: 1, max: 35, warna: "var(--lw-protek-perlu-konsultasi)" },
+  { kategori: "Waspada", min: 36, max: 70, warna: "var(--lw-protek-waspada)" },
+  { kategori: "Perlu Perhatian", min: 71, max: 140, warna: "var(--lw-protek-perlu-perhatian)" },
+  { kategori: "Baik", min: 141, max: 252, warna: "var(--lw-protek-baik)" },
+];
+
+/** Warna tinta untuk sebuah kategori, dipakai pil, angka, dan batang. */
+export function warnaKategori(kategori) {
+  if (kategori === "Baik") return "var(--lw-protek-baik)";
+  if (kategori === "Perlu Perhatian") return "var(--lw-protek-perlu-perhatian)";
+  if (kategori === "Waspada") return "var(--lw-protek-waspada)";
+  return "var(--lw-protek-perlu-konsultasi)";
+}
+
+export function latarKategori(kategori) {
+  if (kategori === "Baik") return "var(--lw-protek-baik-bg)";
+  if (kategori === "Perlu Perhatian") return "var(--lw-protek-perlu-perhatian-bg)";
+  if (kategori === "Waspada") return "var(--lw-protek-waspada-bg)";
+  return "var(--lw-protek-perlu-konsultasi-bg)";
+}
+
+/**
+ * Skala warna peta jenjang x dimensi. Ambangnya dirapatkan ke rentang skor yang benar-benar
+ * muncul di data (sekitar 27 sampai 39), supaya perbedaan antarsel terbaca dan tidak menumpuk
+ * di satu warna. Lima tingkat, dari terkuat ke terlemah.
+ */
+export const SKALA_PETA = [
+  { min: 36, bg: "#d6efe1", ink: "#1b6e42" },
+  { min: 34, bg: "#e8f4ec", ink: "#2e9e6b" },
+  { min: 32, bg: "#f6f2e5", ink: "#8a6c1c" },
+  { min: 30, bg: "#faeed6", ink: "#a8760f" },
+  { min: -Infinity, bg: "#f9dde1", ink: "#b8354a" },
+];
+
+export function warnaPeta(nilai) {
+  return SKALA_PETA.find((s) => nilai >= s.min) || SKALA_PETA[SKALA_PETA.length - 1];
+}
+
+/** Label bulan dari periode_id "YYYY-MM". */
+const BULAN = ["Januari", "Februari", "Maret", "April", "Mei", "Juni", "Juli", "Agustus", "September", "Oktober", "November", "Desember"];
+const BULAN_PENDEK = ["Jan", "Feb", "Mar", "Apr", "Mei", "Jun", "Jul", "Agu", "Sep", "Okt", "Nov", "Des"];
+
+export function labelPeriode(periodeId, pendek = false) {
+  if (!periodeId) return "";
+  const [tahun, bulan] = String(periodeId).split("-").map(Number);
+  const nama = (pendek ? BULAN_PENDEK : BULAN)[bulan - 1] || "";
+  return `${nama} ${tahun}`.trim();
 }
