@@ -1,0 +1,61 @@
+/**
+ * Token warna KHUSUS dashboard "Laporan Lembaga" Leadership & Wellbeing Assessment --
+ * pengecualian yang disengaja dari token FIR biasa (lihat CLAUDE.md), benchmark persis ke
+ * scBudayaTokens.module.css/paTokens.module.css atas instruksi eksplisit pemilik produk: pola
+ * desain dan animasi modul ini benchmark ke School Culture dan Perilaku Anak. Di-scope lewat
+ * class .scope supaya TIDAK menjalar ke modul lain.
+ *
+ * Tambahan yang tidak ada di SC: skala status LEAD lima tingkat (Istimewa/Sangat Baik/Baik/
+ * Cukup Baik/Perlu Penguatan) dan skala kondisi psikologis empat tingkat (Baik/Perlu Perhatian/
+ * Waspada/Perlu Konsultasi) -- nilai warnanya diturunkan dari token status FIR biasa (aman
+ * #2E9E6B, perlu perhatian #D69219, waspada #D6455A), bukan warna baru di luar bahasa visual FIR.
+ */
+.scope {
+  --lw-primary: #6c2bd9;
+  --lw-heading: #3b1e77;
+  --lw-soft: #f1eaff;
+  --lw-bg: #fafaf7;
+  --lw-surface: #ffffff;
+  --lw-border: #e6e2da;
+  --lw-gold: #d9a406;
+  --lw-gold-soft: #fff7dc;
+  --lw-ink: #211c2d;
+  --lw-muted: #675f71;
+  --lw-muted-2: #8c8494;
+  --lw-track: #ece8e0;
+  --lw-shadow-sm: 0 6px 22px rgba(59, 30, 119, 0.06);
+  --lw-shadow-md: 0 18px 48px rgba(59, 30, 119, 0.09);
+  --lw-radius-sm: 10px;
+  --lw-radius-md: 16px;
+  --lw-radius-lg: 24px;
+
+  /* Status kualitatif umum (dipakai kotak gap/status). */
+  --lw-status-attention-bg: #fbe9d2;
+  --lw-status-attention-ink: #8a4e00;
+  --lw-status-light-bg: #f2eee8;
+  --lw-status-light-ink: #5c5347;
+  --lw-status-aligned-bg: #e3f5ea;
+  --lw-status-aligned-ink: #1f7a49;
+
+  /* Lima tingkat kesiapan memimpin (LEAD), skala menaik. */
+  --lw-lead-istimewa: #1f7a49;
+  --lw-lead-istimewa-bg: #e7f4ee;
+  --lw-lead-sangat-baik: #2e9e6b;
+  --lw-lead-sangat-baik-bg: #eaf6f0;
+  --lw-lead-baik: #4f8fc9;
+  --lw-lead-baik-bg: #e9f1fa;
+  --lw-lead-cukup-baik: #d69219;
+  --lw-lead-cukup-baik-bg: #faf1dc;
+  --lw-lead-perlu-penguatan: #d6455a;
+  --lw-lead-perlu-penguatan-bg: #fbe7ea;
+
+  /* Empat tingkat kondisi psikologis (PROTEK), skala menurun. */
+  --lw-protek-baik: #2e9e6b;
+  --lw-protek-baik-bg: #e7f4ee;
+  --lw-protek-perlu-perhatian: #d69219;
+  --lw-protek-perlu-perhatian-bg: #faf1dc;
+  --lw-protek-waspada: #d6455a;
+  --lw-protek-waspada-bg: #fbe7ea;
+  --lw-protek-perlu-konsultasi: #a8293a;
+  --lw-protek-perlu-konsultasi-bg: #f7dde1;
+}

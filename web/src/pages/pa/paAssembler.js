@@ -489,8 +489,12 @@ function normSurveiKode(kode) {
   return String(kode || "").trim().toLowerCase().replace(/[\s-]+/g, "_");
 }
 
-/** Pertanyaan esai terbuka -> teks tampilan, dipakai Ruang Baca Esai. */
+/** Pertanyaan esai terbuka -> teks tampilan, dipakai Ruang Baca Esai. Dua kode pertama untuk
+ * jenjang SD/SMP/SMA (anak menjawab sendiri), dua kode terakhir untuk jenjang TK (guru/orang tua
+ * yang mengisi sebagai pengamat, lihat catatan informant-report di kepala pa.mock.js). */
 export const PA_ESAI_PERTANYAAN = {
   orang_yang_dipercaya_untuk_cerita: "Siapa orang yang paling kamu percaya untuk bercerita, dan kenapa?",
   kenapa_penting_peduli: "Menurutmu, kenapa penting untuk peduli pada orang lain?",
+  observasi_perilaku_menonjol: "Menurut guru/orang tua, perilaku apa yang paling menonjol dari anak ini pada periode ini, dan bagaimana konteksnya?",
+  cara_anak_menunjukkan_kepedulian: "Menurut guru/orang tua, bagaimana anak ini biasanya menunjukkan kepedulian atau membantu orang lain?",
 };

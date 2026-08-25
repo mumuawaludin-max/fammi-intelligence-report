@@ -1,0 +1,188 @@
+.page {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: min(calc(100% - 40px), 1000px);
+  margin-inline: auto;
+  padding-bottom: 48px;
+}
+
+.backButton {
+  align-self: flex-start;
+  margin: 24px 0 8px;
+  padding: 8px 4px;
+  border: none;
+  background: none;
+  color: var(--lw-primary);
+  font: inherit;
+  font-weight: 700;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.hero {
+  padding: 28px;
+  border-radius: var(--lw-radius-lg);
+  background: var(--lw-surface);
+  border: 1px solid var(--lw-border);
+  box-shadow: var(--lw-shadow-md);
+}
+
+.heroHead {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 20px;
+}
+
+.heroHead h1 {
+  margin: 0 0 4px;
+  color: var(--lw-heading);
+  font-size: clamp(20px, 2.4vw, 26px);
+  font-weight: 780;
+}
+
+.unit {
+  margin: 0;
+  color: var(--lw-muted);
+  font-size: 13px;
+}
+
+.heroBadges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.heroBadge {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  padding: 10px 16px;
+  border-radius: var(--lw-radius-sm);
+  min-width: 170px;
+}
+
+.heroBadge span {
+  font-size: 11px;
+  font-weight: 650;
+  opacity: 0.85;
+}
+
+.heroBadge strong {
+  font-size: 15px;
+  font-weight: 780;
+}
+
+.scoreSection {
+  margin-top: 28px;
+}
+
+.scoreSection h2 {
+  margin: 0 0 14px;
+  color: var(--lw-heading);
+  font-size: 16px;
+  font-weight: 760;
+}
+
+.scoreGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 10px;
+}
+
+.scoreCard {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 16px 10px;
+  border: 1px solid var(--lw-border);
+  border-radius: var(--lw-radius-md);
+  background: var(--lw-surface);
+  box-shadow: var(--lw-shadow-sm);
+}
+
+.scoreValue {
+  color: var(--lw-heading);
+  font-size: 22px;
+  font-weight: 760;
+}
+
+.scoreLabel {
+  color: var(--lw-muted);
+  font-size: 11.5px;
+  font-weight: 620;
+  text-align: center;
+}
+
+.scoreFlag {
+  position: absolute;
+  top: -8px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: var(--lw-protek-perlu-perhatian);
+  color: white;
+  font-size: 9.5px;
+  font-weight: 720;
+}
+
+.narasiSection {
+  margin-top: 28px;
+}
+
+.narasiSection h2 {
+  margin: 0 0 14px;
+  color: var(--lw-heading);
+  font-size: 16px;
+  font-weight: 760;
+}
+
+.narasiGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 12px;
+}
+
+.narasiCard {
+  padding: 16px 18px;
+  border: 1px solid var(--lw-border);
+  border-radius: var(--lw-radius-md);
+  background: var(--lw-surface);
+  box-shadow: var(--lw-shadow-sm);
+}
+
+.narasiTema {
+  margin: 0 0 6px;
+  color: var(--lw-primary);
+  font-size: 11px;
+  font-weight: 780;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.narasiIsi {
+  margin: 0;
+  color: var(--lw-ink);
+  font-size: 12.5px;
+  line-height: 1.6;
+}
+
+.bulletList {
+  margin: 8px 0 0;
+  padding-left: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  color: var(--lw-muted);
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+@media (max-width: 760px) {
+  .heroHead {
+    flex-direction: column;
+  }
+}

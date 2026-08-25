@@ -8,6 +8,7 @@ const NAV_ITEMS = [
   { id: "cw", label: "Culture & Wellbeing" },
   { id: "sc", label: "School Culture" },
   { id: "pa", label: "Perilaku Anak" },
+  { id: "lw", label: "Leadership & Wellbeing" },
 ];
 
 /**

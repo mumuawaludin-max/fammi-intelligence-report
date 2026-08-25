@@ -1,0 +1,11 @@
+.page {
+  min-height: 40vh;
+}
+
+.note {
+  width: min(calc(100% - 40px), 1200px);
+  margin: 60px auto;
+  color: var(--ink-3, #7c7689);
+  font-size: 14px;
+  text-align: center;
+}

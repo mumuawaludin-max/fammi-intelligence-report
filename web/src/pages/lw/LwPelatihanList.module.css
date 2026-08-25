@@ -1,0 +1,122 @@
+.section {
+  padding: 40px 0 48px;
+}
+
+.heading {
+  max-width: 680px;
+  margin: 0 auto 30px;
+  text-align: center;
+}
+
+.heading h2 {
+  margin: 12px 0 8px;
+  color: var(--lw-heading);
+  font-size: clamp(22px, 2.6vw, 28px);
+  font-weight: 760;
+  letter-spacing: -0.02em;
+}
+
+.heading p {
+  margin: 0;
+  color: var(--lw-muted);
+  font-size: 14px;
+}
+
+.index {
+  display: inline-flex;
+  align-items: center;
+  min-height: 28px;
+  padding: 0 10px;
+  border-radius: 8px;
+  color: white;
+  background: var(--lw-primary);
+  font-size: 12px;
+  font-weight: 780;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 14px;
+  align-items: start;
+}
+
+.card {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 20px;
+  border: 1px solid var(--lw-border);
+  border-radius: var(--lw-radius-md);
+  background: var(--lw-surface);
+  box-shadow: var(--lw-shadow-sm);
+}
+
+.card h3 {
+  margin: 0;
+  color: var(--lw-heading);
+  font-size: 15.5px;
+  font-weight: 760;
+}
+
+.tag {
+  align-self: flex-start;
+  padding: 3px 10px;
+  border-radius: 999px;
+  background: var(--lw-soft);
+  color: var(--lw-primary);
+  font-size: 10.5px;
+  font-weight: 720;
+}
+
+.block {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.blockTitle {
+  margin: 0;
+  color: var(--lw-primary);
+  font-size: 10.5px;
+  font-weight: 780;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.blockText {
+  margin: 0;
+  color: var(--lw-muted);
+  font-size: 12.5px;
+  line-height: 1.55;
+}
+
+.gapNote {
+  margin: 0;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: #f7f6f2;
+  color: var(--lw-muted-2);
+  font-size: 11.5px;
+  font-style: italic;
+}
+
+.warningNote {
+  margin: 0;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: var(--lw-status-attention-bg);
+  color: var(--lw-status-attention-ink);
+  font-size: 11px;
+  line-height: 1.5;
+}
+
+@media (max-width: 760px) {
+  .section {
+    padding: 32px 0 40px;
+  }
+
+  .grid {
+    grid-template-columns: 1fr;
+  }
+}

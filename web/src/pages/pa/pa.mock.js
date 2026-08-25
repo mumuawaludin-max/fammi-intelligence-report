@@ -1,7 +1,14 @@
 /**
- * Data CONTOH modul Perilaku Anak. Seluruh angka, nama, dan kutipan di berkas ini karangan
- * untuk membangun tampilan, BUKAN temuan nyata -- karena itu setiap tampilan yang memakainya
- * wajib memasang penanda "Contoh" (lihat PaFilterBar.jsx), sesuai aturan di CLAUDE.md.
+ * Data CONTOH modul Perilaku Anak, versi jenjang TK. Seluruh angka, nama, dan kutipan di berkas
+ * ini karangan untuk membangun tampilan, BUKAN temuan nyata -- karena itu setiap tampilan yang
+ * memakainya wajib memasang penanda "Contoh" (lihat PaFilterBar.jsx), sesuai aturan di CLAUDE.md.
+ *
+ * BEDA PENTING dari versi jenjang SD/SMP/SMA: instrumen di TK adalah SDQ versi informant-report
+ * (usia 2-4/4-17), diisi GURU dan ORANG TUA yang mengamati anak, BUKAN anak sendiri yang
+ * melakukan refleksi. Karena itu seluruh kutipan esai di bawah ditulis dalam suara pengamat pihak
+ * ketiga ("Ananda tampak...", "Menurut laporan guru...") -- tidak ada kalimat orang pertama
+ * "Saya..." seperti versi jenjang lebih tinggi. Opsi survei tertutup juga diubah ke perilaku yang
+ * TERAMATI (oleh guru di kelas / orang tua di rumah), bukan opsi yang ditanyakan langsung ke anak.
  *
  * Alur data sungguhannya nanti sama dengan School Culture: admin mengunggah Excel, pipeline
  * hulu menghitung skor/status/agregat, FIR tinggal membaca hasil final dari Supabase. Bentuk
@@ -16,10 +23,9 @@ export const PA_PERIODE_OPTIONS = [
 ];
 
 export const PA_UNIT_OPTIONS = [
-  { id: "semua", label: "Semua unit sekolah" },
-  { id: "sd", label: "SD Kajaolalido" },
-  { id: "smp", label: "SMP Islam Athirah Bone" },
-  { id: "sma", label: "SMA Islam Athirah Bone" },
+  { id: "semua", label: "Semua kelompok" },
+  { id: "a", label: "Kelompok A (usia 4-5 tahun)" },
+  { id: "b", label: "Kelompok B (usia 5-6 tahun)" },
 ];
 
 /** Lima dimensi HEART. `huruf` dipakai sebagai kartu inisial besar di bagian 02. */
@@ -86,35 +92,31 @@ export const PA_EMOSI_LEVELS = [
 // ── Tabel dasar per unit ────────────────────────────────────────────────────────────────────
 
 const UNIT = {
-  sd: { label: "SD Kajaolalido", total: 156, laki: 62, perempuan: 94, porsi: 32 },
-  smp: { label: "SMP Islam Athirah Bone", total: 178, laki: 66, perempuan: 112, porsi: 37 },
-  sma: { label: "SMA Islam Athirah Bone", total: 150, laki: 56, perempuan: 94, porsi: 31 },
+  a: { label: "Kelompok A", total: 24, laki: 13, perempuan: 11, porsi: 52 },
+  b: { label: "Kelompok B", total: 22, laki: 10, perempuan: 12, porsi: 48 },
 };
 
-const TOTAL_SEMUA = { label: "Semua unit sekolah", total: 484, laki: 184, perempuan: 300, porsi: 100 };
+const TOTAL_SEMUA = { label: "Semua kelompok", total: 46, laki: 23, perempuan: 23, porsi: 100 };
 
-/** Sebaran enam tingkat emosi per unit (lima tingkat + "tidak menjawab"), tiap baris berjumlah 100. */
+/** Sebaran enam tingkat emosi per kelompok (lima tingkat + "tidak menjawab"), tiap baris berjumlah 100. */
 const EMOSI = {
-  semua: [15, 26, 31, 17, 9, 2],
-  sd: [18, 25, 33, 14, 7, 3],
-  smp: [11, 24, 31, 20, 12, 2],
-  sma: [15, 27, 29, 18, 9, 2],
+  semua: [22, 30, 28, 13, 5, 2],
+  a: [19, 28, 30, 15, 6, 2],
+  b: [25, 32, 26, 11, 4, 2],
 };
 
 /** Hasil asesmen per dimensi: [aman, perlu perhatian, perlu diwaspadai], tiap baris berjumlah 100.
  * Nama tingkat di sini PERSIS sama dengan kunci field asli (lihat TINGKAT di PaHasilAsesmen.jsx)
  * supaya mock dan data asli dipetakan komponen yang sama tanpa terjemahan nama tambahan. */
 const ASESMEN = {
-  semua: { hiperaktivitas: [74, 19, 7], emosional: [68, 22, 10], agresi: [81, 14, 5], relasi: [71, 21, 8], prososial: [84, 12, 4] },
-  sd: { hiperaktivitas: [78, 17, 5], emosional: [72, 20, 8], agresi: [85, 11, 4], relasi: [76, 18, 6], prososial: [88, 9, 3] },
-  smp: { hiperaktivitas: [69, 22, 9], emosional: [63, 24, 13], agresi: [77, 16, 7], relasi: [66, 24, 10], prososial: [80, 14, 6] },
-  sma: { hiperaktivitas: [75, 18, 7], emosional: [70, 21, 9], agresi: [82, 13, 5], relasi: [72, 20, 8], prososial: [85, 11, 4] },
+  semua: { hiperaktivitas: [70, 22, 8], emosional: [76, 17, 7], agresi: [79, 16, 5], relasi: [74, 19, 7], prososial: [69, 22, 9] },
+  a: { hiperaktivitas: [65, 25, 10], emosional: [72, 19, 9], agresi: [75, 18, 7], relasi: [70, 21, 9], prososial: [63, 25, 12] },
+  b: { hiperaktivitas: [75, 19, 6], emosional: [80, 15, 5], agresi: [83, 13, 4], relasi: [78, 17, 5], prososial: [75, 18, 7] },
 };
 
 const KELAS = {
-  sd: ["Kelas V AR RAHMAN", "Kelas VI AL FATIH"],
-  smp: ["Kelas VIII AR RASYID", "Kelas IX AL KHAWARIZMI"],
-  sma: ["Kelas XI IPA 2", "Kelas XII IPS 1"],
+  a: ["Kelompok A"],
+  b: ["Kelompok B"],
 };
 
 // ── Kasus per siswa (bagian 03) ──────────────────────────────────────────────────────────────
@@ -197,7 +199,7 @@ function bangunKasusUnit(u, total, seed) {
   });
 }
 
-const KASUS_SEED_UNIT = { sd: 101, smp: 102, sma: 103 };
+const KASUS_SEED_UNIT = { a: 101, b: 102 };
 
 function kumpulanKasus(unitIds) {
   return unitIds.flatMap((u) => bangunKasusUnit(u, UNIT[u].total, KASUS_SEED_UNIT[u]));
@@ -454,60 +456,65 @@ const CTA_PER_DOMAIN_MOCK = {
 /** `domain` dipakai mengelompokkan pertanyaan ke kartu domain HEART di bagian 04, pola yang
  * sama dengan klasifikasiPertanyaan di paAssembler.js -- satu domain boleh menaungi lebih dari
  * satu pertanyaan (Hiperaktivitas di sini menaungi tiga). */
+/**
+ * Opsi jawaban ditulis sebagai perilaku yang DITERAMATI guru/orang tua (bukan ditanyakan langsung
+ * ke anak) -- pengisi survei memilih opsi yang paling menggambarkan anaknya, sesuai kerangka
+ * informant-report di kepala berkas ini.
+ */
 const SURVEY = [
   {
     kode: "kebiasaan_belajar",
     domain: "hiperaktivitas",
     judul: "Kebiasaan Belajar",
-    interpretasi: "Mayoritas siswa (46%) sudah terbiasa belajar mandiri di ruangan tenang, modal awal yang baik untuk kebiasaan belajar mandiri di rumah.",
+    interpretasi: "Mayoritas anak (46%) sudah bisa duduk mengerjakan kegiatan mandiri tanpa perlu ditemani terus, modal awal yang baik untuk kemandirian belajar.",
     opsi: [
-      { label: "Sendiri di ruangan tenang", persen: 46 },
-      { label: "Sambil dengar musik atau bergerak", persen: 31 },
-      { label: "Ditemani orang lain", persen: 23 },
+      { label: "Bisa duduk mengerjakan kegiatan sendiri di ruangan tenang", persen: 46 },
+      { label: "Perlu diiringi musik atau sambil bergerak", persen: 31 },
+      { label: "Perlu ditemani orang dewasa terus-menerus", persen: 23 },
     ],
   },
   {
     kode: "penyelesaian_tugas",
     domain: "hiperaktivitas",
     judul: "Penyelesaian Tugas",
-    interpretasi: "42% siswa masih butuh banyak pengingat dari orang lain untuk menyelesaikan tugas -- kemandirian menyelesaikan tugas belum terbentuk merata.",
+    interpretasi: "42% anak masih butuh banyak pengingat dari guru atau orang tua untuk menyelesaikan kegiatan -- kemandirian menyelesaikan tugas belum terbentuk merata.",
     opsi: [
-      { label: "Butuh banyak pengingat dari orang lain", persen: 42, sinyal: true },
-      { label: "Butuh waktu tapi selesai juga", persen: 35 },
-      { label: "Sering ditunda-tunda", persen: 23 },
+      { label: "Butuh banyak pengingat dari guru/orang tua untuk selesai", persen: 42, sinyal: true },
+      { label: "Butuh waktu lebih lama tapi selesai sendiri", persen: 35 },
+      { label: "Sering berpindah kegiatan sebelum selesai", persen: 23 },
     ],
   },
   {
     kode: "penggunaan_gadget",
     domain: "hiperaktivitas",
     judul: "Penggunaan Gadget",
-    interpretasi: "44% siswa memakai gadget 2-4 jam sehari, durasi yang perlu diimbangi rutinitas non-layar menjelang waktu belajar.",
+    interpretasi: "44% anak memakai gawai 2-4 jam sehari menurut laporan orang tua, durasi yang perlu diimbangi rutinitas non-layar menjelang waktu tidur.",
     opsi: [
       { label: "2-4 jam per hari", persen: 44, sinyal: true },
       { label: "1-2 jam per hari", persen: 33 },
-      { label: "Tidak pasti, tergantung hari", persen: 23 },
+      { label: "Tidak menentu, tergantung hari", persen: 23 },
     ],
   },
   {
-    kode: "tempat_bercerita",
+    kode: "orang_yang_dipercaya_untuk_cerita",
     domain: "relasi",
     judul: "Tempat Bercerita",
-    interpretasi: "17% siswa belum tahu harus bercerita ke siapa saat menghadapi masalah -- sejalan dengan temuan serupa di jawaban esai terbuka (lihat Ruang Baca Esai).",
+    interpretasi: "17% anak, menurut laporan guru, belum terbiasa mendekati orang dewasa saat mengalami kesulitan di kelas -- sejalan dengan temuan serupa di jawaban esai terbuka (lihat Ruang Baca Esai).",
     opsi: [
-      { label: "Keluarga", persen: 48 },
-      { label: "Teman", persen: 35 },
-      { label: "Belum tahu harus ke siapa", persen: 17, sinyal: true },
+      { label: "Mendekati orang tua/pengasuh di rumah", persen: 48 },
+      { label: "Mendekati guru atau teman di kelas", persen: 35 },
+      { label: "Belum terlihat mendekati siapa pun, cenderung dipendam", persen: 17, sinyal: true },
     ],
   },
   {
-    kode: "permintaan_bantuan",
+    kode: "saat_teman_kesulitan",
     domain: "prososial",
-    judul: "Saat Guru atau Orang Tua Minta Bantuan",
-    interpretasi: "14% siswa cenderung menolak saat diminta bantuan -- bisa jadi sinyal kelelahan atau kurang merasa mampu, bukan semata sikap enggan menolong.",
+    judul: "Saat Diminta Bantuan Guru atau Orang Tua",
+    interpretasi: "14% anak cenderung menolak saat diminta bantuan ringan -- bisa jadi sinyal belum memahami instruksi atau merasa belum mampu, bukan semata sikap enggan menolong.",
     opsi: [
       { label: "Langsung membantu dengan senang hati", persen: 52 },
-      { label: "Membantu tapi sambil mengeluh", persen: 34 },
-      { label: "Menolak untuk membantu", persen: 14, sinyal: true },
+      { label: "Membantu tapi perlu diminta berulang", persen: 34 },
+      { label: "Menolak atau mengabaikan permintaan", persen: 14, sinyal: true },
     ],
   },
 ];
@@ -520,11 +527,11 @@ const SURVEY = [
  * dengan persentase tertinggi antarkategori.
  */
 function insightUtamaSurvey(survey, esaiStatistik) {
-  const bercerita = survey.find((k) => k.kode === "tempat_bercerita");
+  const bercerita = survey.find((k) => k.kode === "orang_yang_dipercaya_untuk_cerita");
   const sinyalBercerita = bercerita?.opsi.find((o) => o.sinyal);
   const esaiStat = esaiStatistik.find((s) => s.kode === "tempat_bercerita");
   if (sinyalBercerita && esaiStat) {
-    return `${sinyalBercerita.persen}% siswa mengaku belum tahu harus bercerita ke siapa saat menghadapi masalah, sejalan dengan ${esaiStat.nilai} jawaban esai terbuka yang menyebut tema serupa -- dua sumber data berbeda menunjuk pola yang sama.`;
+    return `${sinyalBercerita.persen}% anak, menurut laporan guru, belum terlihat mendekati siapa pun saat mengalami kesulitan, sejalan dengan ${esaiStat.nilai} jawaban esai terbuka yang menyebut tema serupa -- dua sumber data berbeda menunjuk pola yang sama.`;
   }
 
   const kandidat = survey
@@ -532,7 +539,7 @@ function insightUtamaSurvey(survey, esaiStatistik) {
     .filter((k) => k.opsi);
   if (!kandidat.length) return "";
   const top = kandidat.reduce((acc, k) => (!acc || k.opsi.persen > acc.opsi.persen ? k : acc), null);
-  return `${top.opsi.persen}% siswa menjawab "${top.opsi.label}" pada kategori ${top.judul}.`;
+  return `${top.opsi.persen}% anak menunjukkan "${top.opsi.label}" pada kategori ${top.judul}, menurut laporan guru/orang tua.`;
 }
 
 // ── Ruang baca jawaban esai ─────────────────────────────────────────────────────────────────
@@ -547,116 +554,122 @@ function insightUtamaSurvey(survey, esaiStatistik) {
  * label domain dan teks pertanyaan, dipakai bareng oleh jalur mock dan jalur asli. `prioritas`
  * (bukan lagi `status`) juga disamakan namanya dengan field pa_esai.anotasi.prioritas asli.
  */
+/**
+ * Seluruh jawaban di bawah ditulis dalam suara GURU KELAS atau ORANG TUA yang mengisi asesmen
+ * atas nama anak (informant-report), bukan anak yang bercerita sendiri -- lihat catatan kepala
+ * berkas. Kutipan "jawaban" memaparkan yang teramati/dialami pengisi tentang anaknya, bukan
+ * narasi orang pertama si anak.
+ */
 const ESAI = [
   {
-    id: "SIA-08-104",
-    unit: "SMP Islam Athirah Bone",
+    id: "TKC-A-104",
+    unit: "Kelompok A",
     domain: "relasi",
-    pertanyaan_kode: "orang_yang_dipercaya_untuk_cerita",
+    pertanyaan_kode: "observasi_perilaku_menonjol",
     prioritas: "Pantau",
     jawaban:
-      "Saya biasanya cerita ke ibu karena ibu mendengarkan sampai selesai dan tidak langsung marah. Tetapi kalau masalahnya tentang nilai, saya kadang memilih diam karena takut membuat ibu khawatir. Di sekolah saya punya teman dekat, tetapi saya belum terlalu nyaman cerita kepada guru. Saya akan lebih mudah bicara kalau ada waktu khusus dan tidak didengar teman lain.",
-    tema: ["dukungan keluarga", "takut membebani", "privasi"],
+      "Menurut catatan guru kelas, ananda cenderung bermain sendiri di sudut kelas dan belum aktif mengajak teman bermain bersama. Saat ditawari bergabung ke kelompok, ananda kadang mau tapi lebih sering diam mengamati dari jarak dekat. Di rumah, orang tua melaporkan ananda lebih terbuka bercerita dan cukup ekspresif, jadi pola menyendiri ini tampaknya lebih terjadi di lingkungan sekolah.",
+    tema: ["menyendiri di kelas", "beda pola rumah dan sekolah", "butuh pendampingan sosial"],
     sinyal:
-      "Perlu dipantau. Siswa memiliki dukungan keluarga, tetapi menahan cerita ketika terkait prestasi.",
+      "Perlu dipantau. Pola menyendiri konsisten teramati guru di kelas, meski di rumah anak tampak lebih terbuka.",
     saran:
-      "Wali kelas dapat menawarkan check-in privat dan menjelaskan jalur konseling tanpa menekan siswa untuk langsung bercerita.",
+      "Guru kelas dapat mengajak ananda bergabung ke kelompok bermain kecil terlebih dahulu (2-3 anak) sebelum kelompok besar, dan berbagi observasi ini ke orang tua saat penjemputan.",
   },
   {
-    id: "SIA-05-219",
-    unit: "SD Kajaolalido",
-    domain: "relasi",
-    pertanyaan_kode: "orang_yang_dipercaya_untuk_cerita",
+    id: "TKC-A-119",
+    unit: "Kelompok A",
+    domain: "hiperaktivitas",
+    pertanyaan_kode: "observasi_perilaku_menonjol",
     prioritas: "Pencegahan",
     jawaban:
-      "Kalau banyak tugas bersamaan saya bingung harus mulai dari yang mana. Biasanya saya kerjakan yang paling gampang dulu, lalu yang susah tidak sempat selesai. Kadang saya minta bantuan kakak, tapi kakak juga sibuk. Saya ingin ada yang mengingatkan urutan mengerjakan.",
-    tema: ["beban tugas", "manajemen waktu", "butuh pendampingan"],
+      "Guru kelas mencatat ananda kesulitan duduk tenang saat mendengarkan cerita atau instruksi lebih dari lima menit, sering berpindah tempat duduk sendiri. Orang tua di rumah juga menyebut ananda sulit diajak duduk makan sampai selesai. Namun ananda sangat antusias dan fokus saat kegiatan yang melibatkan gerak, seperti menari atau permainan fisik.",
+    tema: ["sulit duduk tenang", "fokus tinggi saat kegiatan gerak", "konsisten rumah-sekolah"],
     sinyal:
-      "Sinyal ringan. Kesulitannya soal cara mengatur urutan kerja, bukan kemampuan akademiknya.",
+      "Sinyal ringan. Pola sulit diam konsisten di rumah dan sekolah, tapi fokus justru tinggi pada aktivitas berbasis gerak.",
     saran:
-      "Ajarkan satu teknik memecah tugas di kelas dan bagikan lembar urutan pengerjaan ke orang tua.",
+      "Sisipkan jeda gerak singkat sebelum kegiatan yang butuh duduk lama, dan manfaatkan minat pada aktivitas fisik sebagai jembatan ke kegiatan yang lebih tenang.",
   },
   {
-    id: "SIA-11-357",
-    unit: "SMA Islam Athirah Bone",
+    id: "TKC-B-357",
+    unit: "Kelompok B",
     domain: "relasi",
-    pertanyaan_kode: "orang_yang_dipercaya_untuk_cerita",
+    pertanyaan_kode: "observasi_perilaku_menonjol",
     prioritas: "Prioritas",
     jawaban:
-      "Saya cerita ke teman karena belum tahu harus menemui siapa di sekolah. Guru BK pernah masuk kelas sekali di awal tahun, setelah itu saya tidak tahu ruangannya di mana dan jam berapa bisa datang. Kalau ada masalah besar saya biasanya diam saja sampai reda sendiri. Sebenarnya saya ingin bicara dengan orang dewasa, tapi saya takut dianggap berlebihan.",
-    tema: ["akses layanan", "takut dinilai", "isolasi"],
+      "Guru kelas melaporkan ananda beberapa kali menangis saat jam istirahat karena merasa tidak diajak bermain oleh teman-teman tertentu. Guru sudah beberapa kali mendampingi dan memfasilitasi ananda bergabung, tapi pola berulang tiap minggu. Orang tua belum banyak tahu soal ini karena ananda jarang bercerita di rumah tentang kejadian di sekolah.",
+    tema: ["ditolak teman sebaya", "berulang", "orang tua belum tahu"],
     sinyal:
-      "Prioritas. Siswa tidak tahu jalur bantuan formal dan cenderung memendam masalah besar.",
+      "Prioritas. Kejadian berulang tiap minggu dan orang tua belum mendapat informasi -- perlu komunikasi terbuka sebelum polanya makin mengakar.",
     saran:
-      "Umumkan jadwal dan lokasi layanan konseling secara berkala, lalu buka kanal janji temu yang tidak perlu izin wali kelas.",
+      "Jadwalkan komunikasi singkat dengan orang tua saat penjemputan, dan atur rotasi kelompok bermain kecil supaya ananda punya lebih banyak kesempatan diterima.",
   },
   {
-    id: "SIA-08-243",
-    unit: "SMP Islam Athirah Bone",
+    id: "TKC-A-243",
+    unit: "Kelompok A",
     domain: "tolong_menolong",
-    pertanyaan_kode: "kenapa_penting_peduli",
+    pertanyaan_kode: "cara_anak_menunjukkan_kepedulian",
     prioritas: "Pantau",
     jawaban:
-      "Saya ingin membantu, tapi takut salah bicara dan membuat suasana lebih buruk. Waktu itu ada teman yang menangis di kelas dan saya cuma diam di tempat duduk. Setelah itu saya menyesal. Saya tidak tahu kalimat apa yang aman untuk dipakai.",
-    tema: ["niat menolong", "kurang keterampilan", "penyesalan"],
+      "Orang tua menceritakan ananda pernah melihat temannya menangis di taman bermain dan langsung memberikan mainannya tanpa diminta, tapi di sekolah guru belum banyak melihat perilaku serupa -- ananda cenderung menunggu diarahkan guru dulu sebelum menawarkan bantuan ke teman sekelas.",
+    tema: ["kepedulian muncul di rumah", "belum terbiasa berinisiatif di kelas", "butuh dorongan"],
     sinyal:
-      "Perlu dipantau. Niat prososialnya kuat, yang kurang adalah keterampilan praktis menolong.",
+      "Perlu dipantau. Niat menolongnya sudah ada (teramati orang tua), yang masih perlu dilatih adalah keberanian berinisiatif di lingkungan kelas.",
     saran:
-      "Latih kalimat pembuka sederhana lewat simulasi singkat di jam wali kelas.",
+      "Guru dapat memberi peran kecil bergilir (mis. \"pembantu guru hari ini\") supaya ananda terbiasa menawarkan bantuan tanpa diminta di kelas.",
   },
   {
-    id: "SIA-12-401",
-    unit: "SMA Islam Athirah Bone",
+    id: "TKC-B-401",
+    unit: "Kelompok B",
     domain: "relasi",
-    pertanyaan_kode: "orang_yang_dipercaya_untuk_cerita",
+    pertanyaan_kode: "observasi_perilaku_menonjol",
     prioritas: "Pencegahan",
     jawaban:
-      "Saya merasa paling diterima waktu kerja kelompok proyek karena semua orang punya bagian dan pendapat saya dipakai. Di luar itu saya lebih banyak sendiri saat istirahat. Saya tidak masalah sendiri, tapi kadang ingin ada yang mengajak duluan.",
-    tema: ["rasa diterima", "kerja kelompok", "inisiatif sosial"],
+      "Guru kelas mencatat ananda paling nyaman berinteraksi saat kegiatan berkelompok dengan peran yang jelas (mis. bermain peran dokter-pasien), dan cenderung lebih pendiam saat waktu bermain bebas tanpa struktur. Orang tua menyebut pola serupa terlihat saat bermain dengan sepupu di rumah.",
+    tema: ["nyaman dengan struktur peran", "pendiam saat bebas", "konsisten rumah-sekolah"],
     sinyal:
-      "Sinyal ringan. Rasa diterima muncul saat ada struktur peran yang jelas.",
+      "Sinyal ringan. Interaksi sosial tumbuh baik saat ada struktur peran yang jelas.",
     saran:
-      "Perbanyak tugas berbasis peran dan rotasi anggota kelompok supaya lingkaran pertemanan melebar.",
+      "Perbanyak kegiatan bermain peran berkelompok, dan perkenalkan struktur peran sederhana secara bertahap saat waktu bermain bebas.",
   },
   {
-    id: "SIA-06-133",
-    unit: "SD Kajaolalido",
-    domain: "relasi",
-    pertanyaan_kode: "orang_yang_dipercaya_untuk_cerita",
+    id: "TKC-A-133",
+    unit: "Kelompok A",
+    domain: "emosional",
+    pertanyaan_kode: "observasi_perilaku_menonjol",
     prioritas: null,
     jawaban:
-      "Perut saya sakit sehari sebelum ujian, padahal sudah belajar. Saya takut nilainya turun dan orang tua kecewa. Kalau sudah masuk ruangan biasanya membaik, tapi malamnya susah tidur.",
-    tema: [],
+      "Orang tua melaporkan ananda sempat rewel dan menolak berangkat sekolah selama dua hari di awal semester, tapi sudah membaik setelah minggu ketiga. Guru kelas juga mencatat ananda kini sudah terlihat nyaman saat diantar dan tidak lagi menangis di gerbang.",
+    tema: ["adaptasi awal semester", "sudah membaik"],
     sinyal: null,
     saran: null,
   },
   {
-    id: "SIA-09-288",
-    unit: "SMP Islam Athirah Bone",
-    domain: "relasi",
-    pertanyaan_kode: "orang_yang_dipercaya_untuk_cerita",
+    id: "TKC-B-288",
+    unit: "Kelompok B",
+    domain: "emosional",
+    pertanyaan_kode: "observasi_perilaku_menonjol",
     prioritas: "Prioritas",
     jawaban:
-      "Pulang sekolah sore, lalu masih ada les dan tugas. Saya sering tidur lewat tengah malam dan bangun masih capek. Kalau minta libur les rasanya tidak enak karena sudah dibayar. Jadi saya jalani saja walaupun sering tidak fokus di kelas.",
-    tema: ["kelelahan", "jadwal padat", "sungkan menolak"],
+      "Guru kelas mencatat ananda mudah menangis saat menghadapi tugas yang dirasa sulit, misalnya menggunting mengikuti pola, dan cenderung langsung menyerah dibanding mencoba ulang. Orang tua menyebut pola serupa terjadi saat ananda diminta memakai sepatu sendiri di rumah -- cepat frustrasi lalu minta dibantu penuh.",
+    tema: ["mudah frustrasi", "cepat menyerah", "konsisten rumah-sekolah"],
     sinyal:
-      "Prioritas. Pola tidur terganggu berulang dan berdampak ke fokus belajar di kelas.",
+      "Prioritas. Pola frustrasi cepat konsisten di dua lingkungan dan berdampak ke kemauan mencoba tugas baru.",
     saran:
-      "Bicarakan beban jadwal dengan orang tua dalam pertemuan kelas dan tawarkan opsi pengurangan tugas rumah pada pekan padat.",
+      "Latih tugas dengan langkah kecil bertahap disertai pujian di tiap langkah selesai, selaraskan pendekatan yang sama antara guru dan orang tua.",
   },
   {
-    id: "SIA-10-052",
-    unit: "SD Kajaolalido",
+    id: "TKC-A-052",
+    unit: "Kelompok A",
     domain: "tolong_menolong",
-    pertanyaan_kode: "kenapa_penting_peduli",
+    pertanyaan_kode: "cara_anak_menunjukkan_kepedulian",
     prioritas: "Pencegahan",
     jawaban:
-      "Karena saya pernah kesulitan dan ada yang bantu tanpa saya minta. Rasanya lega sekali. Jadi kalau ada yang kesulitan dan saya bisa, saya akan bantu. Tapi saya tidak mau terlihat sok tahu, jadi saya tunggu sampai dia cerita dulu.",
-    tema: ["timbal balik", "empati", "hati-hati"],
+      "Guru kelas menceritakan ananda cukup rutin membantu merapikan mainan bersama tanpa diminta, dan pernah menawarkan tisu ke teman yang menangis. Orang tua menguatkan, menyebut ananda juga suka membantu menyiapkan piring makan di rumah.",
+    tema: ["inisiatif menolong", "konsisten rumah-sekolah", "kebiasaan positif"],
     sinyal:
-      "Sinyal positif. Motivasi menolong tumbuh dari pengalaman pribadi yang baik.",
+      "Sinyal positif. Kebiasaan menolong sudah terbentuk dan konsisten di dua lingkungan.",
     saran:
-      "Libatkan siswa seperti ini sebagai teman sebaya pendamping di kegiatan orientasi.",
+      "Beri apresiasi terbuka saat perilaku ini muncul supaya kebiasaan positifnya makin diperkuat.",
   },
 ];
 
@@ -683,7 +696,7 @@ function persenAngka(bagian, total) {
  */
 export function paLaporanContoh(unitId = "semua") {
   const info = unitId === "semua" ? TOTAL_SEMUA : UNIT[unitId] || TOTAL_SEMUA;
-  const unitAktif = unitId === "semua" ? ["sd", "smp", "sma"] : [unitId];
+  const unitAktif = unitId === "semua" ? ["a", "b"] : [unitId];
 
   // Kumpulan kasus periode ini, sumber tunggal untuk seluruh angka bagian 03 -- lihat catatan
   // panjang di bangunKasusUnit soal kenapa ini menggantikan tabel angka terpisah. Tidak ada
@@ -767,27 +780,27 @@ export function paLaporanContoh(unitId = "semua") {
   const esaiStatistik = [
     {
       kode: "terkumpul",
-      nilai: unitId === "semua" ? "437" : String(jumlahDari(90, info.total)),
+      nilai: unitId === "semua" ? "41" : String(jumlahDari(90, info.total)),
       label: "Jawaban esai terkumpul",
-      detail: "90,3% responden mengisi sedikitnya satu pertanyaan terbuka.",
+      detail: "90,3% guru/orang tua mengisi sedikitnya satu pertanyaan terbuka.",
     },
     {
       kode: "tempat_bercerita",
       nilai: "17,2%",
-      label: "Belum tahu tempat bercerita",
-      detail: "Perlu penguatan akses ke orang dewasa tepercaya.",
+      label: "Belum terbiasa mendekati orang dewasa",
+      detail: "Perlu penguatan akses ke orang dewasa tepercaya, baik di rumah maupun kelas.",
     },
     {
-      kode: "tekanan_belajar",
+      kode: "adaptasi_lingkungan",
       nilai: "24,7%",
-      label: "Menyebut tekanan belajar",
-      detail: "Tema muncul pada tugas, ujian, dan ekspektasi nilai.",
+      label: "Menyebut pola adaptasi lingkungan baru",
+      detail: "Tema muncul pada transisi awal semester, kegiatan baru, atau situasi tak terduga.",
     },
   ];
 
   return {
     meta: {
-      lembaga: "Sekolah Islam Athirah",
+      lembaga: "TK Fammi",
       unit_label: info.label,
       diperbarui: "28 Juli 2026",
       responden: info.total,
