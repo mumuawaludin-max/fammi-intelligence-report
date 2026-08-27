@@ -7,7 +7,11 @@ import TestimoniTab from "./TestimoniTab";
 import styles from "./Citra.module.css";
 
 export default function CitraSekolahPage({ session, periode, tab }) {
-  const { loading, error, errorTestimoni, data, ambilEsai } = useCsData(session, periode);
+  // Testimoni cuma ditarik saat tabnya dibuka. Tiga tab lain tidak memakainya sama sekali, dan
+  // ikut menunggu 14 ribuan baris beserta teksnya adalah penyebab utama tab ini terasa lambat.
+  const { loading, error, loadingTestimoni, errorTestimoni, data, ambilEsai } = useCsData(
+    session, periode, tab === "testimoni",
+  );
   const [kategoriEsai, setKategoriEsai] = useState({});
 
   // Kategori esai default per tab = kategori terbanyak, dipasang begitu datanya siap.
@@ -21,15 +25,21 @@ export default function CitraSekolahPage({ session, periode, tab }) {
     }));
   }, [data]);
 
-  const status = statusPanel({
-    loading,
-    error,
-    kosong: !loading && !error && data && data.keberhasilan.length === 0
-      && data.dukungan.length === 0 && data.emosi.length === 0 && data.totalTestimoni === 0,
-    judul: "Belum ada data Citra Sekolah",
-    pesan: "Refleksi orang tua untuk periode ini belum diimpor lewat modul Karakter.",
-  });
-  if (status) return status;
+  // Tab Testimoni SENGAJA tidak ikut pemeriksaan kosong bersama di bawah. Sumbernya tabel lain
+  // yang ditarik terpisah dan belakangan, jadi memakai ukuran yang sama akan menampilkan "belum
+  // ada data" selagi testimoninya justru masih dalam perjalanan. Tab itu mengurus status
+  // memuat/kosong/galatnya sendiri di dalam TestimoniTab.
+  if (tab !== "testimoni") {
+    const status = statusPanel({
+      loading,
+      error,
+      kosong: !loading && !error && data && data.keberhasilan.length === 0
+        && data.dukungan.length === 0 && data.emosi.length === 0,
+      judul: "Belum ada data Citra Sekolah",
+      pesan: "Refleksi orang tua untuk periode ini belum diimpor lewat modul Karakter.",
+    });
+    if (status) return status;
+  }
 
   if (tab === "keberhasilan") {
     return (
@@ -154,6 +164,8 @@ export default function CitraSekolahPage({ session, periode, tab }) {
 
   // ── Tab Testimoni ────────────────────────────────────────────────────────────────────────
   // Isinya cukup besar dan punya state saringannya sendiri, jadi tinggal di berkas terpisah.
+  if (loadingTestimoni) return statusPanel({ loading: true });
+
   return (
     <TestimoniTab
       data={data}

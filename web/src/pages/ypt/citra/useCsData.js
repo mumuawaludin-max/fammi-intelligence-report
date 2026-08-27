@@ -185,8 +185,24 @@ export function statistikTestimoni(rows, urutanKategori) {
   };
 }
 
-export function useCsData(session, periode) {
-  const [state, setState] = useState({ loading: true, error: null, errorTestimoni: null, rows: [], testimoni: [] });
+/**
+ * @param {object}  session
+ * @param {string}  periode
+ * @param {boolean} butuhTestimoni  true hanya saat tab Testimoni terbuka.
+ *
+ * Testimoni ditarik TERPISAH dan hanya saat tab-nya benar-benar dibuka, bukan sekaligus bersama
+ * refleksi. Sebelumnya keduanya ditarik dalam satu Promise.all, sehingga membuka tab "Bentuk
+ * Dukungan" ikut mengunduh 14.754 baris cs_testimoni beserta teks lengkapnya, lalu menokenisasi
+ * semuanya (~380 ms) di ringkasTestimoni -- padahal ketiga tab refleksi tidak memakai satu baris
+ * pun dari sana. Itu penyebab utama "Memuat data..." berkepanjangan di tab yang datanya sendiri
+ * kecil.
+ *
+ * Sekali ditarik, testimoni DISIMPAN selama key+periode tidak berubah, jadi bolak-balik antar tab
+ * tidak menembak query yang sama berulang kali.
+ */
+export function useCsData(session, periode, butuhTestimoni = false) {
+  const [state, setState] = useState({ loading: true, error: null, rows: [] });
+  const [testiState, setTestiState] = useState({ loading: false, error: null, rows: [], untuk: null });
   const sekolahList = useMemo(() => session?.schools || [], [session]);
   const key = sekolahList.map((s) => s.id).join(",");
 
@@ -194,46 +210,26 @@ export function useCsData(session, periode) {
     let alive = true;
     const ids = sekolahList.map((s) => s.id);
     if (ids.length === 0 || !periode) {
-      setState({ loading: false, error: null, errorTestimoni: null, rows: [], testimoni: [] });
-      return;
+      setState({ loading: false, error: null, rows: [] });
+      return undefined;
     }
 
     async function run() {
-      setState((s) => ({ ...s, loading: true, error: null, errorTestimoni: null }));
+      setState((s) => ({ ...s, loading: true, error: null }));
 
-      const [pernyataanRes, testiRes] = await Promise.all([
-        fetchAllRows((from, to) => supabase.from("karakter_pernyataan_ortu")
-          .select("sekolah_id, periode_id, sumber, murid_id, nama_murid, kelas_id, hal_disyukuri, dukungan_dibutuhkan, dukungan_lainnya, emosi_anak, alasan_emosi")
-          .in("sekolah_id", ids).eq("periode_id", periode).range(from, to)),
-        fetchAllRows((from, to) => supabase.from("cs_testimoni")
-          .select("id, sekolah_id, periode_id, nama, kelas, kategori, sumber, teks")
-          .in("sekolah_id", ids).eq("periode_id", periode).eq("tampilkan", true)
-          // Diurutkan submitted_at LALU id. Tanpa pemecah seri yang unik, urutan baris berwaktu
-          // sama tidak terdefinisi antar halaman, dan fetchAllRows menarik per 1.000 baris lewat
-          // LIMIT/OFFSET terpisah. Serinya besar dan nyata: 843 baris spreadsheet ditulis
-          // "April , 2026" tanpa tanggal, sehingga submitted_at-nya identik sampai milidetik.
-          // Akibatnya satu baris bisa muncul dua kali sementara baris lain tidak pernah terambil.
-          .order("submitted_at", { ascending: false })
-          .order("id", { ascending: true })
-          .range(from, to)),
-      ]);
+      // Kolom esai bebas (dukungan_lainnya, alasan_emosi) dan nama_murid sengaja IKUT di sini,
+      // bukan ditarik terpisah: blok "Top Essay" membacanya dari baris yang sama lewat ambilEsai,
+      // dan memisahkannya jadi query kedua justru menambah satu bolak-balik jaringan untuk data
+      // yang toh sudah pasti dibutuhkan begitu tabnya dibuka.
+      const res = await fetchAllRows((from, to) => supabase.from("karakter_pernyataan_ortu")
+        .select("sekolah_id, periode_id, sumber, murid_id, nama_murid, kelas_id, hal_disyukuri, dukungan_dibutuhkan, dukungan_lainnya, emosi_anak, alasan_emosi")
+        .in("sekolah_id", ids).eq("periode_id", periode).range(from, to));
 
       if (!alive) return;
-      if (pernyataanRes.error) {
-        setState({ loading: false, error: pernyataanRes.error.message, errorTestimoni: null, rows: [], testimoni: [] });
-        return;
-      }
-
-      // Kegagalan testimoni SENGAJA tidak membatalkan seluruh menu: sumbernya tabel lain, dan
-      // tiga tab refleksi harus tetap tampil. Tapi galatnya DIBAWA, bukan dibuang. Tanpa itu,
-      // query yang gagal tidak bisa dibedakan dari periode yang memang belum ada testimoninya,
-      // dan tab Testimoni menyuruh operator mengisi spreadsheet yang sebenarnya sudah terisi.
       setState({
         loading: false,
-        error: null,
-        errorTestimoni: testiRes.error ? testiRes.error.message : null,
-        rows: pernyataanRes.data || [],
-        testimoni: testiRes.error ? [] : (testiRes.data || []),
+        error: res.error ? res.error.message : null,
+        rows: res.error ? [] : (res.data || []),
       });
     }
 
@@ -241,19 +237,69 @@ export function useCsData(session, periode) {
     return () => { alive = false; };
   }, [key, periode]);
 
-  const data = useMemo(() => {
-    const metaBySekolah = {};
-    sekolahList.forEach((s) => { metaBySekolah[s.id] = s; });
+  const testiUntuk = `${key}|${periode}`;
 
+  useEffect(() => {
+    const ids = sekolahList.map((s) => s.id);
+
+    // Belum dibutuhkan, atau sudah pernah ditarik untuk kombinasi sekolah+periode yang sama.
+    if (!butuhTestimoni || ids.length === 0 || !periode) return undefined;
+    if (testiState.untuk === testiUntuk) return undefined;
+
+    async function run() {
+      setTestiState((s) => ({ ...s, loading: true, error: null }));
+
+      const res = await fetchAllRows((from, to) => supabase.from("cs_testimoni")
+        .select("id, sekolah_id, periode_id, nama, kelas, kategori, sumber, teks")
+        .in("sekolah_id", ids).eq("periode_id", periode).eq("tampilkan", true)
+        // Diurutkan submitted_at LALU id. Tanpa pemecah seri yang unik, urutan baris berwaktu
+        // sama tidak terdefinisi antar halaman, dan fetchAllRows menarik per 1.000 baris lewat
+        // LIMIT/OFFSET terpisah. Serinya besar dan nyata: 843 baris spreadsheet ditulis
+        // "April , 2026" tanpa tanggal, sehingga submitted_at-nya identik sampai milidetik.
+        // Akibatnya satu baris bisa muncul dua kali sementara baris lain tidak pernah terambil.
+        .order("submitted_at", { ascending: false })
+        .order("id", { ascending: true })
+        .range(from, to));
+
+      // TIDAK ada penjaga "alive" di sini, dan itu disengaja. Effect ini ikut dibersihkan setiap
+      // kali pembaca berpindah tab (butuhTestimoni berubah), bukan cuma saat komponennya dilepas.
+      // Kalau hasilnya dibuang pada pembersihan itu, testimoni yang sudah selesai diunduh hilang
+      // percuma dan harus ditarik ulang dari nol begitu tabnya dibuka lagi. Menyimpannya aman:
+      // `untuk` mengunci hasil ke kombinasi sekolah+periode yang memintanya, jadi respons yang
+      // datang terlambat tidak mungkin menimpa data periode lain.
+      setTestiState({
+        loading: false,
+        error: res.error ? res.error.message : null,
+        rows: res.error ? [] : (res.data || []),
+        untuk: testiUntuk,
+      });
+    }
+
+    run();
+    return undefined;
+  }, [butuhTestimoni, testiUntuk, testiState.untuk, key, periode]);
+
+  const metaBySekolah = useMemo(() => {
+    const peta = {};
+    sekolahList.forEach((s) => { peta[s.id] = s; });
+    return peta;
+  }, [sekolahList]);
+
+  /**
+   * Ringkasan testimoni dipisah ke memo SENDIRI, bukan digabung ke memo `data` di bawah.
+   * Kalau digabung, menokenisasi 13 ribu testimoni ikut berjalan ulang setiap kali baris refleksi
+   * berubah, dan sebaliknya -- padahal keduanya dari tabel yang berbeda dan berubah di waktu yang
+   * berbeda pula.
+   */
+  const testi = useMemo(
+    () => ringkasTestimoni(testiState.rows, metaBySekolah),
+    [testiState.rows, metaBySekolah],
+  );
+
+  const data = useMemo(() => {
     // Refleksi orang tua saja -- menu ini bernama "di Mata Orangtua". Baris lama sebelum fitur
     // multi-sumber (sumber NULL) dianggap orang tua, sama seperti konvensi REFLEKSI_META.
     const ortu = state.rows.filter((r) => !r.sumber || r.sumber === "orangtua");
-
-    // Testimoni diringkas LEBIH DULU dan terpisah dari refleksi. Sumbernya tabel lain (cs_testimoni
-    // dari spreadsheet, bukan karakter_pernyataan_ortu), jadi periode yang punya testimoni tapi
-    // belum punya impor refleksi tetap harus menampilkan tab Testimoni. Versi sebelumnya keluar
-    // lebih awal di sini dan ikut mengosongkan testimoninya.
-    const testi = ringkasTestimoni(state.testimoni, metaBySekolah);
 
     if (ortu.length === 0) return { ...KOSONG, ...testi };
 
@@ -303,7 +349,7 @@ export function useCsData(session, periode) {
       emosi: ringkasEmosi(),
       ...testi,
     };
-  }, [state.rows, state.testimoni, sekolahList]);
+  }, [state.rows, testi, metaBySekolah]);
 
   /**
    * Esai untuk kategori terpilih. topik "keberhasilan" TIDAK punya esai bebas (hal_disyukuri
@@ -315,8 +361,6 @@ export function useCsData(session, periode) {
    */
   async function ambilEsai(topik, kategori, batas = 10) {
     if (!kategori) return [];
-    const metaBySekolah = {};
-    sekolahList.forEach((s) => { metaBySekolah[s.id] = s; });
     const ortu = state.rows.filter((r) => !r.sumber || r.sumber === "orangtua");
 
     let field, options, esaiField;
@@ -339,5 +383,14 @@ export function useCsData(session, periode) {
       }));
   }
 
-  return { loading: state.loading, error: state.error, errorTestimoni: state.errorTestimoni, data, ambilEsai };
+  return {
+    loading: state.loading,
+    error: state.error,
+    // Status testimoni terpisah dari status refleksi. Tab Testimoni menunggu query-nya sendiri,
+    // sedangkan tiga tab refleksi tidak boleh ikut menunggu -- itu justru inti perbaikannya.
+    loadingTestimoni: testiState.loading || (butuhTestimoni && testiState.untuk !== testiUntuk),
+    errorTestimoni: testiState.error,
+    data,
+    ambilEsai,
+  };
 }

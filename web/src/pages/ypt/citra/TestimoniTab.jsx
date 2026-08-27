@@ -394,10 +394,11 @@ function BlokKategori({ kategoriStat, kategoriAktif, onPilih }) {
   return (
     <>
       <SectionTitle>Sebaran Kategori</SectionTitle>
+      {/* Catatan sengaja satu kalimat. Yang tidak boleh hilang cuma peringatan bahwa jumlahnya
+          melebihi 100%, karena tanpa itu angkanya terbaca sebagai salah hitung. */}
       <p className={styles.catatanBlok}>
-        Satu testimoni bisa membawa lebih dari satu label, jadi persentasenya dihitung terhadap
-        total testimoni dan jumlahnya melebihi 100%. Klik satu baris untuk menyaring seluruh
-        tampilan di bawah.
+        Satu testimoni bisa berlabel lebih dari satu, jadi totalnya melebihi 100%. Klik untuk
+        menyaring.
       </p>
 
       <div className={styles.kartuBlok} ref={ref}>
@@ -462,10 +463,7 @@ function BlokPenulis({ perSumber, kategoriStat, total }) {
     <>
       <SectionTitle>Orangtua Berbicara Apa, Siswa Berbicara Apa</SectionTitle>
       <p className={styles.catatanBlok}>
-        Porsi tiap label DI DALAM masing-masing kelompok penulis, bukan jumlahnya. Keduanya
-        berbeda besar, jadi jumlah mentah cuma akan mengulang mana yang lebih banyak menulis.
-        Penulis dibaca dari kolom Nama di spreadsheet: yang berawalan "Orangtua" berarti diisi
-        orang tua, sisanya diisi siswa itu sendiri.
+        Porsi label di dalam tiap kelompok, bukan jumlahnya.
       </p>
 
       <div className={styles.penulisGrid} ref={ref}>
@@ -473,7 +471,7 @@ function BlokPenulis({ perSumber, kategoriStat, total }) {
           <section
             key={s.id}
             className={`${styles.penulisKartu} ${styles.reveal} ${terlihat ? styles.revealAktif : ""}`}
-            style={{ borderTopColor: s.warna, transitionDelay: `${iS * 100}ms` }}
+            style={{ transitionDelay: `${iS * 100}ms` }}
           >
             <header className={styles.penulisHead}>
               <span className={styles.penulisJudul} style={{ color: s.warna }}>{s.label}</span>
@@ -524,8 +522,7 @@ function BlokJenjang({ perJenjang, kategoriStat }) {
     <>
       <SectionTitle>Komposisi Label per Jenjang</SectionTitle>
       <p className={styles.catatanBlok}>
-        Proporsi tiap label di dalam satu jenjang. Dibaca sebagai perbandingan nada antar jenjang,
-        bukan sebagai jumlah testimoni.
+        Perbandingan nada antar jenjang, bukan jumlah testimoni.
       </p>
 
       <div className={styles.kartuBlok} ref={ref}>
@@ -632,9 +629,10 @@ function BlokSekolah({ perSekolah, sekolahAktif, urutSekolah, onGantiUrut, onPil
 
       <p className={styles.catatanBlok}>
         {urutSekolah === "total"
-          ? "Dua belas sekolah dengan testimoni terbanyak. Bagian merah adalah testimoni berlabel Keluhan atau Kritik."
-          : `Diurutkan dari proporsi Keluhan dan Kritik tertinggi. Sekolah dengan kurang dari ${MIN_UNTUK_PROPORSI} testimoni tidak diikutkan, karena satu keluhan dari tiga testimoni bukan pola.`}
-        {" Klik satu sekolah untuk menyaring tampilan di bawah."}
+          ? "Bagian merah = Keluhan atau Kritik. Klik untuk menyaring."
+          // Ambangnya tetap disebut walau ringkas: tanpa itu, pembaca yang mencari sekolahnya
+          // sendiri di daftar ini tidak punya cara tahu kenapa sekolahnya tidak muncul.
+          : `Minimal ${MIN_UNTUK_PROPORSI} testimoni. Klik untuk menyaring.`}
       </p>
 
       <div className={styles.kartuBlok} ref={ref}>
@@ -738,23 +736,10 @@ function BlokPetaKata({
       </SectionTitle>
 
       <p className={styles.catatanBlok}>
-        {modeKata === "khas" ? (
-          <>
-            Kata yang <b>membedakan</b> tiap kategori, bukan yang terbanyak. Ukurannya mengikuti
-            seberapa jauh satu kata lebih sering muncul di kategori ini dibanding di testimoni
-            lainnya. Dipakai sebagai mode utama karena frekuensi mentah membuat kelima kategori
-            menampilkan kata yang sama persis, yaitu kosakata umum semua orang yang menulis soal
-            sekolah, sehingga membandingkannya tidak memberi tahu apa pun.
-          </>
-        ) : (
-          <>
-            Kata yang paling banyak disebut di tiap kategori. Ukurannya mengikuti jumlah testimoni
-            yang menyebutnya, bukan jumlah kemunculan, supaya satu orang yang menulis panjang tidak
-            terbaca sebagai banyak suara.
-          </>
-        )}
-        {!kataUmum && " Kata sapaan, nama peran, dan kata yang mengulang nama kategori disembunyikan."}
-        {" Klik kata mana pun untuk membaca testimoni aslinya di bawah."}
+        {modeKata === "khas"
+          ? <>Kata yang <b>membedakan</b> tiap kategori, bukan yang terbanyak.</>
+          : "Kata yang paling banyak disebut di tiap kategori."}
+        {" Angka = jumlah testimoni yang menyebutnya. Klik untuk membacanya."}
       </p>
 
       <div
@@ -765,7 +750,7 @@ function BlokPetaKata({
           <section
             key={k.id}
             className={`${styles.cloudKartu} ${styles.reveal} ${terlihat ? styles.revealAktif : ""}`}
-            style={{ borderTopColor: k.warna, transitionDelay: `${i * 85}ms` }}
+            style={{ transitionDelay: `${i * 85}ms` }}
           >
             <header className={styles.cloudHead}>
               <span className={styles.cloudJudul}>
@@ -779,9 +764,8 @@ function BlokPetaKata({
 
             <WordCloud
               kata={k.kata}
-              warna={k.warnaTeks}
+              warna={k.warna}
               kataAktif={kategoriAktif === k.id ? kataAktif : null}
-              skala={[12, 27]}
               terlihat={terlihat}
               tundaAwal={i * 85}
               onPilihKata={(kata) => onPilihKata(k.id, kata)}
