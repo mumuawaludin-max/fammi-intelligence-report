@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, useTransition } from "react";
 import { SectionTitle, statusPanel } from "../components/Bits";
 import { useReveal, useCountUp } from "../components/useReveal";
 import { CS_SUMBER } from "../yptMeta";
@@ -36,6 +36,26 @@ export default function TestimoniTab({ data, galat, jumlahSekolahNaungan }) {
   const [modeKata, setModeKata] = useState("khas");
   const [urutSekolah, setUrutSekolah] = useState("total");
   const [batasDetail, setBatasDetail] = useState(12);
+
+  /**
+   * `sekolahAktif`, `sumberAktif`, `kataUmum`, dan `modeKata` masing-masing memicu ulang seluruh
+   * rantai statistikTestimoni + hitungKataKhas/hitungKata di atas 13 ribu testimoni. Diukur di
+   * komentar `statSemua` dan `kartuKata` di bawah: sampai ~1.000 ms sekali hitung. Kalau setter
+   * itu dipanggil langsung, React merender ulang SEMUA blok ini secara sinkron di dalam satu
+   * commit, dan selama itu browser tidak bisa mengecat frame baru maupun memproses klik lain --
+   * layar terasa membeku persis sepanjang durasi hitungnya.
+   *
+   * `startTransition` menandai update itu sebagai berprioritas rendah: React tetap merender ulang
+   * blok yang sama, tapi boleh menyelanya untuk mengecat frame lain dulu (termasuk membalas klik
+   * berikutnya), dan `isPending` dipakai untuk menandai visual "sedang menghitung" di bagian yang
+   * terdampak. Ini tidak mempercepat perhitungannya sendiri -- itu perbaikan terpisah kalau nanti
+   * dibutuhkan (Web Worker) -- tapi mencegah satu klik terasa mengunci seluruh halaman.
+   *
+   * `kategoriAktif`/`kataAktif`/`cari` SENGAJA tidak ikut ditransisikan: ketiganya cuma menyaring
+   * `detail` lewat `.filter()` biasa, bukan menghitung ulang word cloud, jadi tetap murah dan
+   * harus terasa instan seperti mengetik biasa.
+   */
+  const [sedangMenghitung, mulaiTransisi] = useTransition();
 
   const semua = data.testimoni || [];
   const totalPeriode = data.totalTestimoni || 0;
@@ -154,9 +174,23 @@ export default function TestimoniTab({ data, galat, jumlahSekolahNaungan }) {
   function resetSaringan() {
     setKategoriAktif(null);
     setKataAktif(null);
-    setSekolahAktif("");
-    setSumberAktif("");
     setCari("");
+    // Cuma dua setter mahal ini yang perlu ditransisikan; tiga di atas murah (lihat catatan di
+    // deklarasi useTransition).
+    mulaiTransisi(() => {
+      setSekolahAktif("");
+      setSumberAktif("");
+    });
+  }
+
+  /** Ganti sekolah aktif, dari mana pun sumbernya (kartu Suara per Sekolah atau dropdown Detail). */
+  function gantiSekolah(id) {
+    mulaiTransisi(() => setSekolahAktif(id));
+  }
+
+  /** Ganti penulis aktif dari tombol "Ditulis oleh". */
+  function gantiSumber(id) {
+    mulaiTransisi(() => setSumberAktif(id));
   }
 
   const dominan = [...kategoriStat].sort((a, b) => b.jumlah - a.jumlah)[0];
@@ -176,7 +210,7 @@ export default function TestimoniTab({ data, galat, jumlahSekolahNaungan }) {
             <button
               type="button"
               className={`${styles.toggleBtn} ${!sumberAktif ? styles.toggleBtnAktif : ""}`}
-              onClick={() => setSumberAktif("")}
+              onClick={() => gantiSumber("")}
             >
               Semua
             </button>
@@ -186,7 +220,7 @@ export default function TestimoniTab({ data, galat, jumlahSekolahNaungan }) {
                 type="button"
                 className={`${styles.toggleBtn} ${sumberAktif === s.id ? styles.toggleBtnAktif : ""}`}
                 style={sumberAktif === s.id ? { color: s.warna } : undefined}
-                onClick={() => setSumberAktif(sumberAktif === s.id ? "" : s.id)}
+                onClick={() => gantiSumber(sumberAktif === s.id ? "" : s.id)}
                 disabled={hitungSumber[s.id] === 0}
               >
                 {s.label}
@@ -236,15 +270,16 @@ export default function TestimoniTab({ data, galat, jumlahSekolahNaungan }) {
         sekolahAktif={sekolahAktif}
         urutSekolah={urutSekolah}
         onGantiUrut={setUrutSekolah}
-        onPilih={(id) => setSekolahAktif(sekolahAktif === id ? "" : id)}
+        onPilih={(id) => gantiSekolah(sekolahAktif === id ? "" : id)}
       />
 
       <BlokPetaKata
         kartuKata={kartuKata}
+        sedangMenghitung={sedangMenghitung}
         modeKata={modeKata}
-        onGantiMode={setModeKata}
+        onGantiMode={(v) => mulaiTransisi(() => setModeKata(v))}
         kataUmum={kataUmum}
-        onGantiKataUmum={setKataUmum}
+        onGantiKataUmum={(v) => mulaiTransisi(() => setKataUmum(v))}
         kategoriAktif={kategoriAktif}
         kataAktif={kataAktif}
         onPilihKata={(idKategori, kata) => {
@@ -267,7 +302,7 @@ export default function TestimoniTab({ data, galat, jumlahSekolahNaungan }) {
         perSekolah={perSekolah}
         kategoriStat={kategoriStat}
         sekolahAktif={sekolahAktif}
-        onGantiSekolah={setSekolahAktif}
+        onGantiSekolah={gantiSekolah}
         cari={cari}
         onGantiCari={setCari}
         kategoriAktif={kategoriAktif}
@@ -654,7 +689,7 @@ function BlokSekolah({ perSekolah, sekolahAktif, urutSekolah, onGantiUrut, onPil
 /* ══ Peta kata per kategori ════════════════════════════════════════════════════════════════ */
 
 function BlokPetaKata({
-  kartuKata, modeKata, onGantiMode, kataUmum, onGantiKataUmum,
+  kartuKata, sedangMenghitung, modeKata, onGantiMode, kataUmum, onGantiKataUmum,
   kategoriAktif, kataAktif, onPilihKata, onBacaKategori,
 }) {
   const [ref, terlihat] = useReveal();
@@ -664,6 +699,14 @@ function BlokPetaKata({
       <SectionTitle
         aksi={(
           <span className={styles.aksiGrup}>
+            {/* Muncul selama transisi dari useTransition masih berjalan -- lihat catatan di
+                TestimoniTab soal kenapa perhitungan kata sengaja tidak langsung menutup layar,
+                tapi tetap butuh penanda supaya pembaca tahu klik tadi diproses, bukan diabaikan. */}
+            {sedangMenghitung && (
+              <span className={styles.sedangHitung} role="status" aria-live="polite">
+                Menghitung ulang…
+              </span>
+            )}
             <span className={styles.togglePair}>
               <button
                 type="button"
@@ -714,7 +757,10 @@ function BlokPetaKata({
         {" Klik kata mana pun untuk membaca testimoni aslinya di bawah."}
       </p>
 
-      <div className={styles.cloudGrid} ref={ref}>
+      <div
+        className={`${styles.cloudGrid} ${sedangMenghitung ? styles.cloudGridHitung : ""}`}
+        ref={ref}
+      >
         {kartuKata.map((k, i) => (
           <section
             key={k.id}

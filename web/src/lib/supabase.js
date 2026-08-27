@@ -13,20 +13,50 @@ const PAGE_SIZE = 1000;
 
 /**
  * Supabase/PostgREST diam-diam memotong hasil query di 1000 baris tanpa error -- tabel
- * detail (skor per murid, pernyataan ortu, hasil MI) gampang melewati itu untuk sekolah
- * menengah-besar. builderFn menerima (from, to) dan HARUS mengembalikan query builder yang
- * belum di-await (bukan builder bekas), supaya tiap halaman benar-benar request baru.
+ * detail (skor per murid, pernyataan ortu, hasil MI, testimoni) gampang melewati itu untuk
+ * sekolah menengah-besar atau seluruh yayasan. builderFn menerima (from, to) dan HARUS
+ * mengembalikan query builder yang belum di-await (bukan builder bekas), supaya tiap halaman
+ * benar-benar request baru.
+ *
+ * Halaman ditembak BERKELOMPOK secara paralel, bukan satu-satu berurutan. Diukur pada dashboard
+ * YPT (2026-08-28): tabel testimoni 14 ribuan baris makan 14-15 permintaan sekuensial, tiap
+ * permintaan menunggu balasan sebelumnya lebih dulu -- pada RTT 150-300ms itu 2-4 detik cuma
+ * dari latensi jaringan yang ditumpuk seri, sebelum Postgres sempat dihitung. Dengan concurrency
+ * 4, jumlah bolak-balik jaringan turun jadi seperlima.
+ *
+ * Halaman pertama TETAP ditembak sendirian sebelum yang lain menyusul berkelompok. Alasannya:
+ * mayoritas pemanggil fetchAllRows di aplikasi ini (daftar sekolah, satu periode Survey Kepuasan,
+ * dst) datanya muat dalam satu halaman, dan menembakkan `concurrency` permintaan sekaligus untuk
+ * kasus itu cuma memboroskan tiga per empat permintaan yang pasti kembali kosong. Baru begitu
+ * halaman pertama penuh (berarti kemungkinan besar ada lagi), sisanya ditembak paralel.
  */
-export async function fetchAllRows(builderFn, pageSize = PAGE_SIZE) {
-  let all = [];
-  let from = 0;
+export async function fetchAllRows(builderFn, pageSize = PAGE_SIZE, concurrency = 4) {
+  const pertama = await builderFn(0, pageSize - 1);
+  if (pertama.error) return { data: null, error: pertama.error };
+
+  let all = pertama.data || [];
+  if (all.length < pageSize) return { data: all, error: null };
+
+  let from = pageSize;
   for (;;) {
-    const { data, error } = await builderFn(from, from + pageSize - 1);
-    if (error) return { data: null, error };
-    const chunk = data || [];
-    all = all.concat(chunk);
-    if (chunk.length < pageSize) break;
-    from += pageSize;
+    const awalHalaman = Array.from({ length: concurrency }, (_, i) => from + i * pageSize);
+    // eslint-disable-next-line no-await-in-loop -- kelompok ini memang harus selesai lebih dulu
+    // sebelum tahu apakah kelompok berikutnya masih perlu ditembak.
+    const hasil = await Promise.all(awalHalaman.map((f) => builderFn(f, f + pageSize - 1)));
+
+    let selesai = false;
+    for (const { data, error } of hasil) {
+      if (error) return { data: null, error };
+      const chunk = data || [];
+      all = all.concat(chunk);
+      // Begitu satu halaman dalam kelompok ini kembali kurang dari penuh, itu halaman terakhir.
+      // Halaman sesudahnya di kelompok yang sama pasti kosong (offset yang sudah lewat total
+      // baris selalu membalas array kosong, bukan galat), jadi sisa hasil kelompok ini aman
+      // dilewati tanpa memeriksanya satu per satu.
+      if (chunk.length < pageSize) { selesai = true; break; }
+    }
+    if (selesai) break;
+    from += concurrency * pageSize;
   }
   return { data: all, error: null };
 }

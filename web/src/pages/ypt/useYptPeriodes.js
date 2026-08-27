@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { supabase } from "../../lib/supabase";
+import { supabase, fetchAllRows } from "../../lib/supabase";
 
 /**
  * Daftar periode yang benar-benar punya data untuk sekolah-sekolah satu yayasan, terurut terbaru
@@ -20,10 +20,21 @@ export function useYptPeriodes(session) {
     if (sekolahIds.length === 0) { setPeriodes([]); return; }
 
     async function run() {
+      // fetchAllRows dipakai lewat KETIGANYA, bukan cuma tabel yang kelihatan besar. Query
+      // sebelumnya tanpa .range() tampak aman untuk ypt_k_sekolah/kp_responden yang baris per
+      // sekolahnya sedikit, tapi cs_testimoni sendirian sudah 14 ribuan baris satu yayasan --
+      // PostgREST memotong balasannya diam-diam di 1000 baris tanpa galat, jadi periode yang
+      // testimoninya baru masuk belakangan bisa hilang dari pemilih tanpa jejak. fetchAllRows
+      // sekarang juga menembak halaman lanjutannya berkelompok paralel, bukan satu-satu, jadi
+      // perbaikan ini tidak menambah waktu tunggu dibanding query lama untuk kasus yang muat
+      // satu halaman.
       const [karakterRes, kpRes, testiRes] = await Promise.all([
-        supabase.from("ypt_k_sekolah").select("periode_id").in("sekolah_id", sekolahIds),
-        supabase.from("kp_responden").select("periode_id").in("sekolah_id", sekolahIds),
-        supabase.from("cs_testimoni").select("periode_id").in("sekolah_id", sekolahIds),
+        fetchAllRows((from, to) => supabase.from("ypt_k_sekolah")
+          .select("periode_id").in("sekolah_id", sekolahIds).range(from, to)),
+        fetchAllRows((from, to) => supabase.from("kp_responden")
+          .select("periode_id").in("sekolah_id", sekolahIds).range(from, to)),
+        fetchAllRows((from, to) => supabase.from("cs_testimoni")
+          .select("periode_id").in("sekolah_id", sekolahIds).range(from, to)),
       ]);
 
       if (!alive) return;

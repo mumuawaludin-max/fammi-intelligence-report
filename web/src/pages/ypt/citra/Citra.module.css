@@ -577,6 +577,15 @@
   gap: 16px;
   margin-bottom: 34px;
   align-items: start;
+  transition: opacity 0.15s ease;
+}
+
+/* Dipasang selama useTransition di TestimoniTab masih menghitung ulang kartu-kartu ini (klik
+   sekolah/penulis/mode kata). Kartu LAMA tetap terlihat, cuma diredupkan -- bukan diganti
+   kerangka kosong -- supaya pembaca tidak kehilangan konteks tepat saat menunggu hasil baru. */
+.cloudGridHitung {
+  opacity: 0.45;
+  pointer-events: none;
 }
 
 .cloudKartu {
@@ -631,6 +640,13 @@
 .cloudAksi:hover { text-decoration: underline; }
 
 .aksiGrup { display: inline-flex; align-items: center; gap: 20px; }
+
+.sedangHitung {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--ypt-ink-3);
+  font-style: italic;
+}
 
 /* ── Word cloud ─────────────────────────────────────────────────────────────────────────── */
 .cloud {
