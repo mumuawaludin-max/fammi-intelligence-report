@@ -13,6 +13,10 @@ import styles from "./PetaProvinsi.module.css";
  *      pencapaiannya. Bukan sebuah titik di atas peta abu-abu.
  *   3. Area kliknya seluas provinsinya, bukan lingkaran 12 piksel.
  *   4. Bisa diperbesar dan digeser, dan warnanya berdenyut pelan tanpa henti.
+ *   5. Hover atau klik satu provinsi memunculkan tooltip mengambang di titik tengahnya, dan
+ *      meredupkan provinsi lain sampai fill-opacity 0,14 supaya yang sedang dibaca menonjol
+ *      sendirian (2026-08-28). Teks petunjuk statis di kaki peta dihapus karena interaksi ini
+ *      sudah cukup menjelaskan dirinya sendiri.
  *
  * Level PROVINSI, bukan kabupaten/kota. Versi kabupaten sempat dibangun lebih dulu lalu dibuang:
  * pada lebar layar dashboard, satu kota seperti Kota Makassar cuma selebar dua piksel, sehingga
@@ -85,7 +89,7 @@ export default function PetaProvinsi({ provinsi, aktif, onPilih, kotaTanpaProvin
    * svg-nya belum ada. Commit BERIKUTNYA baru memasang svg, dan di commit itu `geo` sudah tidak
    * berubah lagi sehingga `perbesar` identitasnya tetap dan effect-nya tidak pernah jalan lagi.
    * Diuji langsung: sebelum perbaikan ini, menggulir di atas peta menggulirkan seluruh halaman
-   * dan tidak memperbesar apa pun, persis kebalikan dari yang tertulis di petunjuk peta.
+   * dan tidak memperbesar apa pun sama sekali.
    */
   const svgRef = useRef(null);
   const [svgEl, setSvgEl] = useState(null);
@@ -125,6 +129,40 @@ export default function PetaProvinsi({ provinsi, aktif, onPilih, kotaTanpaProvin
     (provinsi || []).forEach((p) => peta.set(p.nama, p));
     return peta;
   }, [provinsi]);
+
+  /** Nama provinsi -> entri geometrinya (buat mengambil kotak pembatas untuk posisi tooltip). */
+  const geoByNama = useMemo(() => {
+    const peta = new Map();
+    (geo?.wilayah || []).forEach((w) => { if (dataProvinsi.has(w.n)) peta.set(w.n, w); });
+    return peta;
+  }, [geo, dataProvinsi]);
+
+  /**
+   * Provinsi yang sedang di-hover. Terpisah dari `aktif` (yang diklik/terpilih): hover
+   * menunjukkan pratinjau sementara, aktif menunjukkan pilihan yang bertahan setelah kursor
+   * pergi. `fokus` menggabungkan keduanya -- hover diutamakan selama kursor masih di atasnya,
+   * jatuh kembali ke provinsi terpilih begitu kursor pergi.
+   */
+  const [hoverNama, setHoverNama] = useState(null);
+  const fokusNama = hoverNama || aktif;
+  const fokusWilayah = fokusNama ? geoByNama.get(fokusNama) : null;
+  const fokusData = fokusNama ? dataProvinsi.get(fokusNama) : null;
+
+  /**
+   * Posisi tooltip dalam PERSEN terhadap kanvas, bukan piksel dari getBoundingClientRect().
+   * SVG-nya mengisi penuh kanvas lewat viewBox, jadi posisi persen terhadap tampak (viewBox aktif)
+   * otomatis sama dengan posisi persen terhadap kanvas -- tidak perlu mengukur DOM sama sekali,
+   * dan tooltipnya tetap tepat saat digeser atau diperbesar karena `tampak` ikut berubah.
+   */
+  let tipStyle = null;
+  if (fokusWilayah && tampak) {
+    const [bx, by, bw, bh] = fokusWilayah.b;
+    const klem = (v) => Math.min(96, Math.max(4, v));
+    tipStyle = {
+      left: `${klem(((bx + bw / 2 - tampak.x) / tampak.w) * 100)}%`,
+      top: `${klem(((by + bh / 2 - tampak.y) / tampak.h) * 100)}%`,
+    };
+  }
 
   /**
    * Provinsi yang ada di data tapi namanya tidak ketemu di geometri. Ini kesalahan pemetaan yang
@@ -248,6 +286,11 @@ export default function PetaProvinsi({ provinsi, aktif, onPilih, kotaTanpaProvin
       const jauh = Math.abs(targetX - s.mulaiView.x) + Math.abs(targetY - s.mulaiView.y);
       if (jauh < s.mulaiView.w * 0.004) return;
       s.geser = true;
+      // Geseran sungguhan dimulai, bukan sekadar klik. Pointer capture pada svg membuat provinsi
+      // di bawah kursor tidak lagi menerima pointerleave selama menyeret, jadi hover yang sempat
+      // menyala sebelum menyeret harus dipadamkan manual di sini, kalau tidak tooltipnya nyangkut
+      // di provinsi awal sepanjang seretan.
+      setHoverNama(null);
     }
     setTampak(jepit({ ...s.mulaiView, x: targetX, y: targetY }));
   }
@@ -343,6 +386,11 @@ export default function PetaProvinsi({ provinsi, aktif, onPilih, kotaTanpaProvin
             const data = dataProvinsi.get(w.n);
             if (!data) return null;
             const isAktif = aktif === data.nama;
+            const isHoverIni = hoverNama === data.nama;
+            // Provinsi ini diredupkan kalau ADA provinsi lain yang sedang jadi fokus (hover atau
+            // terpilih), tapi bukan dirinya sendiri. Tanpa syarat "bukan dirinya sendiri", provinsi
+            // yang sedang di-hover akan ikut meredup bersama yang lain.
+            const redup = !!fokusNama && fokusNama !== data.nama;
             const warna = warnaPeta(data.nilai);
             return (
               <g key={w.n}>
@@ -353,7 +401,12 @@ export default function PetaProvinsi({ provinsi, aktif, onPilih, kotaTanpaProvin
                   stroke={WARNA_GARIS}
                   strokeWidth={isAktif ? 2 : 1}
                   vectorEffect="non-scaling-stroke"
-                  className={`${styles.provinsi} ${isAktif ? styles.provinsiTerpilih : ""}`}
+                  className={[
+                    styles.provinsi,
+                    isAktif ? styles.provinsiTerpilih : "",
+                    isHoverIni && !isAktif ? styles.provinsiHover : "",
+                    redup ? styles.provinsiRedup : "",
+                  ].filter(Boolean).join(" ")}
                   // Denyut warna ditunda berbeda-beda per provinsi supaya peta bernapas seperti
                   // riak yang menyebar, bukan berkedip serempak seperti lampu peringatan.
                   style={{ animationDelay: `${(i % 7) * 0.45}s` }}
@@ -362,7 +415,8 @@ export default function PetaProvinsi({ provinsi, aktif, onPilih, kotaTanpaProvin
                 {/* Sasaran klik terpisah. Lingkar sentuh 16 piksel dinyatakan lewat
                     vector-effect, jadi tetap 16 piksel di semua tingkat perbesaran; DKI Jakarta
                     lebarnya cuma beberapa piksel pada zoom penuh dan tanpa ini nyaris tidak bisa
-                    ditekan, terutama di layar sentuh. */}
+                    ditekan, terutama di layar sentuh. Hover/fokus dipasang di elemen yang sama
+                    ini, bukan di path isian, karena isiannya pointer-events:none. */}
                 <path
                   d={w.d}
                   fill="transparent"
@@ -374,8 +428,16 @@ export default function PetaProvinsi({ provinsi, aktif, onPilih, kotaTanpaProvin
                   role="button"
                   tabIndex={0}
                   aria-pressed={isAktif}
-                  aria-label={`${data.label}, ${data.jumlahSekolah} sekolah, pencapaian `
+                  // Nama kota ikut masuk aria-label, bukan cuma di tooltip visual: tooltip
+                  // adalah elemen presentasional (aria-hidden), jadi pembaca layar hanya
+                  // mendapat detail lewat teks nama yang bisa diakses ini.
+                  aria-label={`${data.label}, ${data.jumlahSekolah} sekolah di `
+                    + `${data.kotaList.join(", ")}, pencapaian `
                     + `${data.nilai == null ? "belum ada" : `${data.nilai} persen`}`}
+                  onPointerEnter={() => setHoverNama(data.nama)}
+                  onPointerLeave={() => setHoverNama((h) => (h === data.nama ? null : h))}
+                  onFocus={() => setHoverNama(data.nama)}
+                  onBlur={() => setHoverNama((h) => (h === data.nama ? null : h))}
                   onClick={(e) => {
                     if (baruSajaGeser.current) return;
                     e.stopPropagation();
@@ -387,17 +449,27 @@ export default function PetaProvinsi({ provinsi, aktif, onPilih, kotaTanpaProvin
                       pilihWilayah(w, data);
                     }
                   }}
-                >
-                  <title>
-                    {`${data.label}\n`}
-                    {`${data.nilai == null ? "belum ada data" : `${data.nilai}%`} `}
-                    {`· ${data.jumlahSekolah} sekolah · ${data.kotaList.join(", ")}`}
-                  </title>
-                </path>
+                />
               </g>
             );
           })}
         </svg>
+
+        {/* Tooltip mengambang, mengikuti provinsi yang sedang di-hover atau terpilih. Persen kiri
+            dan atasnya diturunkan dari titik tengah kotak pembatas provinsi terhadap viewBox
+            aktif -- lihat perhitungan tipStyle di atas. aria-hidden karena isinya duplikat dari
+            aria-label yang sudah dibaca pembaca layar lewat elemen sasaran. */}
+        {fokusData && tipStyle && (
+          <div className={styles.tooltip} style={tipStyle} aria-hidden="true">
+            <span className={styles.tooltipNama}>{fokusData.label}</span>
+            <span className={styles.tooltipNilai}>
+              {fokusData.nilai == null ? "belum ada data" : `${fokusData.nilai}%`}
+            </span>
+            <span className={styles.tooltipSub}>
+              {fokusData.jumlahSekolah} sekolah · {fokusData.kotaList.join(", ")}
+            </span>
+          </div>
+        )}
 
         <div className={styles.kontrol}>
           {/* Kedua tombol dinonaktifkan di ujung rentangnya. Tombol yang bisa ditekan tapi tidak
@@ -454,7 +526,6 @@ export default function PetaProvinsi({ provinsi, aktif, onPilih, kotaTanpaProvin
           <span className={styles.legendDot} style={{ background: WARNA_DIAM }} />
           Tanpa sekolah YPT
         </span>
-        <span className={styles.petunjuk}>Gulir untuk memperbesar, seret untuk menggeser.</span>
       </div>
 
       {kotaTanpaProvinsi.length > 0 && (

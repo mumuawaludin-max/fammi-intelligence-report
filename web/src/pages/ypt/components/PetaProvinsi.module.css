@@ -53,6 +53,9 @@
 .provinsi {
   pointer-events: none;
   animation: napasWarna 4.2s ease-in-out infinite;
+  /* Berlaku begitu salah satu modifier di bawah mematikan `animation`: peralihan opasitasnya jadi
+     mulus alih-alih meloncat, baik saat mulai diredupkan maupun saat kembali bernapas normal. */
+  transition: fill-opacity 0.18s ease;
 }
 
 @keyframes napasWarna {
@@ -72,6 +75,22 @@
 
 @keyframes semut {
   to { stroke-dashoffset: -20; }
+}
+
+/* Provinsi yang sedang di-hover (belum tentu terpilih): berhenti bernapas dan terang penuh,
+   sama seperti terpilih, tapi tanpa garis putus berjalan -- itu penanda khusus untuk pilihan
+   yang bertahan setelah kursor pergi. */
+.provinsiHover {
+  animation: none;
+  fill-opacity: 1;
+}
+
+/* Provinsi yang BUKAN sedang difokus, saat ada provinsi lain yang di-hover atau terpilih.
+   Dipadamkan jauh di bawah rentang napas normalnya (0,72-0,98) supaya satu provinsi yang
+   sedang dibaca benar-benar menonjol, bukan cuma sedikit lebih terang dari sekitarnya. */
+.provinsiRedup {
+  animation: none;
+  fill-opacity: 0.14;
 }
 
 /* Sasaran klik, digambar di atas isian. `all` berarti garis tebal transparannya ikut menerima
@@ -101,12 +120,18 @@
 @media (prefers-reduced-motion: reduce) {
   .provinsi,
   .provinsiTerpilih,
+  .provinsiHover,
+  .provinsiRedup,
   .laut {
     animation: none;
+    transition: none;
   }
   /* Tanpa animasi, warnanya dipatok penuh. Membiarkannya di keadaan awal keyframe akan
      menampilkan seluruh provinsi lebih pucat daripada seharusnya. */
   .provinsi { fill-opacity: 0.92; }
+  /* Redup tetap harus terlihat redup walau geraknya dimatikan -- ini penanda status, bukan
+     hiasan, jadi tidak boleh ikut hilang bersama animasinya. */
+  .provinsiRedup { fill-opacity: 0.14; }
 }
 
 /* ── Kontrol perbesaran ─────────────────────────────────────────────────────────────────── */
@@ -138,6 +163,68 @@
 
 .kontrolBtn:hover:not(:disabled) { border-color: var(--ypt-navy); transform: translateY(-1px); }
 .kontrolBtn:disabled { opacity: 0.4; cursor: default; }
+
+/* ── Tooltip mengambang ─────────────────────────────────────────────────────────────────── */
+/* Diposisikan dengan left/top PERSEN (dihitung di komponen dari kotak pembatas provinsi
+   terhadap viewBox aktif), bukan piksel. Karena svg mengisi kanvas ini penuh lewat viewBox,
+   posisi persen otomatis tetap tepat di titik tengah provinsi pada tingkat zoom dan geseran
+   berapa pun, tanpa perlu mengukur DOM sama sekali. */
+.tooltip {
+  position: absolute;
+  transform: translate(-50%, -100%) translateY(-14px);
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  max-width: 240px;
+  background: var(--ypt-navy);
+  color: #fff;
+  border-radius: var(--ypt-radius-sm);
+  padding: 9px 13px;
+  box-shadow: var(--ypt-shadow-md);
+  pointer-events: none;
+  white-space: nowrap;
+  z-index: 6;
+  animation: tooltipMasuk 0.14s ease both;
+}
+
+/* Anak panah kecil menunjuk ke titik tengah provinsi di bawahnya. */
+.tooltip::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  bottom: -5px;
+  width: 10px;
+  height: 10px;
+  background: var(--ypt-navy);
+  transform: translateX(-50%) rotate(45deg);
+  border-radius: 2px;
+}
+
+@keyframes tooltipMasuk {
+  from { opacity: 0; transform: translate(-50%, -100%) translateY(-8px); }
+  to { opacity: 1; transform: translate(-50%, -100%) translateY(-14px); }
+}
+
+.tooltipNama {
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.tooltipNilai {
+  font-size: 17px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.tooltipSub {
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.75);
+  white-space: normal;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tooltip { animation: none; }
+}
 
 .zoomTag {
   position: absolute;
@@ -187,15 +274,9 @@
   box-shadow: 0 0 0 1px var(--ypt-border);
 }
 
-/* --ypt-ink-4 sengaja TIDAK dipakai di dua blok berikut walau keduanya teks penunjang. Token itu
-   #b6bccb, yang di atas permukaan putih cuma mencapai rasio kontras 1,9:1; pada ukuran 10-11px
-   teksnya praktis tidak terbaca. --ypt-ink-2 mencapai 8,9:1 tanpa menambah warna baru. */
-.petunjuk {
-  margin-left: auto;
-  font-size: 12px;
-  color: var(--ypt-ink-2);
-}
-
+/* --ypt-ink-4 sengaja TIDAK dipakai di blok berikut walau ini teks penunjang. Token itu #b6bccb,
+   yang di atas permukaan putih cuma mencapai rasio kontras 1,9:1; pada ukuran 10-11px teksnya
+   praktis tidak terbaca. --ypt-ink-2 mencapai 8,9:1 tanpa menambah warna baru. */
 .belum {
   margin: 12px 0 0;
   font-size: 12px;
