@@ -1,26 +1,35 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { ProgressBar, SectionTitle, Persen } from "../components/Bits";
-import DotMapIndonesia from "../components/DotMapIndonesia";
+import PetaProvinsi from "../components/PetaProvinsi";
+import { agregatProvinsi, kotaTanpaProvinsi } from "../yptMeta";
 import JenjangCards from "./JenjangCards";
 import styles from "./Rapor.module.css";
 
 /**
  * Tab Rangkuman menu Rapor Karakter (Figma 84-287).
- * Susunan: hero nilai total + insight, kartu per jenjang, peta wilayah + detail kota,
+ * Susunan: hero nilai total + insight, kartu per jenjang, peta wilayah + detail provinsi,
  * lalu Top 3 sekolah per jenjang.
  */
 export default function RangkumanTab({ data, onLihatSekolah }) {
-  const [kotaAktif, setKotaAktif] = useState(null);
+  const [provinsiAktif, setProvinsiAktif] = useState(null);
 
-  // Kota aktif default = kota pertama yang punya data. Dipasang lewat effect (bukan nilai awal
-  // useState) karena daftar kota baru terisi setelah data periode ini selesai dirakit, dan
-  // berubah setiap kali pengguna ganti periode.
+  // Data per kota digabung jadi per provinsi di sini, bukan di dalam komponen peta. Panel Detail
+  // Sekolah di sebelahnya membaca objek yang sama persis, jadi keduanya dijamin tidak pernah
+  // menampilkan angka yang berbeda untuk wilayah yang sama.
+  const provinsi = useMemo(() => agregatProvinsi(data.kota), [data.kota]);
+  const kotaBelumDipetakan = useMemo(() => kotaTanpaProvinsi(data.kota), [data.kota]);
+
+  // Provinsi aktif default = yang pertama punya data. Dipasang lewat effect (bukan nilai awal
+  // useState) karena daftarnya baru terisi setelah data periode ini selesai dirakit, dan berubah
+  // setiap kali pengguna ganti periode.
   useEffect(() => {
-    if (data.kota.length === 0) { setKotaAktif(null); return; }
-    setKotaAktif((prev) => (prev && data.kota.some((k) => k.nama === prev) ? prev : data.kota[0].nama));
-  }, [data.kota]);
+    if (provinsi.length === 0) { setProvinsiAktif(null); return; }
+    setProvinsiAktif((prev) => (
+      prev && provinsi.some((p) => p.nama === prev) ? prev : provinsi[0].nama
+    ));
+  }, [provinsi]);
 
-  const kotaTerpilih = data.kota.find((k) => k.nama === kotaAktif) || null;
+  const wilayahTerpilih = provinsi.find((p) => p.nama === provinsiAktif) || null;
 
   // Insight hero: dua aspek dengan nilai tertinggi se-yayasan, dirangkai jadi kalimat.
   // Ini penyajian, bukan analisis -- tidak ada Gemini di jalur baca (butir CLAUDE.md).
@@ -64,24 +73,32 @@ export default function RangkumanTab({ data, onLihatSekolah }) {
 
       <div className={styles.mapRow}>
         <div>
-          <SectionTitle>Pencapaian Karakter per Wilayah</SectionTitle>
-          <DotMapIndonesia kota={data.kota} aktif={kotaAktif} onPilih={setKotaAktif} />
+          <SectionTitle>Pencapaian Karakter per Provinsi</SectionTitle>
+          <PetaProvinsi
+            provinsi={provinsi}
+            aktif={provinsiAktif}
+            onPilih={setProvinsiAktif}
+            kotaTanpaProvinsi={kotaBelumDipetakan}
+          />
         </div>
 
         <div>
           <SectionTitle>Detail Sekolah</SectionTitle>
           <div className={styles.detailCard}>
-            {kotaTerpilih ? (
+            {wilayahTerpilih ? (
               <>
-                <p className={styles.detailLabel}>Pencapaian di Wilayah</p>
-                <p className={styles.detailKota}>{kotaTerpilih.nama}</p>
+                <p className={styles.detailLabel}>Pencapaian di Provinsi</p>
+                <p className={styles.detailKota}>{wilayahTerpilih.label}</p>
                 <p className={styles.detailNilai}>
-                  {kotaTerpilih.nilai == null ? "—" : `${kotaTerpilih.nilai}%`}
+                  {wilayahTerpilih.nilai == null ? "—" : `${wilayahTerpilih.nilai}%`}
+                </p>
+                <p className={styles.detailLabel}>
+                  {wilayahTerpilih.jumlahSekolah} sekolah di {wilayahTerpilih.kotaList.join(", ")}
                 </p>
 
                 {/* Maksimal tiga sekolah di panel; sisanya lewat "Lihat selengkapnya" yang
                     memindahkan pengguna ke tabel lengkap tab Penilaian per Sekolah. */}
-                {kotaTerpilih.sekolah.slice(0, 3).map((s) => (
+                {wilayahTerpilih.sekolah.slice(0, 3).map((s) => (
                   <div key={s.sekolah_id} className={styles.detailItem}>
                     <p className={styles.detailItemNama}>{s.nama}</p>
                     <div className={styles.detailItemRow}>
@@ -93,7 +110,7 @@ export default function RangkumanTab({ data, onLihatSekolah }) {
                   </div>
                 ))}
 
-                {kotaTerpilih.sekolah.length > 3 && (
+                {wilayahTerpilih.sekolah.length > 3 && (
                   <button type="button" className={styles.detailLink} onClick={onLihatSekolah}>
                     Lihat selengkapnya <span aria-hidden="true">›</span>
                   </button>

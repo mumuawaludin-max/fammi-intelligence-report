@@ -1,14 +1,14 @@
 import { useEffect, useState } from "react";
 import { useCsData } from "./useCsData";
 import { statusPanel, ProgressBar, SectionTitle } from "../components/Bits";
-import { CS_EMOSI_WARNA, CS_TESTIMONI_KATEGORI } from "../yptMeta";
+import { CS_EMOSI_WARNA } from "../yptMeta";
 import EsaiBlok from "./EsaiBlok";
+import TestimoniTab from "./TestimoniTab";
 import styles from "./Citra.module.css";
 
 export default function CitraSekolahPage({ session, periode, tab }) {
-  const { loading, error, data, ambilEsai } = useCsData(session, periode);
+  const { loading, error, errorTestimoni, data, ambilEsai } = useCsData(session, periode);
   const [kategoriEsai, setKategoriEsai] = useState({});
-  const [testiAktif, setTestiAktif] = useState(CS_TESTIMONI_KATEGORI[0].id);
 
   // Kategori esai default per tab = kategori terbanyak, dipasang begitu datanya siap.
   // "keberhasilan" TIDAK ikut -- tab itu tidak punya blok esai (hal_disyukuri tidak punya kolom
@@ -153,68 +153,12 @@ export default function CitraSekolahPage({ session, periode, tab }) {
   }
 
   // ── Tab Testimoni ────────────────────────────────────────────────────────────────────────
-  const total = data.totalTestimoni;
-  const daftar = data.testimoniByKategori[testiAktif] || [];
-  const aksenAktif = CS_TESTIMONI_KATEGORI.find((k) => k.id === testiAktif)?.warna;
-
+  // Isinya cukup besar dan punya state saringannya sendiri, jadi tinggal di berkas terpisah.
   return (
-    <>
-      <SectionTitle>Testimoni Orangtua</SectionTitle>
-
-      {total === 0 ? (
-        statusPanel({
-          kosong: true,
-          judul: "Belum ada testimoni",
-          pesan: "Testimoni ditarik dari spreadsheet YPT. Isi spreadsheetnya, tandai kolom Tampilkan dengan Ya, lalu jalankan sinkronisasi di Admin CMS.",
-        })
-      ) : (
-        <>
-          <div className={styles.grid4}>
-            {CS_TESTIMONI_KATEGORI.map((k) => {
-              const jumlah = (data.testimoniByKategori[k.id] || []).length;
-              const persen = total > 0 ? Math.round((jumlah / total) * 100) : 0;
-              return (
-                <button
-                  key={k.id}
-                  type="button"
-                  className={`${styles.donutKartu} ${testiAktif === k.id ? styles.donutKartuActive : ""}`}
-                  style={{ borderBottomColor: k.warna, color: k.warna }}
-                  onClick={() => setTestiAktif(k.id)}
-                >
-                  <span className={styles.kartuIkon} style={{ margin: 0, color: k.warna }} aria-hidden="true">◕</span>
-                  <span>
-                    <span className={styles.donutNilai} style={{ color: k.warna }}>{persen}%</span>
-                    <p className={styles.donutNama}>{k.label}</p>
-                    <span className={styles.donutSub}>{jumlah} testimoni</span>
-                  </span>
-                </button>
-              );
-            })}
-          </div>
-
-          <SectionTitle>
-            Top Essay {CS_TESTIMONI_KATEGORI.find((k) => k.id === testiAktif)?.label}
-          </SectionTitle>
-
-          {daftar.length === 0 ? (
-            <p className={styles.kosong}>Belum ada testimoni pada kategori ini.</p>
-          ) : (
-            <div className={styles.esaiGrid}>
-              {daftar.map((t) => (
-                <div key={t.id} className={styles.esaiKartu} style={{ borderBottomColor: aksenAktif }}>
-                  <div className={styles.esaiTop}>
-                    <span className={styles.esaiNama}>{t.nama}</span>
-                    <span className={styles.esaiBadge}>
-                      {t.kelas} · <span className={styles.esaiBadgeSekolah}>{t.sekolahNama}</span>
-                    </span>
-                  </div>
-                  <p className={styles.esaiTeks}>{t.teks}</p>
-                </div>
-              ))}
-            </div>
-          )}
-        </>
-      )}
-    </>
+    <TestimoniTab
+      data={data}
+      galat={errorTestimoni}
+      jumlahSekolahNaungan={(session?.schools || []).length}
+    />
   );
 }

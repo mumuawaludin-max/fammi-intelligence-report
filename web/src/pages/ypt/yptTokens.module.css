@@ -46,6 +46,21 @@
   --ypt-sentimen-negatif: #f5b921;
   --ypt-sentimen-sangat-negatif: #ee2c3c;
 
+  /**
+   * Varian gelap untuk dipakai sebagai WARNA TEKS di atas permukaan putih.
+   *
+   * Warna sentimen di atas dirancang sebagai warna ISIAN (bar, segmen, kartu), dan sebagai isian
+   * warnanya benar. Sebagai teks di atas putih, dua di antaranya jauh di bawah ambang keterbacaan:
+   * hijau #10b981 cuma mencapai rasio kontras 2,5:1 dan kuning #f5b921 cuma 1,8:1, sedangkan yang
+   * dibutuhkan 4,5:1. Nilai di bawah adalah warna yang sama digelapkan sampai lulus, 5,0:1 dan
+   * 4,9:1, dengan rona yang masih terbaca sebagai hijau dan kuning yang sama.
+   *
+   * Dipakai LEWAT CS_TESTIMONI_KATEGORI.warnaTeks, bukan langsung. Jangan memakai varian ini
+   * sebagai isian, dan jangan memakai warna isian di atas sebagai teks.
+   */
+  --ypt-sentimen-positif-teks: #0e7f59;
+  --ypt-sentimen-negatif-teks: #96690a;
+
   --ypt-radius-sm: 10px;
   --ypt-radius-md: 14px;
   --ypt-radius-lg: 20px;

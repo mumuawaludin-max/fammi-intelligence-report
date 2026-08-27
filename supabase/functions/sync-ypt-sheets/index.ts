@@ -101,14 +101,45 @@ async function ambilSheet(sheetId: string, namaSumber: string): Promise<string[]
 
 // ── Normalisasi nilai ────────────────────────────────────────────────────────────────────────
 
-/** "5/1/2026 11:29:17" (M/D/YYYY) -> { periode: "2026-05", iso }. Null kalau tidak bisa diurai. */
+const NAMA_BULAN: Record<string, number> = {
+  januari: 1, februari: 2, maret: 3, april: 4, mei: 5, juni: 6,
+  juli: 7, agustus: 8, september: 9, oktober: 10, november: 11, desember: 12,
+  january: 1, february: 2, march: 3, may: 5, june: 6,
+  july: 7, august: 8, october: 10, december: 12,
+};
+
+/**
+ * "5/1/2026 11:29:17" (M/D/YYYY) -> { periode: "2026-05", iso }. Null kalau tidak bisa diurai.
+ *
+ * Bentuk kedua "April , 2026" (nama bulan tanpa tanggal) ikut diterima. Itu bukan kasus teoretis:
+ * 843 baris di sheet Testimoni ditulis begitu, seluruhnya dari empat sekolah, dan sebelum ini
+ * dibuang tanpa jejak sehingga satu periode penuh hilang dari dashboard. Tanpa tanggal, iso
+ * dipatok ke hari pertama bulan itu; yang dipakai dashboard cuma `periode`, dan `submitted_at`
+ * hanya untuk mengurutkan, jadi seluruh rombongan itu duduk di ujung urutan bulannya.
+ */
 function uraiTimestamp(teks: string) {
-  const m = (teks || "").trim().match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})(?:\s+(\d{1,2}):(\d{2}):(\d{2}))?/);
-  if (!m) return null;
-  const [, bln, tgl, thn, jam = "0", mnt = "0", dtk = "0"] = m;
-  const d = new Date(Date.UTC(+thn, +bln - 1, +tgl, +jam, +mnt, +dtk));
-  if (Number.isNaN(d.getTime())) return null;
-  return { periode: `${thn}-${String(bln).padStart(2, "0")}`, iso: d.toISOString() };
+  const t = (teks || "").trim();
+
+  const m = t.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})(?:\s+(\d{1,2}):(\d{2}):(\d{2}))?/);
+  if (m) {
+    const [, bln, tgl, thn, jam = "0", mnt = "0", dtk = "0"] = m;
+    const d = new Date(Date.UTC(+thn, +bln - 1, +tgl, +jam, +mnt, +dtk));
+    if (Number.isNaN(d.getTime())) return null;
+    return { periode: `${thn}-${String(bln).padStart(2, "0")}`, iso: d.toISOString() };
+  }
+
+  const n = t.toLowerCase().match(/^([a-z]+)\s*,?\s*(\d{4})$/);
+  if (n) {
+    const bln = NAMA_BULAN[n[1]];
+    if (!bln) return null;
+    const thn = n[2];
+    return {
+      periode: `${thn}-${String(bln).padStart(2, "0")}`,
+      iso: new Date(Date.UTC(+thn, bln - 1, 1)).toISOString(),
+    };
+  }
+
+  return null;
 }
 
 /**
@@ -178,16 +209,77 @@ function teksLayak(teks: string) {
   return t.length > 3 && !/^[-_.\s]+$/.test(t) ? t : null;
 }
 
+/**
+ * Kategori testimoni. Pemetaan alias -> nilai kanonik; kunci ditulis huruf kecil.
+ *
+ * Lima nilai kanonik ini diambil dari isi spreadsheet yang sebenarnya, bukan dugaan: verifikasi
+ * 14.754 baris (2026-08-27) memunculkan tepat lima label atomik, yaitu Ucapan Terimakasih
+ * (12.063), Harapan (4.807), Saran dan Masukan (3.250), Keluhan (992), dan Kritik (130).
+ * Taksonomi lama ("Apresiasi", "KritikKeluhan") tidak pernah ada di data.
+ */
 const KATEGORI_TESTIMONI: Record<string, string> = {
-  apresiasi: "Apresiasi",
+  "ucapan terimakasih": "Terimakasih",
+  "ucapan terima kasih": "Terimakasih",
+  terimakasih: "Terimakasih",
+  "terima kasih": "Terimakasih",
+  apresiasi: "Terimakasih",
   harapan: "Harapan",
-  "saran & masukan": "SaranMasukan",
   "saran dan masukan": "SaranMasukan",
+  "saran & masukan": "SaranMasukan",
   saran: "SaranMasukan",
-  "kritik & keluhan": "KritikKeluhan",
-  "kritik dan keluhan": "KritikKeluhan",
-  kritik: "KritikKeluhan",
+  masukan: "SaranMasukan",
+  keluhan: "Keluhan",
+  kritik: "Kritik",
 };
+
+/**
+ * Satu sel Kategori -> daftar label kanonik.
+ *
+ * Kolomnya MULTI-PILIH: 39% baris membawa dua sampai empat label sekaligus, ditulis sebagai satu
+ * string gabungan koma ("Harapan, Ucapan Terimakasih"). Versi sebelumnya mencocokkan SELURUH
+ * string ke peta di atas dan menjatuhkan yang tidak cocok ke satu nilai default, sehingga sekitar
+ * 13.600 dari 14.754 baris menumpuk di satu kategori dan donut di dashboard jadi tidak bermakna.
+ *
+ * Label yang tidak dikenal DILEWATKAN APA ADANYA, bukan dipaksa ke nilai default. Opsi form bisa
+ * ditambah kapan saja tanpa memberi tahu siapa pun; kalau itu terjadi, kategorinya muncul sebagai
+ * kelompok tersendiri di dashboard (kelihatan, bisa ditindaklanjuti) alih-alih diam-diam
+ * mencemari kategori lain. Urutannya dijaga stabil supaya row_hash tidak berubah tanpa sebab.
+ */
+/** Penanda awal nama yang berarti testimoni ditulis orang tua, bukan siswanya sendiri. */
+const AWALAN_ORANGTUA = /^\s*(orang\s*tua|ortu|ayah|ibu|bunda|papa|mama|bapak|wali)\b/i;
+
+/**
+ * Siapa yang menulis satu testimoni, dibaca dari kolom Nama.
+ *
+ * Konvensi pengisiannya konsisten dan diverifikasi terhadap 13.013 baris (2026-08-27): orang tua
+ * menulis "Orangtua <nama anak>", siswa menulis namanya sendiri tanpa awalan ("HANIF KHADAFI").
+ * Hasilnya 5.376 orangtua dan 7.637 siswa, dengan sebaran yang masuk akal: seluruh TK dan SD
+ * murni orang tua, SMP dan SMK sebagian besar siswa.
+ *
+ * Kapital semua TIDAK dipakai sebagai penanda walau 86% baris siswa ditulis begitu; 1.053 siswa
+ * menulis namanya dengan huruf biasa dan akan salah kelompok. Keberadaan awalan adalah satu
+ * satunya penanda yang benar-benar dipegang pengisi form.
+ *
+ * Fungsi kembarannya ada di web/src/pages/ypt/yptMeta.js (sumberDariNama), dipakai sebagai
+ * cadangan untuk baris yang tersimpan sebelum kolom ini ada. Kalau daftar awalan di sini berubah,
+ * ubah juga di sana.
+ */
+function normalSumber(nama: string): string | null {
+  const t = (nama || "").trim();
+  if (!t) return null;
+  return AWALAN_ORANGTUA.test(t) ? "orangtua" : "siswa";
+}
+
+function normalKategori(teks: string): string[] {
+  const hasil: string[] = [];
+  (teks || "").split(",").forEach((bagian) => {
+    const t = bagian.trim();
+    if (!t) return;
+    const kanonik = KATEGORI_TESTIMONI[t.toLowerCase()] || t;
+    if (!hasil.includes(kanonik)) hasil.push(kanonik);
+  });
+  return hasil;
+}
 
 async function hash(...bagian: (string | null | undefined)[]) {
   const teks = bagian.map((b) => (b ?? "")).join("|");
@@ -367,28 +459,38 @@ async function syncTestimoni(admin: ReturnType<typeof createClient>) {
     const teks = teksLayak(r[idx.teks]);
     if (!waktu || !sekolahId || !teks) { dilewati++; continue; }
 
-    const kategoriMentah = (r[idx.kategori] || "").trim().toLowerCase();
-    const kategori = KATEGORI_TESTIMONI[kategoriMentah] || "Apresiasi";
-
     rows.push({
       row_hash: await hash(r[idx.waktu], r[idx.sekolah], r[idx.nama], teks),
       sekolah_id: sekolahId,
       periode_id: waktu.periode,
       nama: idx.nama >= 0 ? (r[idx.nama] || "").trim() || null : null,
       kelas: idx.kelas >= 0 ? (r[idx.kelas] || "").trim() || null : null,
-      kategori,
+      kategori: idx.kategori >= 0 ? normalKategori(r[idx.kategori]) : [],
+      sumber: idx.nama >= 0 ? normalSumber(r[idx.nama]) : null,
       teks,
       tampilkan: idx.tampilkan >= 0 && /^ya$/i.test((r[idx.tampilkan] || "").trim()),
       submitted_at: waktu.iso,
     });
   }
 
+  // Baris kembar persis (salin-tempel di sheet, atau responden yang mengirim dua kali dengan isi
+  // sama) menghasilkan row_hash yang sama. Kembarannya HARUS dibuang di sini, bukan diserahkan ke
+  // Postgres: ON CONFLICT DO UPDATE menolak dua baris berkunci sama di dalam SATU perintah INSERT
+  // (galat 21000, "cannot affect row a second time"), sehingga seluruh potongan berisi 500 baris
+  // ikut gagal dan sinkronisasi berhenti. kp_responden tidak kena karena memakai ignoreDuplicates
+  // yang berarti DO NOTHING, dan itu memang mentoleransi kembar di dalam satu perintah.
+  // Yang terakhir menang, supaya nilai Tampilkan/kategori terbaru dari sheet yang terpakai.
+  const unik = new Map<string, Record<string, unknown>>();
+  for (const r of rows) unik.set(r.row_hash as string, r);
+  const rowsUnik = [...unik.values()];
+  const kembar = rows.length - rowsUnik.length;
+
   // Beda dengan kp_responden: di sini konflik MENIMPA kolom tampilkan/kategori. Kolom "Tampilkan"
   // di sheet adalah gerbang kurasi yang bisa diubah admin kapan saja, dan perubahannya harus ikut
   // terbawa saat sinkronisasi berikutnya -- bukan terkunci pada nilai saat baris pertama masuk.
   let baru = 0;
-  for (let i = 0; i < rows.length; i += 500) {
-    const potongan = rows.slice(i, i + 500);
+  for (let i = 0; i < rowsUnik.length; i += 500) {
+    const potongan = rowsUnik.slice(i, i + 500);
     const { data, error } = await admin.from("cs_testimoni")
       .upsert(potongan, { onConflict: "row_hash" })
       .select("id");
@@ -397,9 +499,12 @@ async function syncTestimoni(admin: ReturnType<typeof createClient>) {
   }
 
   return {
-    total: rows.length,
+    total: rowsUnik.length,
     baru,
     dilewati,
+    // Dilaporkan, bukan dibuang diam-diam. Angka kembar yang tiba-tiba melonjak biasanya berarti
+    // ada yang salah di sheet-nya, dan admin perlu melihatnya di layar CMS.
+    kembar,
     aliasTakDikenal: await pencari.simpanTakDikenal(),
   };
 }

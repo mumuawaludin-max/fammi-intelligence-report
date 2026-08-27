@@ -144,42 +144,644 @@
   margin: 0 0 14px;
 }
 
-/* ── Kartu donut (tab Testimoni) ────────────────────────────────────────────────────────── */
-.donutKartu {
+/* ══ Tab Testimoni ═══════════════════════════════════════════════════════════════════════════
+   Kartu donut empat kategori sudah DIHAPUS dari sini. Bentuk donut menyiratkan potongan yang
+   saling meniadakan, sedangkan kategori testimoni tumpang tindih: 39% testimoni membawa dua
+   sampai empat label sekaligus, sehingga jumlah kelima kategori melebihi jumlah testimoni.
+   Diganti bar horizontal yang jujur soal itu. Jangan kembalikan donutnya. */
+
+/* ── Animasi masuk ──────────────────────────────────────────────────────────────────────── */
+/* Satu kelas untuk semua elemen yang muncul saat digulir ke dalam layar. Pemicunya dari JS
+   (useReveal + IntersectionObserver), yang cuma memasang .revealAktif; seluruh gerakannya tetap
+   di CSS supaya tidak ada state React yang berubah per frame.
+   Kurva keluar-ekspo: cepat lalu mendarat pelan, bukan berhenti mendadak. */
+.reveal {
+  opacity: 0;
+  transform: translateY(14px);
+  transition: opacity 0.55s ease, transform 0.55s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.revealAktif {
+  opacity: 1;
+  transform: none;
+}
+
+/* Pembaca yang meminta gerak dikurangi mendapat keadaan akhir seketika, bukan animasi lambat.
+   Ditegakkan di CSS juga, tidak cuma di JS, supaya tidak ada satu pun jalur yang terlewat. */
+@media (prefers-reduced-motion: reduce) {
+  .reveal,
+  .revealAktif,
+  .barFill,
+  .barFillPerlu,
+  .stackSeg,
+  .stackTeks,
+  .cloudKata {
+    /* `animation` ikut dimatikan, bukan cuma `transition`. .stackTeks memakai @keyframes dengan
+       fill-mode `both`, yang menahan opacity di nol selama masa tundanya; tanpa baris ini
+       persentase di dalam segmen tidak pernah muncul sama sekali bagi pembaca yang meminta gerak
+       dikurangi. `!important` juga wajib: blok ini berada JAUH DI ATAS aturan .stackTeks dengan
+       kekhususan yang sama, jadi tanpa itu aturan di bawahlah yang menang. */
+    transition: none !important;
+    animation: none !important;
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* ── Strip angka kunci ──────────────────────────────────────────────────────────────────── */
+.angkaGrid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+  margin-bottom: 34px;
+}
+
+.angkaKartu {
   background: var(--ypt-surface);
   border: 1px solid var(--ypt-border);
   border-radius: var(--ypt-radius-md);
-  padding: 20px;
+  padding: 18px 20px;
+}
+
+.angkaLabel {
+  font-size: 12px;
+  color: var(--ypt-ink-3);
+  margin: 0 0 8px;
+}
+
+.angkaNilai {
+  font-size: 30px;
+  font-weight: 700;
+  line-height: 1.05;
+  color: var(--ypt-navy);
+  margin: 0 0 6px;
+  font-variant-numeric: tabular-nums;
+}
+
+.angkaCatatan {
+  font-size: 12px;
+  color: var(--ypt-ink-3);
+  line-height: 1.45;
+  margin: 0;
+}
+
+/* ── Pembungkus blok grafik ─────────────────────────────────────────────────────────────── */
+.kartuBlok {
+  background: var(--ypt-surface);
+  border: 1px solid var(--ypt-border);
+  border-radius: var(--ypt-radius-md);
+  padding: 10px 20px;
+  margin-bottom: 34px;
+}
+
+.catatanBlok {
+  font-size: 12px;
+  color: var(--ypt-ink-3);
+  line-height: 1.6;
+  margin: -6px 0 14px;
+  max-width: 82ch;
+}
+
+/* ── Bar horizontal, dipakai sebaran kategori dan daftar sekolah ────────────────────────── */
+.barBaris {
+  display: grid;
+  grid-template-columns: 210px 1fr 128px;
+  align-items: center;
+  gap: 18px;
+  width: 100%;
+  padding: 12px 10px;
+  margin: 0 -10px;
+  border: 0;
+  border-radius: var(--ypt-radius-sm);
+  background: none;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: background 0.12s ease;
+}
+
+.barBaris:hover { background: var(--ypt-navy-soft); }
+.barBarisAktif { background: var(--ypt-navy-soft); box-shadow: inset 0 0 0 1px var(--ypt-navy); }
+
+.barLabel {
   display: flex;
   align-items: center;
-  gap: 16px;
-  text-align: left;
-  font: inherit;
-  cursor: pointer;
-  border-bottom-width: 4px;
-  border-bottom-style: solid;
+  gap: 9px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ypt-navy);
 }
 
-.donutKartuActive { box-shadow: inset 0 0 0 2px currentColor; }
+/* Nama sekolah bisa panjang. Dipotong dengan elipsis supaya lebar bar tidak bergeser antar baris. */
+.barLabelSekolah {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
 
-.donutNilai {
-  font-size: 22px;
+.barTitik {
+  width: 9px;
+  height: 9px;
+  border-radius: 999px;
+  flex-shrink: 0;
+}
+
+.barBaru {
+  font-size: 10px;
   font-weight: 700;
-  line-height: 1.1;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--ypt-red);
+  background: var(--ypt-red-soft);
+  border-radius: 999px;
+  padding: 2px 7px;
 }
 
-.donutNama {
-  font-size: 14px;
+.barTrack {
+  position: relative;
+  height: 12px;
+  border-radius: 999px;
+  background: var(--ypt-track);
+  overflow: hidden;
+  /* Garis dalam setipis rambut, bukan border biasa. Border akan menambah lebar kotak dan membuat
+     ujung bar menonjol setengah piksel di luar jalurnya pada layar non-retina. */
+  box-shadow: inset 0 0 0 1px rgba(23, 37, 84, 0.06);
+}
+
+.barFill {
+  position: absolute;
+  inset: 0 auto 0 0;
+  border-radius: 999px;
+  transition: width 0.85s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* Digambar di ATAS .barFill, berbagi titik nol yang sama, jadi terbaca sebagai bagian dari
+   keseluruhan batang, bukan batang kedua. Garis putih tipis di kanan memisahkannya dengan tegas
+   dari sisa batang tanpa menambah warna baru. */
+.barFillPerlu {
+  position: absolute;
+  inset: 0 auto 0 0;
+  border-radius: 999px;
+  background: var(--ypt-sentimen-sangat-negatif);
+  box-shadow: 1px 0 0 0 var(--ypt-surface);
+  transition: width 0.85s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.barNilai {
+  display: flex;
+  align-items: baseline;
+  justify-content: flex-end;
+  gap: 8px;
+  font-size: 15px;
+  color: var(--ypt-navy);
+  font-variant-numeric: tabular-nums;
+}
+
+.barJumlah {
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--ypt-ink-3);
+}
+
+/* ── Bar bertumpuk per jenjang ──────────────────────────────────────────────────────────── */
+.jenjangRow {
+  display: grid;
+  grid-template-columns: 210px 1fr;
+  align-items: center;
+  gap: 18px;
+  padding: 13px 0;
+}
+
+.jenjangNama {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  font-size: 13px;
   font-weight: 700;
   color: var(--ypt-navy);
-  margin: 4px 0 2px;
-  line-height: 1.3;
 }
 
-.donutSub {
+.jenjangTotal {
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--ypt-ink-3);
+}
+
+.stack {
+  display: flex;
+  height: 26px;
+  border-radius: var(--ypt-radius-sm);
+  overflow: hidden;
+  background: var(--ypt-track);
+  box-shadow: inset 0 0 0 1px rgba(23, 37, 84, 0.06);
+}
+
+/* Garis putih setipis rambut memisahkan segmen. Dipasang sebagai bayangan dalam, bukan border,
+   supaya lebar segmen tetap persis sama dengan persentasenya; border akan menggeser semuanya dan
+   membuat total lebar melebihi 100%. */
+.stackSeg {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 2px;
+  box-shadow: inset -1px 0 0 0 rgba(255, 255, 255, 0.55);
+  transition: width 0.85s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.stackSeg:last-child { box-shadow: none; }
+
+.stackTeks {
+  font-size: 10px;
+  font-weight: 700;
+  color: #fff;
+  letter-spacing: 0.01em;
+  animation: munculTeks 0.5s 0.35s both ease;
+}
+
+@keyframes munculTeks {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.legenda {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 22px;
+  margin: -22px 0 34px;
+  font-size: 12px;
+  color: var(--ypt-ink-2);
+}
+
+.legendaItem { display: flex; align-items: center; gap: 8px; }
+
+/* ── Tombol pengatur di kanan judul section ─────────────────────────────────────────────── */
+.togglePair {
+  display: inline-flex;
+  background: var(--ypt-track);
+  border-radius: 999px;
+  padding: 3px;
+}
+
+/* --ypt-ink-3 sengaja tidak dipakai di sini walau ini teks nonaktif: warnanya #8a93a6 dan
+   jalurnya --ypt-track #e9ebf0, yang cuma menghasilkan rasio kontras 2,6:1. --ypt-ink-2
+   mencapai 7,4:1, dan pilihan aktif tetap tidak mungkin tertukar karena .toggleBtnAktif berganti
+   jadi pil putih bernavy dengan bayangan. */
+.toggleBtn {
+  border: 0;
+  background: none;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--ypt-ink-2);
+  padding: 7px 15px;
+  border-radius: 999px;
+  cursor: pointer;
+}
+
+.toggleBtn:disabled { opacity: 0.45; cursor: default; }
+
+.toggleBtnAktif {
+  background: var(--ypt-surface);
+  color: var(--ypt-navy);
+  box-shadow: var(--ypt-shadow-sm);
+}
+
+.resetBtn {
+  border: 1px solid var(--ypt-border);
+  background: var(--ypt-surface);
+  font: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--ypt-red);
+  padding: 8px 15px;
+  border-radius: 999px;
+  cursor: pointer;
+}
+
+.resetBtn:hover { border-color: var(--ypt-red); }
+
+.switch {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--ypt-ink-2);
+  cursor: pointer;
+}
+
+.switch input { accent-color: var(--ypt-navy); width: 15px; height: 15px; cursor: pointer; }
+
+/* ── Kepala tab dan saringan penulis ────────────────────────────────────────────────────── */
+.tabHead { margin-bottom: 8px; }
+
+.sumberBar {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex-wrap: wrap;
+  margin: -8px 0 26px;
+}
+
+.sumberLabel {
   font-size: 12px;
   color: var(--ypt-ink-3);
 }
+
+.toggleHitung {
+  margin-left: 7px;
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--ypt-ink-3);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ── Orangtua versus siswa ──────────────────────────────────────────────────────────────── */
+.penulisGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(360px, 1fr));
+  gap: 16px;
+  margin-bottom: 34px;
+  align-items: start;
+}
+
+.penulisKartu {
+  background: var(--ypt-surface);
+  border: 1px solid var(--ypt-border);
+  border-top-width: 3px;
+  border-top-style: solid;
+  border-radius: var(--ypt-radius-md);
+  padding: 16px 20px 18px;
+}
+
+.penulisHead {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  padding-bottom: 13px;
+  margin-bottom: 6px;
+  border-bottom: 1px solid var(--ypt-border);
+}
+
+.penulisJudul { font-size: 15px; font-weight: 700; }
+
+.penulisMeta {
+  font-size: 11px;
+  color: var(--ypt-ink-3);
+  font-variant-numeric: tabular-nums;
+}
+
+.penulisBaris {
+  display: grid;
+  grid-template-columns: 148px 1fr 44px;
+  align-items: center;
+  gap: 14px;
+  padding: 9px 0;
+}
+
+.penulisNama {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  color: var(--ypt-ink-2);
+}
+
+.penulisNilai {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--ypt-navy);
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Penanda kecil di sebelah nama pada kartu detail. */
+.sumberTag {
+  margin-left: 9px;
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  vertical-align: 1px;
+}
+
+/* ── Peta kata per kategori ─────────────────────────────────────────────────────────────── */
+/* Satu kartu per kategori, berdampingan. Bukan satu cloud yang berganti isi mengikuti kategori
+   terpilih: pengurus yayasan perlu membandingkan kelimanya sekali lihat, dan cloud tunggal
+   memaksa mereka mengingat isi kartu sebelumnya sambil melihat yang berikutnya. */
+.cloudGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(330px, 1fr));
+  gap: 16px;
+  margin-bottom: 34px;
+  align-items: start;
+}
+
+.cloudKartu {
+  background: var(--ypt-surface);
+  border: 1px solid var(--ypt-border);
+  border-top-width: 3px;
+  border-top-style: solid;
+  border-radius: var(--ypt-radius-md);
+  padding: 16px 18px 12px;
+  display: flex;
+  flex-direction: column;
+}
+
+.cloudHead {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--ypt-border);
+}
+
+.cloudJudul {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--ypt-navy);
+}
+
+.cloudMeta {
+  font-size: 11px;
+  color: var(--ypt-ink-3);
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+.cloudAksi {
+  margin-top: auto;
+  border: 0;
+  border-top: 1px solid var(--ypt-border);
+  background: none;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  text-align: left;
+  padding: 12px 0 4px;
+  cursor: pointer;
+}
+
+.cloudAksi:hover { text-decoration: underline; }
+
+.aksiGrup { display: inline-flex; align-items: center; gap: 20px; }
+
+/* ── Word cloud ─────────────────────────────────────────────────────────────────────────── */
+.cloud {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 2px 13px;
+  padding: 15px 0 18px;
+  line-height: 1.4;
+}
+
+/* Opasitas per kata dikirim komponen lewat custom property --kata-opacity, bukan lewat style
+   inline langsung. Kalau ditulis inline, ia menimpa keadaan awal animasi dan kata langsung tampil
+   penuh tanpa pernah memudar masuk. */
+.cloudKata {
+  border: 0;
+  background: none;
+  font: inherit;
+  padding: 2px 6px;
+  border-radius: 8px;
+  cursor: pointer;
+  opacity: 0;
+  transform: translateY(6px) scale(0.96);
+  transition: opacity 0.45s ease, transform 0.45s cubic-bezier(0.16, 1, 0.3, 1),
+    background 0.12s ease;
+}
+
+.cloudKataMasuk {
+  opacity: var(--kata-opacity, 1);
+  transform: none;
+}
+
+.cloudKata:hover {
+  background: var(--ypt-navy-soft);
+  opacity: 1;
+  transform: translateY(-1px);
+}
+
+.cloudKataAktif {
+  background: var(--ypt-navy-soft);
+  box-shadow: inset 0 0 0 2px currentColor;
+  opacity: 1;
+}
+
+/* ── Saringan detail ────────────────────────────────────────────────────────────────────── */
+.filterBar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 14px;
+  flex-wrap: wrap;
+}
+
+.cariInput {
+  flex: 1 1 320px;
+  font: inherit;
+  font-size: 13px;
+  color: var(--ypt-ink-2);
+  background: var(--ypt-surface);
+  border: 1px solid var(--ypt-border);
+  border-radius: var(--ypt-radius-sm);
+  padding: 11px 15px;
+}
+
+.cariInput:focus { outline: 2px solid var(--ypt-navy); outline-offset: -1px; }
+
+.filterSelect {
+  font: inherit;
+  font-size: 13px;
+  color: var(--ypt-ink-2);
+  background: var(--ypt-surface);
+  border: 1px solid var(--ypt-border);
+  border-radius: var(--ypt-radius-sm);
+  padding: 11px 14px;
+  max-width: 280px;
+  cursor: pointer;
+}
+
+.hitungHasil {
+  font-size: 12px;
+  color: var(--ypt-ink-3);
+  font-variant-numeric: tabular-nums;
+  margin-left: auto;
+}
+
+.chipBar { display: flex; flex-wrap: wrap; gap: 9px; margin-bottom: 16px; }
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  border: 1px solid var(--ypt-navy);
+  color: var(--ypt-navy);
+  background: var(--ypt-surface);
+  font: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 7px 13px;
+  border-radius: 999px;
+  cursor: pointer;
+}
+
+/* ── Kartu testimoni ────────────────────────────────────────────────────────────────────── */
+.testiKartu {
+  background: var(--ypt-surface);
+  border: 1px solid var(--ypt-border);
+  border-radius: var(--ypt-radius-md);
+  padding: 18px 20px 15px;
+  display: flex;
+  flex-direction: column;
+}
+
+.testiLabelBar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+  margin-top: 14px;
+  padding-top: 13px;
+  border-top: 1px solid var(--ypt-border);
+}
+
+.testiLabel {
+  font-size: 11px;
+  font-weight: 600;
+  border: 1px solid currentColor;
+  border-radius: 999px;
+  padding: 3px 10px;
+}
+
+.testiLabelKosong { font-size: 11px; color: var(--ypt-ink-4); }
+
+.muatLagiWrap { display: flex; justify-content: center; margin: 26px 0 8px; }
+
+.muatLagi {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  border: 1px solid var(--ypt-border);
+  background: var(--ypt-surface);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ypt-navy);
+  padding: 13px 24px;
+  border-radius: 999px;
+  cursor: pointer;
+}
+
+.muatLagi:hover { border-color: var(--ypt-navy); box-shadow: var(--ypt-shadow-sm); }
+
+.muatSisa { font-size: 11px; font-weight: 500; color: var(--ypt-ink-3); }
 
 /* ── Esai ───────────────────────────────────────────────────────────────────────────────── */
 .esaiHead {

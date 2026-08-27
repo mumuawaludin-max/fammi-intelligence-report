@@ -117,6 +117,9 @@ function kategori(nama, persen, jumlah) {
   return { nama, persen, jumlah, perJenjang: JENJANG_CONTOH };
 }
 
+// Peringkas testimoni dipakai ulang dari jalur produksi, jangan ditiru ulang di sini.
+import { ringkasTestimoni } from "./citra/useCsData";
+
 export const MOCK_CITRA = {
   keberhasilan: [
     kategori("Tumbuh Kebiasaan Positif", 68, 4312),
@@ -146,29 +149,96 @@ export const MOCK_CITRA = {
     kategori("Negatif", 7, 640),
     kategori("Sangat Negatif", 3, 275),
   ],
-  testimoniByKategori: {
-    Apresiasi: contohTestimoni("Apresiasi", 4),
-    Harapan: contohTestimoni("Harapan", 3),
-    SaranMasukan: contohTestimoni("Saran & Masukan", 2),
-    KritikKeluhan: contohTestimoni("Kritik & Keluhan", 1),
-  },
-  totalTestimoni: 10,
+  ...contohTestimoni(),
 };
 
-function contohTestimoni(label, n) {
-  const teks = [
-    "Alhamdulillah saat ini dengan bertambahnya usia Gibran 10 tahun, tanggung jawab, percaya diri, berespon dan berani menanggapi perkataan dan nasehat orang tua.",
-    "Untuk saat ini sudah cukup karena di sekolah juga dilakukan pembiasaan sederhana dan didampingi oleh guru. Tinggal penerapan di rumah.",
-    "Karena anak terlihat lebih banyak ceria nya dibulan ini masih selalu mudah bergaul dengan teman serta mampu mengungkapkan perasaan dengan baik.",
-    "Harapan saya semoga sekolah dapat membuat anak merasa aman dan nyaman disekolah, tidak ada kasus bullying, fasilitas mendukung belajar.",
+/**
+ * Testimoni contoh untuk pratinjau tab Testimoni.
+ *
+ * Dibangkitkan lalu dilewatkan ke ringkasTestimoni() yang SAMA dengan jalur produksi, bukan
+ * ditulis tangan dalam bentuk akhirnya. Dengan begitu pratinjau tidak bisa diam-diam menyimpang
+ * dari bentuk data nyata, dan perubahan pada peringkasnya langsung terlihat di sini juga.
+ *
+ * Kalimatnya karangan, bukan salinan dari spreadsheet. Testimoni asli memuat nama anak dan
+ * keluhan yang bisa dilacak ke orang tertentu; itu tidak boleh masuk ke berkas yang ikut
+ * ter-commit. Yang ditiru cuma bentuk dan proporsinya: sebaran kategori mengikuti data produksi
+ * (Ucapan Terimakasih paling banyak, Kritik paling sedikit), dan tumpang tindih labelnya dibuat
+ * sekitar 39% seperti data asli supaya tampilan diuji pada kondisi yang benar.
+ */
+function contohTestimoni() {
+  const KALIMAT = [
+    ["Terimakasih untuk bimbingan ibu guru, anak saya jadi lebih mandiri dan berani bercerita di rumah.", ["Terimakasih"]],
+    ["Terimakasih atas perhatian wali kelas selama satu semester ini, perkembangan belajarnya terasa sekali.", ["Terimakasih"]],
+    ["Terimakasih sudah mencontohkan kebiasaan baik, ananda mulai terbiasa merapikan barangnya sendiri.", ["Terimakasih"]],
+    ["Terimakasih kepada seluruh guru yang sabar mendidik, lingkungan sekolahnya nyaman untuk anak.", ["Terimakasih"]],
+    ["Terimakasih atas ilmu dan pembiasaan positif yang diberikan, karakter anak semakin terbentuk.", ["Terimakasih"]],
+    ["Terimakasih, semoga kedepannya kegiatan pembiasaan seperti ini terus berjalan dan makin banyak yang terlibat.", ["Terimakasih", "Harapan"]],
+    ["Harapan saya semoga anak semakin percaya diri dan betah belajar di sekolah.", ["Harapan"]],
+    ["Semoga kedepannya komunikasi antara wali kelas dan orang tua bisa lebih sering, terimakasih.", ["Harapan", "Terimakasih"]],
+    ["Harapannya fasilitas belajar terus ditambah supaya anak makin semangat mengikuti kegiatan.", ["Harapan"]],
+    ["Semoga anak saya bisa mengikuti pelajaran dengan baik dan menemukan teman yang mendukung.", ["Harapan"]],
+    ["Saran saya kegiatan ekstrakurikuler bisa dimulai lebih awal supaya tidak bentrok dengan tugas.", ["SaranMasukan"]],
+    ["Mohon guru memperhatikan semua murid, bukan hanya yang aktif di kelas. Terimakasih sebelumnya.", ["SaranMasukan", "Terimakasih"]],
+    ["Masukan dari saya, informasi kegiatan sebaiknya disampaikan lebih awal agar orang tua bisa menyiapkan.", ["SaranMasukan"]],
+    ["Saran untuk sekolah, tolong tugas rumah jangan menumpuk di akhir pekan supaya anak tetap istirahat.", ["SaranMasukan", "Harapan"]],
+    ["Ruang kelas terasa panas di siang hari, anak jadi sulit berkonsentrasi saat belajar.", ["Keluhan"]],
+    ["Jaringan wifi sering bermasalah sehingga tugas yang butuh internet jadi terhambat.", ["Keluhan"]],
+    ["Kadang informasi dari sekolah terlambat sampai ke orang tua, mohon diperbaiki alurnya.", ["Keluhan", "SaranMasukan"]],
+    ["Anak mengeluh kamar mandi kurang bersih, tolong kebersihannya lebih diperhatikan lagi.", ["Keluhan", "SaranMasukan"]],
+    ["Aturan potong rambut terasa terlalu ketat dan tidak dijelaskan alasannya kepada siswa.", ["Kritik"]],
+    ["Kegiatan osis kurang melibatkan siswa kelas bawah, terkesan hanya berputar di kelompok yang sama.", ["Kritik", "SaranMasukan"]],
   ];
-  return Array.from({ length: n }, (_, i) => ({
-    id: `${label}-${i}`,
-    nama: ["Gibran Alfiansyah", "Tharena Silva Eljes", "Raihan Putra", "Kalila Azzahra"][i % 4],
-    kelas: "Kelas 4B",
-    sekolahNama: "SD Telkom Bandung",
-    teks: teks[i % teks.length],
-  }));
+
+  // Kelas mengikuti jenjang sekolahnya. Kalau diambil dari satu daftar campur, pratinjau
+  // menampilkan "TK Telkom Padang, Kelas XI TKJ 2" dan siapa pun yang melihat tangkapan layarnya
+  // akan mengira ada yang salah di pemetaan sekolah.
+  const KELAS = {
+    TK: ["Kelas A1", "Kelas A2", "Kelas B1"],
+    SD: ["Kelas 2A", "Kelas 4B", "Kelas 5A"],
+    SMP: ["Kelas VII-1", "Kelas VIII-2", "Kelas IX-3"],
+    SMAK: ["Kelas X RPL 1", "Kelas XI TKJ 2", "Kelas XI PPLG 1"],
+  };
+
+  // Bobot per sekolah dibuat timpang seperti data asli: sekolah menengah menyumbang jauh lebih
+  // banyak testimoni daripada TK, sehingga grafik "Suara per Sekolah" diuji pada rentang yang
+  // memang lebar, bukan pada batang yang sama panjang semua.
+  const BOBOT = [3, 2, 6, 5, 9, 14, 11];
+
+  // Tujuh sekolah mencakup keempat kelompok jenjang, supaya grafik komposisi per jenjang punya
+  // isi di semua barisnya.
+  const dipakai = [
+    SEKOLAH[0], SEKOLAH[3], SEKOLAH[4], SEKOLAH[6], SEKOLAH[8], SEKOLAH[11], SEKOLAH[13],
+  ];
+
+  const meta = {};
+  dipakai.forEach((s) => { meta[s.id] = s; });
+
+  const baris = [];
+  dipakai.forEach((sekolah, iS) => {
+    const banyak = BOBOT[iS % BOBOT.length] * 4;
+    for (let i = 0; i < banyak; i++) {
+      // Indeks kalimat digeser deterministik, bukan acak: pratinjau harus tampil sama tiap muat
+      // ulang, kalau tidak membandingkannya dengan tangkapan layar sebelumnya jadi percuma.
+      const [teks, kategori] = KALIMAT[(i * 7 + iS * 3) % KALIMAT.length];
+      baris.push({
+        id: `${sekolah.id}-${i}`,
+        sekolah_id: sekolah.id,
+        periode_id: "2026-05",
+        // Penulis ditiru dari pola nyata: TK dan SD diisi orang tua ("Orangtua <nama anak>"),
+        // SMP dan SMA/K sebagian besar diisi siswanya sendiri (nama sendiri, kapital semua).
+        // Tanpa campuran ini, grafik "Orangtua Berbicara Apa, Siswa Berbicara Apa" tidak pernah
+        // muncul di pratinjau dan tidak akan pernah diperiksa.
+        nama: sekolah.grup === "TK" || sekolah.grup === "SD"
+          ? `Orangtua Siswa ${i + 1}`
+          : (i % 4 === 0 ? `Orangtua Siswa ${i + 1}` : `SISWA CONTOH ${i + 1}`),
+        kelas: KELAS[sekolah.grup][(i + iS) % KELAS[sekolah.grup].length],
+        kategori,
+        teks,
+      });
+    }
+  });
+
+  return ringkasTestimoni(baris, meta);
 }
 
 // ── Survey Kepuasan ──────────────────────────────────────────────────────────────────────────

@@ -7,7 +7,7 @@ import PerJenjangTab from "./rapor/PerJenjangTab";
 import PerKarakterTab from "./rapor/PerKarakterTab";
 import PerSekolahTab from "./rapor/PerSekolahTab";
 import { statusPanel, ProgressBar, SectionTitle } from "./components/Bits";
-import { CS_TESTIMONI_KATEGORI } from "./yptMeta";
+import TestimoniTab from "./citra/TestimoniTab";
 import citra from "./citra/Citra.module.css";
 import tokens from "./yptTokens.module.css";
 import styles from "./YptApp.module.css";
@@ -85,57 +85,15 @@ export default function YptPreviewData() {
 }
 
 function CitraContoh({ tab }) {
-  const [testiAktif, setTestiAktif] = useState("Apresiasi");
   const daftarKategori = tab === "dukungan" ? MOCK_CITRA.dukungan
     : tab === "emosi" ? MOCK_CITRA.emosi
       : MOCK_CITRA.keberhasilan;
 
+  // Tab Testimoni dirender lewat komponen ASLI, bukan salinan ringkas seperti tab lain. Tab ini
+  // punya saringan bertingkat dan word cloud yang saling terhubung; menyalinnya di sini berarti
+  // pratinjau memeriksa kode yang bukan kode produksi.
   if (tab === "testimoni") {
-    const total = MOCK_CITRA.totalTestimoni;
-    const daftar = MOCK_CITRA.testimoniByKategori[testiAktif] || [];
-    const aksen = CS_TESTIMONI_KATEGORI.find((k) => k.id === testiAktif)?.warna;
-    return (
-      <>
-        <SectionTitle>Testimoni Orangtua</SectionTitle>
-        <div className={citra.grid4}>
-          {CS_TESTIMONI_KATEGORI.map((k) => {
-            const jumlah = (MOCK_CITRA.testimoniByKategori[k.id] || []).length;
-            return (
-              <button
-                key={k.id}
-                type="button"
-                className={`${citra.donutKartu} ${testiAktif === k.id ? citra.donutKartuActive : ""}`}
-                style={{ borderBottomColor: k.warna, color: k.warna }}
-                onClick={() => setTestiAktif(k.id)}
-              >
-                <span className={citra.kartuIkon} style={{ margin: 0, color: k.warna }} aria-hidden="true">◕</span>
-                <span>
-                  <span className={citra.donutNilai} style={{ color: k.warna }}>
-                    {Math.round((jumlah / total) * 100)}%
-                  </span>
-                  <p className={citra.donutNama}>{k.label}</p>
-                  <span className={citra.donutSub}>{jumlah} testimoni</span>
-                </span>
-              </button>
-            );
-          })}
-        </div>
-        <SectionTitle>Top Essay {CS_TESTIMONI_KATEGORI.find((k) => k.id === testiAktif)?.label}</SectionTitle>
-        <div className={citra.esaiGrid}>
-          {daftar.map((t) => (
-            <div key={t.id} className={citra.esaiKartu} style={{ borderBottomColor: aksen }}>
-              <div className={citra.esaiTop}>
-                <span className={citra.esaiNama}>{t.nama}</span>
-                <span className={citra.esaiBadge}>
-                  {t.kelas} · <span className={citra.esaiBadgeSekolah}>{t.sekolahNama}</span>
-                </span>
-              </div>
-              <p className={citra.esaiTeks}>{t.teks}</p>
-            </div>
-          ))}
-        </div>
-      </>
-    );
+    return <TestimoniTab data={MOCK_CITRA} jumlahSekolahNaungan={26} />;
   }
 
   const judul = tab === "dukungan" ? "Bentuk Dukungan"
