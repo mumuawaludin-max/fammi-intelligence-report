@@ -331,6 +331,26 @@ function kolomIdx(header: string[], ...kunci: string[]) {
   });
 }
 
+/**
+ * Indeks kolom Timestamp, dicari lewat kata kunci dengan kolom 0 sebagai fallback.
+ *
+ * BUG NYATA yang diperbaiki di sini (ditemukan 2026-08-28 setelah sinkronisasi testimoni
+ * melewati SELURUH 14.754 baris): kedua pemanggil sebelumnya menulis `waktu: 0` langsung,
+ * mengasumsikan kolom pertama selalu Timestamp seperti pola bawaan Google Form. Itu benar untuk
+ * sheet Survei Kepuasan (kolom A memang Timestamp), tapi sheet Testimoni menaruh "Nama Sekolah"
+ * di kolom A dan Timestamp di kolom B. Akibatnya nama sekolah dibaca seolah tanggal, gagal
+ * diurai untuk setiap baris, dan seluruh sheet dilewati dengan pesan yang tidak membedakan
+ * "sekolah tidak dikenal" dari "tanggal tidak terbaca".
+ *
+ * Fallback ke 0 dipertahankan, bukan diganti jadi wajib ketemu: kalau nanti ada sheet yang
+ * headernya tidak literal menulis "timestamp", ini menjaga perilaku lama tetap jalan alih-alih
+ * melempar error yang menghentikan sinkronisasi sumber lain.
+ */
+function kolomWaktu(header: string[]) {
+  const i = kolomIdx(header, "timestamp");
+  return i >= 0 ? i : 0;
+}
+
 async function syncKepuasan(admin: ReturnType<typeof createClient>) {
   const baris = await ambilSheet(SHEET_KEPUASAN, "Survei Kepuasan");
   if (baris.length < 2) return { total: 0, baru: 0, dilewati: 0, aliasTakDikenal: [] };
@@ -339,7 +359,7 @@ async function syncKepuasan(admin: ReturnType<typeof createClient>) {
   // Kolom dicari lewat kata kunci, bukan posisi tetap: pertanyaan form bisa disunting redaksinya
   // atau ditambah pertanyaan baru di tengah, dan indeks keras akan diam-diam salah kolom.
   const idx = {
-    waktu: 0,
+    waktu: kolomWaktu(header),
     sekolah: kolomIdx(header, "nama sekolah"),
     peran: kolomIdx(header, "peran"),
     baca: kolomIdx(header, "membaca laporan"),
@@ -436,7 +456,7 @@ async function syncTestimoni(admin: ReturnType<typeof createClient>) {
 
   const header = baris[0];
   const idx = {
-    waktu: 0,
+    waktu: kolomWaktu(header),
     sekolah: kolomIdx(header, "sekolah"),
     nama: header.findIndex((h) => (h || "").trim().toLowerCase() === "nama"),
     kelas: kolomIdx(header, "kelas"),
