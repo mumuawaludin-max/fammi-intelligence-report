@@ -84,10 +84,17 @@ comment on column public.karakter_aspek_config.identitas_kode is
 -- ── 3. Unique constraint ikut naik grain ───────────────────────────────────────────────────
 -- Constraint lama kedua tabel ini dibuat di luar folder migrations (lihat catatan di
 -- saveAspekConfigAction, web/src/pages/admin/useAdminCmsData.js), jadi namanya tidak bisa
--- dipastikan dari repo. Dicari lewat katalog berdasarkan SUSUNAN KOLOMNYA, bukan namanya, lalu
--- dibuang. Sengaja hanya yang susunannya persis sama dengan grain lama yang dibuang; unique
--- lain (kalau ada) dibiarkan, supaya blok ini tidak bisa membuang constraint yang tidak
--- dimaksud.
+-- dipastikan dari repo. Dicari lewat katalog, lalu dibuang.
+--
+-- ATURANNYA GENERAL, bukan daftar susunan kolom tertentu: buang setiap unique di kedua tabel ini
+-- yang TIDAK menyertakan kolom jenjang. Sesudah migration ini, keunikan yang mengabaikan jenjang
+-- selalu keliru apa pun bentuknya, karena satu sekolah memang boleh punya "karakter3" di enam
+-- jenjang sekaligus. Merumuskannya sebagai "harus memuat jenjang" membuat blok ini tetap benar
+-- untuk sekolah yang constraint-nya dibuat dengan urutan kolom berbeda, atau dengan kolom
+-- tambahan yang tidak kita duga -- dan tidak akan membuang unique baru yang memang sudah benar.
+--
+-- attname bertipe `name`, bukan `text`. Tanpa ::text eksplisit, perbandingan array-nya gagal
+-- dengan "operator does not exist: name[] = text[]".
 do $$
 declare
   r record;
@@ -100,22 +107,21 @@ begin
         'public.karakter_aspek_config'::regclass,
         'public.karakter_indikator_config'::regclass
       )
-      and (
-        select array_agg(a.attname order by a.attname)
+      and not exists (
+        select 1
         from unnest(c.conkey) as k(attnum)
         join pg_attribute a on a.attrelid = c.conrelid and a.attnum = k.attnum
-      ) in (
-        array['aspek_kode', 'sekolah_id'],
-        array['aspek_kode', 'indikator_kode', 'sekolah_id']
+        where a.attname::text = 'jenjang'
       )
   loop
     execute format('alter table %s drop constraint %I', r.tbl, r.conname);
-    raise notice 'Constraint lama dibuang: %.%', r.tbl, r.conname;
+    raise notice 'Unique constraint tanpa jenjang dibuang: % pada %', r.conname, r.tbl;
   end loop;
 end $$;
 
--- Index unik (bukan constraint) dengan susunan kolom lama juga dibuang, karena bentuk itu sama
--- mengikatnya dan sama-sama mungkin dibuat lewat SQL Editor.
+-- Index unik (bukan constraint) yang mengabaikan jenjang juga dibuang: bentuk itu sama
+-- mengikatnya dan sama-sama mungkin dibuat lewat SQL Editor. Index yang menopang sebuah
+-- constraint dilewati -- yang itu sudah ikut terbuang bersama constraint-nya di blok atas.
 do $$
 declare
   r record;
@@ -129,17 +135,15 @@ begin
         'public.karakter_aspek_config'::regclass,
         'public.karakter_indikator_config'::regclass
       )
-      and (
-        select array_agg(a.attname order by a.attname)
-        from unnest(i.indkey) as k(attnum)
+      and not exists (
+        select 1
+        from unnest(i.indkey::int2[]) as k(attnum)
         join pg_attribute a on a.attrelid = i.indrelid and a.attnum = k.attnum
-      ) in (
-        array['aspek_kode', 'sekolah_id'],
-        array['aspek_kode', 'indikator_kode', 'sekolah_id']
+        where a.attname::text = 'jenjang'
       )
   loop
     execute format('drop index %s', r.idx);
-    raise notice 'Index unik lama dibuang: %', r.idx;
+    raise notice 'Index unik tanpa jenjang dibuang: %', r.idx;
   end loop;
 end $$;
 
@@ -233,7 +237,7 @@ begin
   end if;
 
   insert into karakter_skor (sekolah_id, jenjang, kelas_id, murid_id, nama_murid, periode_id, aspek_kode, skor, sumber, status)
-  select sekolah_id, coalesce(jenjang, '*'), kelas_id, murid_id, nama_murid, periode_id, aspek_kode, skor, sumber, status
+  select sekolah_id, coalesce(x.jenjang, '*'), kelas_id, murid_id, nama_murid, periode_id, aspek_kode, skor, sumber, status
   from jsonb_to_recordset(coalesce(payload->'skor_rows', '[]'::jsonb)) as x(
     sekolah_id text, jenjang text, kelas_id text, murid_id text, nama_murid text, periode_id text,
     aspek_kode text, skor int, sumber text, status text
@@ -241,7 +245,7 @@ begin
   get diagnostics v_skor_count = row_count;
 
   insert into karakter_skor_indikator (sekolah_id, jenjang, kelas_id, murid_id, nama_murid, periode_id, aspek_kode, indikator_kode, skor, sumber, status)
-  select sekolah_id, coalesce(jenjang, '*'), kelas_id, murid_id, nama_murid, periode_id, aspek_kode, indikator_kode, skor, sumber, status
+  select sekolah_id, coalesce(x.jenjang, '*'), kelas_id, murid_id, nama_murid, periode_id, aspek_kode, indikator_kode, skor, sumber, status
   from jsonb_to_recordset(coalesce(payload->'skor_indikator_rows', '[]'::jsonb)) as x(
     sekolah_id text, jenjang text, kelas_id text, murid_id text, nama_murid text, periode_id text,
     aspek_kode text, indikator_kode text, skor int, sumber text, status text
@@ -396,7 +400,14 @@ comment on view public.karakter_sekolah_indeks is
 -- berbeda jadi satu daftar. Kolom jenjang ditambahkan (bukan menggantikan apa pun), jadi
 -- pemanggil lama yang tidak menyebut kolom itu tetap jalan; untuk sekolah berkerangka tunggal
 -- nilainya selalu '*' dan hasilnya identik dengan sebelumnya.
-create or replace view public.karakter_indikator_sekolah_avg
+--
+-- DROP dulu, bukan CREATE OR REPLACE. Postgres cuma mengizinkan REPLACE menambah kolom DI AKHIR
+-- daftar; menyisipkan `jenjang` di tengah ditolak dengan "cannot change name of view column".
+-- Menaruhnya di akhir bisa saja, tapi urutan kolomnya jadi menyesatkan pembaca berikutnya. Tidak
+-- ada objek database lain yang bergantung pada kedua view ini (sudah dicek: cuma kode React yang
+-- menyebut kolomnya per nama), jadi DROP aman.
+drop view if exists public.karakter_indikator_sekolah_avg;
+create view public.karakter_indikator_sekolah_avg
 with (security_invoker = true)
 as
 select
@@ -411,7 +422,8 @@ group by sekolah_id, jenjang, periode_id, aspek_kode, indikator_kode;
 
 grant select on public.karakter_indikator_sekolah_avg to authenticated;
 
-create or replace view public.karakter_indikator_kelas_avg
+drop view if exists public.karakter_indikator_kelas_avg;
+create view public.karakter_indikator_kelas_avg
 with (security_invoker = true)
 as
 select
