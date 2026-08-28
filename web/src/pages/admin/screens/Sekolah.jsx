@@ -287,7 +287,13 @@ function AspekConfigEditor({ sekolah, onTutup }) {
     .sort((a, b) => String(a).localeCompare(String(b), 'id', { numeric: true }));
   // Sekolah berkerangka tunggal punya satu jenjang saja ('*'); seluruh kendali identitas
   // disembunyikan untuk mereka, karena tidak ada jenjang lain untuk disandingkan.
-  const perJenjang = daftarJenjang.length > 1 || daftarJenjang[0] !== '*';
+  //
+  // Ditulis dengan .some, bukan cek panjang + indeks 0. Bentuk itu memberi `true` untuk daftar
+  // KOSONG (undefined !== '*'), yaitu sekolah yang datanya belum pernah diunggah -- dan di
+  // keadaan itu tombol "+ Aspek" di kaki dialog berganti jadi petunjuk "tombolnya ada di tiap
+  // jenjang", padahal tidak ada satu pun jenjang yang tergambar. Sekolah tanpa data jadi
+  // kehilangan satu-satunya cara menambah baris aspek manual.
+  const perJenjang = daftarJenjang.some((j) => j !== '*');
 
   /** Grup identitas beserta anggotanya dan apakah indikator antaranggotanya benar-benar sama.
    * Perbandingannya memakai teks indikator apa adanya, dan hasilnya cuma PERINGATAN, bukan
