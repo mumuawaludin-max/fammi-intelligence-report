@@ -1546,10 +1546,42 @@ export async function generateAndInsertDraft(
 
   // Label aspek (aspek_kode -> aspek_label), dipakai untuk membangun rata_rata_per_aspek
   // yang labelnya PERSIS seperti kartu aspek yang dilihat sekolah.
+  //
+  // Sejak migration 20260828110000, satu sekolah bisa punya kerangka karakter BERBEDA per
+  // jenjang, dan baris config-nya berkunci (sekolah_id, jenjang, aspek_kode). Peta yang cuma
+  // berkunci aspek_kode akan meruntuhkan 24 baris jadi 4, siapa pun yang terakhir diproses
+  // menang -- artinya prompt untuk Kelas 1 bisa membawa nama karakter milik Kelas 6, dan Gemini
+  // akan menulis tindak lanjut yang menyebut karakter yang tidak pernah diajarkan di jenjang itu.
+  // Teksnya akan terbaca meyakinkan dan lolos gerbang persetujuan tanpa ada yang curiga.
   const { data: aspekCfgRows } = await db.from("karakter_aspek_config")
-    .select("aspek_kode, aspek_label").eq("sekolah_id", sekolah_id);
+    .select("jenjang, aspek_kode, aspek_label").eq("sekolah_id", sekolah_id);
+
+  // Jenjang pemilik scope ini. scope 'jenjang' membawa labelnya langsung di scope_id; scope
+  // 'kelas' ditelusuri lewat baris skor kelas itu, karena nama kelas ("1 Ibnu Kholdun") tidak
+  // selalu bisa diterjemahkan ke label jenjang yang dipakai sekolah.
+  let jenjangScope: string | null = scope === "jenjang" ? scope_id : null;
+  if (!jenjangScope && scope === "kelas") {
+    const { data: kelasRow } = await db.from("karakter_skor")
+      .select("jenjang").eq("sekolah_id", sekolah_id).eq("kelas_id", scope_id).limit(1);
+    jenjangScope = kelasRow?.[0]?.jenjang || null;
+  }
+
+  const perJenjang = (aspekCfgRows || []).some((a: any) => a.jenjang && a.jenjang !== "*");
   const aspekLabels: Record<string, string> = {};
-  (aspekCfgRows || []).forEach((a: any) => { if (a.aspek_kode) aspekLabels[a.aspek_kode] = a.aspek_label; });
+  if (!perJenjang) {
+    (aspekCfgRows || []).forEach((a: any) => { if (a.aspek_kode) aspekLabels[a.aspek_kode] = a.aspek_label; });
+  } else if (jenjangScope) {
+    // Baris '*' lebih dulu sebagai cadangan (sekolah yang namanya diisi sebelum migration),
+    // lalu baris jenjang ini menimpanya.
+    (aspekCfgRows || []).filter((a: any) => (a.jenjang ?? "*") === "*")
+      .forEach((a: any) => { if (a.aspek_kode) aspekLabels[a.aspek_kode] = a.aspek_label; });
+    (aspekCfgRows || []).filter((a: any) => a.jenjang === jenjangScope)
+      .forEach((a: any) => { if (a.aspek_kode) aspekLabels[a.aspek_kode] = a.aspek_label; });
+  }
+  // Sisanya (sekolah berkerangka per jenjang, tapi scope-nya lintas jenjang seperti 'sekolah')
+  // sengaja dibiarkan KOSONG. Tidak ada satu nama pun yang sah untuk seluruh sekolah di situ,
+  // dan nama generik "Karakter N" jauh lebih jujur daripada nama milik salah satu jenjang.
+  // Sejalan dengan yang dilakukan tampilan (lihat aspekEffective di useKarakterData.js).
 
   const prompt = buildUserPrompt({ role, scope, scope_id, modul, periode_id, ringkasan: summaryRow.ringkasan, kutipanOrtu, tallyOrtu, arahanReviewer, tipe, aspekLabels });
 
