@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState, useTransition } from "react";
 import { SectionTitle, statusPanel } from "../components/Bits";
 import { useReveal, useCountUp } from "../components/useReveal";
-import { CS_SUMBER } from "../yptMeta";
+import { CS_SUMBER, periodeLabel } from "../yptMeta";
 import { statistikTestimoni } from "./useCsData";
 import { hitungKata, hitungKataKhas, statistikKata } from "./analisaKata";
 import WordCloud from "./WordCloud";
@@ -26,7 +26,9 @@ import styles from "./Citra.module.css";
  *    statistikTestimoni(), bukan memakai angka periode penuh dari useCsData. Grafik yang tidak
  *    ikut menyaring akan menjawab pertanyaan yang berbeda dari daftar di bawahnya.
  */
-export default function TestimoniTab({ data, galat, jumlahSekolahNaungan }) {
+export default function TestimoniTab({
+  data, galat, jumlahSekolahNaungan, periode, periodesTestimoni = [], onPeriode,
+}) {
   const [kategoriAktif, setKategoriAktif] = useState(null);
   const [kataAktif, setKataAktif] = useState(null);
   const [sekolahAktif, setSekolahAktif] = useState("");
@@ -162,11 +164,28 @@ export default function TestimoniTab({ data, galat, jumlahSekolahNaungan }) {
   }
 
   if (totalPeriode === 0) {
+    // Bulan lain yang benar-benar punya testimoni. Sama seperti Survey Kepuasan: testimoni ikut
+    // siklus spreadsheet, sedangkan periode default diambil dari bulan terbaru milik impor
+    // Karakter. Begitu Karakter melewati bulan testimoni terakhir, tab ini terbuka kosong dan
+    // tanpa daftar ini tidak ada apa pun yang memberi tahu bahwa datanya ada di bulan lain.
+    const periodeLain = periodesTestimoni.filter((p) => p !== periode);
+
     return statusPanel({
       kosong: true,
-      judul: "Belum ada testimoni",
-      pesan: "Testimoni ditarik dari spreadsheet YPT. Isi spreadsheetnya, tandai kolom Tampilkan "
-        + "dengan Ya, lalu jalankan sinkronisasi di Admin CMS.",
+      judul: "Belum ada testimoni di periode ini",
+      pesan: periodeLain.length > 0
+        ? "Testimoninya ada, tapi di bulan lain."
+        : "Testimoni ditarik dari spreadsheet YPT. Isi spreadsheetnya, tandai kolom Tampilkan "
+          + "dengan Ya, lalu jalankan sinkronisasi di Admin CMS.",
+      aksi: periodeLain.length > 0 && onPeriode ? (
+        <div className={styles.lompatPeriode}>
+          {periodeLain.map((p) => (
+            <button key={p} type="button" className={styles.lompatBtn} onClick={() => onPeriode(p)}>
+              Lihat {periodeLabel(p)}
+            </button>
+          ))}
+        </div>
+      ) : null,
     });
   }
 

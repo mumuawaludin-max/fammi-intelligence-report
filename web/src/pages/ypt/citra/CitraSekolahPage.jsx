@@ -6,7 +6,7 @@ import EsaiBlok from "./EsaiBlok";
 import TestimoniTab from "./TestimoniTab";
 import styles from "./Citra.module.css";
 
-export default function CitraSekolahPage({ session, periode, tab }) {
+export default function CitraSekolahPage({ session, periode, tab, periodesTestimoni = [], onPeriode }) {
   // Testimoni cuma ditarik saat tabnya dibuka. Tiga tab lain tidak memakainya sama sekali, dan
   // ikut menunggu 14 ribuan baris beserta teksnya adalah penyebab utama tab ini terasa lambat.
   const { loading, error, loadingTestimoni, errorTestimoni, data, ambilEsai } = useCsData(
@@ -171,6 +171,9 @@ export default function CitraSekolahPage({ session, periode, tab }) {
       data={data}
       galat={errorTestimoni}
       jumlahSekolahNaungan={(session?.schools || []).length}
+      periode={periode}
+      periodesTestimoni={periodesTestimoni}
+      onPeriode={onPeriode}
     />
   );
 }

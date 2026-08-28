@@ -123,11 +123,18 @@ export default function YptApp({ session, onLogout }) {
               {menu === "rapor" && (
                 <RaporKarakterPage session={session} periode={periode} tab={tab} onTabChange={setTab} />
               )}
-              {/* Citra sengaja TIDAK menerima periodesMenu: tab non-Testimoni sumbernya periode
-                  impor Karakter, yang justru menentukan periode terbaru, jadi tidak pernah
-                  tertinggal. Tab Testimoni mengurus status kosongnya sendiri di TestimoniTab. */}
+              {/* periodesMenu di sini SPESIFIK untuk tab Testimoni. Tab lain di menu Citra
+                  sumbernya periode impor Karakter, yang justru menentukan periode terbaru, jadi
+                  tidak pernah tertinggal. Testimoni ikut siklus spreadsheet dan bisa tertinggal
+                  persis seperti Survey Kepuasan. */}
               {menu === "citra" && (
-                <CitraSekolahPage session={session} periode={periode} tab={tab} />
+                <CitraSekolahPage
+                  session={session}
+                  periode={periode}
+                  tab={tab}
+                  periodesTestimoni={periodes.testimoni}
+                  onPeriode={setPeriode}
+                />
               )}
               {menu === "kepuasan" && (
                 <SurveyKepuasanPage

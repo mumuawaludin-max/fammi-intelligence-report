@@ -904,3 +904,28 @@
   color: var(--ypt-ink-3);
   padding: 8px 0;
 }
+
+/* Tombol lompat ke periode yang benar-benar punya testimoni, muncul di keadaan kosong.
+   Kembaran aturan yang sama di Kepuasan.module.css: CSS Modules meng-hash nama kelas per berkas,
+   jadi kelas tidak bisa dipakai bersama antarmodul tanpa composes lintas berkas. */
+.lompatPeriode {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: center;
+  margin-top: 16px;
+}
+
+.lompatBtn {
+  border: none;
+  border-radius: var(--ypt-radius-sm);
+  background: var(--ypt-navy);
+  color: #fff;
+  font: inherit;
+  font-size: 12.5px;
+  font-weight: 600;
+  padding: 9px 18px;
+  cursor: pointer;
+}
+
+.lompatBtn:hover { background: var(--ypt-navy-2); }
