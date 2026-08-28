@@ -4,7 +4,7 @@ import { LoadingCards } from '../components/LoadingCards';
 import { EmptyState } from '../components/EmptyState';
 import { ErrorState } from '../components/ErrorState';
 import { Toggle } from '../components/StatusPill';
-import { IconMoreVertical } from '../components/icons';
+import { IconMoreVertical, IconX } from '../components/icons';
 import { loadAspekKandidatAction, saveAspekConfigAction, refreshYptViewsAction } from '../useAdminCmsData';
 
 // Urutannya harus sama dengan kolom <th> di tabel bawah -- baris data dirender dengan
@@ -16,6 +16,10 @@ const MODULES = ['karakter', 'mi', 'screening', 'cw', 'sc', 'pa', 'lw', 'kp'];
 
 export function Sekolah() {
   const { data, loading, error, setAddSchoolOpen, setAddYayasanOpen, setEditSchoolTarget, showToast, isModuleOn, toggleModule, refetch } = useCms();
+  // Menyimpan OBJEK sekolahnya, bukan id-nya saja. Dengan id, dialog cuma muncul kalau
+  // pencariannya di data.sekolah ketemu; kalau meleset karena alasan apa pun, tidak ada yang
+  // tampil dan tidak ada pesan apa pun -- persis gejala "diklik tidak terjadi apa-apa" yang
+  // sulit dilacak. Data terbaru tetap diutamakan, objek tersimpan cuma jadi cadangan.
   const [expanded, setExpanded] = useState(null);
 
   if (loading) return <LoadingCards rows={4} />;
@@ -26,7 +30,9 @@ export function Sekolah() {
     return <EmptyState title="Belum ada sekolah" desc="Tambahkan sekolah pertama untuk mulai." cta="Tambah sekolah" onCta={() => setAddSchoolOpen(true)} />;
   }
 
-  const expandedSekolah = expanded ? data.sekolah.find(s => s.id === expanded) : null;
+  const expandedSekolah = expanded
+    ? (data.sekolah.find(s => s.id === expanded.id) || expanded)
+    : null;
 
   return (
     <div style={{ padding: '22px 26px 40px' }}>
@@ -67,7 +73,7 @@ export function Sekolah() {
                   yayNama={data.yayasan.find(y => y.id === k.yay)?.nama}
                   isModuleOn={isModuleOn}
                   toggleModule={toggleModule}
-                  onExpand={() => setExpanded(cur => cur === k.id ? null : k.id)}
+                  onExpand={() => setExpanded(cur => (cur?.id === k.id ? null : k))}
                   onEdit={() => setEditSchoolTarget(k)}
                 />
               ))}
@@ -77,7 +83,11 @@ export function Sekolah() {
       </div>
 
       {expandedSekolah && (
-        <AspekConfigEditor key={expandedSekolah.id} sekolah={expandedSekolah} />
+        <AspekConfigEditor
+          key={expandedSekolah.id}
+          sekolah={expandedSekolah}
+          onTutup={() => setExpanded(null)}
+        />
       )}
     </div>
   );
@@ -111,8 +121,14 @@ function nomorAspek(kode) {
  * Baris yang ditawarkan bukan cuma yang sudah ada di config, tapi SEMUA kode aspek yang benar
  * benar dipakai sekolah ini di karakter_skor -- kalau cuma menampilkan config yang ada, sekolah
  * yang confignya kosong akan menampilkan form kosong juga dan admin tidak tahu harus isi apa.
+ *
+ * DIALOG, bukan panel di bawah tabel. Versi pertama merendernya sebagai kartu di akhir halaman,
+ * dan admin melaporkan "diklik tidak terjadi apa-apa": panelnya memang muncul, tapi daftar
+ * sekolah sudah puluhan baris sehingga panel itu jauh di luar layar dan tidak ada yang menggulir
+ * ke sana. Dialog menghilangkan seluruh kelas masalah itu, sekalian mengikuti pola dialog CMS
+ * yang sudah ada (AddUserDialog).
  */
-function AspekConfigEditor({ sekolah }) {
+function AspekConfigEditor({ sekolah, onTutup }) {
   const { showToast, refetch } = useCms();
   const [rows, setRows] = useState([]);
   const [indikator, setIndikator] = useState({});
@@ -121,10 +137,32 @@ function AspekConfigEditor({ sekolah }) {
   const [menyimpan, setMenyimpan] = useState(false);
   const [gagalMuat, setGagalMuat] = useState(null);
 
+  // Escape menutup, dan latar dikunci supaya menggulir di dalam dialog tidak menggeser tabel di
+  // belakangnya. Tidak menutup saat sedang menyimpan: pekerjaannya sudah terkirim ke server dan
+  // menghilangkan dialognya di tengah jalan cuma menyembunyikan hasilnya dari admin.
+  // Kunci gulir SENGAJA di effect sendiri dengan deps kosong. Kalau digabung dengan pendengar
+  // tombol di bawah, effect-nya ikut berjalan ulang setiap `onTutup` berganti identitas (dan itu
+  // terjadi tiap render induknya), sehingga `gulirLama` yang tersimpan jadi 'hidden' hasil
+  // jalannya sendiri -- dan saat dialog ditutup halaman tetap terkunci, tidak bisa digulir lagi.
+  useEffect(() => {
+    const gulirLama = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => { document.body.style.overflow = gulirLama; };
+  }, []);
+
+  useEffect(() => {
+    function onKey(e) { if (e.key === 'Escape' && !menyimpan) onTutup(); }
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [menyimpan, onTutup]);
+
+  // Dimuat SEKALI saat dialog dibuka. Komponennya di-key menurut sekolah.id, jadi memilih sekolah
+  // lain memasangnya ulang dari awal dan `memuat` sudah bernilai true dari useState -- tidak perlu
+  // menyetel ulang state di dalam effect. `sekolah.aspekConfig` sengaja tidak jadi dependensi:
+  // identitasnya berganti tiap kali daftar CMS dimuat ulang, dan kalau itu memicu pemuatan ulang,
+  // isian yang sedang diketik admin akan tertimpa data lama di tengah pengetikan.
   useEffect(() => {
     let batal = false;
-    setMemuat(true);
-    setGagalMuat(null);
     loadAspekKandidatAction(sekolah.id)
       .then((k) => {
         if (batal) return;
@@ -147,7 +185,8 @@ function AspekConfigEditor({ sekolah }) {
       })
       .catch((e) => { if (!batal) { setGagalMuat(e.message); setMemuat(false); } });
     return () => { batal = true; };
-  }, [sekolah.id, sekolah.aspekConfig]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sekolah.id]);
 
   function ubahLabel(kode, nilai) {
     setRows((r) => r.map((x) => (x.aspek_kode === kode ? { ...x, aspek_label: nilai } : x)));
@@ -190,38 +229,60 @@ function AspekConfigEditor({ sekolah }) {
       );
       setHapus([]);
       showToast(`${isi.length} nama karakter tersimpan untuk ${sekolah.nama}.`, 'safe');
-      refetch();
+
+      // Refresh view YPT DULU, baru tutup dan muat ulang daftar. Urutannya penting: refetch()
+      // menyalakan state loading, dan layar Sekolah mengganti seluruh isinya dengan kerangka
+      // memuat, sehingga dialog ini ikut dilepas di tengah pekerjaan yang belum selesai.
       try {
         await refreshYptViewsAction();
         showToast('Ringkasan Rapor Karakter YPT ikut diperbarui.', 'safe');
       } catch (e) {
         showToast('Tersimpan, tapi ringkasan YPT belum dihitung ulang: ' + e.message, 'warn', 5200);
       }
+
+      setMenyimpan(false);
+      onTutup();
+      refetch();
+      return;
     } catch (e) {
       showToast('Gagal simpan: ' + e.message, 'alert', 5200);
-    } finally {
-      setMenyimpan(false);
     }
+    setMenyimpan(false);
   }
 
   const belumDiisi = rows.filter((r) => !r.aspek_label.trim()).length;
 
   return (
-    <div className="card" style={{ padding: '22px 24px', marginTop: 16 }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 14, gap: 16 }}>
-        <div>
-          <div className="disp" style={{ fontSize: 16, fontWeight: 700, color: 'var(--ink)' }}>Nama Karakter — {sekolah.nama}</div>
-          <div style={{ fontSize: 12, color: 'var(--ink-3)', marginTop: 2 }}>
-            karakter_aspek_config · nama ini yang tampil di laporan siswa, wali kelas, kepala sekolah, dan yayasan
+    <>
+      <div
+        style={{ position: 'fixed', inset: 0, background: 'rgba(33,27,46,.42)', zIndex: 60 }}
+        onClick={menyimpan ? undefined : onTutup}
+      />
+      <div
+        className="dialog-enter"
+        style={{
+          position: 'fixed', top: '50%', left: '50%', transform: 'translate(-50%,-50%)',
+          background: 'var(--surface)', borderRadius: 20, width: 'min(760px,94vw)', maxHeight: '86vh',
+          display: 'flex', flexDirection: 'column', overflow: 'hidden',
+          boxShadow: '0 24px 60px rgba(33,27,46,.28)', zIndex: 70,
+        }}
+        role="dialog"
+        aria-modal="true"
+        aria-label={`Nama karakter ${sekolah.nama}`}
+      >
+        <div style={{ padding: '20px 24px 16px', borderBottom: '1px solid var(--line)', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 16 }}>
+          <div style={{ minWidth: 0 }}>
+            <div className="disp" style={{ fontSize: 17, fontWeight: 700, color: 'var(--ink)' }}>Nama Karakter — {sekolah.nama}</div>
+            <div style={{ fontSize: 12, color: 'var(--ink-3)', marginTop: 3 }}>
+              Nama ini yang tampil di laporan siswa, wali kelas, kepala sekolah, dan yayasan
+            </div>
           </div>
-        </div>
-        <div style={{ display: 'flex', gap: 8, flexShrink: 0 }}>
-          <button className="btn-secondary" onClick={tambahBaris} disabled={memuat || menyimpan}>+ Aspek</button>
-          <button className="btn-primary" onClick={simpan} disabled={memuat || menyimpan}>
-            {menyimpan ? 'Menyimpan…' : 'Simpan'}
+          <button className="btn-ghost" style={{ padding: 6, flexShrink: 0 }} onClick={onTutup} disabled={menyimpan} aria-label="Tutup">
+            <IconX size={16} />
           </button>
         </div>
-      </div>
+
+        <div style={{ padding: '18px 24px', overflowY: 'auto', flex: 1 }}>
 
       {memuat && <p style={{ fontSize: 12.5, color: 'var(--ink-3)' }}>Membaca kode aspek yang dipakai sekolah ini…</p>}
 
@@ -285,7 +346,19 @@ function AspekConfigEditor({ sekolah }) {
           </div>
         </>
       )}
-    </div>
+        </div>
+
+        <div style={{ padding: '14px 24px', borderTop: '1px solid var(--line)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12 }}>
+          <button className="btn-secondary" onClick={tambahBaris} disabled={memuat || menyimpan}>+ Aspek</button>
+          <div style={{ display: 'flex', gap: 8 }}>
+            <button className="btn-secondary" onClick={onTutup} disabled={menyimpan}>Batal</button>
+            <button className="btn-primary" onClick={simpan} disabled={memuat || menyimpan}>
+              {menyimpan ? 'Menyimpan…' : 'Simpan'}
+            </button>
+          </div>
+        </div>
+      </div>
+    </>
   );
 }
 
