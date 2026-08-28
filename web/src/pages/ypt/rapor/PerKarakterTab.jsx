@@ -33,6 +33,17 @@ export default function PerKarakterTab({ data }) {
   const catatanLabel = useMemo(() => {
     if (aspek.length === 0) return null;
 
+    // Sekolah yang kerangka karakternya berbeda per jenjang tidak ikut grafik ini sama sekali
+    // (lihat sekolahPerJenjang di useYptKarakter). Angka totalnya tetap ikut di tab lain, tapi
+    // ketidakikutsertaannya di sini WAJIB disebut: grafik yang diam-diam melewatkan sekolah
+    // terbaca seolah sudah mencakup semuanya.
+    const perJenjang = data.sekolahPerJenjang || [];
+    if (perJenjang.length > 0) {
+      return `${perJenjang.length} sekolah tidak masuk grafik ini karena kerangka karakternya `
+        + `berbeda di tiap jenjang, jadi karakternya tidak bisa disandingkan dengan sekolah lain: `
+        + `${perJenjang.map((s) => s.nama).join(', ')}. Angka totalnya tetap ikut di tab lain.`;
+    }
+
     const bentrok = aspek.filter((a) => a.labelBentrok);
     if (bentrok.length > 0) {
       return `Peringatan: ${bentrok.length} karakter dinamai berbeda-beda antar sekolah pada `
@@ -51,7 +62,7 @@ export default function PerKarakterTab({ data }) {
         + "sisanya belum mengisi, jadi namanya belum tentu berlaku di semua sekolah.";
     }
     return null;
-  }, [aspek]);
+  }, [aspek, data.sekolahPerJenjang]);
 
   return (
     <>

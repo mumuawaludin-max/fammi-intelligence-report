@@ -36,10 +36,10 @@ export function useYptKarakter(session, periode) {
           .select("sekolah_id, periode_id, jumlah_siswa, rata_total")
           .in("sekolah_id", ids).range(from, to)),
         fetchAllRows((from, to) => supabase.from("ypt_k_aspek")
-          .select("sekolah_id, periode_id, aspek_kode, aspek_label, jumlah_siswa, rata")
+          .select("sekolah_id, jenjang, periode_id, aspek_kode, aspek_label, jumlah_siswa, rata")
           .in("sekolah_id", ids).range(from, to)),
         fetchAllRows((from, to) => supabase.from("ypt_k_indikator")
-          .select("sekolah_id, periode_id, aspek_kode, indikator_kode, indikator_label, jumlah_siswa, rata")
+          .select("sekolah_id, jenjang, periode_id, aspek_kode, indikator_kode, indikator_label, jumlah_siswa, rata")
           .in("sekolah_id", ids).range(from, to)),
         fetchAllRows((from, to) => supabase.from("ypt_k_siswa_ekstrem")
           .select("sekolah_id, periode_id, nama_murid, kelas_id, total_persen, arah, peringkat")
@@ -139,7 +139,28 @@ export function useYptKarakter(session, periode) {
     // Sekolah yang labelnya belum terisi di karakter_aspek_config jatuh ke fallback yang sama
     // dengan tampilan Karakter biasa ("karakter1" -> "Karakter 1", sesuai mockup) -- lebih baik
     // tampil dengan nama generik yang rapi daripada kode mentah atau hilang dari agregat.
-    const aspekAktif = aspekRows.filter((r) => r.periode_id === periode);
+    const aspekAktifSemua = aspekRows.filter((r) => r.periode_id === periode);
+
+    /**
+     * Sekolah yang kerangka karakternya berbeda per jenjang (migration 20260828110000).
+     * Ditandai oleh baris yang jenjangnya bukan sentinel '*'.
+     *
+     * Seluruh sekolah YPT hari ini berkerangka TUNGGAL, jadi daftar ini kosong dan tidak ada
+     * satu pun angka di halaman ini yang berubah. Penjaga ini preventif, dan penting: di sekolah
+     * berkerangka per jenjang, satu sekolah menyumbang enam baris untuk "karakter3" yang isinya
+     * enam karakter BERBEDA. Mengelompokkannya per aspek_kode seperti di bawah akan merata-ratakan
+     * keenamnya jadi satu batang -- persis bentuk cacat yang diperbaiki commit 762fdc5, cuma
+     * sumbernya berpindah dari antar-sekolah ke dalam satu sekolah.
+     *
+     * Yang dilakukan: sekolah itu dikeluarkan dari perbandingan PER KARAKTER saja. Angka totalnya
+     * tetap ikut di semua tempat lain, karena ypt_k_sekolah.rata_total tidak bergantung kerangka
+     * mana pun. Yang dikeluarkan dilaporkan ke tampilan, tidak dipotong diam-diam.
+     */
+    const sekolahPerJenjang = [...new Set(
+      aspekAktifSemua.filter((r) => r.jenjang && r.jenjang !== "*").map((r) => r.sekolah_id),
+    )].map((id) => ({ id, nama: metaBySekolah[id]?.nama || id }));
+    const idPerJenjang = new Set(sekolahPerJenjang.map((s) => s.id));
+    const aspekAktif = aspekAktifSemua.filter((r) => !idPerJenjang.has(r.sekolah_id));
     /**
      * Aspek dikelompokkan per `aspek_kode`, BUKAN per label.
      *
@@ -329,6 +350,10 @@ export function useYptKarakter(session, periode) {
       jenjang,
       aspekYayasan,
       aspekPerGrup,
+      // Sekolah yang dikeluarkan dari perbandingan per karakter karena kerangkanya berbeda per
+      // jenjang. Kosong untuk seluruh sekolah YPT sekarang; tampilan wajib menyebutkannya kalau
+      // suatu saat terisi, bukan memotong diam-diam.
+      sekolahPerJenjang,
       kolomAspekPerGrup,
       aspekPerSekolah,
       aspekLabel,
