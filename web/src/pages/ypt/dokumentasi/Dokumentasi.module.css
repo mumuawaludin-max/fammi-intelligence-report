@@ -57,8 +57,14 @@
   line-height: 1.5;
 }
 
-/* ── Bar saringan ───────────────────────────────────────────────────────────────────────── */
+/* ── Bar saringan ─────────────────────────────────────────────────────────────────────────
+ * MENEMPEL saat halaman digulir. Galerinya panjang (dua puluh foto dan dua puluh tiga rekaman),
+ * dan bar yang tergulir hilang di atas membuat saringannya seperti tidak ada -- pengguna harus
+ * menggulir balik ke puncak halaman hanya untuk mengganti sekolah. */
 .filterBar {
+  position: sticky;
+  top: 0;
+  z-index: 20;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -68,7 +74,11 @@
   padding: 14px 18px;
   background: var(--ypt-surface);
   border-radius: var(--ypt-radius-md);
-  box-shadow: var(--ypt-shadow-sm);
+  /* Bayangan sedikit lebih dalam dari kartu biasa, supaya batasnya terhadap isi yang lewat di
+     bawahnya terbaca saat menempel. Tidak memakai garis: kartu di halaman ini semuanya tanpa
+     garis tepi. Dipasang tetap, bukan hanya saat menempel -- CSS tidak punya cara mendeteksi
+     keadaan "sedang menempel" tanpa JavaScript, dan bedanya terlalu tipis untuk dikejar. */
+  box-shadow: 0 6px 20px rgba(23, 37, 84, .09);
 }
 
 .filterKiri {
@@ -343,10 +353,58 @@
   font-variant-numeric: tabular-nums;
 }
 
+/* ── Bento grid ─────────────────────────────────────────────────────────────────────────────
+ * Kisi empat kolom dengan tinggi baris tetap, jadi kartu bisa mengambil 1 atau 2 kolom dan 1 atau
+ * 2 baris. grid-auto-flow: dense menyuruh browser mengisi lubang yang tertinggal di belakang
+ * kartu besar, sehingga tidak ada rongga kosong di tengah galeri.
+ *
+ * Tinggi baris ditetapkan dalam piksel, BUKAN aspect-ratio per kartu: rasio per kartu dan rentang
+ * baris saling bertabrakan (kartu 2 baris akan memaksa tingginya sendiri dan merusak kisi).
+ * Konsekuensinya kartu memotong foto lewat object-fit: cover, dan itu memang yang diinginkan --
+ * versi utuhnya ada di lightbox. */
 .gridFoto {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  grid-template-columns: repeat(4, 1fr);
+  grid-auto-rows: 116px;
+  grid-auto-flow: dense;
   gap: 12px;
+}
+
+/* Membatalkan aspect-ratio bawaan .fotoWrap: di dalam bento, tinggi kartu ditentukan kisinya. */
+.fotoBento {
+  aspect-ratio: auto;
+  height: 100%;
+}
+
+/* Grup kecil: satu baris rata, tinggi dari rasio foto, bukan dari rentang baris bento. */
+.gridFotoSedikit {
+  grid-auto-rows: auto;
+  grid-auto-flow: row;
+}
+
+.gridFotoSedikit .fotoBento {
+  aspect-ratio: 16 / 10;
+  height: auto;
+}
+
+.bento_besar { grid-column: span 2; grid-row: span 2; }
+.bento_lebar { grid-column: span 2; grid-row: span 1; }
+.bento_kecil { grid-column: span 1; grid-row: span 1; }
+
+@media (max-width: 1100px) {
+  .gridFoto { grid-template-columns: repeat(3, 1fr); grid-auto-rows: 108px; }
+}
+
+/* Di bawah tiga kolom, bento kehilangan gunanya: kartu besar akan memakan hampir seluruh lebar
+   dan kartu kecil jadi terlalu sempit untuk dikenali. Kembali ke kisi dua kolom seragam. */
+@media (max-width: 780px) {
+  .gridFoto {
+    grid-template-columns: repeat(2, 1fr);
+    grid-auto-rows: auto;
+    grid-auto-flow: row;
+  }
+  .bento_besar, .bento_lebar, .bento_kecil { grid-column: span 1; grid-row: span 1; }
+  .fotoBento { aspect-ratio: 16 / 10; height: auto; }
 }
 
 .fotoWrap {

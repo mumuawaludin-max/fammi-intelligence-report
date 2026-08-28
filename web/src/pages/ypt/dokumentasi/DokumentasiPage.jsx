@@ -126,6 +126,33 @@ function kelompokkanFoto(items) {
     .sort((a, b) => b.foto.length - a.foto.length || a.nama.localeCompare(b.nama, "id"));
 }
 
+/**
+ * Pola ukuran bento, berulang tiap enam kartu pada kisi empat kolom.
+ *
+ * Urutannya dipilih supaya berdempet rapat dengan grid-auto-flow: dense. Kartu "besar" mengambil
+ * 2 kolom x 2 baris, jadi empat kartu kecil sesudahnya persis mengisi dua kolom sisanya pada dua
+ * baris yang sama; kartu "lebar" menutup baris berikutnya. Tidak ada kartu tegak (1 kolom x 2
+ * baris): seluruh foto sumbernya lanskap, dan bingkai tegak akan memotongnya paling parah.
+ *
+ * Grup berisi tiga foto atau kurang TIDAK memakai pola ini sama sekali. Kartu besar 2x2 di kisi
+ * empat kolom menyisakan setengah baris kosong yang tidak bisa diisi apa pun, dan lubang itu
+ * terbaca seperti tata letak yang gagal, bukan seperti pilihan. Grup sekecil itu dirender sebagai
+ * satu baris rata dengan kolom sebanyak fotonya (lihat kolomSedikit).
+ */
+const POLA_BENTO = ['besar', 'kecil', 'kecil', 'kecil', 'kecil', 'lebar'];
+
+function ukuranBento(i) {
+  return POLA_BENTO[i % POLA_BENTO.length];
+}
+
+/**
+ * Jumlah kolom untuk grup kecil. Minimal dua supaya satu foto tidak melebar sendirian selebar
+ * halaman, maksimal tiga supaya tiap foto masih cukup besar untuk dikenali.
+ */
+function kolomSedikit(total) {
+  return Math.min(3, Math.max(2, total));
+}
+
 /* ── Section foto ─────────────────────────────────────────────────────────────────────────── */
 function SectionFoto({ grup, jumlah, onBuka }) {
   if (jumlah === 0) return null;
@@ -138,26 +165,33 @@ function SectionFoto({ grup, jumlah, onBuka }) {
         ringkas="Foto kegiatan di sekolah yang sudah mengirimkan dokumentasi."
         jumlah={jumlah}
       />
-      {grup.map((g) => (
-        <div key={g.nama} className={styles.grupFoto}>
-          <div className={styles.grupHead}>
-            <h3 className={styles.grupNama}>{g.nama}</h3>
-            <span className={styles.grupJumlah}>{g.foto.length} foto</span>
+      {grup.map((g) => {
+        const sedikit = g.foto.length <= 3;
+        return (
+          <div key={g.nama} className={styles.grupFoto}>
+            <div className={styles.grupHead}>
+              <h3 className={styles.grupNama}>{g.nama}</h3>
+              <span className={styles.grupJumlah}>{g.foto.length} foto</span>
+            </div>
+            <div
+              className={`${styles.gridFoto} ${sedikit ? styles.gridFotoSedikit : ""}`}
+              style={sedikit
+                ? { gridTemplateColumns: `repeat(${kolomSedikit(g.foto.length)}, 1fr)` }
+                : undefined}
+            >
+              {g.foto.map((f, i) => (
+                <FotoDrive
+                  key={f.id}
+                  src={fotoUrl(f.url)}
+                  alt={f.judul}
+                  className={`${styles.fotoKartu} ${styles.fotoBento} ${sedikit ? "" : styles[`bento_${ukuranBento(i)}`]}`}
+                  onClick={() => onBuka(f)}
+                />
+              ))}
+            </div>
           </div>
-          <div className={styles.gridFoto}>
-            {g.foto.map((f) => (
-              <FotoDrive
-                key={f.id}
-                src={fotoUrl(f.url)}
-                alt={f.judul}
-                ratio="16 / 10"
-                className={styles.fotoKartu}
-                onClick={() => onBuka(f)}
-              />
-            ))}
-          </div>
-        </div>
-      ))}
+        );
+      })}
     </section>
   );
 }
@@ -203,6 +237,7 @@ export function DokumentasiIsi({ items }) {
   const [fotoIndeks, setFotoIndeks] = useState(null);
   const [kategori, setKategori] = useState("semua");
   const [sekolah, setSekolah] = useState("semua");
+  const [jenis, setJenis] = useState("semua");
 
   const semuaSekolah = useMemo(() => {
     const set = new Set();
@@ -222,8 +257,9 @@ export function DokumentasiIsi({ items }) {
     // dipilih akan terbaca seperti berkasnya hilang.
     if (kategori !== "semua" && it.kategori && it.kategori !== kategori) return false;
     if (sekolah !== "semua" && !(it.sekolah_nama || []).includes(sekolah)) return false;
+    if (jenis !== "semua" && it.jenis !== jenis) return false;
     return true;
-  }), [items, kategori, sekolah]);
+  }), [items, kategori, sekolah, jenis]);
 
   const video = terfilter.filter((i) => i.jenis === "video");
   const berkas = terfilter.filter((i) => i.jenis === "file");
@@ -242,14 +278,48 @@ export function DokumentasiIsi({ items }) {
   // Saringan berubah saat lightbox terbuka akan membuat indeksnya menunjuk foto yang sudah tidak
   // ada di daftar. Ditutup saja, bukan digeser: foto yang sedang dilihat memang tidak lolos
   // saringan barunya, jadi tidak ada foto pengganti yang masuk akal.
-  useEffect(() => { setFotoIndeks(null); }, [kategori, sekolah]);
+  useEffect(() => { setFotoIndeks(null); }, [kategori, sekolah, jenis]);
 
-  const adaSaringan = kategori !== "semua" || sekolah !== "semua";
+  const adaSaringan = kategori !== "semua" || sekolah !== "semua" || jenis !== "semua";
+
+  // Jenis yang benar-benar ada isinya SEBELUM saringan jenis diterapkan. Kalau dihitung dari
+  // hasil akhir, memilih "Foto" akan membuat tombol Rekaman dan Berkas lenyap, dan pengguna
+  // terkunci di satu jenis tanpa jalan kembali selain menekan Semua.
+  const sebelumJenis = items.filter((it) => {
+    if (kategori !== "semua" && it.kategori && it.kategori !== kategori) return false;
+    if (sekolah !== "semua" && !(it.sekolah_nama || []).includes(sekolah)) return false;
+    return true;
+  });
+  const JENIS_LABEL = { video: "Rekaman", foto: "Foto", file: "Berkas", link: "Tautan" };
+  const jenisTersedia = ["video", "foto", "file", "link"]
+    .filter((j) => sebelumJenis.some((it) => it.jenis === j));
 
   return (
     <>
       <div className={styles.filterBar}>
         <div className={styles.filterKiri}>
+          {jenisTersedia.length > 1 && (
+            <div className={styles.segmen} role="group" aria-label="Saring jenis dokumentasi">
+              <button
+                type="button"
+                className={`${styles.segmenBtn} ${jenis === "semua" ? styles.segmenAktif : ""}`}
+                onClick={() => setJenis("semua")}
+              >
+                Semua
+              </button>
+              {jenisTersedia.map((j) => (
+                <button
+                  key={j}
+                  type="button"
+                  className={`${styles.segmenBtn} ${jenis === j ? styles.segmenAktif : ""}`}
+                  onClick={() => setJenis(j)}
+                >
+                  {JENIS_LABEL[j]}
+                </button>
+              ))}
+            </div>
+          )}
+
           <div className={styles.segmen} role="group" aria-label="Saring babak kegiatan">
             <button
               type="button"
@@ -291,7 +361,7 @@ export function DokumentasiIsi({ items }) {
             <button
               type="button"
               className={styles.kosongReset}
-              onClick={() => { setKategori("semua"); setSekolah("semua"); }}
+              onClick={() => { setKategori("semua"); setSekolah("semua"); setJenis("semua"); }}
             >
               Tampilkan semua
             </button>
