@@ -127,7 +127,11 @@ declare
   r record;
 begin
   for r in
-    select i.indexrelid::regclass as idx
+    -- Nama diambil sebagai text SEKARANG, bukan dibiarkan sebagai regclass. regclass
+    -- diterjemahkan jadi nama saat DICETAK, dan pada saat raise notice di bawah jalan indexnya
+    -- sudah telanjur dibuang, sehingga yang tercetak cuma OID mentah ("16447") -- tidak berguna
+    -- untuk menelusuri apa yang barusan hilang.
+    select i.indexrelid::regclass as idx, i.indexrelid::regclass::text as nama
     from pg_index i
     where i.indisunique
       and not exists (select 1 from pg_constraint c where c.conindid = i.indexrelid)
@@ -143,7 +147,7 @@ begin
       )
   loop
     execute format('drop index %s', r.idx);
-    raise notice 'Index unik tanpa jenjang dibuang: %', r.idx;
+    raise notice 'Index unik tanpa jenjang dibuang: %', r.nama;
   end loop;
 end $$;
 
