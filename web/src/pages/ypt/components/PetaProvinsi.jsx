@@ -276,6 +276,13 @@ export default function PetaProvinsi({
    */
   const baruSajaGeser = useRef(false);
 
+  /**
+   * Membekukan hover setelah sebuah provinsi diklik, sampai penunjuk digerakkan lagi.
+   * Alasannya ada di pilihWilayah(): perbesaran yang menyusul klik menggeser geometri di bawah
+   * kursor dan memicu pointerover palsu yang menimpa pilihan pengguna.
+   */
+  const abaikanHover = useRef(false);
+
   function onPointerDown(e) {
     if (!tampak || e.button !== 0) return;
     const titik = koordinatDari(e);
@@ -286,6 +293,11 @@ export default function PetaProvinsi({
   }
 
   function onPointerMove(e) {
+    // Penunjuk benar-benar digerakkan pengguna, jadi hover boleh berlaku lagi. Dilepas di sini,
+    // SEBELUM pemeriksaan seretan di bawah, karena gerakan tanpa menyeret pun sudah cukup jadi
+    // bukti bahwa hover berikutnya memang dimaui.
+    abaikanHover.current = false;
+
     const s = seret.current;
     if (!s || !penuh) return;
     const kotak = svgRef.current.getBoundingClientRect();
@@ -335,8 +347,24 @@ export default function PetaProvinsi({
   }, [jepit, penuh]);
 
   function pilihWilayah(w, data) {
-    onPilih(aktif === data.nama ? null : data.nama);
-    if (aktif !== data.nama) zoomKeWilayah(w.b);
+    const memilih = aktif !== data.nama;
+    onPilih(memilih ? data.nama : null);
+
+    if (memilih) {
+      // Perbesaran menggeser SELURUH geometri di bawah kursor. Browser lalu menghitung ulang
+      // elemen mana yang sedang tersentuh dan menembakkan pointerover untuk provinsi yang kini
+      // menempati posisi kursor -- padahal pengguna tidak menggerakkan tangannya sama sekali.
+      // Hover palsu itu langsung menimpa provinsi yang barusan dipilih, dan panel Detail Sekolah
+      // melompat ke provinsi lain sepersekian detik setelah diklik.
+      //
+      // Hover karena itu dibekukan sampai pengguna benar-benar menggerakkan penunjuknya lagi
+      // (lihat onPointerMove). Bukan lewat jeda waktu: jeda selalu bisa terlalu pendek di mesin
+      // lambat atau terlalu panjang di mesin cepat, sedangkan gerakan penunjuk adalah tanda pasti
+      // bahwa hover berikutnya memang dimaui pengguna.
+      abaikanHover.current = true;
+      setHoverNama(null);
+      zoomKeWilayah(w.b);
+    }
   }
 
   if (galat) {
@@ -450,9 +478,16 @@ export default function PetaProvinsi({
                   aria-label={`${data.label}, ${data.jumlahSekolah} sekolah di `
                     + `${data.kotaList.join(", ")}, pencapaian `
                     + `${data.nilai == null ? "belum ada" : `${data.nilai} persen`}`}
-                  onPointerEnter={() => setHoverNama(data.nama)}
-                  onPointerLeave={() => setHoverNama((h) => (h === data.nama ? null : h))}
-                  onFocus={() => setHoverNama(data.nama)}
+                  // Keduanya dijaga `abaikanHover`: sesaat setelah klik, perbesaran memicu
+                  // pointerenter/leave palsu tanpa pengguna menggerakkan tangannya sama sekali.
+                  onPointerEnter={() => { if (!abaikanHover.current) setHoverNama(data.nama); }}
+                  onPointerLeave={() => {
+                    if (abaikanHover.current) return;
+                    setHoverNama((h) => (h === data.nama ? null : h));
+                  }}
+                  // Fokus keyboard tidak pernah palsu, jadi tidak ikut dijaga. Justru sebaliknya:
+                  // menekan Tab setelah klik harus langsung memindahkan pratinjau ke sana.
+                  onFocus={() => { abaikanHover.current = false; setHoverNama(data.nama); }}
                   onBlur={() => setHoverNama((h) => (h === data.nama ? null : h))}
                   onClick={(e) => {
                     if (baruSajaGeser.current) return;
