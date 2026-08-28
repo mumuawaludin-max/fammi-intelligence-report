@@ -14,7 +14,7 @@ import { useKarakterWaliKelas } from "./useKarakterData";
 import {
   pct, deltaVsPrevious, classifyPencapaian, periodeLabel, aspekIcon,
   extractPlainText, isBlankEssay, matchedCategoryTags, isKebijakanReady, SECTION_ICON,
-  indikatorFallbackLabel, judulSectionSuara,
+  indikatorFallbackLabel, judulSectionSuara, titikSetahunAjaran,
 } from "./karakterMeta";
 import { KARAKTER_BAR_TONE_CUTOFF } from "../../lib/cutoffs";
 import styles from "./KarakterViews.module.css";
@@ -80,9 +80,6 @@ export default function WaliKelasView({ session, periodeId }) {
   });
   // Tren pekanan disaring ke kelas yang jadi cakupan wali kelas ini saja.
   const { points: pekanPoints } = useKarakterPekanTrend({ sekolahId: session.school_id, kelasList });
-  // Ditentukan dari datanya sendiri, bukan setelan per sekolah: kelas mana pun yang mulai
-  // dinilai pekanan otomatis mendapat penyaringnya.
-  const adaPekanan = pekanPoints.some((p) => p.pekan > 0);
   const [trenMode, setTrenMode] = useState("bulan");
   const [activeCategory, setActiveCategory] = useState("kualitas");
   const [muridTab, setMuridTab] = useState("semua");
@@ -112,6 +109,12 @@ export default function WaliKelasView({ session, periodeId }) {
   if (loading || error) return <KarakterStateBox loading={loading} error={error} />;
 
   const { periode, aspek, indikator, summary, skorIndikator, pernyataanBySumber, sumberRefleksi, tindakLanjut } = data;
+
+  // Grafik tren dibatasi ke tahun ajaran periode yang sedang dibuka -- lihat catatan yang sama
+  // di KepsekView.
+  const trenTA = titikSetahunAjaran(trendPoints, periode);
+  const pekanTA = titikSetahunAjaran(pekanPoints, periode);
+  const adaPekananTA = pekanTA.some((p) => p.pekan > 0);
 
   // Sumber aktif di saklar Suara; jatuh ke sumber pertama begitu pilihan sebelumnya tidak lagi
   // tersedia di periode/kelas ini (mis. ganti dari kelas ber-dua-sumber ke kelas orang-tua-saja).
@@ -223,17 +226,17 @@ export default function WaliKelasView({ session, periodeId }) {
                 : `Periode ${periodeLabel(periode) || "ini"}`}
               subTone={heroDelta ? (heroDelta.direction === "up" ? "aman" : heroDelta.direction === "down" ? "perhatian" : "default") : "default"}
             >
-              <TrendModeSwitch value={trenMode} onChange={setTrenMode} adaPekanan={adaPekanan} />
-              {trenMode === "pekan" && adaPekanan ? (
+              <TrendModeSwitch value={trenMode} onChange={setTrenMode} adaPekanan={adaPekananTA} />
+              {trenMode === "pekan" && adaPekananTA ? (
                 <TrendChart
-                  points={pekanPoints}
+                  points={pekanTA}
                   labelOf={labelTitikPekan}
                   keyOf={(p) => `${p.periode}|${p.pekanUrut}`}
                   satuanDelta="pekan"
                 />
               ) : (
                 <TrendChart
-                  points={trendPoints}
+                  points={trenTA}
                   aspek={kelasList.length === 1 ? aspek : undefined}
                   aspekPrefix="input_guru_"
                 />

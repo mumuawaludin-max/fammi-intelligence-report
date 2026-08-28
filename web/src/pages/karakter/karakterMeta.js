@@ -233,6 +233,50 @@ export function deltaVsPrevious(points = []) {
 
 /** "2026-05" → "Mei 2026" supaya enak dibaca. */
 const BULAN_ID = ["", "Jan", "Feb", "Mar", "Apr", "Mei", "Jun", "Jul", "Agu", "Sep", "Okt", "Nov", "Des"];
+/**
+ * Tahun ajaran dari periode bulanan: "2026-08" -> "2026/2027".
+ *
+ * Batasnya Juli, berlaku untuk SELURUH sekolah (keputusan pemilik produk 2026-08-28):
+ * Juli 2025 sampai Juni 2026 = tahun ajaran 2025/2026. Bukan setelan per sekolah, jadi tidak ada
+ * yang perlu dikonfigurasi dan tidak ada yang bisa salah setel.
+ *
+ * Diturunkan dari periode_id, BUKAN kolom baru di berkas upload. Kolom tambahan berarti satu
+ * lagi yang bisa salah isi, dan kita sudah melihat bagaimana kolom bulan sendiri bisa kacau di
+ * berkas nyata. Turunan tidak bisa berselisih dengan bulannya sendiri.
+ *
+ * Kembalikan null untuk periode yang tidak berbentuk "YYYY-MM", supaya pemanggil bisa
+ * memperlakukannya terpisah alih-alih mendapat tahun ajaran karangan.
+ */
+export function tahunAjaran(periodeId) {
+  const m = String(periodeId || "").match(/^(\d{4})-(\d{2})$/);
+  if (!m) return null;
+  const tahun = Number(m[1]);
+  const bulan = Number(m[2]);
+  if (bulan < 1 || bulan > 12) return null;
+  const mulai = bulan >= 7 ? tahun : tahun - 1;
+  return `${mulai}/${mulai + 1}`;
+}
+
+/**
+ * Saring titik tren ke tahun ajaran yang sama dengan periode yang sedang dilihat.
+ *
+ * Tanpa ini, grafik menyambungkan Oktober 2025 langsung ke Agustus 2026 sebagai satu garis
+ * perkembangan, padahal itu dua tahun ajaran: kerangka karakternya bisa berbeda, dan anak yang
+ * dulu Kelas 1 sekarang Kelas 2. Garis yang menghubungkan keduanya membaca seperti "naik 1 poin"
+ * padahal yang dibandingkan bukan hal yang sama. Terlaporkan dari produksi 2026-08-28.
+ *
+ * Datanya tidak dibuang, cuma tidak digambar di tahun ajaran yang sedang dibuka. Pilih bulan dari
+ * tahun ajaran lain di pemilih periode, dan grafiknya ikut berpindah.
+ *
+ * Periode aktif yang tidak dikenali bentuknya membuat penyaring ini tidak melakukan apa-apa,
+ * supaya data lama tidak hilang gara-gara satu nilai periode yang aneh.
+ */
+export function titikSetahunAjaran(points, periodeAktif) {
+  const ta = tahunAjaran(periodeAktif);
+  if (!ta) return points || [];
+  return (points || []).filter((p) => tahunAjaran(p.periode) === ta);
+}
+
 export function periodeLabel(periodeId) {
   if (!periodeId) return "";
   const [y, m] = String(periodeId).split("-");

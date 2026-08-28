@@ -14,7 +14,7 @@ import { useKarakterKepsek, kelasKey } from "./useKarakterData";
 import {
   pct, ringkasanAspekValue, parseTop5Pair, parseTop5Indikator, deltaVsPrevious,
   classifyPencapaian, periodeLabel, aspekIcon, avgAspek, persen, isKebijakanReady, SECTION_ICON,
-  judulSectionSuara, REFLEKSI_META, REFLEKSI_SUMBER_URUTAN, resolveSummaryKey,
+  judulSectionSuara, REFLEKSI_META, REFLEKSI_SUMBER_URUTAN, resolveSummaryKey, titikSetahunAjaran,
 } from "./karakterMeta";
 import { KARAKTER_BAR_TONE_CUTOFF } from "../../lib/cutoffs";
 import styles from "./KarakterViews.module.css";
@@ -147,10 +147,6 @@ export default function KepsekView({ session, periodeId }) {
     sekolahId: session.school_id, scope: "sekolah", scopeId: session.school_id,
   });
   const { points: pekanPoints } = useKarakterPekanTrend({ sekolahId: session.school_id });
-  // Sekolah dianggap menilai pekanan kalau ada satu saja titik yang pekannya bukan 0. Ditentukan
-  // dari datanya sendiri, bukan setelan per sekolah, jadi sekolah mana pun yang mulai mengirim
-  // kolom pekan langsung mendapat penyaring ini tanpa perlu dikonfigurasi.
-  const adaPekanan = pekanPoints.some((p) => p.pekan > 0);
   // Tampilan grafik tren: per bulan (bawaan) atau per pekan.
   const [trenMode, setTrenMode] = useState("bulan");
   const [activeCategory, setActiveCategory] = useState("kualitas");
@@ -176,6 +172,13 @@ export default function KepsekView({ session, periodeId }) {
   if (loading || error) return <KarakterStateBox loading={loading} error={error} />;
 
   const { periode, aspek, aspekUntukJenjang, perJenjang, indikatorByKelas, indikatorError, sekolah, jenjang, kelas, pernyataanBySumber, sumberRefleksi, tindakLanjut } = data;
+
+  // Grafik tren dibatasi ke tahun ajaran periode yang sedang dibuka. Tanpa ini, Oktober 2025
+  // tersambung langsung ke Agustus 2026 sebagai satu garis perkembangan, padahal itu dua tahun
+  // ajaran dengan kerangka karakter yang bisa berbeda dan murid yang sudah naik kelas.
+  const trenTA = titikSetahunAjaran(trendPoints, periode);
+  const pekanTA = titikSetahunAjaran(pekanPoints, periode);
+  const adaPekananTA = pekanTA.some((p) => p.pekan > 0);
   const ringkasan = sekolah?.ringkasan || null;
 
   // Jatuh kembali ke elemen pertama sumberRefleksi kalau sumberAktif belum dipilih, atau sudah
@@ -270,10 +273,10 @@ export default function KepsekView({ session, periodeId }) {
               : `Periode ${latestLabel || "ini"}`}
             subTone={heroDelta ? (heroDelta.direction === "up" ? "aman" : heroDelta.direction === "down" ? "perhatian" : "default") : "default"}
           >
-            <TrendModeSwitch value={trenMode} onChange={setTrenMode} adaPekanan={adaPekanan} />
-            {trenMode === "pekan" && adaPekanan
-              ? <TrendChart points={pekanPoints} labelOf={labelTitikPekan} keyOf={(p) => p.periode + "|" + p.pekanUrut} satuanDelta="pekan" />
-              : <TrendChart points={trendPoints} aspek={aspek} aspekPrefix="rata_input_guru_" />}
+            <TrendModeSwitch value={trenMode} onChange={setTrenMode} adaPekanan={adaPekananTA} />
+            {trenMode === "pekan" && adaPekananTA
+              ? <TrendChart points={pekanTA} labelOf={labelTitikPekan} keyOf={(p) => p.periode + "|" + p.pekanUrut} satuanDelta="pekan" />
+              : <TrendChart points={trenTA} aspek={aspek} aspekPrefix="rata_input_guru_" />}
           </StatCardMini>
 
           <div className={styles.statHeroSide}>
