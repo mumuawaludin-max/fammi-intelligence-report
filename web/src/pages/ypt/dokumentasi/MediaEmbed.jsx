@@ -222,6 +222,19 @@ export function IkonPanah({ arah = "kanan", size = 22 }) {
   );
 }
 
+/** Panah keluar (perbesar) atau panah masuk (perkecil). */
+export function IkonPerbesar({ size = 18, mengecil = false }) {
+  const d = mengecil
+    ? "M9 4v5H4M15 20v-5h5M9 20v-5H4M15 4v5h5"
+    : "M4 9V4h5M20 15v5h-5M4 15v5h5M20 9V4h-5";
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d={d} />
+    </svg>
+  );
+}
+
 export function IkonTutup({ size = 20 }) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor"
@@ -259,43 +272,94 @@ function useDialog(terbuka, onTutup, onKiri, onKanan) {
  * pihak ketiga tidak ikut membawa alamat dashboard yayasan.
  */
 export function PreviewModal({ item, onTutup }) {
+  // Dua tingkat besar tampilan, keduanya TETAP DI DALAM halaman ini:
+  //   normal  -> dialog di tengah, judul dan asal sekolah masih terbaca
+  //   lebar   -> dialog memenuhi hampir seluruh jendela, untuk menonton serius
+  // Di luar itu, tombol layar penuh milik pemutar YouTube sendiri tetap berfungsi lewat
+  // allowFullScreen; itu memakai Fullscreen API browser, jadi juga tidak membuka tab baru.
+  const [lebar, setLebar] = useState(false);
+
   useDialog(Boolean(item), onTutup);
+
+  // Setiap kali item berganti, kembali ke ukuran normal. Tanpa ini, membuka rekaman berikutnya
+  // mewarisi ukuran lebar dari rekaman sebelumnya tanpa diminta.
+  useEffect(() => { setLebar(false); }, [item?.id]);
+
   if (!item) return null;
+
+  // "fullscreen" ditulis eksplisit di allow, tidak cukup mengandalkan atribut allowFullScreen:
+  // sebagian browser membaca izin fullscreen dari Permissions Policy di atribut allow, dan tanpa
+  // itu tombol layar penuh di pemutar YouTube tampil tapi tidak melakukan apa-apa.
+  const IZIN_VIDEO = "accelerometer; autoplay; clipboard-write; encrypted-media; "
+    + "picture-in-picture; fullscreen";
+
+  /**
+   * BUKAN "no-referrer", dan ini bukan pilihan gaya.
+   *
+   * Versi sebelumnya memakai referrerPolicy="no-referrer" dengan alasan privasi. Akibatnya
+   * pemutar YouTube menolak memutar dan menampilkan "Error 150 -- Video player configuration
+   * error" di dalam iframe: tanpa referrer, YouTube tidak bisa memastikan domain mana yang
+   * memasang embed-nya, dan embed untuk siaran yang dibatasi domain langsung ditolak.
+   * Dibuktikan di browser: iframe yang sama persis, satu-satunya beda atribut ini, yang satu
+   * gagal dan yang satu memutar normal.
+   *
+   * strict-origin-when-cross-origin mengirim ASAL saja (https://domain-dashboard) tanpa jalur
+   * halaman. YouTube dapat yang dibutuhkannya untuk verifikasi, dan alamat halaman yang sedang
+   * dibuka yayasan tetap tidak ikut terkirim.
+   */
+  const REFERRER = "strict-origin-when-cross-origin";
 
   let isi = null;
   if (item.jenis === "video") {
     const vid = youtubeId(item.url);
     isi = vid ? (
       <iframe
-        className={styles.modalFrame}
+        className={`${styles.modalFrame} ${lebar ? styles.modalFrameLebar : ""}`}
         src={`https://www.youtube-nocookie.com/embed/${vid}?autoplay=1&rel=0`}
         title={item.judul}
-        allow="accelerometer; autoplay; clipboard-write; encrypted-media; picture-in-picture"
+        allow={IZIN_VIDEO}
         allowFullScreen
-        referrerPolicy="no-referrer"
+        referrerPolicy={REFERRER}
       />
     ) : null;
   } else if (item.jenis === "file") {
     const src = fileEmbedUrl(item.url);
     isi = src ? (
       <iframe
-        className={styles.modalFrame}
+        className={`${styles.modalFrame} ${lebar ? styles.modalFrameLebar : ""}`}
         src={src}
         title={item.judul}
         sandbox="allow-scripts allow-same-origin allow-popups"
-        referrerPolicy="no-referrer"
+        allow="fullscreen"
+        allowFullScreen
+        referrerPolicy={REFERRER}
       />
     ) : null;
   }
 
   return (
     <div className={styles.modalBackdrop} onClick={onTutup} role="presentation">
-      <div className={styles.modal} onClick={(e) => e.stopPropagation()} role="dialog" aria-modal="true" aria-label={item.judul}>
+      <div
+        className={`${styles.modal} ${lebar ? styles.modalLebar : ""}`}
+        onClick={(e) => e.stopPropagation()}
+        role="dialog"
+        aria-modal="true"
+        aria-label={item.judul}
+      >
         <div className={styles.modalHead}>
           <span className={styles.modalJudul}>{item.judul}</span>
           {item.sekolah_nama?.length > 0 && (
             <span className={styles.modalMeta}>{item.sekolah_nama.join(" · ")}</span>
           )}
+          <button
+            type="button"
+            className={styles.modalTutup}
+            onClick={() => setLebar((v) => !v)}
+            aria-label={lebar ? "Perkecil" : "Perbesar"}
+            title={lebar ? "Perkecil" : "Perbesar"}
+          >
+            <IkonPerbesar mengecil={lebar} />
+          </button>
           <button type="button" className={styles.modalTutup} onClick={onTutup} aria-label="Tutup">
             <IkonTutup />
           </button>

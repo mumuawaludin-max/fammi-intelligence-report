@@ -501,7 +501,7 @@
   display: grid;
   place-items: center;
   z-index: 100;
-  padding: 40px;
+  padding: 24px;
   animation: pudar .2s ease;
 }
 
@@ -573,6 +573,14 @@
   display: block;
   background: #000;
 }
+
+/* Mode lebar: dialog memenuhi hampir seluruh jendela. Tetap di dalam halaman, bukan tab baru. */
+.modalLebar {
+  width: min(1680px, 97vw);
+  max-height: 96vh;
+}
+
+.modalFrameLebar { height: calc(96vh - 62px); }
 
 .modalKosong {
   padding: 48px 28px;
