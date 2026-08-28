@@ -317,3 +317,39 @@ export const MOCK_KEPUASAN = {
     ],
   })),
 };
+
+/**
+ * Contoh Dokumentasi Kegiatan untuk ?preview=ypt.
+ *
+ * Isinya SUBSET DATA ASLI (id Drive dan id YouTube yang benar-benar ada, sudah dibagikan publik),
+ * bukan karangan. Alasannya: yang paling perlu diperiksa di halaman ini justru perilaku pemuatan
+ * gambar Drive dan iframe YouTube, dan itu tidak bisa diuji dengan URL palsu. Jumlahnya dipangkas
+ * supaya pratinjau tetap ringan; data produksi lengkapnya ada di migration 20260828120000.
+ */
+function fotoDrive(id) {
+  return `https://drive.google.com/thumbnail?id=${id}&sz=w1600`;
+}
+
+export const MOCK_DOKUMENTASI = [
+  { id: "v1", jenis: "video", kategori: "Sosialisasi", judul: "Sosialisasi Program Sistem Digital Rapor Karakter Sekolah Telkom", url: "https://www.youtube.com/live/o1mixhafFKQ", tanggal: "2026-03-13", sekolah_nama: ["TK Telkom Makassar", "SMK Telkom 1 Medan", "TK Telkom Padang"] },
+  { id: "v2", jenis: "video", kategori: "Sosialisasi", judul: "Sosialisasi Program Sistem Digital Rapor Karakter Sekolah", url: "https://www.youtube.com/live/fDDO0ZtYGFI", tanggal: "2026-03-13", sekolah_nama: ["SMK Telkom Purwokerto"] },
+  { id: "v3", jenis: "video", kategori: "Sosialisasi", judul: "Sosialisasi Program Rapor Karakter Telkom School", url: "https://www.youtube.com/live/favJKuZoSxY", tanggal: "2026-04-07", sekolah_nama: ["SMA Telkom Bandung", "TK Telkom Ternate"] },
+  { id: "v4", jenis: "video", kategori: "Pelaporan", judul: "Pelaporan dan Persiapan Rapor Karakter SMK Telkom Bandung", url: "https://www.youtube.com/live/Q3I3qkQvxbs", tanggal: "2026-08-20", sekolah_nama: ["SMK Telkom Bandung"] },
+  { id: "v5", jenis: "video", kategori: "Pelaporan", judul: "Pelaporan dan Persiapan Rapor Karakter SD Telkom Padang", url: "https://www.youtube.com/live/ocFFAZX6m3s", tanggal: "2026-08-26", sekolah_nama: ["SD Telkom Padang"] },
+  { id: "v6", jenis: "video", kategori: "Pelaporan", judul: "Pelaporan dan Persiapan Rapor Karakter TK Telkom Buah Batu", url: "https://www.youtube.com/live/dG77yYwbASk", tanggal: "2026-08-20", sekolah_nama: ["TK Telkom Buah Batu"] },
+
+  { id: "f1", jenis: "foto", kategori: "Sosialisasi", judul: "Sosialisasi Rapor Karakter TK Telkom Makassar", url: fotoDrive("1B8NxVgS90yUyuJv4rC8o4ZN96cLDO0rI"), tanggal: "2026-03-13", sekolah_nama: ["TK Telkom Makassar"] },
+  { id: "f2", jenis: "foto", kategori: "Sosialisasi", judul: "Sosialisasi Rapor Karakter TK Telkom Makassar", url: fotoDrive("1q5uFFwcYNEHy36HXib8Ex12CrOYf06da"), tanggal: "2026-03-13", sekolah_nama: ["TK Telkom Makassar"] },
+  { id: "f3", jenis: "foto", kategori: "Sosialisasi", judul: "Sosialisasi Rapor Karakter TK Telkom Makassar", url: fotoDrive("1JkPCIy9r_Qi3w2mjM94Ao7P__VID_lgB"), tanggal: "2026-03-13", sekolah_nama: ["TK Telkom Makassar"] },
+  { id: "f4", jenis: "foto", kategori: "Sosialisasi", judul: "Sosialisasi Rapor Karakter TK Telkom Makassar", url: fotoDrive("1wr0kJQ-d1HWbu3XpNw5icv9A9aQzUQ4q"), tanggal: "2026-03-13", sekolah_nama: ["TK Telkom Makassar"] },
+  { id: "f5", jenis: "foto", kategori: "Sosialisasi", judul: "Sosialisasi Rapor Karakter TK Telkom Makassar", url: fotoDrive("1eG8xClIcw75z_WscDJ52TciL_HO36tl2"), tanggal: "2026-03-13", sekolah_nama: ["TK Telkom Makassar"] },
+  { id: "f6", jenis: "foto", kategori: "Sosialisasi", judul: "Sosialisasi Rapor Karakter TK Telkom Padang", url: fotoDrive("1yLUJHkwPHjpejiO5m7uoJ4LwtLyCRFOM"), tanggal: "2026-03-13", sekolah_nama: ["TK Telkom Padang"] },
+  { id: "f7", jenis: "foto", kategori: "Sosialisasi", judul: "Sosialisasi Rapor Karakter TK Telkom Padang", url: fotoDrive("1hbQQmWG0tVftUvDN2krfg95gZmBNHLAM"), tanggal: "2026-03-13", sekolah_nama: ["TK Telkom Padang"] },
+  { id: "f8", jenis: "foto", kategori: "Sosialisasi", judul: "Sosialisasi Rapor Karakter TK Telkom Padang", url: fotoDrive("1DKOTXikY3o3XUqu4slGK74olF63cY5Gt"), tanggal: "2026-03-13", sekolah_nama: ["TK Telkom Padang"] },
+  { id: "f9", jenis: "foto", kategori: "Sosialisasi", judul: "Sosialisasi Rapor Karakter SD Telkom Makassar", url: fotoDrive("1mfrvyVXZ3uiaOFq_9jL9KMJWiqehCN4K"), tanggal: "2026-04-14", sekolah_nama: ["SD Telkom Makassar"] },
+  { id: "f10", jenis: "foto", kategori: "Pelaporan", judul: "Paparan Hasil Rapor Karakter SMK Telkom Bandung", url: fotoDrive("1dZ7X3mclQmgKWOkJqJowngCiCO2wU-oX"), tanggal: "2026-08-20", sekolah_nama: ["SMK Telkom Bandung"] },
+
+  { id: "b1", jenis: "file", kategori: null, judul: "Contoh Rapor Siswa", url: "https://drive.google.com/file/d/19Ak1-8CPyc3jUHTo4KuzuzrAKjD3L5zD/view", tanggal: "2026-03-13", sekolah_nama: ["TK Telkom Makassar"] },
+  { id: "b2", jenis: "file", kategori: null, judul: "Contoh Rapor Wali Kelas", url: "https://drive.google.com/file/d/1ASCVGMT0az1waHKBClEqAO88hbgDMlOZ/view", tanggal: "2026-03-13", sekolah_nama: ["SMK Telkom Purwokerto"] },
+  { id: "b3", jenis: "file", kategori: null, judul: "Contoh Rapor Siswa", url: "https://drive.google.com/file/d/1DC9kOYnwnycpRKCpx51BLfKYUaDn6J8D/view", tanggal: "2026-04-01", sekolah_nama: ["SD Telkom Makassar"] },
+];

@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { YPT_MENUS, YPT_TABS } from "./yptMeta";
-import { MOCK_RAPOR, MOCK_CITRA, MOCK_KEPUASAN } from "./ypt.mock";
+import { MOCK_RAPOR, MOCK_CITRA, MOCK_KEPUASAN, MOCK_DOKUMENTASI } from "./ypt.mock";
+import { DokumentasiIsi } from "./dokumentasi/DokumentasiPage";
 import StepTabs from "./components/StepTabs";
 import RangkumanTab from "./rapor/RangkumanTab";
 import PerJenjangTab from "./rapor/PerJenjangTab";
@@ -73,11 +74,7 @@ export default function YptPreviewData() {
 
           {menu === "citra" && <CitraContoh tab={tab} />}
           {menu === "kepuasan" && <KepuasanContoh tab={tab} />}
-          {menu === "dokumentasi" && statusPanel({
-            kosong: true,
-            judul: "Dokumentasi Kegiatan",
-            pesan: "Pratinjau ini tidak memuat contoh dokumentasi; buka ?preview=ypt setelah mengisi dp_item lewat CMS.",
-          })}
+          {menu === "dokumentasi" && <DokumentasiIsi items={MOCK_DOKUMENTASI} />}
         </main>
       </div>
     </div>
