@@ -1,3 +1,4 @@
+import FammiLoader from "./FammiLoader";
 import styles from "./Bits.module.css";
 
 /**
@@ -28,7 +29,9 @@ export function ProgressBar({ value, varian = "navy", tinggi }) {
  * pengecekan itu selalu benar dan halaman jadi kosong justru ketika datanya ada.
  */
 export function statusPanel({ loading, error, kosong, judul, pesan }) {
-  if (loading) return <div className={styles.state}>Memuat data…</div>;
+  // Satu-satunya jalur status memuat di seluruh dashboard YPT, jadi mengganti isinya di sini
+  // otomatis berlaku untuk Rapor Karakter, Citra Sekolah, dan Survey Kepuasan sekaligus.
+  if (loading) return <div className={styles.state}><FammiLoader /></div>;
   if (error) {
     return (
       <div className={styles.state}>

@@ -1,0 +1,66 @@
+/* Ungu merek Fammi, disalin dari public/favicon.svg. Sengaja ditulis di sini dan bukan di
+   yptTokens.module.css: ini bukan bagian dari palet Telkom yang boleh dipakai bebas, melainkan
+   satu warna tunggal milik penanda vendor. Menaruhnya di berkas token justru mengundangnya
+   dipakai di tempat lain. */
+.wrap {
+  --fammi-ungu: #863bff;
+
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  padding: 8px 0;
+}
+
+.markWrap {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 64px;
+  height: 64px;
+}
+
+.mark {
+  position: relative;
+  color: var(--fammi-ungu);
+  animation: fammiDenyutMark 1.5s ease-in-out infinite;
+}
+
+/* Mark berdenyut halus, bukan berputar. Logonya punya arah (petir menunjuk ke bawah), dan
+   memutarnya membuat bentuknya tidak lagi terbaca sebagai logo. */
+@keyframes fammiDenyutMark {
+  0%, 100% { transform: scale(0.92); opacity: 0.65; }
+  50% { transform: scale(1); opacity: 1; }
+}
+
+/* Cincin yang mengembang keluar lalu memudar, memberi kesan sesuatu sedang berjalan tanpa
+   menuntut perhatian. Iramanya lebih lambat dari mark supaya keduanya tidak berdetak seragam. */
+.denyut {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  border: 2px solid var(--fammi-ungu);
+  animation: fammiRiak 1.9s ease-out infinite;
+}
+
+@keyframes fammiRiak {
+  0% { transform: scale(0.55); opacity: 0.5; }
+  70% { transform: scale(1); opacity: 0; }
+  100% { transform: scale(1); opacity: 0; }
+}
+
+.teks {
+  font-size: 13px;
+  color: var(--ypt-ink-3);
+}
+
+/* Tanpa animasi, mark tetap harus tampil utuh dan cincinnya disembunyikan sepenuhnya. Membiarkan
+   keduanya di keadaan awal keyframe akan menampilkan logo pucat dengan cincin yang menggantung. */
+@media (prefers-reduced-motion: reduce) {
+  .mark {
+    animation: none;
+    opacity: 1;
+    transform: none;
+  }
+  .denyut { display: none; }
+}

@@ -74,7 +74,9 @@ const ZOOM_MAKS = 12;
 const WARNA_DIAM = "#dfe3ec";
 const WARNA_GARIS = "#ffffff";
 
-export default function PetaProvinsi({ provinsi, aktif, onPilih, kotaTanpaProvinsi = [] }) {
+export default function PetaProvinsi({
+  provinsi, aktif, onPilih, onFokus, kotaTanpaProvinsi = [],
+}) {
   const [geo, setGeo] = useState(null);
   const [galat, setGalat] = useState(null);
 
@@ -147,6 +149,20 @@ export default function PetaProvinsi({ provinsi, aktif, onPilih, kotaTanpaProvin
   const fokusNama = hoverNama || aktif;
   const fokusWilayah = fokusNama ? geoByNama.get(fokusNama) : null;
   const fokusData = fokusNama ? dataProvinsi.get(fokusNama) : null;
+
+  /**
+   * Laporkan provinsi yang sedang jadi fokus ke atas, supaya panel Detail Sekolah di sebelahnya
+   * mengikuti hover, bukan cuma klik. Tanpa ini, tooltip menunjuk satu provinsi sementara panel
+   * di sampingnya masih menampilkan provinsi lain yang terakhir diklik, dan pembaca membandingkan
+   * dua wilayah berbeda tanpa sadar.
+   *
+   * Lewat effect, bukan dipanggil langsung saat pointer masuk: pemanggil menyimpannya di state,
+   * dan memanggil setState milik komponen lain di tengah render adalah cara tercepat memicu
+   * peringatan "cannot update a component while rendering a different component".
+   */
+  useEffect(() => {
+    if (onFokus) onFokus(fokusNama);
+  }, [fokusNama, onFokus]);
 
   /**
    * Posisi tooltip dalam PERSEN terhadap kanvas, bukan piksel dari getBoundingClientRect().
@@ -504,6 +520,23 @@ export default function PetaProvinsi({ provinsi, aktif, onPilih, kotaTanpaProvin
         </div>
 
         <span className={styles.zoomTag}>{zoom.toFixed(1)}×</span>
+
+        {/* Atribusi lisensi CC BY 3.0 IGO. DIPINDAH dari baris teks di kaki peta ke tombol kecil
+            ini (permintaan pemilik produk 2026-08-28), BUKAN dihapus: lisensi data batas wilayah
+            mewajibkan atribusinya tersampaikan, dan itu syarat pemakaian, bukan hiasan. Lisensi
+            tidak menuntut atribusi tercetak di atas petanya sendiri, jadi menyembunyikannya di
+            balik tombol yang bisa dibuka kapan saja tetap memenuhi syarat sambil membersihkan
+            tampilan. Jangan hilangkan tombolnya. */}
+        <span className={styles.atribusiWrap}>
+          <button
+            type="button"
+            className={styles.atribusiBtn}
+            aria-label="Sumber dan lisensi data batas wilayah"
+          >
+            i
+          </button>
+          <span className={styles.atribusiIsi} role="note">{geo.atribusi}</span>
+        </span>
       </div>
 
       <div className={styles.legend}>
@@ -543,8 +576,6 @@ export default function PetaProvinsi({ provinsi, aktif, onPilih, kotaTanpaProvin
         </p>
       )}
 
-      {/* Syarat lisensi CC BY 3.0 IGO. Jangan dihapus. */}
-      <p className={styles.atribusi}>{geo.atribusi}</p>
     </div>
   );
 }

@@ -13,6 +13,14 @@ import styles from "./Rapor.module.css";
 export default function RangkumanTab({ data, onLihatSekolah }) {
   const [provinsiAktif, setProvinsiAktif] = useState(null);
 
+  /**
+   * Provinsi yang sedang ditunjuk kursor ATAU terpilih, dilaporkan balik oleh PetaProvinsi.
+   * Panel Detail Sekolah mengikuti ini, bukan `provinsiAktif`, supaya isinya selalu sama dengan
+   * tooltip yang sedang tampil di peta. Sebelumnya panel hanya berubah saat diklik, sehingga
+   * mengarahkan kursor ke provinsi lain menampilkan dua wilayah berbeda berdampingan.
+   */
+  const [provinsiFokus, setProvinsiFokus] = useState(null);
+
   // Data per kota digabung jadi per provinsi di sini, bukan di dalam komponen peta. Panel Detail
   // Sekolah di sebelahnya membaca objek yang sama persis, jadi keduanya dijamin tidak pernah
   // menampilkan angka yang berbeda untuk wilayah yang sama.
@@ -29,7 +37,9 @@ export default function RangkumanTab({ data, onLihatSekolah }) {
     ));
   }, [provinsi]);
 
-  const wilayahTerpilih = provinsi.find((p) => p.nama === provinsiAktif) || null;
+  // Fokus (hover atau klik) yang menentukan isi panel; jatuh kembali ke pilihan klik begitu
+  // kursor meninggalkan peta.
+  const wilayahTerpilih = provinsi.find((p) => p.nama === (provinsiFokus || provinsiAktif)) || null;
 
   // Insight hero: dua aspek dengan nilai tertinggi se-yayasan, dirangkai jadi kalimat.
   // Ini penyajian, bukan analisis -- tidak ada Gemini di jalur baca (butir CLAUDE.md).
@@ -78,6 +88,7 @@ export default function RangkumanTab({ data, onLihatSekolah }) {
             provinsi={provinsi}
             aktif={provinsiAktif}
             onPilih={setProvinsiAktif}
+            onFokus={setProvinsiFokus}
             kotaTanpaProvinsi={kotaBelumDipetakan}
           />
         </div>

@@ -58,10 +58,13 @@
   transition: fill-opacity 0.18s ease;
 }
 
+/* Rentang dinaikkan dari 0,72-0,98 jadi 0,9-1: warnanya sekarang terbaca penuh sepanjang
+   siklus, napasnya cuma terasa sebagai kedipan halus. Rentang lama membuat seluruh peta tampak
+   pucat separuh waktu. */
 @keyframes napasWarna {
-  0% { fill-opacity: 0.72; }
-  50% { fill-opacity: 0.98; }
-  100% { fill-opacity: 0.72; }
+  0% { fill-opacity: 0.9; }
+  50% { fill-opacity: 1; }
+  100% { fill-opacity: 0.9; }
 }
 
 /* Provinsi terpilih berhenti bernapas dan dikelilingi garis putus berjalan. Berhentinya
@@ -85,12 +88,13 @@
   fill-opacity: 1;
 }
 
-/* Provinsi yang BUKAN sedang difokus, saat ada provinsi lain yang di-hover atau terpilih.
-   Dipadamkan jauh di bawah rentang napas normalnya (0,72-0,98) supaya satu provinsi yang
-   sedang dibaca benar-benar menonjol, bukan cuma sedikit lebih terang dari sekitarnya. */
+/* Provinsi yang BUKAN sedang difokus, saat ada provinsi lain di-hover atau terpilih. Diredupkan
+   ke 0,3, bukan 0,14 seperti semula: yang dituju adalah membuat satu provinsi menonjol, dan pada
+   0,14 warna provinsi lain praktis hilang sehingga peta kehilangan konteksnya. Pada 0,3 warnanya
+   masih terbaca hijau/kuning/merah, cuma jelas mundur satu lapis. */
 .provinsiRedup {
   animation: none;
-  fill-opacity: 0.14;
+  fill-opacity: 0.3;
 }
 
 /* Sasaran klik, digambar di atas isian. `all` berarti garis tebal transparannya ikut menerima
@@ -128,10 +132,10 @@
   }
   /* Tanpa animasi, warnanya dipatok penuh. Membiarkannya di keadaan awal keyframe akan
      menampilkan seluruh provinsi lebih pucat daripada seharusnya. */
-  .provinsi { fill-opacity: 0.92; }
+  .provinsi { fill-opacity: 1; }
   /* Redup tetap harus terlihat redup walau geraknya dimatikan -- ini penanda status, bukan
      hiasan, jadi tidak boleh ikut hilang bersama animasinya. */
-  .provinsiRedup { fill-opacity: 0.14; }
+  .provinsiRedup { fill-opacity: 0.3; }
 }
 
 /* ── Kontrol perbesaran ─────────────────────────────────────────────────────────────────── */
@@ -284,21 +288,63 @@
   line-height: 1.7;
 }
 
-.belumBtn {
-  border: none;
-  background: none;
-  font: inherit;
-  color: var(--ypt-red);
-  cursor: pointer;
-  padding: 0 4px 0 0;
-  text-decoration: underline;
+/* ── Atribusi lisensi di balik tombol ⓘ ─────────────────────────────────────────────────────
+   Isinya muncul saat tombolnya disentuh kursor atau mendapat fokus keyboard. Dipasang lewat
+   :hover/:focus-within murni CSS, bukan state React, supaya tidak menambah render apa pun ke
+   komponen peta yang sudah padat. */
+.atribusiWrap {
+  position: absolute;
+  right: 12px;
+  bottom: 12px;
+  display: flex;
+  align-items: flex-end;
+  gap: 8px;
 }
 
-/* Atribusi lisensi. Terbaca bukan pilihan gaya: CC BY 3.0 IGO menuntut atribusinya tersampaikan,
-   dan teks 10px pada kontras 1,9:1 secara praktis tidak menyampaikan apa pun. */
-.atribusi {
-  margin: 10px 0 0;
-  font-size: 12px;
+.atribusiBtn {
+  width: 22px;
+  height: 22px;
+  flex-shrink: 0;
+  display: grid;
+  place-items: center;
+  border: 1px solid var(--ypt-border);
+  background: var(--ypt-surface);
+  border-radius: 50%;
+  font: inherit;
+  font-size: 11px;
+  font-style: italic;
+  font-weight: 700;
+  line-height: 1;
+  color: var(--ypt-ink-3);
+  cursor: help;
+  box-shadow: var(--ypt-shadow-sm);
+}
+
+.atribusiIsi {
+  max-width: 300px;
+  background: var(--ypt-surface);
+  border: 1px solid var(--ypt-border);
+  border-radius: var(--ypt-radius-sm);
+  box-shadow: var(--ypt-shadow-md);
+  padding: 8px 11px;
+  font-size: 11px;
+  line-height: 1.5;
   color: var(--ypt-ink-2);
-  line-height: 1.6;
+  /* Disembunyikan lewat opacity + visibility, bukan display:none, supaya tetap bisa dianimasikan
+     dan tetap terbaca pembaca layar lewat urutan dokumen. */
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(4px);
+  transition: opacity 0.15s ease, transform 0.15s ease, visibility 0.15s;
+}
+
+.atribusiWrap:hover .atribusiIsi,
+.atribusiWrap:focus-within .atribusiIsi {
+  opacity: 1;
+  visibility: visible;
+  transform: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .atribusiIsi { transition: none; }
 }
