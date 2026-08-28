@@ -70,6 +70,7 @@ function aspekContoh(kode, i, nilai, jumlahSekolah) {
   return {
     kode,
     nama: ASPEK[i],
+    namaAsli: true,
     nilai,
     jumlahSekolah,
     sekolahBerlabel: 2,
@@ -110,9 +111,18 @@ export const MOCK_RAPOR = {
   ],
   aspekYayasan: KODE_ASPEK.map((kode, i) => aspekContoh(kode, i, [92, 88, 76, 95, 83, 80][i], 15 - i)),
   aspekPerGrup: () => KODE_ASPEK.slice(0, 4).map((kode, i) => aspekContoh(kode, i, [100, 82, 76, 95][i], 12)),
-  kolomAspek: KODE_ASPEK.map((kode, i) => ({ kode, nama: ASPEK[i] })),
+  // Meniru kontrak asli: grupId null (tabel campur semua jenjang) memakai nama generik, filter per
+  // jenjang memakai nama aspek sebenarnya.
+  kolomAspekPerGrup: (grupId) => KODE_ASPEK.map((kode, i) => ({
+    kode,
+    nama: grupId == null ? `Karakter ${i + 1}` : ASPEK[i],
+  })),
   aspekPerSekolah,
-  aspekLabelByKode: Object.fromEntries(KODE_ASPEK.map((kode, i) => [kode, ASPEK[i]])),
+  aspekLabel: (grupId, kode) => {
+    const i = KODE_ASPEK.indexOf(kode);
+    if (i < 0) return kode;
+    return grupId == null ? `Karakter ${i + 1}` : ASPEK[i];
+  },
   indikatorPerGrup: () => INDIKATOR_CONTOH.map((label, i) => ({ label, nilai: [92, 83, 94, 87, 82][i] })),
   siswaPerSekolah,
   sekolah: berdata,

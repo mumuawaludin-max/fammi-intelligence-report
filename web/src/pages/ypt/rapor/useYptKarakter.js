@@ -179,9 +179,19 @@ export function useYptKarakter(session, periode) {
           const labelUnik = [...new Set(
             rows.map((r) => (r.aspek_label || "").trim()).filter(Boolean),
           )];
+
+          // Nama karakter hanya dipakai kalau kelompok ini SATU JENJANG. Kerangka karakter
+          // disusun per jenjang, jadi "Empati" yang dideklarasikan sebuah SMK tidak boleh
+          // ikut menamai kolom karakter1 milik TK dan SD. Pada tampilan campur seluruh jenjang
+          // (grupId null) tidak ada satu nama pun yang sah, jadi dipakai nama generik.
+          const namaAsli = grupId != null ? labelUnik[0] : null;
+
           return {
             kode,
-            nama: labelUnik[0] || aspekFallbackLabel(kode),
+            nama: namaAsli || aspekFallbackLabel(kode),
+            // Nama di atas benar-benar dideklarasikan sekolah, bukan "Karakter N" bikinan kode.
+            // Pemanggil yang mau merangkai kalimat berisi nama karakter wajib memeriksa ini.
+            namaAsli: Boolean(namaAsli),
             nilai: bulat(rataTertimbang(rows, (r) => r.rata, (r) => r.jumlah_siswa)),
             jumlahSekolah: new Set(rows.map((r) => r.sekolah_id)).size,
             // Berapa sekolah yang benar-benar mendeklarasikan nama itu. Kalau jauh di bawah
@@ -209,11 +219,15 @@ export function useYptKarakter(session, periode) {
     // (batas yang digambar Figma). Aspek di luar enam besar tidak ditampilkan sebagai kolom;
     // nilainya tetap ikut menghitung rata_total sekolah.
     // Membawa {kode, nama}, bukan nama saja, karena aspekPerSekolah sekarang berkunci kode.
-    const kolomAspek = [...aspekYayasan]
-      .sort((a, b) => b.jumlahSekolah - a.jumlahSekolah
-        || a.kode.localeCompare(b.kode, "id", { numeric: true }))
-      .slice(0, 6)
-      .map((a) => ({ kode: a.kode, nama: a.nama }));
+    // grupId null = tabel menampilkan semua jenjang sekaligus, jadi namanya generik (lihat
+    // catatan di aspekPerGrup soal nama karakter yang tidak lintas jenjang).
+    function kolomAspekPerGrup(grupId) {
+      return [...aspekPerGrup(grupId)]
+        .sort((a, b) => b.jumlahSekolah - a.jumlahSekolah
+          || a.kode.localeCompare(b.kode, "id", { numeric: true }))
+        .slice(0, 6)
+        .map((a) => ({ kode: a.kode, nama: a.nama }));
+    }
 
     // Berkunci aspek_kode, sejalan dengan pengelompokan di aspekPerGrup. Sebelumnya berkunci nama,
     // sehingga sekolah tanpa label menyimpan nilainya di kunci "Karakter 1" sedangkan sekolah
@@ -226,9 +240,29 @@ export function useYptKarakter(session, periode) {
       (aspekPerSekolah[r.sekolah_id] ||= {})[kode] = r.rata;
     });
 
-    /** kode -> nama tampilan se-yayasan, untuk pemanggil yang cuma memegang kode. */
-    const aspekLabelByKode = {};
-    aspekYayasan.forEach((a) => { aspekLabelByKode[a.kode] = a.nama; });
+    /**
+     * grup jenjang -> (kode -> nama tampilan), untuk pemanggil yang cuma memegang kode aspek.
+     *
+     * Dipisah per jenjang dengan sengaja. Nama karakter dideklarasikan per sekolah di
+     * karakter_aspek_config, dan kerangka karakternya sendiri berbeda antar jenjang. Peta
+     * se-yayasan akan membuat "Empati" milik sebuah SMK ikut menamai karakter1 milik TK, yang
+     * hampir pasti karakter yang berbeda. Kode yang belum dinamai sekolah mana pun di jenjangnya
+     * jatuh ke nama generik "Karakter N".
+     */
+    const aspekLabelPerGrup = {};
+    aspekAktif.forEach((r) => {
+      const meta = metaBySekolah[r.sekolah_id];
+      const kode = (r.aspek_kode || "").trim();
+      const label = (r.aspek_label || "").trim();
+      if (!meta || !kode || !label) return;
+      const grup = groupJenjang(meta.jenjang);
+      ((aspekLabelPerGrup[grup] ||= {})[kode] ||= label);
+    });
+
+    /** Nama aspek untuk satu kode di satu jenjang. Jenjang tak dikenal -> nama generik. */
+    function aspekLabel(grupId, kode) {
+      return aspekLabelPerGrup[grupId]?.[kode] || aspekFallbackLabel(kode);
+    }
 
     // ── Indikator per jenjang ─────────────────────────────────────────────────────────────
     // Banyak sekolah Telkom belum punya karakter_indikator_config.indikator_label terisi (baris
@@ -295,9 +329,9 @@ export function useYptKarakter(session, periode) {
       jenjang,
       aspekYayasan,
       aspekPerGrup,
-      kolomAspek,
+      kolomAspekPerGrup,
       aspekPerSekolah,
-      aspekLabelByKode,
+      aspekLabel,
       indikatorPerGrup,
       siswaPerSekolah,
       sekolah,

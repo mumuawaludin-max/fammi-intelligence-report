@@ -14,9 +14,11 @@ const URUTAN = [
 /**
  * Tab Penilaian per Sekolah (Figma 84-2502): tabel semua sekolah dengan kolom per aspek karakter.
  *
- * Kolom aspek memakai NAMA aspek asli (Mandiri, Empati, ...), bukan "Karakter 1..6" seperti
- * mockup -- nama asli lebih berguna dan datanya memang ada. Jumlahnya dibatasi enam sesuai
- * lebar yang digambar; aspek di luar enam besar tetap ikut menghitung total sekolah.
+ * Kolom aspek mengikuti jenjang yang sedang difilter, jadi namanya memakai nama asli jenjang itu
+ * (Mandiri, Empati, ...). Pada filter "Semua" tabel mencampur seluruh jenjang, dan karena kerangka
+ * karakter berbeda antar jenjang tidak ada satu nama pun yang sah untuk semua barisnya; di situ
+ * kolomnya sengaja bernama generik "Karakter 1..6". Jumlahnya dibatasi enam sesuai lebar yang
+ * digambar; aspek di luar enam besar tetap ikut menghitung total sekolah.
  *
  * Sekolah tanpa data pada periode terpilih tetap ditampilkan (di urutan paling bawah) dengan
  * penanda "belum ada data", bukan 0% -- membedakan "nol" dari "belum diimpor" itu penting untuk
@@ -44,6 +46,12 @@ export default function PerSekolahTab({ data }) {
     // nol, mereka akan menyamar jadi "sekolah terburuk" pada urutan menaik.
     return [...berdata, ...kosong.sort((a, b) => a.nama.localeCompare(b.nama))];
   }, [data.sekolahLengkap, filter, urutan]);
+
+  // Kolom ikut filter jenjang: "semua" -> null -> nama generik lintas jenjang.
+  const kolomAspek = useMemo(
+    () => data.kolomAspekPerGrup(filter === "semua" ? null : filter),
+    [data, filter],
+  );
 
   useEffect(() => { setHalaman(0); }, [filter, urutan]);
 
@@ -92,7 +100,7 @@ export default function PerSekolahTab({ data }) {
             <tr>
               <th colSpan={2}>Sekolah</th>
               <th>Total Pencapaian</th>
-              {data.kolomAspek.map((k) => (
+              {kolomAspek.map((k) => (
                 <th key={k.kode} className={styles.thTengah}>{k.nama}</th>
               ))}
             </tr>
@@ -100,7 +108,7 @@ export default function PerSekolahTab({ data }) {
           <tbody>
             {tampil.length === 0 && (
               <tr>
-                <td colSpan={3 + data.kolomAspek.length} className={styles.tdNama}>
+                <td colSpan={3 + kolomAspek.length} className={styles.tdNama}>
                   Tidak ada sekolah pada jenjang ini.
                 </td>
               </tr>
@@ -121,7 +129,7 @@ export default function PerSekolahTab({ data }) {
                       <span className={styles.totalBar}><ProgressBar value={s.rata_total} /></span>
                     </span>
                   </td>
-                  {data.kolomAspek.map((k) => (
+                  {kolomAspek.map((k) => (
                     <td key={k.kode} className={styles.selNilai}>
                       <span className={`${styles.selBadge} ${aspek[k.kode] == null ? styles.selKosong : ""}`}>
                         {aspek[k.kode] == null ? "—" : `${aspek[k.kode]}%`}

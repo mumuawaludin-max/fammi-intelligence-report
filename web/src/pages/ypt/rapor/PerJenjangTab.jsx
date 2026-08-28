@@ -33,11 +33,12 @@ export default function PerJenjangTab({ data }) {
   const top5 = terfilter.filter((s) => s.rata_total != null).slice(0, 5);
   const bawah5 = terfilter.filter((s) => s.rata_total != null).slice(-5).reverse();
 
-  // aspekPerSekolah berkunci aspek_kode, jadi nama tampilannya diambil dari peta se-yayasan.
-  // Kode yang belum punya nama di sekolah mana pun jatuh ke kodenya sendiri, bukan dibuang.
+  // aspekPerSekolah berkunci aspek_kode, jadi nama tampilannya dicari lewat aspekLabel. Panel ini
+  // menampilkan SATU sekolah, jadi jenjangnya diketahui pasti dan namanya diambil dari jenjang itu
+  // saja; nama karakter sebuah SMK tidak boleh dipakai untuk sekolah TK.
   const aspekDetail = detail
     ? Object.entries(data.aspekPerSekolah[detail.sekolah_id] || {})
-        .map(([kode, nilai]) => ({ nama: data.aspekLabelByKode?.[kode] || kode, nilai }))
+        .map(([kode, nilai]) => ({ kode, nama: data.aspekLabel(detail.grup, kode), nilai }))
         .sort((a, b) => b.nilai - a.nilai)
     : [];
 
@@ -160,7 +161,7 @@ export default function PerJenjangTab({ data }) {
               {aspekDetail.length > 0 && (
                 <div className={styles.aspekList}>
                   {aspekDetail.map((a, i) => (
-                    <div key={a.nama} className={styles.aspekItem}>
+                    <div key={a.kode} className={styles.aspekItem}>
                       <span className={styles.aspekNo}>{i + 1}</span>
                       <span className={styles.aspekNilai}>{a.nilai}%</span>
                       <span className={styles.aspekNama}>{a.nama}</span>

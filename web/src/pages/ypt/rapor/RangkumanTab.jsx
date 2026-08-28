@@ -43,8 +43,19 @@ export default function RangkumanTab({ data, onLihatSekolah }) {
 
   // Insight hero: dua aspek dengan nilai tertinggi se-yayasan, dirangkai jadi kalimat.
   // Ini penyajian, bukan analisis -- tidak ada Gemini di jalur baca (butir CLAUDE.md).
+  //
+  // Kalimatnya hanya dipakai kalau nama karakternya benar-benar dideklarasikan sekolah. Nama
+  // karakter berbeda antar jenjang, jadi agregat se-yayasan tidak punya nama yang sah selama
+  // sebagian besar sekolah belum mengisi karakter_aspek_config; menyebut "Karakter 1 dan
+  // Karakter 4" sebagai karakter terbaik Telkom tidak memberi tahu apa pun. Selama itu belum
+  // terisi, hero jatuh ke perbandingan antar jenjang yang datanya utuh.
   const aspekTeratas = [...data.aspekYayasan]
-    .filter((a) => a.nilai != null)
+    .filter((a) => a.nilai != null && a.namaAsli)
+    .sort((a, b) => b.nilai - a.nilai)
+    .slice(0, 2);
+
+  const jenjangTeratas = [...data.jenjang]
+    .filter((g) => g.nilai != null)
     .sort((a, b) => b.nilai - a.nilai)
     .slice(0, 2);
 
@@ -69,6 +80,17 @@ export default function RangkumanTab({ data, onLihatSekolah }) {
             <p className={styles.heroInsightText}>
               Karakter Telkom terbaik diseluruh jenjang adalah{" "}
               <strong>{aspekTeratas[0].nama}</strong>
+            </p>
+          ) : jenjangTeratas.length >= 2 ? (
+            <p className={styles.heroInsightText}>
+              Pencapaian karakter tertinggi ada di jenjang{" "}
+              <strong>{jenjangTeratas[0].label}</strong> ({jenjangTeratas[0].nilai}%) dan{" "}
+              <strong>{jenjangTeratas[1].label}</strong> ({jenjangTeratas[1].nilai}%)
+            </p>
+          ) : jenjangTeratas.length === 1 ? (
+            <p className={styles.heroInsightText}>
+              Pencapaian karakter tertinggi ada di jenjang{" "}
+              <strong>{jenjangTeratas[0].label}</strong> ({jenjangTeratas[0].nilai}%)
             </p>
           ) : (
             <p className={styles.heroInsightText}>
