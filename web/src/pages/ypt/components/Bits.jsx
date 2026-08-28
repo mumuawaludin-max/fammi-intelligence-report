@@ -28,7 +28,7 @@ export function ProgressBar({ value, varian = "navy", tinggi }) {
  * ini dibuat sebagai <StatePanel/>, elemennya SELALU truthy walaupun isinya null, sehingga
  * pengecekan itu selalu benar dan halaman jadi kosong justru ketika datanya ada.
  */
-export function statusPanel({ loading, error, kosong, judul, pesan }) {
+export function statusPanel({ loading, error, kosong, judul, pesan, aksi }) {
   // Satu-satunya jalur status memuat di seluruh dashboard YPT, jadi mengganti isinya di sini
   // otomatis berlaku untuk Rapor Karakter, Citra Sekolah, dan Survey Kepuasan sekaligus.
   if (loading) return <div className={styles.state}><FammiLoader /></div>;
@@ -45,6 +45,9 @@ export function statusPanel({ loading, error, kosong, judul, pesan }) {
       <div className={styles.state}>
         <p className={styles.stateTitle}>{judul || "Belum ada data"}</p>
         {pesan && <p>{pesan}</p>}
+        {/* Slot aksi: dipakai menu yang datanya ada di periode LAIN, untuk menawarkan lompatan
+            ke bulan yang benar-benar berisi alih-alih menyuruh pembaca menebak sendiri. */}
+        {aksi}
       </div>
     );
   }

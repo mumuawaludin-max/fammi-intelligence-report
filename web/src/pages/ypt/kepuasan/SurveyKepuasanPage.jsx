@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useKpData } from "./useKpData";
 import { statusPanel, ProgressBar, SectionTitle } from "../components/Bits";
-import { KP_PERAN } from "../yptMeta";
+import { KP_PERAN, periodeLabel } from "../yptMeta";
 import styles from "./Kepuasan.module.css";
 
 /** Baris bintang. skalaMax menentukan berapa bintang penuh (10 untuk skor total, 5 untuk metrik). */
@@ -23,7 +23,7 @@ function angka(n, desimal = 2) {
   return n.toFixed(desimal).replace(".", ",");
 }
 
-export default function SurveyKepuasanPage({ session, periode, tab }) {
+export default function SurveyKepuasanPage({ session, periode, tab, periodesMenu = [], onPeriode }) {
   const { loading, error, data } = useKpData(session, periode);
   const [peranAktif, setPeranAktif] = useState(KP_PERAN[0].id);
   const [sekolahAktif, setSekolahAktif] = useState(null);
@@ -37,12 +37,34 @@ export default function SurveyKepuasanPage({ session, periode, tab }) {
     });
   }, [peranAktif, data]);
 
+  /**
+   * Bulan lain yang BENAR-BENAR punya respons survei.
+   *
+   * Ini yang membedakan "belum ada datanya sama sekali" dari "datanya ada, cuma bukan di bulan
+   * yang sedang dibuka". Kasus kedua yang sebenarnya terjadi: seluruh 135 respons jatuh di satu
+   * bulan, sementara pemilih periode selalu membuka di bulan terbaru milik Rapor Karakter yang
+   * terus bertambah. Tanpa daftar ini, layarnya cuma bilang "belum ada respons" dan pembaca
+   * menyimpulkan surveinya kosong padahal datanya utuh.
+   */
+  const periodeLain = periodesMenu.filter((p) => p !== periode);
+
   const status = statusPanel({
     loading,
     error,
     kosong: !loading && !error && data && data.totalResponden === 0,
-    judul: "Belum ada respons survei",
-    pesan: "Data survei ditarik dari spreadsheet respons form. Jalankan sinkronisasi di Admin CMS, atau pilih periode lain.",
+    judul: "Belum ada respons survei di periode ini",
+    pesan: periodeLain.length > 0
+      ? "Responsnya ada, tapi di bulan lain."
+      : "Data survei ditarik dari spreadsheet respons form. Jalankan sinkronisasi di Admin CMS.",
+    aksi: periodeLain.length > 0 && onPeriode ? (
+      <div className={styles.lompatPeriode}>
+        {periodeLain.map((p) => (
+          <button key={p} type="button" className={styles.lompatBtn} onClick={() => onPeriode(p)}>
+            Lihat {periodeLabel(p)}
+          </button>
+        ))}
+      </div>
+    ) : null,
   });
   if (status) return status;
 

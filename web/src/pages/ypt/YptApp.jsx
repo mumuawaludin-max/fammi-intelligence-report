@@ -24,11 +24,16 @@ export default function YptApp({ session, onLogout }) {
   const [periode, setPeriode] = useState(null);
   const periodes = useYptPeriodes(session);
 
-  // Periode default = yang terbaru punya data. Tidak menimpa pilihan manual pengguna setelahnya:
-  // begitu `periode` terisi dan masih ada di daftar, biarkan apa adanya.
+  // Periode default = yang terbaru punya data DI MENU MANA PUN. Tidak menimpa pilihan manual
+  // pengguna setelahnya: begitu `periode` terisi dan masih ada di daftar, biarkan apa adanya.
+  //
+  // Konsekuensi yang harus disadari: bulan terbaru gabungan belum tentu punya data di menu yang
+  // sedang dibuka. Menu yang datanya tertinggal di bulan lain karena itu WAJIB menawarkan bulan
+  // berisinya sendiri di keadaan kosong (lihat prop periodesMenu di bawah), bukan sekadar bilang
+  // "belum ada data" dan membiarkan pembaca mengira datanya memang tidak ada.
   useEffect(() => {
-    if (periodes.length === 0) return;
-    setPeriode((prev) => (prev && periodes.includes(prev) ? prev : periodes[0]));
+    if (periodes.semua.length === 0) return;
+    setPeriode((prev) => (prev && periodes.semua.includes(prev) ? prev : periodes.semua[0]));
   }, [periodes]);
 
   function gantiMenu(id) {
@@ -87,10 +92,10 @@ export default function YptApp({ session, onLogout }) {
                   className={styles.periodSelect}
                   value={periode || ""}
                   onChange={(e) => setPeriode(e.target.value)}
-                  disabled={periodes.length === 0}
+                  disabled={periodes.semua.length === 0}
                 >
-                  {periodes.length === 0 && <option value="">Belum ada data</option>}
-                  {periodes.map((p) => (
+                  {periodes.semua.length === 0 && <option value="">Belum ada data</option>}
+                  {periodes.semua.map((p) => (
                     <option key={p} value={p}>{periodeLabel(p)}</option>
                   ))}
                 </select>
@@ -118,11 +123,20 @@ export default function YptApp({ session, onLogout }) {
               {menu === "rapor" && (
                 <RaporKarakterPage session={session} periode={periode} tab={tab} onTabChange={setTab} />
               )}
+              {/* Citra sengaja TIDAK menerima periodesMenu: tab non-Testimoni sumbernya periode
+                  impor Karakter, yang justru menentukan periode terbaru, jadi tidak pernah
+                  tertinggal. Tab Testimoni mengurus status kosongnya sendiri di TestimoniTab. */}
               {menu === "citra" && (
                 <CitraSekolahPage session={session} periode={periode} tab={tab} />
               )}
               {menu === "kepuasan" && (
-                <SurveyKepuasanPage session={session} periode={periode} tab={tab} />
+                <SurveyKepuasanPage
+                  session={session}
+                  periode={periode}
+                  tab={tab}
+                  periodesMenu={periodes.kepuasan}
+                  onPeriode={setPeriode}
+                />
               )}
               {menu === "dokumentasi" && (
                 <DokumentasiPage session={session} />

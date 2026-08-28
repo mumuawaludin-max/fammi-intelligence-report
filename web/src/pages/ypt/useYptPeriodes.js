@@ -9,15 +9,24 @@ import { supabase, fetchAllRows } from "../../lib/supabase";
  * Citra Sekolah ikut periode impor Karakter, Survey Kepuasan dan Testimoni ikut bulan respons
  * form masuk. Kalau cuma memakai salah satu, bulan yang datanya ada di menu lain akan hilang dari
  * pilihan dan seolah-olah tidak pernah ada.
+ *
+ * DAFTAR PER SUMBER JUGA DIKEMBALIKAN, bukan cuma gabungannya. Alasannya nyata: respons Survey
+ * Kepuasan seluruhnya jatuh di satu bulan, sementara Rapor Karakter terus bertambah tiap bulan.
+ * Pemilih periode selalu membuka di bulan TERBARU dari gabungan, jadi begitu Karakter melewati
+ * bulan survei, menu Survey Kepuasan terbuka di bulan yang memang tidak punya respons dan tampil
+ * kosong -- dan tidak ada apa pun di layar yang memberi tahu bahwa datanya ada di bulan lain.
+ * Dengan daftar per sumber, tiap menu bisa menunjukkan bulan mana yang benar-benar berisi.
  */
+const KOSONG = { semua: [], karakter: [], kepuasan: [], testimoni: [] };
+
 export function useYptPeriodes(session) {
-  const [periodes, setPeriodes] = useState([]);
+  const [periodes, setPeriodes] = useState(KOSONG);
   const sekolahIds = (session?.schools || []).map((s) => s.id);
   const key = sekolahIds.join(",");
 
   useEffect(() => {
     let alive = true;
-    if (sekolahIds.length === 0) { setPeriodes([]); return; }
+    if (sekolahIds.length === 0) { setPeriodes(KOSONG); return; }
 
     async function run() {
       // fetchAllRows dipakai lewat KETIGANYA, bukan cuma tabel yang kelihatan besar. Query
@@ -42,12 +51,20 @@ export function useYptPeriodes(session) {
       // Galat per sumber sengaja diabaikan (bukan dilempar): tabel kp/testimoni bisa saja belum
       // terisi di sekolah ini, dan itu bukan alasan untuk mengosongkan pemilih periode yang sudah
       // benar dari data Karakter.
-      const set = new Set();
-      [karakterRes, kpRes, testiRes].forEach((res) => {
-        (res.data || []).forEach((r) => r.periode_id && set.add(r.periode_id));
-      });
+      const urut = (rows) => Array.from(
+        new Set((rows || []).map((r) => r.periode_id).filter(Boolean)),
+      ).sort((a, b) => (a > b ? -1 : 1));
 
-      setPeriodes(Array.from(set).sort((a, b) => (a > b ? -1 : 1)));
+      const karakter = urut(karakterRes.data);
+      const kepuasan = urut(kpRes.data);
+      const testimoni = urut(testiRes.data);
+
+      setPeriodes({
+        semua: urut([...karakter, ...kepuasan, ...testimoni].map((p) => ({ periode_id: p }))),
+        karakter,
+        kepuasan,
+        testimoni,
+      });
     }
 
     run();
