@@ -89,11 +89,40 @@ create unique index on public.ypt_k_indikator_mat (sekolah_id, periode_id, aspek
 create view public.ypt_k_indikator as select * from public.ypt_k_indikator_mat
 where sekolah_id = any (public.my_yayasan_school_ids());
 
+-- Dua matview YPT lainnya, supaya migration yang membangun ulang keempatnya benar-benar teruji.
+create materialized view public.ypt_k_sekolah_mat as
+select sekolah_id, periode_id, count(distinct murid_id) as jumlah_siswa, round(avg(skor))::int as rata_total
+from public.karakter_skor where skor is not null group by sekolah_id, periode_id with data;
+create unique index on public.ypt_k_sekolah_mat (sekolah_id, periode_id);
+create view public.ypt_k_sekolah as select * from public.ypt_k_sekolah_mat
+where sekolah_id = any (public.my_yayasan_school_ids());
+
+create materialized view public.ypt_k_siswa_ekstrem_mat as
+with per_murid as (
+  select sekolah_id, periode_id, murid_id, max(nama_murid) as nama_murid, max(kelas_id) as kelas_id,
+         round(avg(skor))::int as total_persen
+  from public.karakter_skor where skor is not null group by sekolah_id, periode_id, murid_id
+), berperingkat as (
+  select per_murid.*,
+    row_number() over (partition by sekolah_id, periode_id order by total_persen desc, nama_murid asc) as rank_atas,
+    row_number() over (partition by sekolah_id, periode_id order by total_persen asc,  nama_murid asc) as rank_bawah
+  from per_murid)
+select sekolah_id, periode_id, murid_id, nama_murid, kelas_id, total_persen,
+       'atas'::text as arah, rank_atas as peringkat from berperingkat where rank_atas <= 5
+union all
+select sekolah_id, periode_id, murid_id, nama_murid, kelas_id, total_persen,
+       'bawah'::text as arah, rank_bawah as peringkat from berperingkat where rank_bawah <= 5
+with data;
+create unique index on public.ypt_k_siswa_ekstrem_mat (sekolah_id, periode_id, murid_id, arah);
+create view public.ypt_k_siswa_ekstrem as select * from public.ypt_k_siswa_ekstrem_mat
+where sekolah_id = any (public.my_yayasan_school_ids());
 -- Fungsi refresh (migration 20260826150000), untuk memastikan masih valid sesudah matview dibangun ulang.
 create or replace function public.refresh_ypt_views() returns void language plpgsql security definer as $fn$
 begin
+  refresh materialized view concurrently public.ypt_k_sekolah_mat;
   refresh materialized view concurrently public.ypt_k_aspek_mat;
   refresh materialized view concurrently public.ypt_k_indikator_mat;
+  refresh materialized view concurrently public.ypt_k_siswa_ekstrem_mat;
 end $fn$;
 
 -- Data awal: satu sekolah berkerangka TUNGGAL, supaya regresi kompatibilitas mundur bisa diukur.

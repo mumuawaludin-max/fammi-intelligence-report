@@ -167,6 +167,29 @@ function labelDariAkhiran(kolom, prefixRe) {
     .replace(/\b\w/g, (c) => c.toUpperCase()) || null;
 }
 
+/**
+ * Baca kolom "pekan" jadi angka 1-5. 0 berarti "penilaian bulanan, tidak dirinci per pekan",
+ * yaitu sel kosong -- dan itu yang berlaku untuk seluruh sekolah yang tidak menilai pekanan,
+ * termasuk periode lama sekolah yang baru pindah ke penilaian pekanan.
+ *
+ * Toleran terhadap cara tulis, mengikuti pola parseBulan: "P1", "p1", "1", "Pekan 1",
+ * "Minggu 1", "W1" semuanya jadi 1. Operator berbeda di sekolah yang sama menulis dengan gaya
+ * berbeda, dan itu tidak boleh menggagalkan upload satu berkas penuh.
+ *
+ * Nilai di luar 1-5 dikembalikan null supaya pemanggil bisa melaporkannya sebagai baris yang
+ * perlu dibetulkan, bukan diam-diam dianggap bulanan. "Pekan 7" hampir pasti salah ketik, dan
+ * menganggapnya 0 berarti angkanya menimpa penilaian bulanan tanpa jejak.
+ */
+export function parsePekan(raw) {
+  if (raw === '' || raw === null || raw === undefined) return 0;
+  const s = String(raw).trim();
+  if (!s) return 0;
+  const m = s.match(/(\d+)/);
+  if (!m) return null;
+  const n = parseInt(m[1], 10);
+  return n >= 1 && n <= 5 ? n : null;
+}
+
 /** Nama sheet disamakan seperti nama kolom: tanpa besar/kecil huruf, tanpa spasi/underscore
  * berlebih. Perlu karena Excel membatasi nama sheet 31 karakter, dan berkas nyata menyiasatinya
  * dengan memotong nama lalu membedakannya pakai spasi di depan ("detail_persentase_karakter_ kel",
@@ -601,6 +624,8 @@ export async function parseKarakterWorkbook(file, { sekolahId }) {
       if (!String(nama || '').trim()) { badRows.push(`${blok.name} baris ${i + 2} (nama kosong -- baris tanpa nama tidak bisa dipetakan ke murid mana pun)`); return; }
       const kelas = getField(r, 'kelas');
       if (!kelas) { badRows.push(`${blok.name} baris ${i + 2} (kelas)`); return; }
+      const pekan = parsePekan(getField(r, 'pekan', 'minggu', 'week'));
+      if (pekan === null) { badRows.push(`${blok.name} baris ${i + 2} (kolom pekan berisi "${getField(r, 'pekan', 'minggu', 'week')}", harus P1 sampai P5 atau dikosongkan)`); return; }
 
       // Baris yang kelasnya menunjuk jenjang lain daripada sheet tempatnya berada. Ini nyata:
       // di berkas SD Amal Mulia, sheet skor Kelas 2 memuat baris kelas "1 Al-Khawarizmi", dan
@@ -626,7 +651,7 @@ export async function parseKarakterWorkbook(file, { sekolahId }) {
         const skor = col ? pct(r[col]) : null;
         if (skor === null) { badRows.push(`${blok.name} baris ${i + 2} (kolom skor ${aspek}${col ? ` "${col}"` : ''} kosong/tidak ditemukan untuk ${nama || 'baris ini'})`); return; }
         skorRows.push({
-          sekolah_id: sekolahId, jenjang: blok.jenjang, kelas_id: kelas, murid_id: mid, nama_murid: nama,
+          sekolah_id: sekolahId, jenjang: blok.jenjang, pekan, kelas_id: kelas, murid_id: mid, nama_murid: nama,
           periode_id: periode, aspek_kode: aspek, skor, sumber: 'guru', status: 'disetujui',
         });
       });
@@ -647,6 +672,11 @@ export async function parseKarakterWorkbook(file, { sekolahId }) {
       const periode = ownBulan(r) || namaPeriode[namaKey];
       if (!periode) { badRows.push(`${blok.name} baris ${i + 2} (bulan)`); return; }
       if (!kelas) { badRows.push(`${blok.name} baris ${i + 2} (kelas)`); return; }
+      // Sheet indikator boleh tidak punya kolom pekan sendiri; kalau begitu ia mengikuti pekan
+      // yang tercatat untuk murid itu di sheet skor aspek. Kalau punya kolomnya sendiri, itu
+      // yang dipakai -- sekolah bisa saja menilai indikator di pekan yang berbeda.
+      const pekan = parsePekan(getField(r, 'pekan', 'minggu', 'week'));
+      if (pekan === null) { badRows.push(`${blok.name} baris ${i + 2} (kolom pekan berisi "${getField(r, 'pekan', 'minggu', 'week')}", harus P1 sampai P5 atau dikosongkan)`); return; }
       if (perJenjang) {
         const jenjangBaris = jenjangDariKelas(kelas) || namaJenjang[namaKey];
         if (jenjangBaris && jenjangBaris !== blok.jenjang) {
@@ -660,7 +690,7 @@ export async function parseKarakterWorkbook(file, { sekolahId }) {
         const skor = pct(r[col]);
         if (skor === null) { badRows.push(`${blok.name} baris ${i + 2} (kolom "${col}" kosong/tidak terbaca untuk ${nama || 'baris ini'})`); return; }
         skorIndikatorRows.push({
-          sekolah_id: sekolahId, jenjang: blok.jenjang, kelas_id: kelas, murid_id: mid, nama_murid: nama,
+          sekolah_id: sekolahId, jenjang: blok.jenjang, pekan, kelas_id: kelas, murid_id: mid, nama_murid: nama,
           periode_id: periode, aspek_kode: aspek, indikator_kode: kode, skor,
           sumber: 'guru', status: 'disetujui',
         });
@@ -796,8 +826,12 @@ export async function parseKarakterWorkbook(file, { sekolahId }) {
   // kunci uniknya memakai murid_id hasil resolve (bukan nama mentah), dan murid_id baru bisa
   // lahir di sheet mana pun. karakter_summary tidak ikut karena summaryByKey di atas sudah
   // menyaring dengan kunci yang sama sejak awal.
-  const skorDedupe = dedupeByKey(skorRows, (r) => `${r.murid_id}|${r.periode_id}|${r.aspek_kode}`);
-  const indikatorDedupe = dedupeByKey(skorIndikatorRows, (r) => `${r.murid_id}|${r.periode_id}|${r.aspek_kode}|${r.indikator_kode}`);
+  // Kunci dedupe WAJIB menyertakan pekan, sejalan dengan unique constraint barunya (migration
+  // 20260828120000). Tanpa itu, empat penilaian pekanan satu murid dianggap empat baris ganda
+  // dan tiga di antaranya dibuang di sini, sebelum sempat sampai ke database -- tepat kegagalan
+  // yang seluruh fitur ini dibangun untuk mencegah.
+  const skorDedupe = dedupeByKey(skorRows, (r) => `${r.murid_id}|${r.periode_id}|${r.pekan}|${r.aspek_kode}`);
+  const indikatorDedupe = dedupeByKey(skorIndikatorRows, (r) => `${r.murid_id}|${r.periode_id}|${r.pekan}|${r.aspek_kode}|${r.indikator_kode}`);
   const pernyataanDedupe = dedupeByKey(pernyataanRows, (r) => `${r.murid_id}|${r.periode_id}|${r.sumber}`);
 
   // Satu murid yang barisnya ganda menghasilkan sebanyak-jumlah-aspek bentrokan di skorRows,
@@ -830,6 +864,17 @@ export async function parseKarakterWorkbook(file, { sekolahId }) {
   // per sheet, berapa baris header yang dilewati) untuk menebak apa yang salah di berkasnya.
   preview.barisHeaderTerulang = barisHeaderTerulang;
   preview.jenjangNyasar = jenjangNyasar.length;
+
+  // Pekan yang benar-benar terbaca, per periode. Ditampilkan di pratinjau supaya admin bisa
+  // melihat sendiri "Oktober: P1-P4" sebelum konfirmasi -- kalau sekolah lupa mengisi kolom
+  // pekan, yang muncul "bulanan (tanpa rincian pekan)" dan itu ketahuan sebelum data masuk,
+  // bukan setelah grafik pekanannya kosong.
+  const pekanPerPeriode = {};
+  skorRows.forEach((r) => { (pekanPerPeriode[r.periode_id] ||= new Set()).add(r.pekan); });
+  preview.pekanPerPeriode = Object.entries(pekanPerPeriode)
+    .sort(([a], [b]) => a.localeCompare(b))
+    .map(([periode, set]) => ({ periode, pekan: [...set].sort((a, b) => a - b) }));
+  preview.adaPekanan = skorRows.some((r) => r.pekan > 0);
 
   // Dua jenis kegagalan dilaporkan SEKALIGUS, bukan satu per satu. Sebabnya beda dan tempat
   // perbaikannya beda (baris yang berada di sheet salah versus sel yang tidak terbaca), tapi
@@ -902,6 +947,7 @@ export async function parseKarakterWorkbook(file, { sekolahId }) {
     preview,
     muridBaru: seq - nextNum,
     perJenjang,
+    adaPekanan: preview.adaPekanan,
     kerangkaRows,
     rows: {
       skorRows: skorDedupe.rows,
@@ -1039,7 +1085,7 @@ export async function importKarakterWorkbook(parsed) {
   //
   // Probe-nya memakai mode 'lanjut' dengan nol baris: tidak menghapus apa pun, tidak menulis apa
   // pun, cuma memancing bentuk balikannya. Aman dijalankan kapan saja.
-  if (parsed.perJenjang) {
+  if (parsed.perJenjang || parsed.adaPekanan) {
     const { data: probe, error: probeError } = await supabase.functions.invoke('admin-actions', {
       body: {
         action: 'import-karakter',
@@ -1051,10 +1097,21 @@ export async function importKarakterWorkbook(parsed) {
       return { ok: false, rowsWritten: 0, error: detail };
     }
     if (!probe?.ok) return { ok: false, rowsWritten: 0, error: probe?.error || 'Import gagal tanpa keterangan.' };
-    if (probe.jenjang === undefined) {
+    if (parsed.perJenjang && probe.jenjang === undefined) {
       return {
         ok: false, rowsWritten: 0,
         error: 'Berkas ini memuat kerangka karakter berbeda per jenjang, tapi database masih memakai versi lama fungsi import_karakter_periode yang belum mengenal kolom jenjang. Kalau diteruskan, keenam kerangka akan runtuh jadi satu tanpa error apa pun. Jalankan dulu migration supabase/migrations/20260828110000_karakter_kerangka_per_jenjang.sql di Supabase SQL Editor, lalu ulangi upload berkas ini.',
+      };
+    }
+    // Gerbang yang sama untuk pekan. Kegagalannya beda bentuk dari kasus jenjang: RPC lama
+    // mengabaikan field pekan, jadi keempat baris pekanan masuk sebagai baris untuk (murid,
+    // periode, aspek) yang sama dan ditolak unique lama sebagai duplikat. Upload gagal dengan
+    // pesan Postgres mentah yang tidak menyebut pekan sama sekali, dan admin tidak punya
+    // petunjuk bahwa yang kurang adalah migration.
+    if (parsed.adaPekanan && probe.pekan === undefined) {
+      return {
+        ok: false, rowsWritten: 0,
+        error: 'Berkas ini memuat penilaian pekanan (kolom pekan terisi), tapi database masih memakai versi lama fungsi import_karakter_periode yang belum mengenal kolom pekan. Jalankan dulu migration supabase/migrations/20260828120000_karakter_skor_pekanan.sql di Supabase SQL Editor, lalu ulangi upload berkas ini.',
       };
     }
   }

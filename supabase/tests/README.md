@@ -34,3 +34,30 @@ docker rm -f fir-pgtest
 Sudah dijalankan di postgres:15 dan postgres:17, keduanya lolos, 10 pemeriksaan LULUS 0 GAGAL.
 Berkas verifikasi hanya boleh dijalankan SEKALI per database bersih -- ia menulis data, jadi
 jalan kedua akan kena unique violation yang memang seharusnya.
+
+## Migration kedua: penilaian pekanan (20260828120000)
+
+Baseline yang sama dipakai untuk kedua migration, dijalankan berurutan:
+
+```bash
+docker cp karakter_kerangka_baseline.sql fir-pgtest:/tmp/base.sql
+docker cp ../migrations/20260828110000_karakter_kerangka_per_jenjang.sql fir-pgtest:/tmp/m1.sql
+docker cp ../migrations/20260828120000_karakter_skor_pekanan.sql fir-pgtest:/tmp/m2.sql
+docker cp karakter_pekan_verify.sql fir-pgtest:/tmp/v.sql
+docker exec fir-pgtest psql -U postgres -d fir -v ON_ERROR_STOP=1 -q -f /tmp/base.sql
+docker exec fir-pgtest psql -U postgres -d fir -v ON_ERROR_STOP=1 -f /tmp/m1.sql
+docker exec fir-pgtest psql -U postgres -d fir -v ON_ERROR_STOP=1 -f /tmp/m2.sql
+docker exec fir-pgtest psql -U postgres -d fir -f /tmp/v.sql
+```
+
+Yang diperiksa karakter_pekan_verify.sql, selain bahwa SQL-nya jalan: baris lama jatuh ke
+pekan 0, empat penilaian pekanan satu murid boleh masuk semua, angka bulanan diambil dari
+PEKAN TERAKHIR (88, bukan rata-rata 73), murid yang absen dua pekan terakhir tetap bernilai
+dari pekan terisi terakhirnya, agregat jenjang/indeks sekolah/matview YPT semuanya memakai
+pekan terakhir (77, bukan 68 yang berarti masih merata-rata seluruh pekan), unique baru
+menolak duplikat pekan, RPC mengganti seluruh pekan satu periode, dan payload lama tanpa
+field pekan tetap jatuh ke 0.
+
+Sudah dijalankan di postgres:15 dan postgres:17, keduanya 11 LULUS 0 GAGAL, dan migration
+keduanya idempoten. Sama seperti berkas verifikasi yang satunya: jalankan SEKALI per database
+bersih, karena ia menulis data.

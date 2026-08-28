@@ -107,15 +107,19 @@ export function useKarakterWaliKelas(session, periodeId) {
         // Detail per murid per aspek/indikator/pernyataan bisa lewat 1000 baris (batas diam-diam
         // Supabase) untuk sekolah menengah-besar, apalagi diambil semua periode sekaligus di
         // sini -- pakai fetchAllRows supaya tidak ada murid/baris yang hilang tanpa error.
+        // View bulanan, BUKAN tabel mentah. Sekolah yang menilai pekanan punya empat baris per
+        // murid per bulan; view ini memilih nilai pekan TERAKHIR yang ada isinya (migration
+        // 20260828120000, keputusan pemilik produk). Membaca tabel mentah berarti tiap murid
+        // muncul empat kali di daftar dan setiap rata-rata jadi rata-rata seluruh pekan.
         fetchAllRows((from, to) => supabase
-          .from("karakter_skor")
-          .select("jenjang, kelas_id, murid_id, nama_murid, periode_id, aspek_kode, skor")
+          .from("karakter_skor_bulanan")
+          .select("jenjang, kelas_id, murid_id, nama_murid, periode_id, aspek_kode, skor, pekan")
           .eq("sekolah_id", session.school_id)
           .in("kelas_id", kelasList)
           .range(from, to)),
         fetchAllRows((from, to) => supabase
-          .from("karakter_skor_indikator")
-          .select("jenjang, kelas_id, murid_id, nama_murid, periode_id, aspek_kode, indikator_kode, skor")
+          .from("karakter_skor_indikator_bulanan")
+          .select("jenjang, kelas_id, murid_id, nama_murid, periode_id, aspek_kode, indikator_kode, skor, pekan")
           .eq("sekolah_id", session.school_id)
           .in("kelas_id", kelasList)
           .range(from, to)),

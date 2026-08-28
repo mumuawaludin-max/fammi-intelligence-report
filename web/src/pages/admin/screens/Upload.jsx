@@ -41,7 +41,7 @@ function retryStatusText(retry) {
  * indikator yang berbeda-beda, dan justru indikatornya yang menentukan itu karakter yang sama
  * atau bukan.
  */
-function KerangkaPreview({ kerangka, perJenjang, barisHeaderTerulang, ringkasanSekolahDilewati }) {
+function KerangkaPreview({ kerangka, perJenjang, barisHeaderTerulang, ringkasanSekolahDilewati, pekanPerPeriode }) {
   if (!kerangka || kerangka.length === 0) return null;
   return (
     <div style={{ marginTop: 10, padding: '10px 14px', background: 'var(--surface-soft)', borderRadius: 10, border: '1px solid var(--line)' }}>
@@ -56,6 +56,21 @@ function KerangkaPreview({ kerangka, perJenjang, barisHeaderTerulang, ringkasanS
           : 'Semua kelas memakai daftar karakter yang sama.'}
         {barisHeaderTerulang > 0 && ` ${barisHeaderTerulang} baris dilewati karena isinya baris header yang ikut ter-copy, bukan data murid.`}
       </div>
+      {/* Pekan yang terbaca per periode. Kalau sekolah lupa mengisi kolom pekan, di sini akan
+          tertulis "bulanan" dan itu ketahuan SEBELUM data masuk, bukan setelah grafik pekanannya
+          ternyata kosong dan tidak ada yang tahu kenapa. */}
+      {pekanPerPeriode?.length > 0 && (
+        <div style={{ fontSize: 11.5, color: 'var(--ink-2)', marginTop: 6, lineHeight: 1.6 }}>
+          <strong style={{ color: 'var(--ink)' }}>Pekan terbaca:</strong>{' '}
+          {pekanPerPeriode.map((p) => {
+            const pekanan = p.pekan.filter((n) => n > 0);
+            return `${p.periode} — ${pekanan.length > 0 ? `P${pekanan.join(', P')}` : 'bulanan (tanpa rincian pekan)'}`;
+          }).join(' · ')}
+          {pekanPerPeriode.some((p) => p.pekan.some((n) => n > 0)) && (
+            <span> · Angka bulanan diambil dari pekan terakhir yang ada isinya, bukan rata-rata.</span>
+          )}
+        </div>
+      )}
       {ringkasanSekolahDilewati > 0 && (
         <div style={{ fontSize: 11.5, color: 'var(--status-warn)', marginTop: 6, lineHeight: 1.5 }}>
           ⚠ {ringkasanSekolahDilewati} sheet ringkasan sekolah tidak diimpor. Berkas ini punya satu
@@ -485,7 +500,7 @@ export function Upload() {
             {/* Kerangka yang sempat terbaca tetap ditampilkan walau berkasnya ditolak -- lihat
                 catatan di KerangkaPreview dan handleFile. */}
             {parseError && previewGagal && (
-              <KerangkaPreview kerangka={previewGagal.kerangka} perJenjang={previewGagal.perJenjang} barisHeaderTerulang={previewGagal.barisHeaderTerulang} ringkasanSekolahDilewati={previewGagal.ringkasanSekolahDilewati} />
+              <KerangkaPreview kerangka={previewGagal.kerangka} perJenjang={previewGagal.perJenjang} barisHeaderTerulang={previewGagal.barisHeaderTerulang} ringkasanSekolahDilewati={previewGagal.ringkasanSekolahDilewati} pekanPerPeriode={previewGagal.pekanPerPeriode} />
             )}
           </div>
         </div>
@@ -639,6 +654,7 @@ export function Upload() {
                 perJenjang={parsed.preview.perJenjang}
                 barisHeaderTerulang={parsed.preview.barisHeaderTerulang}
                 ringkasanSekolahDilewati={parsed.preview.ringkasanSekolahDilewati}
+                pekanPerPeriode={parsed.preview.pekanPerPeriode}
               />
             )}
 
