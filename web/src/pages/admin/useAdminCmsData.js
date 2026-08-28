@@ -62,7 +62,7 @@ export function useAdminCmsData() {
         // rekomendasi Kepala Sekolah/Yayasan (dicek lewat modules.includes('karakter')).
         fetchAllRows((from, to) => supabase.from('school_modules').select('school_id, modul, aktif').eq('aktif', true).order('school_id').order('modul').range(from, to)),
         fetchAllRows((from, to) => supabase.from('karakter_summary').select('sekolah_id, periode_id').eq('scope', 'sekolah').order('sekolah_id').order('periode_id').range(from, to)),
-        fetchAllRows((from, to) => supabase.from('karakter_aspek_config').select('sekolah_id, aspek_kode, aspek_label, urutan').order('sekolah_id').order('urutan', { ascending: true }).order('aspek_kode').range(from, to)),
+        fetchAllRows((from, to) => supabase.from('karakter_aspek_config').select('sekolah_id, jenjang, aspek_kode, aspek_label, urutan, identitas_kode').order('sekolah_id').order('jenjang').order('urutan', { ascending: true }).order('aspek_kode').range(from, to)),
         fetchAllRows((from, to) => supabase.from('briefing').select('id, sekolah_id, modul, scope, scope_id, periode_id, teks, sumber, tema_esai, status, created_at').eq('status', 'menunggu_persetujuan').order('id').range(from, to)),
         fetchAllRows((from, to) => supabase.from('tindak_lanjut').select('id, sekolah_id, modul, scope, scope_id, periode_id, action, trigger_desc, priority, status, gambaran, opsi_kandidat, catatan_internal, langkah_terpilih, regenerate_dari, created_at, term, type, fokus, jenjang, icon, title, teaser, mengapa_data, mengapa_perspektif, dasar_teori, manfaat, konkret, target_role').in('status', ['menunggu_persetujuan', 'disetujui']).order('id').range(from, to)),
         supabase.from('import_log').select('*').order('created_at', { ascending: false }).limit(50),
@@ -717,27 +717,35 @@ export async function bulkDeleteUsersAction(userIds) {
  * lolos dari potongan ini, makanya form tetap menyediakan tombol tambah aspek manual.
  */
 export async function loadAspekKandidatAction(sekolahId) {
-  const [skorRes, indRes] = await Promise.all([
-    supabase.from('karakter_skor')
-      .select('aspek_kode').eq('sekolah_id', sekolahId)
-      .order('murid_id').limit(800),
-    supabase.from('karakter_skor_indikator')
-      .select('aspek_kode, indikator_kode').eq('sekolah_id', sekolahId)
-      .order('murid_id').limit(800),
+  // Dibaca dari view karakter_kerangka (migration 20260828110000), bukan dari karakter_skor
+  // mentah. View itu sudah menggabungkan "kode yang benar-benar dipakai" dengan "nama yang sudah
+  // pernah disimpan", per (jenjang, aspek_kode) -- grain yang sama dengan yang diedit form ini.
+  //
+  // Indikator diambil dari karakter_indikator_sekolah_avg, bukan dari karakter_skor_indikator
+  // mentah. Bentuk lama menyampel 800 baris mentah dan mengandalkan keberuntungan: satu sekolah
+  // enam jenjang punya puluhan ribu baris indikator, jadi 800 baris pertama sering habis di satu
+  // jenjang saja dan jenjang lain tampil tanpa petunjuk indikator sama sekali. View itu sudah
+  // pre-agregat (satu baris per sekolah/jenjang/periode/aspek/indikator), jadi cakupannya utuh
+  // dengan jumlah baris yang jauh lebih kecil.
+  const [kerangkaRes, indRes] = await Promise.all([
+    supabase.from('karakter_kerangka')
+      .select('jenjang, aspek_kode, aspek_label, urutan, identitas_kode')
+      .eq('sekolah_id', sekolahId),
+    supabase.from('karakter_indikator_sekolah_avg')
+      .select('jenjang, aspek_kode, indikator_kode')
+      .eq('sekolah_id', sekolahId),
   ]);
-  if (skorRes.error) throw new Error(skorRes.error.message);
+  if (kerangkaRes.error) throw new Error(kerangkaRes.error.message);
   if (indRes.error) throw new Error(indRes.error.message);
 
-  const kode = new Set((skorRes.data || []).map((r) => r.aspek_kode).filter(Boolean));
   const indikator = {};
   (indRes.data || []).forEach((r) => {
     if (!r.aspek_kode || !r.indikator_kode) return;
-    kode.add(r.aspek_kode);
-    (indikator[r.aspek_kode] ||= new Set()).add(r.indikator_kode);
+    (indikator[`${r.jenjang}|${r.aspek_kode}`] ||= new Set()).add(r.indikator_kode);
   });
 
   return {
-    kode: [...kode].sort((a, b) => a.localeCompare(b, 'id', { numeric: true })),
+    kerangka: (kerangkaRes.data || []).map((r) => ({ ...r, adaDiData: true })),
     indikator: Object.fromEntries(
       Object.entries(indikator).map(([k, v]) => [k, [...v].sort()]),
     ),
@@ -750,24 +758,32 @@ export async function loadAspekKandidatAction(sekolahId) {
  * onConflict yang salah tebak akan gagal atau menggandakan baris. Juga bukan delete-lalu-insert:
  * kalau insert-nya gagal di tengah, sekolah kehilangan nama yang sudah benar.
  */
-export async function saveAspekConfigAction(sekolahId, rows, hapusKode = []) {
-  for (const kode of hapusKode) {
+export async function saveAspekConfigAction(sekolahId, rows, hapusKunci = []) {
+  // Kunci baris naik jadi (sekolah, jenjang, aspek_kode) sejak migration 20260828110000: satu
+  // sekolah bisa punya "karakter3" yang berbeda di tiap jenjang. Tanpa jenjang di setiap filter,
+  // menyimpan nama Kelas 4 akan ikut menimpa nama Kelas 3 dengan diam.
+  for (const { jenjang, aspek_kode } of hapusKunci) {
     const { error } = await supabase.from('karakter_aspek_config')
-      .delete().eq('sekolah_id', sekolahId).eq('aspek_kode', kode);
-    if (error) throw new Error(`Gagal hapus ${kode}: ${error.message}`);
+      .delete().eq('sekolah_id', sekolahId).eq('jenjang', jenjang).eq('aspek_kode', aspek_kode);
+    if (error) throw new Error(`Gagal hapus ${jenjang} ${aspek_kode}: ${error.message}`);
   }
 
   for (const r of rows) {
-    const patch = { aspek_label: r.aspek_label, urutan: r.urutan };
+    // identitas_kode ikut ditulis di sini, dan ini SATU-SATUNYA tempat di seluruh sistem yang
+    // mengisinya. Importer tidak pernah menyentuhnya, dan tidak ada pencocokan otomatis nama
+    // atau teks indikator di mana pun -- lihat aturan identitas di kepala migration
+    // 20260828110000_karakter_kerangka_per_jenjang.sql. null berarti karakter ini berdiri
+    // sendiri, dan itu bawaannya.
+    const patch = { aspek_label: r.aspek_label, urutan: r.urutan, identitas_kode: r.identitas_kode || null };
     const { data, error } = await supabase.from('karakter_aspek_config')
-      .update(patch).eq('sekolah_id', sekolahId).eq('aspek_kode', r.aspek_kode)
+      .update(patch).eq('sekolah_id', sekolahId).eq('jenjang', r.jenjang).eq('aspek_kode', r.aspek_kode)
       .select('aspek_kode');
-    if (error) throw new Error(`Gagal simpan ${r.aspek_kode}: ${error.message}`);
+    if (error) throw new Error(`Gagal simpan ${r.jenjang} ${r.aspek_kode}: ${error.message}`);
     if (data && data.length > 0) continue;
 
     const { error: errInsert } = await supabase.from('karakter_aspek_config')
-      .insert({ sekolah_id: sekolahId, aspek_kode: r.aspek_kode, ...patch });
-    if (errInsert) throw new Error(`Gagal tambah ${r.aspek_kode}: ${errInsert.message}`);
+      .insert({ sekolah_id: sekolahId, jenjang: r.jenjang, aspek_kode: r.aspek_kode, ...patch });
+    if (errInsert) throw new Error(`Gagal tambah ${r.jenjang} ${r.aspek_kode}: ${errInsert.message}`);
   }
 }
 

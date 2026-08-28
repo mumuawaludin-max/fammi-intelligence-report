@@ -1,13 +1,13 @@
 import { useEffect, useMemo, useState } from "react";
 import { supabase, fetchAllRows } from "../../lib/supabase";
-import { withAspekColor, latestPeriode, indikatorFallbackLabel, resolveAspekList, aspekKodeFromRingkasan, aspekLabelFromRingkasan, REFLEKSI_META, REFLEKSI_SUMBER_URUTAN, resolveSummaryKey, pct } from "./karakterMeta";
+import { withAspekColor, latestPeriode, indikatorFallbackLabel, resolveAspekList, aspekConfigJenjang, indikatorConfigJenjang, aspekKodeFromRingkasan, aspekLabelFromRingkasan, REFLEKSI_META, REFLEKSI_SUMBER_URUTAN, resolveSummaryKey, pct } from "./karakterMeta";
 
 /** Kembalikan { data, error } mentah (bukan array yang errornya sudah dibuang) supaya
  * pemanggil bisa ikut mengecek error-nya, bukan diam-diam dapat daftar aspek kosong. */
 function queryAspekConfig(sekolahId) {
   return supabase
     .from("karakter_aspek_config")
-    .select("aspek_kode, aspek_label, urutan")
+    .select("jenjang, aspek_kode, aspek_label, urutan, identitas_kode")
     .eq("sekolah_id", sekolahId)
     .order("urutan", { ascending: true });
 }
@@ -23,7 +23,7 @@ export function kelasKey(nama) {
 function queryIndikatorConfig(sekolahId) {
   return supabase
     .from("karakter_indikator_config")
-    .select("aspek_kode, indikator_kode, indikator_label, urutan")
+    .select("jenjang, aspek_kode, indikator_kode, indikator_label, urutan")
     .eq("sekolah_id", sekolahId)
     .order("urutan", { ascending: true });
 }
@@ -109,13 +109,13 @@ export function useKarakterWaliKelas(session, periodeId) {
         // sini -- pakai fetchAllRows supaya tidak ada murid/baris yang hilang tanpa error.
         fetchAllRows((from, to) => supabase
           .from("karakter_skor")
-          .select("kelas_id, murid_id, nama_murid, periode_id, aspek_kode, skor")
+          .select("jenjang, kelas_id, murid_id, nama_murid, periode_id, aspek_kode, skor")
           .eq("sekolah_id", session.school_id)
           .in("kelas_id", kelasList)
           .range(from, to)),
         fetchAllRows((from, to) => supabase
           .from("karakter_skor_indikator")
-          .select("kelas_id, murid_id, nama_murid, periode_id, aspek_kode, indikator_kode, skor")
+          .select("jenjang, kelas_id, murid_id, nama_murid, periode_id, aspek_kode, indikator_kode, skor")
           .eq("sekolah_id", session.school_id)
           .in("kelas_id", kelasList)
           .range(from, to)),
@@ -206,8 +206,13 @@ export function useKarakterWaliKelas(session, periodeId) {
       }
       return null;
     };
+    // Wali kelas memegang kelas-kelas dalam SATU jenjang, jadi kerangka karakternya tunggal dan
+    // bisa ditentukan dari barisnya sendiri. Menyaring config ke jenjang itu penting: tanpa ini,
+    // nama karakter3 milik Kelas 1 ikut menamai karakter3 milik Kelas 6 di sekolah yang tiap
+    // jenjangnya berbeda kerangka.
+    const jenjangKelas = skorAtPeriode.find((r) => r.jenjang)?.jenjang || "*";
     const aspekEffective = withAspekColor(
-      resolveAspekList(aspek, new Set(skorAtPeriode.map((r) => r.aspek_kode)), labelResolver)
+      resolveAspekList(aspekConfigJenjang(aspek, jenjangKelas), new Set(skorAtPeriode.map((r) => r.aspek_kode)), labelResolver)
     );
 
     // Scope teratas yang tersedia di hook Wali Kelas untuk pemeriksaan sumberRefleksi adalah
@@ -297,7 +302,7 @@ export function useKarakterKepsek(session, periodeId) {
         // gampang lewat 1000 baris untuk sekolah dengan banyak kelas.
         fetchAllRows((from, to) => supabase
           .from("karakter_indikator_kelas_avg")
-          .select("kelas_id, periode_id, aspek_kode, indikator_kode, skor")
+          .select("jenjang, kelas_id, periode_id, aspek_kode, indikator_kode, skor")
           .eq("sekolah_id", sekolahId)
           .range(from, to)),
       ]);
@@ -362,7 +367,32 @@ export function useKarakterKepsek(session, periodeId) {
       }
       return null;
     };
-    const aspekEffective = withAspekColor(resolveAspekList(aspek, aspekKodeHadir, labelResolver));
+    // Sekolah yang tiap jenjangnya punya kerangka karakter sendiri (lihat migration
+    // 20260828110000). Kepala sekolah melihat SELURUH jenjang sekaligus, jadi ini satu-satunya
+    // tampilan yang bisa mencampur karakter berbeda dalam satu deretan batang.
+    const jenjangKerangka = [...new Set((aspek || []).map((a) => a.jenjang ?? "*"))].filter((j) => j !== "*");
+    const perJenjang = jenjangKerangka.length > 0;
+
+    // Daftar aspek SEKOLAH-WIDE. Untuk sekolah berkerangka per jenjang, baris config-nya sengaja
+    // TIDAK dipakai: kunci resolveAspekList adalah aspek_kode saja, jadi 24 baris config (6
+    // jenjang x 4 karakter) runtuh jadi 4 entri yang labelnya diambil dari jenjang mana pun yang
+    // kebetulan terakhir diproses. Hasilnya "Tidak Merundung" (nama milik Kelas 3) ikut menamai
+    // karakter3 milik keenam jenjang.
+    //
+    // Jadi lintas jenjang dipakai label generik "Karakter N", dan nama aslinya baru muncul
+    // begitu satu jenjang dipilih (aspekUntukJenjang). Ini pola yang sama persis dengan
+    // perbaikan dashboard YPT di commit 4e3ab49, cuma di dalam satu sekolah.
+    const aspekEffective = withAspekColor(
+      resolveAspekList(perJenjang ? aspekConfigJenjang(aspek, "*") : aspek, aspekKodeHadir, perJenjang ? null : labelResolver)
+    );
+
+    const aspekByJenjang = {};
+    jenjangKerangka.forEach((j) => {
+      aspekByJenjang[j] = withAspekColor(resolveAspekList(aspekConfigJenjang(aspek, j), aspekKodeHadir, labelResolver));
+    });
+    /** Daftar aspek berlabel milik satu jenjang. Jatuh ke daftar sekolah-wide untuk sekolah
+     * berkerangka tunggal, jadi pemanggil tidak perlu bercabang. */
+    const aspekUntukJenjang = (j) => aspekByJenjang[j] || aspekEffective;
 
     // Scope teratas untuk Kepsek adalah ringkasan sekolah.
     const sekolahRow = atPeriode.find((r) => r.scope === "sekolah") || null;
@@ -381,16 +411,23 @@ export function useKarakterKepsek(session, periodeId) {
     // berasal dari scope_id karakter_summary, yaitu kolom "kelas" sheet summary_kelas. Dua kolom
     // di dua sheet berbeda pada berkas yang sama, jadi selisih spasi atau kapitalisasi antara
     // keduanya cukup untuk membuat indikator "hilang" lagi tanpa error apa pun.
+    // Label indikator dikunci per (jenjang, aspek, indikator), bukan per (aspek, indikator).
+    // Di sekolah berkerangka per jenjang, "karakter1_indikator1" Kelas 1 dan Kelas 6 adalah dua
+    // indikator yang isinya berbeda; peta lama akan menamai keduanya dengan teks yang sama.
     const indikatorLabelByKey = {};
     (indikatorConfigRows || []).forEach((it) => {
-      indikatorLabelByKey[`${it.aspek_kode}_${it.indikator_kode}`] = it.indikator_label;
+      indikatorLabelByKey[`${it.jenjang ?? "*"}_${it.aspek_kode}_${it.indikator_kode}`] = it.indikator_label;
     });
+    const labelIndikator = (jenjang, aspekKode, indikatorKode) =>
+      indikatorLabelByKey[`${jenjang ?? "*"}_${aspekKode}_${indikatorKode}`]
+      || indikatorLabelByKey[`*_${aspekKode}_${indikatorKode}`]
+      || indikatorFallbackLabel(aspekKode, indikatorKode);
+
     const indikatorByKelas = {};
     (indikatorKelasRows || []).forEach((r) => {
       if (r.periode_id !== periode || r.skor == null) return;
-      const key = `${r.aspek_kode}_${r.indikator_kode}`;
       (indikatorByKelas[kelasKey(r.kelas_id)] ||= []).push({
-        label: indikatorLabelByKey[key] || indikatorFallbackLabel(r.aspek_kode, r.indikator_kode),
+        label: labelIndikator(r.jenjang, r.aspek_kode, r.indikator_kode),
         value: r.skor,
       });
     });
@@ -399,6 +436,9 @@ export function useKarakterKepsek(session, periodeId) {
       periode,
       availablePeriods,
       aspek: aspekEffective,
+      aspekByJenjang,
+      aspekUntukJenjang,
+      perJenjang,
       indikatorByKelas,
       indikatorError: indikatorKelasError,
       sekolah: sekolahRow,
@@ -482,7 +522,7 @@ export function useKarakterYayasan(session, periodeId) {
           .eq("status", "disetujui"),
         supabase
           .from("karakter_aspek_config")
-          .select("sekolah_id, aspek_kode, aspek_label, urutan")
+          .select("sekolah_id, jenjang, aspek_kode, aspek_label, urutan, identitas_kode")
           .in("sekolah_id", sekolahIds)
           .order("urutan", { ascending: true }),
         // Lintas SEMUA sekolah yayasan, semua periode -- risiko terbesar melewati batas diam-diam
@@ -498,12 +538,12 @@ export function useKarakterYayasan(session, periodeId) {
         // Tetap dipaginasi untuk jaga-jaga yayasan dengan sangat banyak sekolah/periode.
         fetchAllRows((from, to) => supabase
           .from("karakter_indikator_sekolah_avg")
-          .select("sekolah_id, periode_id, aspek_kode, indikator_kode, skor")
+          .select("sekolah_id, jenjang, periode_id, aspek_kode, indikator_kode, skor")
           .in("sekolah_id", sekolahIds)
           .range(from, to)),
         supabase
           .from("karakter_indikator_config")
-          .select("sekolah_id, aspek_kode, indikator_kode, indikator_label")
+          .select("sekolah_id, jenjang, aspek_kode, indikator_kode, indikator_label")
           .in("sekolah_id", sekolahIds),
       ]);
 
@@ -553,21 +593,33 @@ export function useKarakterYayasan(session, periodeId) {
       ? periodeId
       : (latestPeriode(summaryRows) || latestPeriode(briefingRows) || latestPeriode(tlRows));
 
-    // Label indikator per sekolah, dari config custom tiap sekolah.
+    // Label indikator per sekolah, dari config custom tiap sekolah. Kuncinya menyertakan jenjang
+    // karena satu sekolah bisa punya indikator berbeda dengan kode yang sama di jenjang berbeda
+    // (migration 20260828110000); '*' jadi cadangan untuk sekolah berkerangka tunggal.
     const indikatorLabelBySekolah = {};
     (indikatorConfigRows || []).forEach((it) => {
-      (indikatorLabelBySekolah[it.sekolah_id] ||= {})[`${it.aspek_kode}_${it.indikator_kode}`] = it.indikator_label;
+      (indikatorLabelBySekolah[it.sekolah_id] ||= {})[`${it.jenjang ?? "*"}_${it.aspek_kode}_${it.indikator_kode}`] = it.indikator_label;
     });
 
     // Rata-rata ketercapaian tiap indikator per sekolah -- sudah dihitung di database lewat
     // view karakter_indikator_sekolah_avg, tinggal disaring ke periode aktif dan diberi label.
+    //
+    // Baris view itu sekarang terpisah per jenjang. Untuk sekolah berkerangka per jenjang,
+    // indikator dengan kode sama dari dua jenjang adalah dua indikator berbeda, jadi labelnya
+    // ikut dibedakan dan nama jenjangnya ditempel supaya daftar "Top 5" tidak memperlihatkan dua
+    // baris yang tampak kembar tanpa penjelasan.
+    const sekolahPerJenjang = new Set(
+      (indikatorAvgRows || []).filter((r) => r.jenjang && r.jenjang !== "*").map((r) => r.sekolah_id)
+    );
     const indikatorBySekolah = {};
     (indikatorAvgRows || []).forEach((r) => {
       if (r.periode_id !== periode || r.skor == null) return;
       const labels = indikatorLabelBySekolah[r.sekolah_id] || {};
-      const key = `${r.aspek_kode}_${r.indikator_kode}`;
+      const dasar = labels[`${r.jenjang ?? "*"}_${r.aspek_kode}_${r.indikator_kode}`]
+        || labels[`*_${r.aspek_kode}_${r.indikator_kode}`]
+        || indikatorFallbackLabel(r.aspek_kode, r.indikator_kode);
       (indikatorBySekolah[r.sekolah_id] ||= []).push({
-        label: labels[key] || indikatorFallbackLabel(r.aspek_kode, r.indikator_kode),
+        label: sekolahPerJenjang.has(r.sekolah_id) ? `${dasar} (${r.jenjang})` : dasar,
         value: r.skor,
       });
     });

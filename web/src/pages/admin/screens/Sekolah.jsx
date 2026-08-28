@@ -110,6 +110,12 @@ function nomorAspek(kode) {
   return m ? parseInt(m[1], 10) : 999;
 }
 
+/** '*' adalah sentinel "sekolah ini satu kerangka untuk semua jenjang" (lihat migration
+ * 20260828110000). Di layar admin, sentinel itu tidak boleh muncul apa adanya. */
+function labelJenjang(jenjang) {
+  return jenjang === '*' ? 'Seluruh sekolah' : jenjang;
+}
+
 /**
  * Editor karakter_aspek_config per sekolah.
  *
@@ -166,19 +172,29 @@ function AspekConfigEditor({ sekolah, onTutup }) {
     loadAspekKandidatAction(sekolah.id)
       .then((k) => {
         if (batal) return;
-        const config = {};
-        (sekolah.aspekConfig || []).forEach((a) => { config[a.aspek_kode] = a; });
-        // Gabungan kode yang terpakai di data DAN kode yang sudah terlanjur ada di config --
-        // config lama yang kodenya tidak lagi muncul di data tetap ditampilkan supaya bisa dihapus,
-        // bukan menghilang diam-diam.
-        const semuaKode = [...new Set([...k.kode, ...Object.keys(config)])];
-        setRows(semuaKode
-          .sort((a, b) => nomorAspek(a) - nomorAspek(b) || a.localeCompare(b))
-          .map((kode, i) => ({
-            aspek_kode: kode,
-            aspek_label: config[kode]?.aspek_label || tebakDariKode(kode),
-            urutan: config[kode]?.urutan ?? (nomorAspek(kode) === 999 ? i + 1 : nomorAspek(kode)),
-            adaDiData: k.kode.includes(kode),
+        // Gabungan baris yang terpakai di data DAN baris yang sudah terlanjur ada di config --
+        // config lama yang (jenjang, kode)-nya tidak lagi muncul di data tetap ditampilkan supaya
+        // bisa dihapus, bukan menghilang diam-diam.
+        const perKunci = new Map();
+        k.kerangka.forEach((r) => { perKunci.set(`${r.jenjang}|${r.aspek_kode}`, { ...r }); });
+        (sekolah.aspekConfig || []).forEach((a) => {
+          const kunci = `${a.jenjang ?? '*'}|${a.aspek_kode}`;
+          if (!perKunci.has(kunci)) {
+            perKunci.set(kunci, { jenjang: a.jenjang ?? '*', aspek_kode: a.aspek_kode, aspek_label: a.aspek_label, urutan: a.urutan, identitas_kode: a.identitas_kode, adaDiData: false });
+          }
+        });
+        setRows([...perKunci.values()]
+          .sort((a, b) =>
+            String(a.jenjang).localeCompare(String(b.jenjang), 'id', { numeric: true })
+            || nomorAspek(a.aspek_kode) - nomorAspek(b.aspek_kode)
+            || a.aspek_kode.localeCompare(b.aspek_kode))
+          .map((r, i) => ({
+            jenjang: r.jenjang,
+            aspek_kode: r.aspek_kode,
+            aspek_label: r.aspek_label || tebakDariKode(r.aspek_kode),
+            urutan: r.urutan ?? (nomorAspek(r.aspek_kode) === 999 ? i + 1 : nomorAspek(r.aspek_kode)),
+            identitas_kode: r.identitas_kode || '',
+            adaDiData: r.adaDiData !== false,
           })));
         setIndikator(k.indikator);
         setMemuat(false);
@@ -188,21 +204,31 @@ function AspekConfigEditor({ sekolah, onTutup }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sekolah.id]);
 
-  function ubahLabel(kode, nilai) {
-    setRows((r) => r.map((x) => (x.aspek_kode === kode ? { ...x, aspek_label: nilai } : x)));
+  const kunciBaris = (r) => `${r.jenjang}|${r.aspek_kode}`;
+
+  function ubahLabel(kunci, nilai) {
+    setRows((r) => r.map((x) => (kunciBaris(x) === kunci ? { ...x, aspek_label: nilai } : x)));
   }
 
-  function hapusBaris(kode) {
-    setRows((r) => r.filter((x) => x.aspek_kode !== kode));
-    setHapus((h) => (h.includes(kode) ? h : [...h, kode]));
+  /** Pernyataan "karakter ini sama dengan karakter itu di jenjang lain". Satu-satunya jalan
+   * masuk identitas_kode ke database; tidak ada pencocokan otomatis di mana pun. */
+  function ubahIdentitas(kunci, nilai) {
+    setRows((r) => r.map((x) => (kunciBaris(x) === kunci ? { ...x, identitas_kode: nilai } : x)));
   }
 
-  function tambahBaris() {
-    const nomorBaru = Math.max(0, ...rows.map((r) => nomorAspek(r.aspek_kode)).filter((n) => n !== 999)) + 1;
+  function hapusBaris(kunci) {
+    const baris = rows.find((x) => kunciBaris(x) === kunci);
+    setRows((r) => r.filter((x) => kunciBaris(x) !== kunci));
+    if (baris) setHapus((h) => (h.some((k) => `${k.jenjang}|${k.aspek_kode}` === kunci) ? h : [...h, { jenjang: baris.jenjang, aspek_kode: baris.aspek_kode }]));
+  }
+
+  function tambahBaris(jenjang) {
+    const diJenjang = rows.filter((r) => r.jenjang === jenjang);
+    const nomorBaru = Math.max(0, ...diJenjang.map((r) => nomorAspek(r.aspek_kode)).filter((n) => n !== 999)) + 1;
     const kode = `karakter${nomorBaru}`;
-    if (rows.some((r) => r.aspek_kode === kode)) return;
-    setRows((r) => [...r, { aspek_kode: kode, aspek_label: '', urutan: nomorBaru, adaDiData: false }]);
-    setHapus((h) => h.filter((k) => k !== kode));
+    if (diJenjang.some((r) => r.aspek_kode === kode)) return;
+    setRows((r) => [...r, { jenjang, aspek_kode: kode, aspek_label: '', urutan: nomorBaru, identitas_kode: '', adaDiData: false }]);
+    setHapus((h) => h.filter((k) => !(k.jenjang === jenjang && k.aspek_kode === kode)));
   }
 
   async function simpan() {
@@ -211,20 +237,25 @@ function AspekConfigEditor({ sekolah, onTutup }) {
       showToast('Isi minimal satu nama karakter dulu.', 'warn');
       return;
     }
-    // Nama yang sama untuk dua kode berbeda hampir pasti salah ketik, dan di FIR akan tampil
-    // sebagai dua batang bernama sama yang tidak bisa dibedakan pembacanya.
-    const namaDipakai = isi.map((r) => r.aspek_label.trim().toLowerCase());
-    const kembar = namaDipakai.find((n, i) => namaDipakai.indexOf(n) !== i);
-    if (kembar) {
-      showToast(`Nama "${kembar}" dipakai dua kali. Beri nama berbeda tiap karakter.`, 'alert');
-      return;
+    // Nama kembar dicek PER JENJANG, bukan sekolah-wide. Sekolah berkerangka per jenjang memang
+    // memakai nama yang sama di beberapa jenjang ("Senang Beribadah" ada di keenam jenjang SD
+    // Amal Mulia) -- itu wajar dan bukan salah ketik. Yang tidak wajar adalah dua kode berbeda
+    // bernama sama DI DALAM satu jenjang, karena di laporan jenjang itu keduanya jadi dua batang
+    // yang tidak bisa dibedakan pembacanya.
+    for (const jenjang of [...new Set(isi.map((r) => r.jenjang))]) {
+      const nama = isi.filter((r) => r.jenjang === jenjang).map((r) => r.aspek_label.trim().toLowerCase());
+      const kembar = nama.find((n, i) => nama.indexOf(n) !== i);
+      if (kembar) {
+        showToast(`Di ${labelJenjang(jenjang)}, nama "${kembar}" dipakai dua kali. Beri nama berbeda tiap karakter.`, 'alert');
+        return;
+      }
     }
 
     setMenyimpan(true);
     try {
       await saveAspekConfigAction(
         sekolah.id,
-        isi.map((r) => ({ aspek_kode: r.aspek_kode, aspek_label: r.aspek_label.trim(), urutan: r.urutan })),
+        isi.map((r) => ({ jenjang: r.jenjang, aspek_kode: r.aspek_kode, aspek_label: r.aspek_label.trim(), urutan: r.urutan, identitas_kode: r.identitas_kode || null })),
         hapus,
       );
       setHapus([]);
@@ -251,6 +282,37 @@ function AspekConfigEditor({ sekolah, onTutup }) {
   }
 
   const belumDiisi = rows.filter((r) => !r.aspek_label.trim()).length;
+
+  const daftarJenjang = [...new Set(rows.map((r) => r.jenjang))]
+    .sort((a, b) => String(a).localeCompare(String(b), 'id', { numeric: true }));
+  // Sekolah berkerangka tunggal punya satu jenjang saja ('*'); seluruh kendali identitas
+  // disembunyikan untuk mereka, karena tidak ada jenjang lain untuk disandingkan.
+  const perJenjang = daftarJenjang.length > 1 || daftarJenjang[0] !== '*';
+
+  /** Grup identitas beserta anggotanya dan apakah indikator antaranggotanya benar-benar sama.
+   * Perbandingannya memakai teks indikator apa adanya, dan hasilnya cuma PERINGATAN, bukan
+   * larangan: sebagian perbedaan cuma beda ketikan ("mau_wudhu_waktu_sholat" vs "mau_berwudhu"),
+   * sebagian lain perbedaan tingkat kesulitan yang nyata. Pencocokan teks tidak bisa membedakan
+   * keduanya, jadi keputusannya tetap di admin -- lihat aturan identitas di migration
+   * 20260828110000_karakter_kerangka_per_jenjang.sql. */
+  const grupInfo = {};
+  rows.filter((r) => r.identitas_kode).forEach((r) => {
+    const g = (grupInfo[r.identitas_kode] ||= { nama: '', anggota: [], indikatorBeda: false });
+    g.anggota.push(r);
+    if (!g.nama && r.aspek_label.trim()) g.nama = r.aspek_label.trim();
+  });
+  Object.values(grupInfo).forEach((g) => {
+    if (!g.nama) g.nama = '(belum dinamai)';
+    const sidik = g.anggota.map((a) => (indikator[`${a.jenjang}|${a.aspek_kode}`] || []).map(bacaIndikator).slice().sort().join('|'));
+    g.indikatorBeda = new Set(sidik).size > 1;
+  });
+
+  const kodeGrupBaru = () => {
+    const angka = Object.keys(grupInfo)
+      .map((k) => parseInt(String(k).replace(/\D/g, ''), 10))
+      .filter(Number.isFinite);
+    return `grup${Math.max(0, ...angka) + 1}`;
+  };
 
   return (
     <>
@@ -305,42 +367,115 @@ function AspekConfigEditor({ sekolah, onTutup }) {
             </p>
           )}
 
-          <div style={{ display: 'grid', gap: 8 }}>
-            {rows.map((r) => (
-              <div key={r.aspek_kode} style={{ padding: '11px 13px', background: 'var(--surface-soft)', borderRadius: 11, display: 'flex', alignItems: 'flex-start', gap: 12 }}>
-                <div className="mono" style={{ fontSize: 11, color: 'var(--ink-3)', width: 84, flexShrink: 0, paddingTop: 8 }}>
-                  {r.aspek_kode}
+          {perJenjang && (
+            <div style={{ padding: '10px 13px', background: 'var(--ungu-050)', borderRadius: 11, marginBottom: 12 }}>
+              <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--ungu-700)' }}>
+                Sekolah ini punya kerangka karakter berbeda di {daftarJenjang.length} jenjang
+              </div>
+              <div style={{ fontSize: 11.5, color: 'var(--ink-2)', marginTop: 4, lineHeight: 1.5 }}>
+                Tiap jenjang dinamai sendiri. Karakter dari jenjang berbeda hanya boleh disandingkan
+                dalam satu grafik kalau nama DAN indikatornya sama persis, dan itu dinyatakan lewat
+                kolom &ldquo;Sama dengan&rdquo; di bawah. Selama tidak dinyatakan, tiap karakter
+                berdiri sendiri.
+              </div>
+            </div>
+          )}
+
+          <div style={{ display: 'grid', gap: 16 }}>
+            {daftarJenjang.map((jenjang) => (
+              <div key={jenjang}>
+                {perJenjang && (
+                  <div style={{ fontSize: 12.5, fontWeight: 700, color: 'var(--ungu-600)', marginBottom: 6 }}>
+                    {labelJenjang(jenjang)}
+                  </div>
+                )}
+                <div style={{ display: 'grid', gap: 8 }}>
+                  {rows.filter((r) => r.jenjang === jenjang).map((r) => {
+                    const kunci = kunciBaris(r);
+                    const indList = indikator[kunci] || [];
+                    const grup = r.identitas_kode ? grupInfo[r.identitas_kode] : null;
+                    return (
+                      <div key={kunci} style={{ padding: '11px 13px', background: 'var(--surface-soft)', borderRadius: 11, display: 'flex', alignItems: 'flex-start', gap: 12 }}>
+                        <div className="mono" style={{ fontSize: 11, color: 'var(--ink-3)', width: 84, flexShrink: 0, paddingTop: 8 }}>
+                          {r.aspek_kode}
+                        </div>
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <input
+                            value={r.aspek_label}
+                            onChange={(e) => ubahLabel(kunci, e.target.value)}
+                            placeholder="Nama karakter, mis. Empati"
+                            style={{ width: '100%', padding: '7px 10px', fontSize: 12.5, fontWeight: 600, borderRadius: 8, border: '1px solid var(--line)', background: 'var(--surface)', color: 'var(--ink)' }}
+                          />
+                          {/* Petunjuk terpenting di form ini: kode indikator menyimpan teks asli dari header
+                              file upload, jadi admin bisa membaca isinya dan tahu karakter apa yang dimaksud
+                              tanpa membuka file aslinya. */}
+                          {indList.length > 0 && (
+                            <div style={{ fontSize: 11, color: 'var(--ink-3)', marginTop: 5, lineHeight: 1.45 }}>
+                              Indikatornya: {indList.slice(0, 4).map(bacaIndikator).join(' · ')}
+                              {indList.length > 4 && ` · +${indList.length - 4} lagi`}
+                            </div>
+                          )}
+                          {!r.adaDiData && (
+                            <div style={{ fontSize: 11, color: 'var(--status-warn)', marginTop: 5 }}>
+                              Kode ini tidak ditemukan di data skor sekolah ini.
+                            </div>
+                          )}
+
+                          {perJenjang && (
+                            <div style={{ marginTop: 7, display: 'flex', alignItems: 'center', gap: 7, flexWrap: 'wrap' }}>
+                              <span style={{ fontSize: 11, color: 'var(--ink-3)' }}>Sama dengan:</span>
+                              <select
+                                value={r.identitas_kode || ''}
+                                onChange={(e) => ubahIdentitas(kunci, e.target.value === '__baru__' ? kodeGrupBaru() : e.target.value)}
+                                style={{ padding: '4px 8px', fontSize: 11.5, borderRadius: 7, border: '1px solid var(--line)', background: 'var(--surface)', color: 'var(--ink)', maxWidth: 320 }}
+                              >
+                                <option value="">Berdiri sendiri</option>
+                                {Object.entries(grupInfo).map(([kode, g]) => (
+                                  <option key={kode} value={kode}>
+                                    {g.nama} — {g.anggota.map((a) => labelJenjang(a.jenjang)).join(', ')}
+                                  </option>
+                                ))}
+                                <option value="__baru__">+ Grup baru</option>
+                              </select>
+                              {grup && grup.anggota.length > 1 && grup.indikatorBeda && (
+                                <span style={{ fontSize: 11, color: 'var(--status-warn)' }}>
+                                  ⚠ indikator anggota grup ini tidak sama persis
+                                </span>
+                              )}
+                            </div>
+                          )}
+
+                          {/* Perbandingan indikator antar anggota grup, ditampilkan di tempat
+                              keputusannya diambil. Nama karakter saja tidak cukup untuk memutuskan
+                              dua karakter itu sama: di SD Amal Mulia "Senang Beribadah" ada di
+                              keenam jenjang, dan justru indikatornyalah yang membedakan. */}
+                          {grup && grup.anggota.length > 1 && (
+                            <div style={{ marginTop: 6, padding: '7px 9px', background: 'var(--surface)', borderRadius: 8, border: '1px dashed var(--line)' }}>
+                              {grup.anggota.map((a) => (
+                                <div key={`${a.jenjang}|${a.aspek_kode}`} style={{ fontSize: 10.5, color: 'var(--ink-2)', lineHeight: 1.5 }}>
+                                  <strong>{labelJenjang(a.jenjang)}</strong>: {(indikator[`${a.jenjang}|${a.aspek_kode}`] || []).map(bacaIndikator).join(' · ') || '(tidak ada indikator)'}
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                        <button
+                          className="btn-ghost"
+                          style={{ padding: '4px 8px', fontSize: 11.5, flexShrink: 0 }}
+                          onClick={() => hapusBaris(kunci)}
+                          title="Hapus baris konfigurasi ini"
+                        >
+                          Hapus
+                        </button>
+                      </div>
+                    );
+                  })}
                 </div>
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <input
-                    value={r.aspek_label}
-                    onChange={(e) => ubahLabel(r.aspek_kode, e.target.value)}
-                    placeholder="Nama karakter, mis. Empati"
-                    style={{ width: '100%', padding: '7px 10px', fontSize: 12.5, fontWeight: 600, borderRadius: 8, border: '1px solid var(--line)', background: 'var(--surface)', color: 'var(--ink)' }}
-                  />
-                  {/* Petunjuk terpenting di form ini: kode indikator menyimpan teks asli dari header
-                      file upload, jadi admin bisa membaca isinya dan tahu karakter apa yang dimaksud
-                      tanpa membuka file aslinya. */}
-                  {indikator[r.aspek_kode]?.length > 0 && (
-                    <div style={{ fontSize: 11, color: 'var(--ink-3)', marginTop: 5, lineHeight: 1.45 }}>
-                      Indikatornya: {indikator[r.aspek_kode].slice(0, 4).map(bacaIndikator).join(' · ')}
-                      {indikator[r.aspek_kode].length > 4 && ` · +${indikator[r.aspek_kode].length - 4} lagi`}
-                    </div>
-                  )}
-                  {!r.adaDiData && (
-                    <div style={{ fontSize: 11, color: 'var(--status-warn)', marginTop: 5 }}>
-                      Kode ini tidak ditemukan di data skor sekolah ini.
-                    </div>
-                  )}
-                </div>
-                <button
-                  className="btn-ghost"
-                  style={{ padding: '4px 8px', fontSize: 11.5, flexShrink: 0 }}
-                  onClick={() => hapusBaris(r.aspek_kode)}
-                  title="Hapus baris konfigurasi ini"
-                >
-                  Hapus
-                </button>
+                {perJenjang && (
+                  <button className="btn-ghost" style={{ padding: '4px 8px', fontSize: 11.5, marginTop: 6 }} onClick={() => tambahBaris(jenjang)} disabled={menyimpan}>
+                    + Karakter di {labelJenjang(jenjang)}
+                  </button>
+                )}
               </div>
             ))}
           </div>
@@ -349,7 +484,11 @@ function AspekConfigEditor({ sekolah, onTutup }) {
         </div>
 
         <div style={{ padding: '14px 24px', borderTop: '1px solid var(--line)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12 }}>
-          <button className="btn-secondary" onClick={tambahBaris} disabled={memuat || menyimpan}>+ Aspek</button>
+          {/* Sekolah berkerangka per jenjang punya tombol tambah SENDIRI di tiap jenjang, karena
+              satu tombol di kaki dialog tidak bisa tahu jenjang mana yang dimaksud. */}
+          {perJenjang
+            ? <span style={{ fontSize: 11.5, color: 'var(--ink-3)' }}>Tombol tambah karakter ada di tiap jenjang</span>
+            : <button className="btn-secondary" onClick={() => tambahBaris('*')} disabled={memuat || menyimpan}>+ Aspek</button>}
           <div style={{ display: 'flex', gap: 8 }}>
             <button className="btn-secondary" onClick={onTutup} disabled={menyimpan}>Batal</button>
             <button className="btn-primary" onClick={simpan} disabled={memuat || menyimpan}>

@@ -32,6 +32,42 @@ export function aspekFallbackLabel(aspekKode) {
  * opsional dipanggil dulu untuk cari label asli (lihat aspekLabelFromRingkasan); kalau itu juga
  * tidak ketemu, baru jatuh ke aspekFallbackLabel yang generik.
  */
+/**
+ * Sempitkan baris karakter_aspek_config ke satu jenjang.
+ *
+ * Sejak migration 20260828110000, satu sekolah bisa punya "karakter3" yang berbeda di tiap
+ * jenjang. Memakai seluruh baris config apa adanya berarti nama Kelas 1 ikut menamai kolom
+ * karakter3 milik Kelas 6, padahal itu hampir pasti karakter yang berbeda -- cacat yang sama
+ * persis dengan yang sudah pernah kena di dashboard YPT (commit 4e3ab49), cuma di dalam satu
+ * sekolah.
+ *
+ * Baris '*' dipakai sebagai CADANGAN, bukan tambahan: sekolah yang namanya sudah diisi sebelum
+ * migration itu semuanya tersimpan di '*', dan tanpa cadangan ini nama yang sudah benar akan
+ * hilang dari tampilan pada hari migration dijalankan. Kalau jenjangnya punya baris sendiri,
+ * baris itu yang menang.
+ */
+export function aspekConfigJenjang(aspekConfig, jenjang) {
+  const list = Array.isArray(aspekConfig) ? aspekConfig : [];
+  const byKode = new Map();
+  list.filter((a) => (a.jenjang ?? "*") === "*").forEach((a) => byKode.set(a.aspek_kode, a));
+  if (jenjang && jenjang !== "*") {
+    list.filter((a) => a.jenjang === jenjang).forEach((a) => byKode.set(a.aspek_kode, a));
+  }
+  return [...byKode.values()].sort((a, b) => (a.urutan || 0) - (b.urutan || 0));
+}
+
+/** Versi indikator dari aspekConfigJenjang, dengan kunci yang sama seperti yang dipakai
+ * pemanggil (`${aspek_kode}_${indikator_kode}`). */
+export function indikatorConfigJenjang(indikatorConfig, jenjang) {
+  const list = Array.isArray(indikatorConfig) ? indikatorConfig : [];
+  const byKunci = new Map();
+  list.filter((a) => (a.jenjang ?? "*") === "*").forEach((a) => byKunci.set(`${a.aspek_kode}_${a.indikator_kode}`, a));
+  if (jenjang && jenjang !== "*") {
+    list.filter((a) => a.jenjang === jenjang).forEach((a) => byKunci.set(`${a.aspek_kode}_${a.indikator_kode}`, a));
+  }
+  return [...byKunci.values()];
+}
+
 export function resolveAspekList(aspekConfig, aspekKodeHadir, labelResolver) {
   const list = Array.isArray(aspekConfig) ? aspekConfig : [];
   const hadir = aspekKodeHadir instanceof Set ? aspekKodeHadir : new Set(aspekKodeHadir || []);

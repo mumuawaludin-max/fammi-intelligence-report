@@ -75,12 +75,15 @@ function penilaiJenjangList(rk, aspek) {
 }
 
 /** Satu pie/donut per jenjang: berapa persen dinilai + rata-rata karakter, per penilai yang tersedia. */
-function JenjangPieGrid({ rows, aspek, onSelect }) {
+function JenjangPieGrid({ rows, aspekUntukJenjang, onSelect }) {
   if (!rows.length) return null;
   return (
     <div className={styles.jenjangGrid}>
       {rows.map((r) => {
-        const penilaiList = penilaiJenjangList(r.ringkasan, aspek);
+        // Kerangka karakter diambil per jenjang, bukan satu daftar sekolah-wide: di sekolah yang
+        // tiap jenjangnya berbeda, satu daftar berarti rata-rata jenjang dihitung dari kode aspek
+        // milik jenjang lain.
+        const penilaiList = penilaiJenjangList(r.ringkasan, aspekUntukJenjang(r.scope_id));
         const donutVal = penilaiList.find((p) => p.rata != null)?.rata ?? null;
         return (
           <button type="button" key={r.scope_id} className={styles.jenjangCard} onClick={() => onSelect(r)}>
@@ -165,7 +168,7 @@ export default function KepsekView({ session, periodeId }) {
 
   if (loading || error) return <KarakterStateBox loading={loading} error={error} />;
 
-  const { periode, aspek, indikatorByKelas, indikatorError, sekolah, jenjang, kelas, pernyataanBySumber, sumberRefleksi, tindakLanjut } = data;
+  const { periode, aspek, aspekUntukJenjang, perJenjang, indikatorByKelas, indikatorError, sekolah, jenjang, kelas, pernyataanBySumber, sumberRefleksi, tindakLanjut } = data;
   const ringkasan = sekolah?.ringkasan || null;
 
   // Jatuh kembali ke elemen pertama sumberRefleksi kalau sumberAktif belum dipilih, atau sudah
@@ -307,7 +310,18 @@ export default function KepsekView({ session, periodeId }) {
             padahal jumlah murid yang dinilai sudah terbaca. Perlu ditambahkan lewat Admin CMS sebelum angka ini bisa muncul.
           </p>
         )}
-        <JenjangPieGrid rows={jenjang} aspek={aspek} onSelect={setSelectedJenjangDialog} />
+        {/* Sekolah berkerangka per jenjang: nama karakter sengaja tidak disebut di tingkat
+            sekolah, karena karakter dengan nomor yang sama berbeda isinya antar jenjang. Nama
+            aslinya muncul begitu satu jenjang dibuka. */}
+        {perJenjang && (
+          <p className={styles.emptyNote} style={{ marginBottom: 10 }}>
+            Sekolah ini memakai kerangka karakter yang berbeda di tiap jenjang, jadi karakter tidak
+            bisa dibandingkan lurus antar jenjang. Di tingkat sekolah karakter ditulis sebagai
+            &ldquo;Karakter 1&rdquo;, &ldquo;Karakter 2&rdquo;, dan seterusnya; nama sebenarnya muncul
+            saat satu jenjang dibuka.
+          </p>
+        )}
+        <JenjangPieGrid rows={jenjang} aspekUntukJenjang={aspekUntukJenjang} onSelect={setSelectedJenjangDialog} />
       </section>
 
       <section className={styles.section} id="kelas-detail">
@@ -562,16 +576,16 @@ export default function KepsekView({ session, periodeId }) {
               .filter((s) => sumberAdaDiRingkasanJenjang(selectedJenjangDialog.ringkasan, s))
               .map((s) => ({ prefix: REFLEKSI_META[s].summaryKeys.rataAspekPrefix, label: PENILAI_SHORT_LABEL[s] || REFLEKSI_META[s].satuan })),
           ]
-            .map(({ prefix, label }) => `Rata-rata karakter ${persen(avgAspek(selectedJenjangDialog.ringkasan, aspek, prefix))} (${label})`)
+            .map(({ prefix, label }) => `Rata-rata karakter ${persen(avgAspek(selectedJenjangDialog.ringkasan, aspekUntukJenjang(selectedJenjangDialog.scope_id), prefix))} (${label})`)
             .join(" · ")}
           onClose={() => setSelectedJenjangDialog(null)}
         >
           <section>
             <p className={styles.dialogSectionTitle}>Skor per aspek (dinilai guru)</p>
             <AspekBarList
-              aspek={aspek}
+              aspek={aspekUntukJenjang(selectedJenjangDialog.scope_id)}
               skorByAspek={Object.fromEntries(
-                aspek.map((a) => [a.aspek_kode, ringkasanAspekValue(selectedJenjangDialog.ringkasan, a.aspek_kode, "rata_input_guru_")])
+                aspekUntukJenjang(selectedJenjangDialog.scope_id).map((a) => [a.aspek_kode, ringkasanAspekValue(selectedJenjangDialog.ringkasan, a.aspek_kode, "rata_input_guru_")])
               )}
             />
           </section>

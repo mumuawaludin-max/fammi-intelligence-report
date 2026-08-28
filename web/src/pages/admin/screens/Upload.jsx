@@ -28,6 +28,65 @@ function retryStatusText(retry) {
     : `Mencoba ulang ${retry.sisaGagal} yang sempat gagal (putaran ${retry.pass}/${retry.ofPass})…`;
 }
 
+/**
+ * Kerangka karakter yang terbaca dari berkas, satu blok per jenjang.
+ *
+ * Ini satu-satunya kesempatan admin melihat KERANGKA APA yang akan tersimpan sebelum datanya
+ * masuk. Untuk sekolah yang tiap jenjangnya punya karakter berbeda, salah tempel satu sheet
+ * berarti seluruh jenjang dinilai dengan karakter milik jenjang lain, dan setelah tersimpan
+ * cacat itu tidak kelihatan lagi dari mana pun: angkanya wajar, namanya wajar, cuma salah.
+ *
+ * Sengaja menampilkan nama karakter DAN nama indikatornya, karena nama karakter saja tidak
+ * cukup untuk membedakan: di SD Amal Mulia, "Senang Beribadah" ada di keenam jenjang dengan
+ * indikator yang berbeda-beda, dan justru indikatornya yang menentukan itu karakter yang sama
+ * atau bukan.
+ */
+function KerangkaPreview({ kerangka, perJenjang, barisHeaderTerulang, ringkasanSekolahDilewati }) {
+  if (!kerangka || kerangka.length === 0) return null;
+  return (
+    <div style={{ marginTop: 10, padding: '10px 14px', background: 'var(--surface-soft)', borderRadius: 10, border: '1px solid var(--line)' }}>
+      <div style={{ fontSize: 12.5, fontWeight: 700, color: 'var(--ink)' }}>
+        {perJenjang
+          ? `🧩 Kerangka karakter berbeda per jenjang · ${kerangka.length} jenjang terdeteksi`
+          : '🧩 Kerangka karakter tunggal untuk seluruh sekolah'}
+      </div>
+      <div style={{ fontSize: 11.5, color: 'var(--ink-2)', marginTop: 4, lineHeight: 1.5 }}>
+        {perJenjang
+          ? 'Tiap jenjang disimpan sebagai kerangka sendiri, jadi karakter dengan nomor sama di jenjang berbeda tidak akan tercampur. Cocokkan daftar di bawah dengan kerangka yang sekolah pakai sebelum melanjutkan.'
+          : 'Semua kelas memakai daftar karakter yang sama.'}
+        {barisHeaderTerulang > 0 && ` ${barisHeaderTerulang} baris dilewati karena isinya baris header yang ikut ter-copy, bukan data murid.`}
+      </div>
+      {ringkasanSekolahDilewati > 0 && (
+        <div style={{ fontSize: 11.5, color: 'var(--status-warn)', marginTop: 6, lineHeight: 1.5 }}>
+          ⚠ {ringkasanSekolahDilewati} sheet ringkasan sekolah tidak diimpor. Berkas ini punya satu
+          sheet ringkasan &ldquo;sekolah&rdquo; per jenjang, padahal ringkasan tingkat sekolah cuma
+          boleh ada satu; kalau semuanya dimasukkan, keenamnya saling menimpa dan yang tersisa cuma
+          jenjang terakhir, tampil sebagai angka seluruh sekolah. Angka tingkat sekolah dihitung
+          dari data skornya sendiri, bukan dari sheet ini.
+        </div>
+      )}
+      <div style={{ display: 'grid', gap: 8, marginTop: 8 }}>
+        {kerangka.map((j) => (
+          <div key={j.jenjang} style={{ padding: '8px 10px', background: 'var(--surface)', borderRadius: 8 }}>
+            <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--ungu-600)' }}>
+              {j.jenjang === '*' ? 'Seluruh sekolah' : j.jenjang}
+            </div>
+            <div style={{ display: 'grid', gap: 4, marginTop: 4 }}>
+              {j.aspek.map((a) => (
+                <div key={a.kode} style={{ fontSize: 11.5, color: 'var(--ink-2)', lineHeight: 1.5 }}>
+                  <span className="mono" style={{ color: 'var(--ink-3)' }}>{a.kode}</span>{' '}
+                  <strong style={{ color: 'var(--ink)' }}>{a.label || '(tanpa nama)'}</strong>
+                  {a.indikator.length > 0 && <span> — {a.indikator.join(' · ')}</span>}
+                </div>
+              ))}
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 export function Upload() {
   const { data, loading, error, runImport, runMiGenerate, runScIndividuGenerate, retryScAccounts, refetch } = useCms();
   const [step, setStep] = useState(1);
@@ -44,6 +103,9 @@ export function Upload() {
   const [file, setFile] = useState(null);
   const [parsed, setParsed] = useState(null);
   const [parseError, setParseError] = useState(null);
+  // Pratinjau dari parse yang GAGAL, dipakai supaya kerangka jenjang yang sempat terbaca tetap
+  // terlihat di bawah pesan error (lihat catatan di handleFile).
+  const [previewGagal, setPreviewGagal] = useState(null);
   const [busy, setBusy] = useState(false);
   const [miProgress, setMiProgress] = useState(null); // { done, total }
   const [miResults, setMiResults] = useState(null); // ringkasan hasil generate
@@ -87,7 +149,7 @@ export function Upload() {
 
   function resetFlow() {
     setStep(1); setSekolahId(''); setModul('karakter'); setFile(null);
-    setParsed(null); setParseError(null); setMiProgress(null); setMiResults(null); setPeriodeSc('');
+    setParsed(null); setParseError(null); setPreviewGagal(null); setMiProgress(null); setMiResults(null); setPeriodeSc('');
     setPaMode('baru');
     setMiMapping({}); setMiMappingBusy(false);
     setScImported(false); setScProgress(null); setScResults(null);
@@ -164,6 +226,7 @@ export function Upload() {
     if (!f) return;
     setFile(f);
     setParseError(null);
+    setPreviewGagal(null);
     setParsed(null);
     setMiResults(null);
     try {
@@ -188,7 +251,11 @@ export function Upload() {
         setParseError('Importer untuk modul ini belum tersedia (baru Karakter, MI, School Culture, dan Perilaku Anak).');
         return;
       }
-      if (!result.ok) { setParseError(result.error); return; }
+      // Pratinjau kerangka tetap disimpan walau parse GAGAL. Justru di situlah admin paling
+      // butuh melihat apa yang sempat terbaca: berkas yang ditolak karena dua baris nyasar
+      // tetap memperlihatkan enam jenjang beserta karakternya, jadi admin tahu berkasnya sudah
+      // hampir benar dan tinggal membetulkan yang disebut pesan errornya.
+      if (!result.ok) { setParseError(result.error); setPreviewGagal(result.preview || null); return; }
       setParsed(result);
       setStep(4);
     } catch (e) {
@@ -415,6 +482,11 @@ export function Upload() {
               <input type="file" accept=".xlsx,.xls" style={{ display: 'none' }} onChange={(e) => handleFile(e.target.files?.[0])} />
             </label>
             {parseError && <div style={{ marginTop: 14, fontSize: 12.5, color: 'var(--status-alert)' }}>⚠ {parseError}</div>}
+            {/* Kerangka yang sempat terbaca tetap ditampilkan walau berkasnya ditolak -- lihat
+                catatan di KerangkaPreview dan handleFile. */}
+            {parseError && previewGagal && (
+              <KerangkaPreview kerangka={previewGagal.kerangka} perJenjang={previewGagal.perJenjang} barisHeaderTerulang={previewGagal.barisHeaderTerulang} ringkasanSekolahDilewati={previewGagal.ringkasanSekolahDilewati} />
+            )}
           </div>
         </div>
       )}
@@ -555,11 +627,20 @@ export function Upload() {
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
               {parsed.preview.sheets.map((s, i) => (
                 <div key={i} style={{ padding: '10px 12px', background: 'var(--surface-soft)', borderRadius: 9, display: 'flex', justifyContent: 'space-between', fontSize: 12.5 }}>
-                  <span className="mono">{s.name}</span>
+                  <span className="mono">{s.name}{s.sheetCount > 1 ? ` ×${s.sheetCount}` : ''}</span>
                   <span style={{ color: s.found ? 'var(--status-safe)' : 'var(--ink-4)', fontWeight: 700 }}>{s.found ? `${s.rows} baris` : 'tidak ada'}</span>
                 </div>
               ))}
             </div>
+
+            {isKarakter && (
+              <KerangkaPreview
+                kerangka={parsed.preview.kerangka}
+                perJenjang={parsed.preview.perJenjang}
+                barisHeaderTerulang={parsed.preview.barisHeaderTerulang}
+                ringkasanSekolahDilewati={parsed.preview.ringkasanSekolahDilewati}
+              />
+            )}
 
             {/* Karakter: ringkasan baris refleksi per sumber (orang tua/siswa) hasil parse.
                 Sumber yang sheet-nya tidak ada di file ditulis eksplisit "tidak ada di file",
