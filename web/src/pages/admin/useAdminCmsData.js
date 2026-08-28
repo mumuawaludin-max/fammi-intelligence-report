@@ -692,3 +692,93 @@ export async function bulkDeleteUsersAction(userIds) {
   if (error) throw new Error(error.message || 'Edge Function create-user (bulk hapus) gagal dipanggil.');
   return data.results;
 }
+
+// ── Konfigurasi aspek karakter per sekolah ────────────────────────────────────────────────
+// karakter_aspek_config memegang NAMA tiap karakter ("Empati" untuk kode "karakter1"). Importer
+// Karakter tidak pernah menulis ke tabel ini: nama karakter sebenarnya ada di header file upload
+// ("karakter1_empati"), tapi detectAspekKode membuang akhirannya dan cuma menyimpan kodenya.
+// Akibatnya cuma SMK Telkom Purwokerto yang punya nama, karena baris config-nya dibuat manual
+// lewat migration 20260810110000 waktu modul Karakter pertama dipasang; sekolah lain yang masuk
+// lewat importer tidak punya nama sama sekali dan tampil sebagai "Karakter 1..N" di FIR.
+//
+// Dua fungsi di bawah menutup lubang itu dari CMS, tanpa upload ulang. Ditulis langsung dari
+// browser (bukan Edge Function) karena policy `karakter_aspek_config_admin_all` sudah membatasi
+// tulis ke is_admin_fammi(); RLS tetap gerbangnya, sesuai butir CLAUDE.md.
+
+/**
+ * Kumpulkan kode aspek yang benar-benar dipakai sekolah ini, plus kode indikator di tiap aspek
+ * sebagai petunjuk pengisian. Kode indikator penting: isinya teks manusiawi hasil parsing header
+ * ("indikator1_dengar_pendapat_sebelum_menanggapi"), jadi admin bisa MEMBACA indikatornya lalu
+ * tahu karakter apa yang dimaksud, bukan menebak dari nomor.
+ *
+ * Diurutkan per murid (bukan per aspek) supaya potongan pertama menyapu SEMUA aspek milik
+ * beberapa murid, bukan habis di aspek pertama saja. Batas barisnya sengaja rendah: ini cuma
+ * untuk mendeteksi daftar kode, bukan membaca data. Aspek yang sangat jarang terisi bisa saja
+ * lolos dari potongan ini, makanya form tetap menyediakan tombol tambah aspek manual.
+ */
+export async function loadAspekKandidatAction(sekolahId) {
+  const [skorRes, indRes] = await Promise.all([
+    supabase.from('karakter_skor')
+      .select('aspek_kode').eq('sekolah_id', sekolahId)
+      .order('murid_id').limit(800),
+    supabase.from('karakter_skor_indikator')
+      .select('aspek_kode, indikator_kode').eq('sekolah_id', sekolahId)
+      .order('murid_id').limit(800),
+  ]);
+  if (skorRes.error) throw new Error(skorRes.error.message);
+  if (indRes.error) throw new Error(indRes.error.message);
+
+  const kode = new Set((skorRes.data || []).map((r) => r.aspek_kode).filter(Boolean));
+  const indikator = {};
+  (indRes.data || []).forEach((r) => {
+    if (!r.aspek_kode || !r.indikator_kode) return;
+    kode.add(r.aspek_kode);
+    (indikator[r.aspek_kode] ||= new Set()).add(r.indikator_kode);
+  });
+
+  return {
+    kode: [...kode].sort((a, b) => a.localeCompare(b, 'id', { numeric: true })),
+    indikator: Object.fromEntries(
+      Object.entries(indikator).map(([k, v]) => [k, [...v].sort()]),
+    ),
+  };
+}
+
+/**
+ * Simpan nama aspek. Update dulu, insert kalau tidak ada barisnya -- BUKAN upsert, karena
+ * constraint unik tabel ini dibuat di luar folder migrations dan tidak bisa dipastikan dari repo;
+ * onConflict yang salah tebak akan gagal atau menggandakan baris. Juga bukan delete-lalu-insert:
+ * kalau insert-nya gagal di tengah, sekolah kehilangan nama yang sudah benar.
+ */
+export async function saveAspekConfigAction(sekolahId, rows, hapusKode = []) {
+  for (const kode of hapusKode) {
+    const { error } = await supabase.from('karakter_aspek_config')
+      .delete().eq('sekolah_id', sekolahId).eq('aspek_kode', kode);
+    if (error) throw new Error(`Gagal hapus ${kode}: ${error.message}`);
+  }
+
+  for (const r of rows) {
+    const patch = { aspek_label: r.aspek_label, urutan: r.urutan };
+    const { data, error } = await supabase.from('karakter_aspek_config')
+      .update(patch).eq('sekolah_id', sekolahId).eq('aspek_kode', r.aspek_kode)
+      .select('aspek_kode');
+    if (error) throw new Error(`Gagal simpan ${r.aspek_kode}: ${error.message}`);
+    if (data && data.length > 0) continue;
+
+    const { error: errInsert } = await supabase.from('karakter_aspek_config')
+      .insert({ sekolah_id: sekolahId, aspek_kode: r.aspek_kode, ...patch });
+    if (errInsert) throw new Error(`Gagal tambah ${r.aspek_kode}: ${errInsert.message}`);
+  }
+}
+
+/**
+ * Rapor Karakter YPT membaca materialized view (ypt_k_aspek_mat dkk) yang menyimpan aspek_label
+ * hasil join, jadi nama baru TIDAK muncul sampai view-nya dihitung ulang. Dipanggil otomatis
+ * sesudah simpan; kegagalannya bukan kegagalan simpan, cuma berarti dashboard YPT masih
+ * memperlihatkan nama lama sampai tombol di menu Sinkron YPT ditekan.
+ */
+export async function refreshYptViewsAction() {
+  const { data, error } = await supabase.functions.invoke('refresh-ypt-views');
+  if (error) throw new Error(await edgeErrorDetail(error, 'Refresh view YPT gagal.'));
+  if (data?.error) throw new Error(data.error);
+}
