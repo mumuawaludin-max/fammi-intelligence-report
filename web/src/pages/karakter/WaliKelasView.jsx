@@ -4,7 +4,8 @@ import SampleTag from "../../components/SampleTag";
 import FollowupRibbon from "../../components/FollowupRibbon";
 import {
   KarakterStateBox, AskMascot, ScoreBarList, GoodEmptyState,
-  SourceSwitch, VoiceBento, ReflectionBlock, TrendChart, useSummaryTrend, useMuridTrend,
+  SourceSwitch, VoiceBento, ReflectionBlock, TrendChart, TrendModeSwitch, useSummaryTrend, useMuridTrend,
+  useKarakterPekanTrend, labelTitikPekan,
 } from "./KarakterShared";
 import { StatCardMini, StatCardLandscape, AllGoodBanner, splitByClassify, scrollToId } from "./KarakterViewParts";
 import KebijakanGoals from "./KebijakanGoals";
@@ -77,6 +78,12 @@ export default function WaliKelasView({ session, periodeId }) {
   const { points: trendPoints } = useSummaryTrend({
     sekolahId: session.school_id, scope: "kelas", scopeId: kelasList,
   });
+  // Tren pekanan disaring ke kelas yang jadi cakupan wali kelas ini saja.
+  const { points: pekanPoints } = useKarakterPekanTrend({ sekolahId: session.school_id, kelasList });
+  // Ditentukan dari datanya sendiri, bukan setelan per sekolah: kelas mana pun yang mulai
+  // dinilai pekanan otomatis mendapat penyaringnya.
+  const adaPekanan = pekanPoints.some((p) => p.pekan > 0);
+  const [trenMode, setTrenMode] = useState("bulan");
   const [activeCategory, setActiveCategory] = useState("kualitas");
   const [muridTab, setMuridTab] = useState("semua");
   const [filterKelas, setFilterKelas] = useState(null);
@@ -216,11 +223,21 @@ export default function WaliKelasView({ session, periodeId }) {
                 : `Periode ${periodeLabel(periode) || "ini"}`}
               subTone={heroDelta ? (heroDelta.direction === "up" ? "aman" : heroDelta.direction === "down" ? "perhatian" : "default") : "default"}
             >
-              <TrendChart
-                points={trendPoints}
-                aspek={kelasList.length === 1 ? aspek : undefined}
-                aspekPrefix="input_guru_"
-              />
+              <TrendModeSwitch value={trenMode} onChange={setTrenMode} adaPekanan={adaPekanan} />
+              {trenMode === "pekan" && adaPekanan ? (
+                <TrendChart
+                  points={pekanPoints}
+                  labelOf={labelTitikPekan}
+                  keyOf={(p) => `${p.periode}|${p.pekanUrut}`}
+                  satuanDelta="pekan"
+                />
+              ) : (
+                <TrendChart
+                  points={trendPoints}
+                  aspek={kelasList.length === 1 ? aspek : undefined}
+                  aspekPrefix="input_guru_"
+                />
+              )}
             </StatCardMini>
 
             <div className={styles.statHeroSide}>

@@ -61,3 +61,14 @@ field pekan tetap jatuh ke 0.
 Sudah dijalankan di postgres:15 dan postgres:17, keduanya 11 LULUS 0 GAGAL, dan migration
 keduanya idempoten. Sama seperti berkas verifikasi yang satunya: jalankan SEKALI per database
 bersih, karena ia menulis data.
+
+## Migration ketiga: bulanan = pekan terakhir (20260828130000)
+
+Baseline dan urutan yang sama, tambah m3 dan karakter_pekan_terakhir_verify.sql.
+
+Yang dibedakan migration ini dari yang sebelumnya cuma satu keadaan: bulan yang memuat baris
+pekanan DAN baris bulanan sekaligus. Sebelum perbaikan, urutan pekan desc memilih pekan 3 dan
+mengabaikan baris bulanan, padahal baris bulanan justru angka final bulan itu. Uji nomor 1 di
+berkas verifikasinya persis memeriksa itu (91 dari baris bulanan, bukan 75 dari pekan 3).
+
+Sudah dijalankan di postgres:15 dan postgres:17, keduanya 7 LULUS 0 GAGAL, idempoten.

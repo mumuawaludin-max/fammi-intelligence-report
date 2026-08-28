@@ -1081,6 +1081,34 @@ export function ParentVoiceBento(props) {
  * Saklar sumber refleksi di kepala section Suara. Null kalau cuma satu sumber tersedia, jadi
  * sekolah yang cuma punya refleksi orang tua tidak melihat jejak apa pun dari fitur ini.
  */
+/**
+ * Penyaring tampilan grafik tren: per bulan atau per pekan.
+ *
+ * Sengaja TIDAK dirender kalau sekolahnya tidak punya penilaian pekanan sama sekali
+ * (`adaPekanan` false). Tombol yang selalu menghasilkan grafik identik cuma membingungkan, dan
+ * mayoritas sekolah memang menilai bulanan. Yang menentukan datanya sendiri, bukan setelan per
+ * sekolah, jadi sekolah mana pun yang mulai mengirim kolom pekan otomatis mendapat tombol ini.
+ */
+export function TrendModeSwitch({ value, onChange, adaPekanan }) {
+  if (!adaPekanan) return null;
+  const opsi = [{ id: "bulan", label: "Per bulan" }, { id: "pekan", label: "Per pekan" }];
+  return (
+    <div className={styles.sourceSwitch} role="group" aria-label="Tampilan grafik tren">
+      {opsi.map((o) => (
+        <button
+          key={o.id}
+          type="button"
+          aria-pressed={value === o.id}
+          className={`${styles.sourceSwitchPill} ${value === o.id ? styles.sourceSwitchPillActive : ""}`}
+          onClick={() => onChange && onChange(o.id)}
+        >
+          {o.label}
+        </button>
+      ))}
+    </div>
+  );
+}
+
 export function SourceSwitch({ sumberList, value, onChange }) {
   const list = (sumberList || []).filter((s) => REFLEKSI_META[s]);
   if (list.length < 2) return null;
@@ -1393,7 +1421,21 @@ export function useMuridTrend(sekolahId, muridId) {
   return state;
 }
 
-export function TrendChart({ points, aspek, aspekPrefix = "rata_input_guru_" }) {
+/**
+ * Grafik garis tren. Dipakai dua bentuk: per BULAN (bawaannya, dari karakter_summary) dan per
+ * PEKAN (dari karakter_pekan_avg, satu garis menyambung lintas bulan). Yang membedakan cuma cara
+ * memberi label dan kunci titiknya, jadi keduanya memakai komponen yang sama alih-alih dua grafik
+ * kembar yang harus dirawat berdua.
+ *
+ * Nilai bawaan seluruh prop opsional persis perilaku sebelum grafik pekanan ada, jadi pemanggil
+ * lama tidak perlu berubah sama sekali.
+ */
+export function TrendChart({
+  points, aspek, aspekPrefix = "rata_input_guru_",
+  labelOf = (p) => periodeLabel(p.periode),
+  keyOf = (p) => p.periode,
+  satuanDelta = "bulan",
+}) {
   const gradientId = useId();
   const [hover, setHover] = useState(null);
   const wrapRef = useRef(null);
@@ -1424,8 +1466,8 @@ export function TrendChart({ points, aspek, aspekPrefix = "rata_input_guru_" }) 
       <div ref={wrapRef} className={styles.trendSingle}>
         <div className={styles.trendSingleVal}>{points[0].rata}%</div>
         <p className={styles.briefingEmptyText}>
-          Baru ada data {periodeLabel(points[0].periode)}. Grafik perkembangan antar bulan
-          akan muncul otomatis begitu periode berikutnya masuk.
+          Baru ada data {labelOf(points[0])}. Grafik perkembangannya akan muncul otomatis
+          begitu titik berikutnya masuk.
         </p>
       </div>
     );
@@ -1474,20 +1516,20 @@ export function TrendChart({ points, aspek, aspekPrefix = "rata_input_guru_" }) 
         <path d={path} fill="none" stroke="var(--purple-600)" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" />
         {hc && <line x1={hc.x} x2={hc.x} y1={pad} y2={h - pad} stroke="var(--purple-300)" strokeWidth={1.5} />}
         {coords.map((c) => (
-          <g key={c.periode}>
+          <g key={keyOf(c)}>
             <circle cx={c.x} cy={c.y} r={hc === c ? 6 : 4} fill="var(--purple-600)" stroke="#EDEDF0" strokeWidth={2} />
             <text x={c.x} y={c.y - 12} textAnchor="middle" fontSize={11} fontWeight={800} fill="var(--purple-700)" fontFamily="'Google Sans Flex Variable', sans-serif">
               {c.rata}%
             </text>
             <text x={c.x} y={h - 2} textAnchor="middle" fontSize={9.5} fontWeight={600} fill="var(--ink-3)" fontFamily="'Google Sans Flex Variable', sans-serif">
-              {periodeLabel(c.periode)}
+              {labelOf(c)}
             </text>
           </g>
         ))}
         {/* Area sentuh per titik: hover memunculkan penjelasan angka rata-ratanya. */}
         {coords.map((c, i) => (
           <rect
-            key={`hit-${c.periode}`}
+            key={`hit-${keyOf(c)}`}
             x={c.x - stepX / 2} y={0} width={stepX} height={h}
             fill="transparent" style={{ cursor: "pointer" }}
             onMouseEnter={() => setHover(i)} onMouseLeave={() => setHover(null)}
@@ -1498,11 +1540,11 @@ export function TrendChart({ points, aspek, aspekPrefix = "rata_input_guru_" }) 
       {hc && (
         <div className={styles.trendTip} style={{ left: `${tipLeft}%` }}>
           <p className={styles.trendTipHead}>
-            {periodeLabel(hc.periode)} · <strong>{hc.rata}%</strong>
+            {labelOf(hc)} · <strong>{hc.rata}%</strong>
           </p>
           {delta != null && (
             <p className={styles.trendTipDelta}>
-              {delta > 0 ? `▲ +${delta}` : delta < 0 ? `▼ ${delta}` : "→ 0"} poin dari bulan sebelumnya
+              {delta > 0 ? `▲ +${delta}` : delta < 0 ? `▼ ${delta}` : "→ 0"} poin dari {satuanDelta} sebelumnya
             </p>
           )}
           {breakdown.length > 0 && (
@@ -1527,6 +1569,97 @@ export function TrendChart({ points, aspek, aspekPrefix = "rata_input_guru_" }) 
  * punya beberapa kelas di cakupan). Baca angka ringkasan yang sudah dihitung (bukan
  * hitung ulang dari karakter_skor) supaya konsisten dengan yang ditampilkan di stat tile.
  */
+/**
+ * Titik tren PEKANAN, satu garis menyambung lintas bulan (Okt P1 ... Okt P4, Nov P1 ...).
+ *
+ * Sumbernya view karakter_pekan_avg (migration 20260828130000), yang sudah menghitung rata-rata
+ * seluruh aspek dan murid per (kelas, periode, pekan). Sengaja bukan merata-ratakan sendiri dari
+ * angka per aspek: begitu jumlah murid yang dinilai berbeda antar aspek -- dan itu wajar, satu
+ * aspek bisa belum selesai dinilai saat ekspor dibuat -- rata-rata dari rata-rata tidak sama
+ * dengan rata-rata seluruh baris.
+ *
+ * `pekan_urut` menaruh penilaian bulanan (pekan 0) di slot pekan 4, jadi sekolah yang bulan-bulan
+ * lamanya bulanan lalu pindah ke pekanan tetap punya satu garis utuh, bukan dua potongan.
+ *
+ * kelasList opsional: Wali Kelas menyaring kelasnya sendiri, Kepala Sekolah membiarkannya kosong
+ * untuk seluruh sekolah.
+ */
+/**
+ * Ubah baris karakter_pekan_avg jadi titik-titik garis tren, urut waktu.
+ *
+ * Beberapa kelas yang jatuh di pekan yang sama digabung jadi SATU titik, ditimbang jumlah murid
+ * -- bukan rata-rata dari rata-rata kelas, karena kelas bisa berbeda jumlah muridnya dan
+ * rata-rata dari rata-rata akan memberi kelas kecil bobot yang sama dengan kelas besar.
+ *
+ * Dipisah jadi fungsi murni supaya bisa diuji tanpa merender React maupun menyentuh jaringan.
+ */
+export function bangunTitikPekan(rows) {
+  const perTitik = new Map();
+  (rows || []).forEach((r) => {
+    if (r.rata == null) return;
+    const bobot = r.jumlah_murid || 0;
+    if (bobot <= 0) return;
+    const kunci = `${r.periode_id}|${r.pekan_urut}`;
+    const e = perTitik.get(kunci)
+      || { periode: r.periode_id, pekan: r.pekan, pekanUrut: r.pekan_urut, bobot: 0, jumlah: 0 };
+    e.bobot += bobot;
+    e.jumlah += r.rata * bobot;
+    // Kalau satu slot memuat campuran pekanan dan bulanan, yang bulanan yang menentukan
+    // labelnya, sejalan dengan aturan "ambil yang terakhir" di karakter_skor_bulanan.
+    if (r.pekan === 0) e.pekan = 0;
+    perTitik.set(kunci, e);
+  });
+
+  return [...perTitik.values()]
+    .map((e) => ({
+      periode: e.periode,
+      pekan: e.pekan,
+      pekanUrut: e.pekanUrut,
+      jumlahMurid: e.bobot,
+      rata: Math.round(e.jumlah / e.bobot),
+    }))
+    .sort((a, b) => a.periode.localeCompare(b.periode) || a.pekanUrut - b.pekanUrut);
+}
+
+export function useKarakterPekanTrend({ sekolahId, kelasList = null, jenjang = null }) {
+  const [state, setState] = useState({ loading: true, points: [] });
+  // Array literal sebagai prop berganti identitas tiap render induknya; disederhanakan jadi
+  // string supaya effect tidak berjalan ulang tanpa henti.
+  const kelasKunci = kelasList ? [...kelasList].sort().join("|") : "";
+
+  useEffect(() => {
+    if (!sekolahId) return;
+    let alive = true;
+    setState({ loading: true, points: [] });
+
+    let query = supabase
+      .from("karakter_pekan_avg")
+      .select("periode_id, pekan, pekan_urut, jumlah_murid, rata, kelas_id, jenjang")
+      .eq("sekolah_id", sekolahId)
+      .eq("sumber", "guru");
+    if (kelasKunci) query = query.in("kelas_id", kelasKunci.split("|"));
+    if (jenjang) query = query.eq("jenjang", jenjang);
+
+    query.then(({ data, error }) => {
+      if (!alive) return;
+      if (error) { setState({ loading: false, points: [] }); return; }
+
+      setState({ loading: false, points: bangunTitikPekan(data) });
+    });
+
+    return () => { alive = false; };
+  }, [sekolahId, kelasKunci, jenjang]);
+
+  return state;
+}
+
+/** Label satu titik tren pekanan: "Okt P1". Titik yang penilaiannya bulanan ditulis tanpa
+ * penanda pekan, supaya pembaca tidak mengira bulan itu benar-benar dinilai di pekan 4. */
+export function labelTitikPekan(p) {
+  const bulan = periodeLabel(p.periode);
+  return p.pekan > 0 ? `${bulan} P${p.pekan}` : bulan;
+}
+
 export function useSummaryTrend({ sekolahId, scope, scopeId, limit = 6 }) {
   const [state, setState] = useState({ loading: true, points: [] });
 
