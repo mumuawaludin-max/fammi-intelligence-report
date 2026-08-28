@@ -23,6 +23,36 @@ export default function PerKarakterTab({ data }) {
 
   const label = data.jenjang.find((g) => g.id === grup)?.label || grup;
 
+  /**
+   * Nama karakter di grafik ini datang dari karakter_aspek_config, dan sebagian besar sekolah
+   * belum mengisinya. Batangnya sendiri sudah benar (rata-rata tertimbang seluruh sekolah pada
+   * kode aspek yang sama), tapi NAMANYA adalah klaim dari sedikit sekolah untuk rata-rata banyak
+   * sekolah. Itu harus terbaca, bukan disembunyikan -- pembaca level yayasan memakai grafik ini
+   * untuk menilai sekolah, dan berhak tahu kalau namanya belum tentu berlaku di semua sekolah.
+   */
+  const catatanLabel = useMemo(() => {
+    if (aspek.length === 0) return null;
+
+    const bentrok = aspek.filter((a) => a.labelBentrok);
+    if (bentrok.length > 0) {
+      return `Peringatan: ${bentrok.length} karakter dinamai berbeda-beda antar sekolah pada `
+        + "kode yang sama, jadi angkanya bisa saja menggabungkan karakter yang berlainan. "
+        + "Samakan penamaannya lewat Admin CMS.";
+    }
+
+    const berlabel = Math.max(...aspek.map((a) => a.sekolahBerlabel));
+    const total = Math.max(...aspek.map((a) => a.jumlahSekolah));
+    if (berlabel === 0) {
+      return `Nama karakter belum diisi satu sekolah pun dari ${total} sekolah, jadi dipakai nama `
+        + "sementara. Isi lewat Admin CMS supaya namanya muncul.";
+    }
+    if (berlabel < total) {
+      return `Nama karakter diambil dari konfigurasi ${berlabel} dari ${total} sekolah; `
+        + "sisanya belum mengisi, jadi namanya belum tentu berlaku di semua sekolah.";
+    }
+    return null;
+  }, [aspek]);
+
   return (
     <>
       <SectionTitle>Pencapaian Karakter per Jenjang</SectionTitle>
@@ -37,7 +67,7 @@ export default function PerKarakterTab({ data }) {
           <>
             <div className={styles.chartArea}>
               {aspek.map((a) => (
-                <div key={a.nama} className={styles.chartCol}>
+                <div key={a.kode} className={styles.chartCol}>
                   <span className={styles.chartNilai}>{a.nilai}%</span>
                   <span className={styles.chartBarTrack}>
                     {/* Tinggi bar = persen langsung, jadi jalur abu di belakangnya mewakili 100%
@@ -49,9 +79,11 @@ export default function PerKarakterTab({ data }) {
             </div>
             <div className={styles.chartLabels}>
               {aspek.map((a) => (
-                <span key={a.nama} className={styles.chartLabel}>{a.nama}</span>
+                <span key={a.kode} className={styles.chartLabel}>{a.nama}</span>
               ))}
             </div>
+
+            {catatanLabel && <p className={styles.chartCatatan}>{catatanLabel}</p>}
           </>
         )}
       </div>

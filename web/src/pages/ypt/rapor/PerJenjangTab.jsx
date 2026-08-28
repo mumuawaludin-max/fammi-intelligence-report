@@ -33,9 +33,11 @@ export default function PerJenjangTab({ data }) {
   const top5 = terfilter.filter((s) => s.rata_total != null).slice(0, 5);
   const bawah5 = terfilter.filter((s) => s.rata_total != null).slice(-5).reverse();
 
+  // aspekPerSekolah berkunci aspek_kode, jadi nama tampilannya diambil dari peta se-yayasan.
+  // Kode yang belum punya nama di sekolah mana pun jatuh ke kodenya sendiri, bukan dibuang.
   const aspekDetail = detail
     ? Object.entries(data.aspekPerSekolah[detail.sekolah_id] || {})
-        .map(([nama, nilai]) => ({ nama, nilai }))
+        .map(([kode, nilai]) => ({ nama: data.aspekLabelByKode?.[kode] || kode, nilai }))
         .sort((a, b) => b.nilai - a.nilai)
     : [];
 

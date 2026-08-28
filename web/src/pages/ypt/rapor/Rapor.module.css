@@ -625,6 +625,17 @@
   line-height: 1.35;
 }
 
+/* Catatan keterbatasan nama karakter. Sengaja di bawah grafik dan bukan sebagai tooltip: ini
+   syarat untuk membaca angkanya dengan benar, jadi harus terlihat tanpa dicari. */
+.chartCatatan {
+  margin: 18px 0 0;
+  padding-top: 14px;
+  border-top: 1px solid var(--ypt-border);
+  font-size: 12px;
+  line-height: 1.6;
+  color: var(--ypt-ink-2);
+}
+
 /* Daftar indikator */
 .indikatorItem {
   display: flex;

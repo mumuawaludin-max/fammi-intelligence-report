@@ -46,14 +46,36 @@ function barisSekolah() {
   }));
 }
 
+/**
+ * Berkunci aspek_kode ("karakter1"..), sama seperti keluaran useYptKarakter yang sebenarnya.
+ *
+ * Sengaja meniru kondisi produksi: hanya SEBAGIAN aspek yang punya nama, sisanya kosong. Di data
+ * asli cuma 1 dari 12 sekolah SMA/K yang mengisi karakter_aspek_config, dan itulah yang dulu
+ * memecah satu karakter jadi dua batang. Kalau pratinjau memakai data yang semuanya berlabel
+ * rapi, cacat seperti itu tidak akan pernah terlihat di sini.
+ */
+const KODE_ASPEK = ASPEK.map((_, i) => `karakter${i + 1}`);
+
 const aspekPerSekolah = {};
 SEKOLAH.forEach((s, i) => {
   if (s.rata == null) return;
   aspekPerSekolah[s.id] = {};
-  ASPEK.forEach((a, j) => {
-    aspekPerSekolah[s.id][a] = Math.max(45, Math.min(100, s.rata + ((i + j) % 7) - 3));
+  KODE_ASPEK.forEach((kode, j) => {
+    aspekPerSekolah[s.id][kode] = Math.max(45, Math.min(100, s.rata + ((i + j) % 7) - 3));
   });
 });
+
+/** Nama cuma dideklarasikan dua sekolah pertama, meniru konfigurasi yang belum lengkap. */
+function aspekContoh(kode, i, nilai, jumlahSekolah) {
+  return {
+    kode,
+    nama: ASPEK[i],
+    nilai,
+    jumlahSekolah,
+    sekolahBerlabel: 2,
+    labelBentrok: false,
+  };
+}
 
 const siswaPerSekolah = {};
 SEKOLAH.forEach((s) => {
@@ -86,10 +108,11 @@ export const MOCK_RAPOR = {
     { id: "SMP", label: "SMP", nilai: 72, jumlahSekolah: 18, jumlahSiswa: 751, tren: "turun" },
     { id: "SMAK", label: "SMA/K", nilai: 88, jumlahSekolah: 32, jumlahSiswa: 2407, tren: "naik" },
   ],
-  aspekYayasan: ASPEK.map((a, i) => ({ nama: a, nilai: [92, 88, 76, 95, 83, 80][i], jumlahSekolah: 15 - i })),
-  aspekPerGrup: () => ASPEK.slice(0, 4).map((a, i) => ({ nama: a, nilai: [100, 82, 76, 95][i], jumlahSekolah: 12 })),
-  kolomAspek: ASPEK,
+  aspekYayasan: KODE_ASPEK.map((kode, i) => aspekContoh(kode, i, [92, 88, 76, 95, 83, 80][i], 15 - i)),
+  aspekPerGrup: () => KODE_ASPEK.slice(0, 4).map((kode, i) => aspekContoh(kode, i, [100, 82, 76, 95][i], 12)),
+  kolomAspek: KODE_ASPEK.map((kode, i) => ({ kode, nama: ASPEK[i] })),
   aspekPerSekolah,
+  aspekLabelByKode: Object.fromEntries(KODE_ASPEK.map((kode, i) => [kode, ASPEK[i]])),
   indikatorPerGrup: () => INDIKATOR_CONTOH.map((label, i) => ({ label, nilai: [92, 83, 94, 87, 82][i] })),
   siswaPerSekolah,
   sekolah: berdata,

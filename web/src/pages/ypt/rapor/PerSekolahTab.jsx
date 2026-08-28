@@ -92,8 +92,8 @@ export default function PerSekolahTab({ data }) {
             <tr>
               <th colSpan={2}>Sekolah</th>
               <th>Total Pencapaian</th>
-              {data.kolomAspek.map((nama) => (
-                <th key={nama} className={styles.thTengah}>{nama}</th>
+              {data.kolomAspek.map((k) => (
+                <th key={k.kode} className={styles.thTengah}>{k.nama}</th>
               ))}
             </tr>
           </thead>
@@ -121,10 +121,10 @@ export default function PerSekolahTab({ data }) {
                       <span className={styles.totalBar}><ProgressBar value={s.rata_total} /></span>
                     </span>
                   </td>
-                  {data.kolomAspek.map((nama) => (
-                    <td key={nama} className={styles.selNilai}>
-                      <span className={`${styles.selBadge} ${aspek[nama] == null ? styles.selKosong : ""}`}>
-                        {aspek[nama] == null ? "—" : `${aspek[nama]}%`}
+                  {data.kolomAspek.map((k) => (
+                    <td key={k.kode} className={styles.selNilai}>
+                      <span className={`${styles.selBadge} ${aspek[k.kode] == null ? styles.selKosong : ""}`}>
+                        {aspek[k.kode] == null ? "—" : `${aspek[k.kode]}%`}
                       </span>
                     </td>
                   ))}
