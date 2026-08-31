@@ -267,7 +267,7 @@ export function useKarakterKepsek(session, periodeId) {
     async function run() {
       setState((s) => ({ ...s, loading: true, error: null }));
 
-      const [aspekRes, indikatorRes, summaryRes, briefingRes, tlRes, ortuRes, indikatorKelasRes] = await Promise.all([
+      const [aspekRes, indikatorRes, summaryRes, briefingRes, tlRes, ortuRes, indikatorKelasRes, indeksRes] = await Promise.all([
         queryAspekConfig(sekolahId),
         queryIndikatorConfig(sekolahId),
         supabase
@@ -309,6 +309,22 @@ export function useKarakterKepsek(session, periodeId) {
           .select("jenjang, kelas_id, periode_id, aspek_kode, indikator_kode, skor")
           .eq("sekolah_id", sekolahId)
           .range(from, to)),
+        // Indeks Karakter Sekolah, dihitung di database dari skornya sendiri (view
+        // karakter_sekolah_indeks, migration 20260828120000).
+        //
+        // Dipakai sebagai CADANGAN angka tingkat sekolah. Sekolah yang tiap jenjangnya punya
+        // kerangka karakter berbeda tidak bisa punya ringkasan tingkat sekolah dari berkas:
+        // berkasnya memuat satu sheet ringkasan "sekolah" per jenjang, dan importer sengaja
+        // melewatkan semuanya karena kalau dimasukkan keenamnya saling menimpa dan yang tersisa
+        // cuma jenjang terakhir, tampil seolah angka seluruh sekolah.
+        //
+        // Tanpa cadangan ini, kartu hero dan grafik tren Kepala Sekolah kosong untuk sekolah
+        // bertipe itu, padahal skornya lengkap.
+        supabase
+          .from("karakter_sekolah_indeks")
+          .select("periode_id, indeks, jumlah_murid, jumlah_jenjang")
+          .eq("sekolah_id", sekolahId)
+          .eq("sumber", "guru"),
       ]);
 
       if (!alive) return;
@@ -333,6 +349,11 @@ export function useKarakterKepsek(session, periodeId) {
           ortuRows: ortuRes.data || [],
           indikatorKelasRows: indikatorKelasRes.data || [],
           indikatorKelasError: indikatorKelasRes.error?.message || null,
+          // Sama seperti indikatorKelasRes: SENGAJA tidak ikut daftar error fatal. View
+          // karakter_sekolah_indeks baru ada sejak migration 20260828120000; kalau frontend
+          // tayang lebih dulu, query-nya gagal, dan menjadikannya fatal berarti seluruh halaman
+          // Karakter Kepala Sekolah mati cuma karena satu angka cadangan.
+          indeksRows: indeksRes.data || [],
         },
       });
     }
@@ -343,7 +364,7 @@ export function useKarakterKepsek(session, periodeId) {
 
   const data = useMemo(() => {
     if (!state.raw) return null;
-    const { aspek, indikatorConfigRows, summaryRows, briefingRows, tlRows, ortuRows, indikatorKelasRows, indikatorKelasError } = state.raw;
+    const { aspek, indikatorConfigRows, summaryRows, briefingRows, tlRows, ortuRows, indikatorKelasRows, indikatorKelasError, indeksRows } = state.raw;
 
     // Lihat catatan di useKarakterWaliKelas: periode digabung dari summary + briefing +
     // tindak lanjut, bukan cuma summary.
@@ -400,6 +421,23 @@ export function useKarakterKepsek(session, periodeId) {
 
     // Scope teratas untuk Kepsek adalah ringkasan sekolah.
     const sekolahRow = atPeriode.find((r) => r.scope === "sekolah") || null;
+
+    // Indeks Karakter Sekolah per periode, dari view karakter_sekolah_indeks. Dipakai tampilan
+    // sebagai CADANGAN kalau ringkasan sekolah dari berkas tidak ada -- dan itu keadaan yang
+    // NORMAL untuk sekolah berkerangka per jenjang, karena berkasnya memuat satu sheet ringkasan
+    // "sekolah" per jenjang dan importer sengaja melewatkan semuanya (lihat ringkasanSekolahJamak
+    // di karakterImporter.js). Tanpa cadangan ini, kartu hero dan grafik tren Kepala Sekolah
+    // kosong untuk sekolah bertipe itu padahal skornya lengkap.
+    const indeksByPeriode = {};
+    (indeksRows || []).forEach((r) => { indeksByPeriode[r.periode_id] = r; });
+    const indeksSekolah = indeksByPeriode[periode] || null;
+    // Titik tren dari indeks, bentuknya disamakan dengan useSummaryTrend supaya TrendChart bisa
+    // memakainya apa adanya.
+    const indeksTrend = (indeksRows || [])
+      .filter((r) => r.indeks != null)
+      .map((r) => ({ periode: r.periode_id, rata: r.indeks, ringkasan: null }))
+      .sort((a, b) => a.periode.localeCompare(b.periode));
+
     const pernyataanAtPeriode = ortuRows.filter((r) => r.periode_id === periode);
     const pernyataanBySumber = groupPernyataanBySumber(pernyataanAtPeriode);
     const sumberRefleksi = hitungSumberRefleksi(
@@ -440,6 +478,8 @@ export function useKarakterKepsek(session, periodeId) {
       periode,
       availablePeriods,
       aspek: aspekEffective,
+      indeksSekolah,
+      indeksTrend,
       aspekByJenjang,
       aspekUntukJenjang,
       perJenjang,

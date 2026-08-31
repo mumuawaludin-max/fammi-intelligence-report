@@ -171,12 +171,15 @@ export default function KepsekView({ session, periodeId }) {
 
   if (loading || error) return <KarakterStateBox loading={loading} error={error} />;
 
-  const { periode, aspek, aspekUntukJenjang, perJenjang, indikatorByKelas, indikatorError, sekolah, jenjang, kelas, pernyataanBySumber, sumberRefleksi, tindakLanjut } = data;
+  const { periode, aspek, aspekUntukJenjang, perJenjang, indeksSekolah, indeksTrend, indikatorByKelas, indikatorError, sekolah, jenjang, kelas, pernyataanBySumber, sumberRefleksi, tindakLanjut } = data;
 
   // Grafik tren dibatasi ke tahun ajaran periode yang sedang dibuka. Tanpa ini, Oktober 2025
   // tersambung langsung ke Agustus 2026 sebagai satu garis perkembangan, padahal itu dua tahun
   // ajaran dengan kerangka karakter yang bisa berbeda dan murid yang sudah naik kelas.
-  const trenTA = titikSetahunAjaran(trendPoints, periode);
+  // Kalau ringkasan sekolah dari berkas kosong, garis trennya diambil dari Indeks Karakter
+  // Sekolah supaya grafiknya tidak kosong sama sekali.
+  const trenSumber = trendPoints.length > 0 ? trendPoints : (indeksTrend || []);
+  const trenTA = titikSetahunAjaran(trenSumber, periode);
   const pekanTA = titikSetahunAjaran(pekanPoints, periode);
   const adaPekananTA = pekanTA.some((p) => p.pekan > 0);
   const ringkasan = sekolah?.ringkasan || null;
@@ -207,7 +210,13 @@ export default function KepsekView({ session, periodeId }) {
 
   // Angka hero SELALU dari ringkasan periode yang sedang dipilih (bukan selalu titik terbaru
   // di grafik tren), supaya filter periode di header benar-benar mengubah angka yang tampil.
-  const latestValue = pct(ringkasan?.rata_pencapaian_guru ?? ringkasan?.pencapaian_guru);
+  // Angka hero: ringkasan sekolah dari berkas kalau ada, kalau tidak Indeks Karakter Sekolah
+  // yang dihitung database dari skornya sendiri. Sekolah berkerangka per jenjang SELALU jatuh ke
+  // cadangan, karena ringkasan tingkat sekolah dari berkasnya sengaja tidak diimpor -- keenam
+  // sheetnya sebenarnya ringkasan per jenjang dan akan saling menimpa.
+  const nilaiRingkasan = pct(ringkasan?.rata_pencapaian_guru ?? ringkasan?.pencapaian_guru);
+  const pakaiIndeks = nilaiRingkasan == null && indeksSekolah?.indeks != null;
+  const latestValue = nilaiRingkasan ?? (indeksSekolah?.indeks ?? null);
   const latestLabel = periodeLabel(periode);
   // Delta dihitung relatif ke periode yang SEDANG DIPILIH, bukan selalu titik terbaru di grafik
   // tren -- kalau periode terpilih ada di jendela tren dan punya titik sebelumnya, hitung selisihnya.
@@ -266,7 +275,7 @@ export default function KepsekView({ session, periodeId }) {
         />
         <div className={styles.statHeroRow}>
           <StatCardMini
-            icon="📈" label="Rata-rata Perkembangan Karakter Sekolah"
+            icon="📈" label={pakaiIndeks ? "Indeks Karakter Sekolah" : "Rata-rata Perkembangan Karakter Sekolah"}
             value={latestValue != null ? latestValue : "—"} unit={latestValue != null ? "%" : ""}
             sub={heroDelta
               ? `${heroDelta.direction === "up" ? "↑" : heroDelta.direction === "down" ? "↓" : "→"} ${heroDelta.value > 0 ? "+" : ""}${heroDelta.value}pp dari bulan lalu`
