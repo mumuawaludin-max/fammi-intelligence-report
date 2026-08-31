@@ -423,7 +423,20 @@ export default function KepsekView({ session, periodeId }) {
                   </div>
                   {(() => {
                     const rk = activeKelasRow.ringkasan;
-                    const aspekItems = aspek.map((a) => ({
+                    // Nama karakter diambil dari kerangka JENJANG kelas ini, bukan daftar
+                    // sekolah-wide. Satu kelas selalu milik satu jenjang, jadi di sini nama
+                    // aslinya memang sudah bisa dipastikan -- beda dari tingkat sekolah yang
+                    // sengaja generik karena mencampur enam kerangka berbeda.
+                    //
+                    // Tanpa ini, panel Detail Kelas sekolah berkerangka per jenjang menulis
+                    // "Karakter 1..4" padahal sekolahnya sudah mengisi namanya, dan admin
+                    // mengira namanya belum tersimpan.
+                    //
+                    // Jenjang kelas ini dibaca dari kolom "jenjang" di sheet summary_kelas, yang
+                    // ikut tersimpan apa adanya ke karakter_summary.ringkasan.
+                    const jenjangKelasIni = rk?.jenjang || rk?.Jenjang || null;
+                    const aspekKelasIni = aspekUntukJenjang(jenjangKelasIni);
+                    const aspekItems = aspekKelasIni.map((a) => ({
                       label: a.aspek_label, icon: aspekIcon(a.aspek_label),
                       value: ringkasanAspekValue(rk, a.aspek_kode),
                     }));
