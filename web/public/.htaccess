@@ -1,0 +1,41 @@
+# Aturan cache untuk hosting Apache/LiteSpeed (Hostinger).
+#
+# Berkas di folder public/ disalin apa adanya ke dist/ oleh Vite, jadi berkas ini ikut terbawa
+# ke public_html setiap kali build dan tidak perlu diunggah terpisah.
+#
+# MASALAH YANG DIPERBAIKI, terukur di produksi 2026-09-01:
+# Server tidak mengirim Cache-Control untuk index.html sama sekali, cuma last-modified dan etag.
+# Tanpa Cache-Control eksplisit, browser memakai heuristik sendiri (umumnya sebagian dari umur
+# berkas) dan bisa menahan index.html berjam-jam tanpa memeriksa ulang ke server.
+#
+# Selama index.html lama tertahan, browser terus meminta nama berkas JS lama yang tertulis di
+# dalamnya. Akibatnya deploy yang sudah benar tetap tidak terlihat, dan hard reload pun sering
+# tidak menolong karena yang di-reload adalah dokumen yang sama. Ini yang membuat beberapa hari
+# terakhir habis untuk menebak-nebak kenapa perbaikan tidak muncul, padahal servernya sudah benar.
+#
+# Perbaikannya bukan memperpendek cache aset, melainkan memisahkan perlakuan keduanya:
+#   * index.html  -> JANGAN pernah dipakai dari cache tanpa bertanya ke server. Ukurannya kecil,
+#                    dan dialah yang menunjuk nama berkas aset yang benar.
+#   * assets/*    -> boleh di-cache selama mungkin. Nama berkasnya sudah mengandung hash isi
+#                    (index-D6iOv17l.js), jadi build baru selalu menghasilkan nama baru dan tidak
+#                    mungkin tertukar dengan yang lama. Ini pola standar untuk keluaran Vite.
+
+<IfModule mod_headers.c>
+  # Dokumen HTML: selalu periksa ke server dulu. must-revalidate membuat browser tetap boleh
+  # memakai salinannya, tapi wajib memastikan masih yang terbaru sebelum dipakai.
+  <FilesMatch "\.html$">
+    Header set Cache-Control "no-cache, must-revalidate, max-age=0"
+  </FilesMatch>
+
+  # Aset ber-hash: aman disimpan lama. immutable memberi tahu browser tidak perlu memeriksa ulang
+  # sama sekali selama masa berlakunya, jadi kunjungan berikutnya tidak menunggu jaringan.
+  <FilesMatch "\.(js|css|woff2?|png|jpg|jpeg|svg|json)$">
+    Header set Cache-Control "public, max-age=31536000, immutable"
+  </FilesMatch>
+
+  # Kecuali berkas di akar yang namanya TIDAK ber-hash: kalau ini ikut disimpan setahun, mengganti
+  # logo atau favicon tidak akan pernah terlihat oleh pengunjung lama.
+  <FilesMatch "^(favicon\.svg|favicon-512\.png|icons\.svg|logo.*\.png|og-image\.png|peta-.*)$">
+    Header set Cache-Control "public, max-age=86400"
+  </FilesMatch>
+</IfModule>
