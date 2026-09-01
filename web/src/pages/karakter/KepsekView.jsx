@@ -445,54 +445,58 @@ export default function KepsekView({ session, periodeId }) {
                     const siswaLemah = parseTop5Pair(rk?.top5_siswa_terendah, rk?.top5_nilai_siswa_terendah)
                       .map((p) => ({ label: p.nama, value: pct(p.nilai) }))
                       .filter((p) => p.value != null && p.value < KARAKTER_BAR_TONE_CUTOFF.aman);
-                    // Indikator punya dua sumber. Yang diutamakan tetap ringkasan kelas dari
-                    // hulu (kolom top5_indikator_* di sheet summary_kelas), supaya sekolah yang
-                    // berkasnya memuat kolom itu tampil persis seperti sebelumnya. Sekolah yang
-                    // berkasnya TIDAK memuatnya dulu kosong total di sini padahal kelas yang sama
-                    // tampil normal di Wali Kelas; sekarang jatuh ke rata-rata per kelas yang
-                    // sudah diagregasi database (view karakter_indikator_kelas_avg), bukan
-                    // dihitung di sini.
-                    const indRingkasanAtas = parseTop5Indikator(rk?.top5_indikator_terbaik)
-                      .map((it) => ({ label: it.label, value: pct(it.nilai) }));
-                    const indRingkasanBawah = parseTop5Indikator(rk?.top5_indikator_terendah)
-                      .map((it) => ({ label: it.label, value: pct(it.nilai) }));
-
-                    // Satu indikator TIDAK MUNGKIN sekaligus masuk lima tertinggi dan lima
-                    // terendah. Kalau itu terjadi, kedua daftar di berkas tidak berada pada skala
-                    // yang sama dan tidak boleh dipercaya berdampingan.
+                    // Indikator punya dua sumber, dan sejak 2026-09-01 yang DIUTAMAKAN adalah
+                    // rata-rata indikator per kelas yang dihitung database (view
+                    // karakter_indikator_kelas_avg), bukan kolom top5_indikator_* dari berkas.
+                    // Urutannya sengaja dibalik dari sebelumnya.
                     //
-                    // Nyata, bukan pengandaian: di berkas SD Amal Mulia (Agustus 2026), 14 dari 18
-                    // kelas punya indikator yang muncul di dua daftar sekaligus -- "Meminta maaf
-                    // dan memaafkan saat berselisih" tertulis 95% di daftar terbaik dan 5% di
-                    // daftar terendah pada kelas yang sama. Angka di kolom terendah tampaknya
-                    // porsi murid yang BELUM tercapai, bukan tingkat pencapaian. Dibaca sebagai
-                    // pencapaian, 5% jatuh jauh di bawah ambang dan kelas yang seluruh indikatornya
-                    // di atas 90% tetap tampil punya lima indikator "perlu penguatan".
+                    // Alasannya: kolom ringkasan di berkas berulang kali terbukti tidak bisa
+                    // dipercaya, dan cacatnya berganti-ganti bentuk. Terukur di berkas SD Amal
+                    // Mulia (Agustus 2026):
+                    //   * 14 dari 18 kelas punya indikator yang muncul di daftar terbaik DAN
+                    //     terendah sekaligus, dengan angka yang jauh berbeda (95% vs 5%).
+                    //   * Kelas "2 Al Farabi": daftar TERBAIK-nya sendiri berisi 25%, 13%, 13%,
+                    //     11%, padahal rata-rata indikator kelas itu sesungguhnya 75-95%.
+                    //   * Kelas yang sama: tiga entri di daftar terendah tidak punya field
+                    //     "nilai" sama sekali, jadi nilainya undefined.
+                    //   * Kelas "6 Zaid Bin Tsabit": daftar terbaik benar (95%), tapi terendahnya
+                    //     15%, 13%, 10% -- skala yang berbeda.
                     //
-                    // Begitu bentrokan terdeteksi, kedua daftar diambil dari rata-rata indikator
-                    // per kelas yang dihitung database (view karakter_indikator_kelas_avg). Itu
-                    // satu-satunya sumber yang pasti sekala-nya sama dengan angka lain di halaman
-                    // ini, karena berasal dari baris skor yang sama.
-                    const labelAtas = new Set(indRingkasanAtas.map((it) => String(it.label || "").trim().toLowerCase()));
-                    const ringkasanBentrok = indRingkasanBawah.some(
-                      (it) => labelAtas.has(String(it.label || "").trim().toLowerCase())
-                    );
-
+                    // Cacat yang bentuknya berganti-ganti tidak bisa ditangkap satu penanda.
+                    // Percobaan sebelumnya cuma mendeteksi kasus pertama (daftar beririsan), dan
+                    // dua kasus lain lolos begitu saja.
+                    //
+                    // View-nya berasal dari baris skor yang SAMA dengan kartu aspek, rata-rata
+                    // kelas, dan daftar siswa di panel ini. Memakainya membuat seluruh panel
+                    // konsisten satu sumber; kolom ringkasan justru satu-satunya yang menyimpang.
+                    // Ini tetap membaca agregat yang sudah final di database, bukan menghitung di
+                    // React (butir 3 CLAUDE.md), pola yang sama dengan karakter_sekolah_indeks.
                     const indKelas = [...(indikatorByKelas?.[kelasKey(activeKelasRow.scope_id)] || [])]
                       .sort((a, b) => b.value - a.value);
-                    const pakaiRingkasan = indRingkasanAtas.length > 0 && !ringkasanBentrok;
-                    const indRingkasan = pakaiRingkasan ? indRingkasanAtas : [];
-                    const adaIndikator = indRingkasan.length > 0 || indKelas.length > 0;
+
+                    // Cadangan: kolom berkas, dipakai HANYA kalau kelas ini tidak punya baris
+                    // indikator sama sekali di database. Entri tanpa nilai yang bisa dibaca
+                    // dibuang, bukan ditampilkan sebagai baris kosong.
+                    const indRingkasanAtas = parseTop5Indikator(rk?.top5_indikator_terbaik)
+                      .map((it) => ({ label: it.label, value: pct(it.nilai) }))
+                      .filter((it) => it.value != null);
+                    const indRingkasanBawah = parseTop5Indikator(rk?.top5_indikator_terendah)
+                      .map((it) => ({ label: it.label, value: pct(it.nilai) }))
+                      .filter((it) => it.value != null);
+
+                    const pakaiKelas = indKelas.length > 0;
+                    // Dipakai untuk menjelaskan ke admin kenapa angkanya beda dari isi berkas.
+                    const ringkasanDiabaikan = pakaiKelas
+                      && (indRingkasanAtas.length > 0 || indRingkasanBawah.length > 0);
+                    const adaIndikator = pakaiKelas || indRingkasanAtas.length > 0;
                     // Kalau query rata-rata indikator gagal (mis. view-nya belum dibuat di
                     // database), sebut kegagalannya. "Belum ada data" untuk sesuatu yang
                     // sebenarnya gagal dimuat adalah jawaban yang salah.
                     const indikatorEmptyText = indikatorError
                       ? `Data indikator gagal dimuat: ${indikatorError}`
                       : "Belum ada data indikator.";
-                    const indTerbaik = indRingkasan.length > 0 ? indRingkasan : indKelas.slice(0, 5);
-                    const indLemahSemua = indRingkasan.length > 0
-                      ? indRingkasanBawah
-                      : [...indKelas].reverse();
+                    const indTerbaik = pakaiKelas ? indKelas.slice(0, 5) : indRingkasanAtas;
+                    const indLemahSemua = pakaiKelas ? [...indKelas].reverse() : indRingkasanBawah;
                     const indLemah = indLemahSemua
                       .filter((it) => it.value != null && it.value < KARAKTER_BAR_TONE_CUTOFF.aman)
                       .slice(0, 5);
@@ -532,13 +536,14 @@ export default function KepsekView({ session, periodeId }) {
                         {/* Kalau daftar indikator dari berkas ditolak karena saling bertentangan,
                             sebutkan. Angka yang tampil jadi berbeda dari isi berkas, dan admin
                             berhak tahu kenapa alih-alih mengira sistemnya yang salah hitung. */}
-                        {ringkasanBentrok && (
+                        {ringkasanDiabaikan && (
                           <p className={styles.emptyNote} style={{ marginBottom: 8 }}>
-                            Daftar indikator diambil dari rata-rata skor kelas ini, bukan dari kolom
-                            ringkasan di berkas. Di berkas, indikator yang sama tertulis di daftar
-                            terbaik sekaligus di daftar terendah dengan angka yang jauh berbeda, jadi
-                            kedua kolom itu tidak berada pada skala yang sama dan tidak bisa dipakai
-                            berdampingan. Perbaikannya ada di berkas sumber.
+                            Daftar indikator dihitung dari skor kelas ini, bukan dari kolom ringkasan
+                            di berkas. Kolom itu berulang kali tidak cocok dengan skornya sendiri:
+                            ada kelas yang daftar &ldquo;terbaik&rdquo;-nya berisi angka belasan
+                            persen, ada yang daftar terendahnya memakai skala berbeda, dan ada entri
+                            yang tidak punya nilai sama sekali. Angka di sini berasal dari baris skor
+                            yang sama dengan kartu aspek dan rata-rata kelas di atas.
                           </p>
                         )}
                         <div className={styles.detail2col}>
