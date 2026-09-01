@@ -1,15 +1,13 @@
 import { useMemo, useState } from "react";
 import SectionHeading from "../../components/SectionHeading";
-import SampleTag from "../../components/SampleTag";
 import FollowupRibbon from "../../components/FollowupRibbon";
 import {
-  KarakterStateBox, AskMascot, ScoreBarList, GoodEmptyState,
+  KarakterStateBox, BelumAdaState, AskMascot, ScoreBarList, GoodEmptyState,
   SourceSwitch, VoiceBento, ReflectionBlock, TrendChart, TrendModeSwitch, useSummaryTrend, useMuridTrend,
   useKarakterPekanTrend, labelTitikPekan,
 } from "./KarakterShared";
 import { StatCardMini, StatCardLandscape, AllGoodBanner, splitByClassify, scrollToId } from "./KarakterViewParts";
 import KebijakanGoals from "./KebijakanGoals";
-import { KEBIJAKAN_WALIKELAS } from "./dummyKebijakan";
 import { useKarakterWaliKelas } from "./useKarakterData";
 import {
   pct, deltaVsPrevious, classifyPencapaian, periodeLabel, aspekIcon,
@@ -127,9 +125,13 @@ export default function WaliKelasView({ session, periodeId }) {
   // dulu hilang sama sekali (tertimpa sample), sekarang tetap tampil sebagai kartu sederhana.
   const kebijakanReal = (tindakLanjut || []).filter(isKebijakanReady);
   const kebijakanLegacy = (tindakLanjut || []).filter((r) => !isKebijakanReady(r));
-  const kebijakanData = kebijakanReal.length > 0 ? kebijakanReal : KEBIJAKAN_WALIKELAS;
-  const kebijakanIsSample = kebijakanReal.length === 0 && kebijakanLegacy.length === 0;
-  const showKebijakanGoals = kebijakanReal.length > 0 || kebijakanIsSample;
+  // Kartu contoh dihapus (keputusan pemilik produk 2026-09-01): kalau tindak lanjut periode ini
+  // belum ada, yang tampil empty-state, BUKAN isi karangan bertanda "CONTOH". Penanda contoh
+  // memang sudah ada dan jujur, tapi kartu berisi kalimat yang terbaca seperti rekomendasi
+  // sungguhan tetap gampang dikira temuan nyata sekali orang berhenti membaca penandanya.
+  const kebijakanData = kebijakanReal;
+  const kebijakanKosong = kebijakanReal.length === 0 && kebijakanLegacy.length === 0;
+  const showKebijakanGoals = kebijakanReal.length > 0;
 
   const indikatorLabel = Object.fromEntries(
     indikator.map((it) => [`${it.aspek_kode}_${it.indikator_kode}`, it.indikator_label])
@@ -451,10 +453,11 @@ export default function WaliKelasView({ session, periodeId }) {
         </div>
 
         <section className={styles.section}>
-          {kebijakanIsSample && (
-            <p className={styles.sampleNote}>
-              <SampleTag /> Isi rekomendasi masih contoh, menunggu perumusan otomatis. Strukturnya sudah final.
-            </p>
+          {kebijakanKosong && (
+            <BelumAdaState
+              title="Belum ada tindak lanjut untuk kelas ini"
+              text="Rekomendasi untuk periode ini belum dirumuskan dan disetujui. Kartunya muncul di sini begitu siap."
+            />
           )}
           {showKebijakanGoals && <KebijakanGoals data={kebijakanData} who={WHO_WALIKELAS} ranges={RANGES_WALIKELAS} />}
           {kebijakanLegacy.length > 0 && (

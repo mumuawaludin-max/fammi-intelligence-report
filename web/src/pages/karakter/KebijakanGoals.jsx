@@ -1,7 +1,6 @@
 import { useEffect } from "react";
 import { useState } from "react";
 import styles from "./KebijakanGoals.module.css";
-import { KEBIJAKAN_KEPSEK } from "./dummyKebijakan";
 
 const TERM_META = {
   short: { label: "Short-Term Goals" },
@@ -242,7 +241,11 @@ function KebijakanDialog({ k, onClose, ranges = DEFAULT_RANGES }) {
   );
 }
 
-export default function KebijakanGoals({ data = KEBIJAKAN_KEPSEK, who = DEFAULT_WHO, ranges = DEFAULT_RANGES }) {
+// data WAJIB diisi pemanggil. Nilai bawaannya dulu KEBIJAKAN_KEPSEK (data contoh), jadi
+// pemanggil yang lupa mengirim data diam-diam merender rekomendasi karangan. Sejak kartu
+// contoh dihapus (2026-09-01), bawaannya array kosong: tidak ada yang dirender, dan itu
+// jauh lebih mudah disadari daripada isi palsu yang terlihat meyakinkan.
+export default function KebijakanGoals({ data = [], who = DEFAULT_WHO, ranges = DEFAULT_RANGES }) {
   const [active, setActive] = useState(null);
   const byTerm = (t) =>
     data.filter((k) => k.term === t).sort((a, b) => TYPE_ORDER[a.type] - TYPE_ORDER[b.type]);

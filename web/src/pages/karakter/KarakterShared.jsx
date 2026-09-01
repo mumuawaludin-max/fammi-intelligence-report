@@ -1232,6 +1232,22 @@ export function ScoreBarList({ items, rankByNumber = false, emptyText }) {
 }
 
 /** Empty-state positif: dipakai saat "perlu penguatan" ternyata kosong (semua sudah baik). */
+/**
+ * Empty-state NETRAL: sesuatu belum ada, dan itu bukan kabar baik maupun buruk.
+ *
+ * Sengaja tanpa centang hijau, beda dari GoodEmptyState. Centang hijau berarti "sudah dicek,
+ * hasilnya bagus"; "belum ada tindak lanjut" bukan itu, cuma belum dirumuskan. Memakai centang
+ * di situ membuat ketiadaan data terbaca sebagai temuan positif.
+ */
+export function BelumAdaState({ title, text }) {
+  return (
+    <div className={styles.belumAda}>
+      <p className={styles.belumAdaTitle}>{title}</p>
+      {text && <p className={styles.belumAdaText}>{text}</p>}
+    </div>
+  );
+}
+
 export function GoodEmptyState({ title, text }) {
   return (
     <div className={styles.goodEmpty}>

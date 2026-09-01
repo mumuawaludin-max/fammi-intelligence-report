@@ -1,14 +1,12 @@
 import { useEffect, useState } from "react";
 import SectionHeading from "../../components/SectionHeading";
 import {
-  KarakterStateBox, AskMascot, AspekBarList, ScoreBarList, GoodEmptyState, Donut,
+  KarakterStateBox, BelumAdaState, AskMascot, AspekBarList, ScoreBarList, GoodEmptyState, Donut,
   VoiceBento, SourceSwitch, TrendChart, TrendModeSwitch, useSummaryTrend, useKarakterPekanTrend, labelTitikPekan,
 } from "./KarakterShared";
 import { StatCardMini, StatCardLandscape, AllGoodBanner, splitByClassify, scrollToId } from "./KarakterViewParts";
 import KebijakanGoals from "./KebijakanGoals";
-import { KEBIJAKAN_KEPSEK } from "./dummyKebijakan";
 import DetailDialog from "./DetailDialog";
-import SampleTag from "../../components/SampleTag";
 import FollowupRibbon from "../../components/FollowupRibbon";
 import { useKarakterKepsek, kelasKey } from "./useKarakterData";
 import {
@@ -197,9 +195,13 @@ export default function KepsekView({ session, periodeId }) {
   // ditampilkan sebagai kartu sederhana lewat FollowupRibbon.
   const kebijakanReal = (tindakLanjut || []).filter((r) => r.scope === "sekolah" && isKebijakanReady(r));
   const kebijakanLegacy = (tindakLanjut || []).filter((r) => r.scope === "sekolah" && !isKebijakanReady(r));
-  const kebijakanData = kebijakanReal.length > 0 ? kebijakanReal : KEBIJAKAN_KEPSEK;
-  const kebijakanIsSample = kebijakanReal.length === 0 && kebijakanLegacy.length === 0;
-  const showKebijakanGoals = kebijakanReal.length > 0 || kebijakanIsSample;
+  // Kartu contoh dihapus (keputusan pemilik produk 2026-09-01): kalau tindak lanjut periode ini
+  // belum ada, yang tampil empty-state, BUKAN isi karangan bertanda "CONTOH". Penanda contoh
+  // memang sudah ada dan jujur, tapi kartu berisi kalimat yang terbaca seperti rekomendasi
+  // sungguhan tetap gampang dikira temuan nyata sekali orang berhenti membaca penandanya.
+  const kebijakanData = kebijakanReal;
+  const kebijakanKosong = kebijakanReal.length === 0 && kebijakanLegacy.length === 0;
+  const showKebijakanGoals = kebijakanReal.length > 0;
 
   const kelasSorted = [...kelas].sort(
     (a, b) => (pct(b.ringkasan?.rata_rata_pencapaian_guru) ?? 0) - (pct(a.ringkasan?.rata_rata_pencapaian_guru) ?? 0)
@@ -628,10 +630,11 @@ export default function KepsekView({ session, periodeId }) {
         </div>
 
         <section className={styles.section}>
-          {kebijakanIsSample && (
-            <p className={styles.sampleNote}>
-              <SampleTag /> Isi rekomendasi masih contoh, menunggu perumusan otomatis. Strukturnya sudah final.
-            </p>
+          {kebijakanKosong && (
+            <BelumAdaState
+              title="Belum ada tindak lanjut untuk kepala sekolah"
+              text="Rekomendasi tingkat sekolah untuk periode ini belum dirumuskan dan disetujui. Kartunya muncul di sini begitu siap."
+            />
           )}
           {showKebijakanGoals && <KebijakanGoals data={kebijakanData} />}
           {kebijakanLegacy.length > 0 && (

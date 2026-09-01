@@ -1,14 +1,12 @@
 import { useMemo, useState } from "react";
 import SectionHeading from "../../components/SectionHeading";
-import SampleTag from "../../components/SampleTag";
 import FollowupRibbon from "../../components/FollowupRibbon";
 import {
-  KarakterStateBox, AskMascot, ScoreBarList, GoodEmptyState, Donut,
+  KarakterStateBox, BelumAdaState, AskMascot, ScoreBarList, GoodEmptyState, Donut,
   VoiceBento, SourceSwitch, TrendChart, useSummaryTrend,
 } from "./KarakterShared";
 import { StatCardMini, StatCardLandscape, AllGoodBanner, splitByClassify, scrollToId } from "./KarakterViewParts";
 import KebijakanGoals from "./KebijakanGoals";
-import { KEBIJAKAN_YAYASAN } from "./dummyKebijakan";
 import { useKarakterYayasan } from "./useKarakterData";
 import {
   pct, deltaVsPrevious, classifyPencapaian, periodeLabel, aspekIcon,
@@ -88,9 +86,13 @@ export default function YayasanView({ session, periodeId }) {
   // dulu hilang sama sekali (tertimpa sample), sekarang tetap tampil sebagai kartu sederhana.
   const kebijakanReal = (tindakLanjut || []).filter(isKebijakanReady);
   const kebijakanLegacy = (tindakLanjut || []).filter((r) => !isKebijakanReady(r));
-  const kebijakanData = kebijakanReal.length > 0 ? kebijakanReal : KEBIJAKAN_YAYASAN;
-  const kebijakanIsSample = kebijakanReal.length === 0 && kebijakanLegacy.length === 0;
-  const showKebijakanGoals = kebijakanReal.length > 0 || kebijakanIsSample;
+  // Kartu contoh dihapus (keputusan pemilik produk 2026-09-01): kalau tindak lanjut periode
+  // ini belum ada, yang tampil empty-state, BUKAN isi karangan bertanda "CONTOH". Penanda
+  // contohnya memang jujur, tapi kartu yang isinya terbaca seperti rekomendasi sungguhan
+  // tetap gampang dikira temuan nyata begitu orang berhenti membaca penandanya.
+  const kebijakanData = kebijakanReal;
+  const kebijakanKosong = kebijakanReal.length === 0 && kebijakanLegacy.length === 0;
+  const showKebijakanGoals = kebijakanReal.length > 0;
   const singleSekolah = sekolahRows.length === 1 ? sekolahRows[0] : null;
 
   const rataVals = sekolahRows.map((s) => s.rata).filter((v) => v != null);
@@ -345,10 +347,11 @@ export default function YayasanView({ session, periodeId }) {
         </div>
 
         <section className={styles.section}>
-          {kebijakanIsSample && (
-            <p className={styles.sampleNote}>
-              <SampleTag /> Isi rekomendasi masih contoh, menunggu perumusan otomatis. Strukturnya sudah final.
-            </p>
+          {kebijakanKosong && (
+            <BelumAdaState
+              title="Belum ada tindak lanjut untuk yayasan"
+              text="Rekomendasi lintas sekolah untuk periode ini belum dirumuskan dan disetujui. Kartunya muncul di sini begitu siap."
+            />
           )}
           {showKebijakanGoals && <KebijakanGoals data={kebijakanData} who={WHO_YAYASAN} ranges={RANGES_YAYASAN} />}
           {kebijakanLegacy.length > 0 && (
