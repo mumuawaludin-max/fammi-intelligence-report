@@ -72,3 +72,15 @@ mengabaikan baris bulanan, padahal baris bulanan justru angka final bulan itu. U
 berkas verifikasinya persis memeriksa itu (91 dari baris bulanan, bukan 75 dari pekan 3).
 
 Sudah dijalankan di postgres:15 dan postgres:17, keduanya 7 LULUS 0 GAGAL, idempoten.
+
+## Migration keempat: hapus per pekan (20260901100000)
+
+Urutan sama, tambah m4 dan karakter_import_per_pekan_verify.sql.
+
+Yang diperiksa, selain SQL-nya jalan: unggah P1 lalu unggah P2 SAJA dan P1 harus selamat
+(uji nomor 1, inti seluruh migration ini), unggah ulang P1 tidak menyentuh P2, berkas dua
+pekan mengganti dua-duanya, payload TANPA pekan_list tetap menyapu seluruh bulan seperti
+perilaku lama, pekan_list kosong tidak menggandakan data, berkas bulanan tidak berubah
+perilakunya, dan periode lain tidak pernah tersentuh.
+
+Sudah dijalankan di postgres:15 dan postgres:17, keduanya 8 LULUS 0 GAGAL, idempoten.
