@@ -414,10 +414,11 @@ export async function actMiApproval(id, action) {
   return data?.akun || null;
 }
 
-export async function runImportAction({ sekolahId, modul, fileName, parsed, paMode }) {
+export async function runImportAction({ sekolahId, modul, fileName, parsed, paMode, gantiSeluruhBulan }) {
   const periodeId = parsed?.preview?.periodeDetected?.map((p) => p.periode).join(',') || null;
   const IMPORTER = {
-    karakter: importKarakterWorkbook,
+    // Karakter: opsi kedua menentukan cakupan hapus -- per pekan (bawaan) atau seluruh bulan.
+    karakter: (p) => importKarakterWorkbook(p, { gantiSeluruhBulan }),
     sc: importScWorkbook,
     // Perilaku Anak satu-satunya importer yang butuh argumen kedua (mode ulang/baru) -- lihat
     // catatan di paImporter.js.

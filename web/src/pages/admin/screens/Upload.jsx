@@ -115,6 +115,10 @@ export function Upload() {
   // baru (default, aman -- periode lain tidak disentuh) atau memperbaiki periode yang sedang
   // berjalan (destruktif, hapus SELURUH periode sekolah ini). Lihat migration 20260802100000.
   const [paMode, setPaMode] = useState('baru');
+  // Karakter pekanan: bawaannya unggahan cuma mengganti pekan yang ada di berkas, sehingga pekan
+  // lain di bulan yang sama tetap utuh. Dicentang kalau admin memang perlu membuang pekan yang
+  // terlanjur salah masuk.
+  const [gantiSeluruhBulan, setGantiSeluruhBulan] = useState(false);
   const [file, setFile] = useState(null);
   const [parsed, setParsed] = useState(null);
   const [parseError, setParseError] = useState(null);
@@ -165,7 +169,7 @@ export function Upload() {
   function resetFlow() {
     setStep(1); setSekolahId(''); setModul('karakter'); setFile(null);
     setParsed(null); setParseError(null); setPreviewGagal(null); setMiProgress(null); setMiResults(null); setPeriodeSc('');
-    setPaMode('baru');
+    setPaMode('baru'); setGantiSeluruhBulan(false);
     setMiMapping({}); setMiMappingBusy(false);
     setScImported(false); setScProgress(null); setScResults(null);
     setScApproveBusy(false); setScApproveProgress(null); setScApproveResult(null);
@@ -322,7 +326,7 @@ export function Upload() {
         // dilewati sekalipun untuk kemudahan alur upload.
         await handleGenerateScIndividu();
       } else {
-        await runImport({ sekolahId, modul, fileName: file?.name, parsed, paMode });
+        await runImport({ sekolahId, modul, fileName: file?.name, parsed, paMode, gantiSeluruhBulan });
         resetFlow();
       }
     } finally {
@@ -687,6 +691,33 @@ export function Upload() {
                 terlihat sebelum konfirmasi: kalau kelasnya beda, itu tanda kuat dua anak berbeda
                 bernama sama, bukan satu anak yang mengisi dua kali -- dan itu perlu dibetulkan
                 di berkas sumbernya, bukan diputuskan importer. */}
+            {/* Cakupan hapus, cuma relevan untuk berkas pekanan. Bawaannya yang aman: pekan lain
+                di bulan yang sama tidak disentuh, supaya sekolah bisa mengunggah pekan terbaru
+                saja tanpa kehilangan pekan sebelumnya. Centang ini untuk membuang pekan yang
+                terlanjur salah masuk. */}
+            {isKarakter && parsed.preview.adaPekanan && (
+              <div style={{ marginTop: 10, padding: '10px 14px', background: gantiSeluruhBulan ? 'var(--status-warn-bg)' : 'var(--surface-soft)', borderRadius: 10, border: '1px solid var(--line)' }}>
+                <label style={{ display: 'flex', gap: 9, alignItems: 'flex-start', cursor: 'pointer' }}>
+                  <input
+                    type="checkbox"
+                    checked={gantiSeluruhBulan}
+                    onChange={(e) => setGantiSeluruhBulan(e.target.checked)}
+                    style={{ marginTop: 2, flexShrink: 0 }}
+                  />
+                  <span>
+                    <span style={{ fontSize: 12.5, fontWeight: 700, color: gantiSeluruhBulan ? 'var(--status-warn)' : 'var(--ink)' }}>
+                      Ganti seluruh bulan, bukan cuma pekan di berkas ini
+                    </span>
+                    <span style={{ display: 'block', fontSize: 11.5, color: 'var(--ink-2)', marginTop: 4, lineHeight: 1.5 }}>
+                      {gantiSeluruhBulan
+                        ? 'Seluruh pekan di bulan ini akan DIHAPUS lebih dulu, termasuk pekan yang tidak ada di berkas. Pakai ini kalau ada pekan yang terlanjur salah masuk dan perlu dibuang.'
+                        : `Bawaan: cuma pekan yang ada di berkas ini yang diganti (${(parsed.preview.pekanPerPeriode || []).flatMap((p) => p.pekan.filter((n) => n > 0).map((n) => `P${n}`)).join(', ') || '—'}). Pekan lain di bulan yang sama tetap utuh.`}
+                    </span>
+                  </span>
+                </label>
+              </div>
+            )}
+
             {isKarakter && parsed.preview.duplikat?.total > 0 && (
               <div style={{ marginTop: 10, padding: '10px 14px', background: 'var(--status-warn-bg)', borderRadius: 10 }}>
                 <div style={{ fontSize: 12.5, fontWeight: 700, color: 'var(--status-warn)' }}>

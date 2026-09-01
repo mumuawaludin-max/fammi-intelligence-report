@@ -1063,7 +1063,15 @@ export async function simpanKerangkaBaru(sekolahId, kerangkaRows) {
   return { peringatan, aspekBaru, indikatorBaru };
 }
 
-export async function importKarakterWorkbook(parsed) {
+/**
+ * @param parsed hasil parseKarakterWorkbook
+ * @param opsi.gantiSeluruhBulan true = hapus SELURUH pekan tiap periode sebelum menulis (perilaku
+ *   sebelum migration 20260901100000, dipakai kalau admin perlu membuang pekan yang terlanjur
+ *   salah masuk). false (bawaan) = hapus cuma pekan yang ada di berkas, sehingga unggahan pekan
+ *   baru TIDAK menghapus pekan yang sudah tersimpan di bulan yang sama.
+ */
+export async function importKarakterWorkbook(parsed, opsi = {}) {
+  const gantiSeluruhBulan = opsi.gantiSeluruhBulan === true;
   const { skorRows, skorIndikatorRows, pernyataanRows, summaryRows } = parsed.rows;
   const sekolahId = skorRows[0]?.sekolah_id || summaryRows[0]?.sekolah_id;
   if (!sekolahId) return { ok: true, rowsWritten: 0 };
@@ -1108,6 +1116,15 @@ export async function importKarakterWorkbook(parsed) {
     // periode, aspek) yang sama dan ditolak unique lama sebagai duplikat. Upload gagal dengan
     // pesan Postgres mentah yang tidak menyebut pekan sama sekali, dan admin tidak punya
     // petunjuk bahwa yang kurang adalah migration.
+    // Gerbang versi untuk cakupan hapus per pekan. RPC lama MENGABAIKAN pekan_list, jadi
+    // unggahan P2 tetap menghapus P1 tanpa satu pun tanda -- kehilangan diam-diam, bentuk
+    // kegagalan yang paling mahal. Dijaga sama seperti gerbang mode/jenjang/pekan.
+    if (parsed.adaPekanan && !gantiSeluruhBulan && probe.pekan_diganti === undefined) {
+      return {
+        ok: false, rowsWritten: 0,
+        error: 'Berkas ini memuat penilaian pekanan, tapi database masih memakai versi lama fungsi import_karakter_periode yang selalu menghapus SELURUH pekan di bulan itu. Kalau diteruskan, pekan yang sudah tersimpan sebelumnya akan hilang tanpa peringatan. Jalankan dulu migration supabase/migrations/20260901100000_karakter_import_per_pekan.sql di Supabase SQL Editor, lalu ulangi upload berkas ini.',
+      };
+    }
     if (parsed.adaPekanan && probe.pekan === undefined) {
       return {
         ok: false, rowsWritten: 0,
@@ -1129,6 +1146,10 @@ export async function importKarakterWorkbook(parsed) {
     // belum tentu memuat kedua sumber. Tanpa ini, refleksi siswa dari upload sebelumnya bisa
     // tertinggal di periode yang sedang ditimpa.
     const pernyataanSumber = [...new Set(perPeriode.pernyataan.map((r) => r.sumber || 'orangtua'))];
+    // Pekan mana saja yang ada di berkas untuk periode ini. RPC memakainya untuk menghapus
+    // HANYA pekan itu, bukan seluruh bulan -- supaya sekolah yang mengekspor pekan terbaru
+    // saja tidak kehilangan pekan sebelumnya (migration 20260901100000).
+    const pekanList = [...new Set(perPeriode.skor.map((r) => r.pekan ?? 0))].sort((a, b) => a - b);
     const chunks = chunkPayloadRows(perPeriode, CHUNK_ROWS);
 
     for (let i = 0; i < chunks.length; i++) {
@@ -1139,6 +1160,7 @@ export async function importKarakterWorkbook(parsed) {
         periode_id: periodeId,
         mode: i === 0 ? 'ganti' : 'lanjut',
         ...(i === 0 ? { pernyataan_sumber: pernyataanSumber } : null),
+        ...(i === 0 && !gantiSeluruhBulan && pekanList.length > 0 ? { pekan_list: pekanList } : null),
         ...chunks[i],
       };
       const { data, error } = await supabase.functions.invoke('admin-actions', {
