@@ -2,6 +2,126 @@ import { useEffect, useMemo, useState } from "react";
 import { supabase, fetchAllRows } from "../../lib/supabase";
 import { withAspekColor, latestPeriode, indikatorFallbackLabel, resolveAspekList, aspekConfigJenjang, indikatorConfigJenjang, aspekKodeFromRingkasan, aspekLabelFromRingkasan, REFLEKSI_META, REFLEKSI_SUMBER_URUTAN, resolveSummaryKey, pct } from "./karakterMeta";
 
+/**
+ * Susun baris berbentuk karakter_summary dari agregat PER PEKAN.
+ *
+ * Seluruh tampilan Kepala Sekolah membaca `ringkasan`, objek apa adanya dari sheet ringkasan
+ * sekolah. Sheet itu cuma punya angka bulanan, jadi memilih satu pekan berarti tidak ada
+ * ringkasan yang bisa dibaca. Alih-alih merombak setiap komponen supaya menerima bentuk kedua,
+ * di sini disusun objek dengan KUNCI YANG SAMA dari view per pekan. Tampilannya tidak berubah
+ * sebaris pun, dan tidak ada dua jalur render yang harus dirawat berdua.
+ *
+ * Kunci yang ditiru mengikuti kontrak ringkasanAspekValue (mencari kunci berawalan
+ * `${prefix}${aspek_kode}_`) dan parseTop5Pair (memecah teks per baris).
+ *
+ * `pencapaian_guru` SENGAJA tidak diisi. Itu porsi murid yang sudah dinilai, dan porsi butuh
+ * penyebut: berapa murid yang SEHARUSNYA dinilai. Data pekanan cuma tahu berapa yang sudah,
+ * tidak tahu berapa yang seharusnya. Mengarangnya dari jumlah murid yang muncul akan selalu
+ * menghasilkan 100% dan itu klaim yang tidak berdasar; dibiarkan kosong, tampilan menulis "—".
+ */
+function ringkasanDariPekan({ pekanRows, aspekRows, muridRows, periode, pekan }) {
+  const cocok = (r) => r.periode_id === periode && r.pekan === pekan;
+  const rataAspekPrefix = { kelas: "input_guru_", jenjang: "rata_input_guru_", sekolah: "rata_input_guru_" };
+
+  // Aspek per kelas, dipakai baik untuk baris kelas maupun untuk menyusun ulang baris jenjang.
+  const aspekPerKelas = {};
+  (aspekRows || []).filter(cocok).forEach((r) => {
+    (aspekPerKelas[r.kelas_id] ||= []).push(r);
+  });
+
+  const muridPerKelas = {};
+  (muridRows || []).filter(cocok).forEach((r) => {
+    (muridPerKelas[r.kelas_id] ||= []).push(r);
+  });
+
+  /** Dua kolom top5 berpasangan: nama dipisah baris, nilainya juga, urutannya harus sejajar. */
+  const top5 = (list, arah) => {
+    const urut = [...list].sort((a, b) => (arah === "atas" ? b.rata - a.rata : a.rata - b.rata)).slice(0, 5);
+    return {
+      nama: urut.map((m) => m.nama_murid || m.murid_id).join("\n"),
+      nilai: urut.map((m) => `${m.rata}%`).join("\n"),
+    };
+  };
+
+  const barisKelas = (pekanRows || []).filter(cocok).map((r) => {
+    const ringkasan = {
+      jenjang: r.jenjang,
+      total_siswa: r.jumlah_murid,
+      rata_rata_pencapaian_guru: r.rata,
+    };
+    (aspekPerKelas[r.kelas_id] || []).forEach((a) => {
+      ringkasan[`${rataAspekPrefix.kelas}${a.aspek_kode}_pekan`] = a.rata;
+    });
+    const murid = muridPerKelas[r.kelas_id] || [];
+    if (murid.length > 0) {
+      const atas = top5(murid, "atas");
+      const bawah = top5(murid, "bawah");
+      ringkasan.top5_siswa_tertinggi = atas.nama;
+      ringkasan.top5_nilai_siswa_tertinggi = atas.nilai;
+      ringkasan.top5_siswa_terendah = bawah.nama;
+      ringkasan.top5_nilai_siswa_terendah = bawah.nilai;
+    }
+    return { scope: "kelas", scope_id: r.kelas_id, periode_id: periode, ringkasan };
+  });
+
+  /** Rata-rata tertimbang jumlah murid. Rata-rata dari rata-rata kelas akan memberi kelas kecil
+   * bobot yang sama dengan kelas besar. */
+  const tertimbang = (rows) => {
+    const bobot = rows.reduce((s, r) => s + (r.jumlah_murid || 0), 0);
+    if (bobot === 0) return null;
+    return Math.round(rows.reduce((s, r) => s + (r.rata || 0) * (r.jumlah_murid || 0), 0) / bobot);
+  };
+
+  const perJenjang = {};
+  (pekanRows || []).filter(cocok).forEach((r) => { (perJenjang[r.jenjang] ||= []).push(r); });
+  const aspekPerJenjang = {};
+  (aspekRows || []).filter(cocok).forEach((r) => {
+    ((aspekPerJenjang[r.jenjang] ||= {})[r.aspek_kode] ||= []).push(r);
+  });
+
+  const barisJenjang = Object.entries(perJenjang).map(([jenjang, rows]) => {
+    const ringkasan = {
+      jenjang,
+      total_siswa: rows.reduce((s, r) => s + (r.jumlah_murid || 0), 0),
+      rata_pencapaian_guru: tertimbang(rows),
+    };
+    Object.entries(aspekPerJenjang[jenjang] || {}).forEach(([kode, list]) => {
+      ringkasan[`${rataAspekPrefix.jenjang}${kode}_pekan`] = tertimbang(list);
+    });
+    return { scope: "jenjang", scope_id: jenjang, periode_id: periode, ringkasan };
+  });
+
+  const semua = (pekanRows || []).filter(cocok);
+  const ringkasanSekolah = {
+    rata_pencapaian_guru: tertimbang(semua),
+    total_siswa: semua.reduce((s, r) => s + (r.jumlah_murid || 0), 0),
+  };
+
+  // Angka per karakter tingkat sekolah cuma diisi kalau seluruh kelas memakai SATU kerangka
+  // karakter. Di sekolah yang tiap jenjangnya punya kerangka sendiri, "karakter1" Kelas 1 dan
+  // Kelas 6 adalah dua karakter berbeda yang kebetulan menempati kolom yang sama di berkas;
+  // merata-ratakannya jadi satu angka sekolah menghasilkan angka yang tidak menggambarkan apa pun.
+  // Ini alasan yang sama kenapa importer sengaja melewatkan sheet ringkasan sekolah untuk sekolah
+  // bertipe itu.
+  const jenjangUnik = new Set(semua.map((r) => r.jenjang ?? "*"));
+  if (jenjangUnik.size === 1) {
+    const perAspek = {};
+    (aspekRows || []).filter(cocok).forEach((r) => { (perAspek[r.aspek_kode] ||= []).push(r); });
+    Object.entries(perAspek).forEach(([kode, list]) => {
+      ringkasanSekolah[`${rataAspekPrefix.sekolah}${kode}_pekan`] = tertimbang(list);
+    });
+  }
+
+  const barisSekolah = semua.length === 0 ? [] : [{
+    scope: "sekolah",
+    scope_id: null,
+    periode_id: periode,
+    ringkasan: ringkasanSekolah,
+  }];
+
+  return [...barisSekolah, ...barisJenjang, ...barisKelas];
+}
+
 /** Kembalikan { data, error } mentah (bukan array yang errornya sudah dibuang) supaya
  * pemanggil bisa ikut mengecek error-nya, bukan diam-diam dapat daftar aspek kosong. */
 function queryAspekConfig(sekolahId) {
@@ -74,7 +194,7 @@ function hitungSumberRefleksi(pernyataanBySumber, ringkasanList = []) {
  * di-fetch SEKALI penuh (semua periode), lalu diiris ulang di sisi klien tiap periodeId
  * berubah — mirip useKarakterKepsek, supaya filter periode di topbar benar-benar mengubah data.
  */
-export function useKarakterWaliKelas(session, periodeId) {
+export function useKarakterWaliKelas(session, periodeId, pekan = null) {
   const [state, setState] = useState({ loading: true, error: null, raw: null });
   const kelasList = Array.isArray(session.cakupan) ? session.cakupan.filter(Boolean) : [];
   const kelasKey = kelasList.join("|");
@@ -89,7 +209,7 @@ export function useKarakterWaliKelas(session, periodeId) {
       }
       setState((s) => ({ ...s, loading: true, error: null }));
 
-      const [aspekRes, indikatorRes, summaryRes, sekolahSummaryRes, skorRes, skorIndRes, ortuRes, briefingRes, tlRes] = await Promise.all([
+      const [aspekRes, indikatorRes, summaryRes, sekolahSummaryRes, skorRes, skorIndRes, ortuRes, briefingRes, tlRes, skorPekanRes, skorIndPekanRes, pekanAvgRes] = await Promise.all([
         queryAspekConfig(session.school_id),
         queryIndikatorConfig(session.school_id),
         supabase
@@ -146,6 +266,37 @@ export function useKarakterWaliKelas(session, periodeId) {
           .in("scope_id", kelasList)
           .eq("target_role", "wali_kelas")
           .eq("status", "disetujui"),
+        // Skor MENTAH per pekan, dipakai kalau satu pekan dipilih di penyaring header. Tabel
+        // mentah di sini bukan pelanggaran aturan "agregat bulanan wajib lewat view bulanan":
+        // yang diminta memang satu pekan tertentu, bukan angka bulanan. Cakupannya cuma kelas
+        // milik wali kelas ini, jadi volumenya kecil.
+        //
+        // Errornya tidak fatal, sama seperti view pekanan di Kepsek: yang hilang cuma pilihan
+        // pekan, bukan seluruh halaman.
+        fetchAllRows((from, to) => supabase
+          .from("karakter_skor")
+          .select("jenjang, kelas_id, murid_id, nama_murid, periode_id, aspek_kode, skor, pekan")
+          .eq("sekolah_id", session.school_id)
+          .in("kelas_id", kelasList)
+          .gt("pekan", 0)
+          .range(from, to)),
+        fetchAllRows((from, to) => supabase
+          .from("karakter_skor_indikator")
+          .select("jenjang, kelas_id, murid_id, nama_murid, periode_id, aspek_kode, indikator_kode, skor, pekan")
+          .eq("sekolah_id", session.school_id)
+          .in("kelas_id", kelasList)
+          .gt("pekan", 0)
+          .range(from, to)),
+        // Rata-rata kelas per pekan, dihitung di database (view karakter_pekan_avg). Dipakai
+        // untuk kartu hero saat satu pekan dipilih, supaya angkanya tetap datang dari database
+        // seperti angka bulanan yang berasal dari sheet ringkasan.
+        supabase
+          .from("karakter_pekan_avg")
+          .select("kelas_id, periode_id, pekan, jumlah_murid, rata")
+          .eq("sekolah_id", session.school_id)
+          .in("kelas_id", kelasList)
+          .eq("sumber", "guru")
+          .gt("pekan", 0),
       ]);
 
       if (!alive) return;
@@ -168,6 +319,9 @@ export function useKarakterWaliKelas(session, periodeId) {
           ortuRows: ortuRes.data || [],
           briefingRows: briefingRes.data || [],
           tlRows: tlRes.data || [],
+          skorPekanRows: skorPekanRes.data || [],
+          skorIndPekanRows: skorIndPekanRes.data || [],
+          pekanAvgRows: pekanAvgRes.data || [],
         },
       });
     }
@@ -179,7 +333,25 @@ export function useKarakterWaliKelas(session, periodeId) {
 
   const data = useMemo(() => {
     if (!state.raw) return null;
-    const { kelasList: kl, aspek, indikator, summaryRows, sekolahSummaryRows, skorRows, skorIndRows, ortuRows, briefingRows, tlRows } = state.raw;
+    const { kelasList: kl, aspek, indikator, summaryRows, sekolahSummaryRows, skorRows: skorBulananRows, skorIndRows: skorIndBulananRows, ortuRows, briefingRows, tlRows, skorPekanRows, skorIndPekanRows, pekanAvgRows } = state.raw;
+
+    // Satu pekan dipilih DAN pekan itu memang punya skor di kelas ini. Kalau tidak, tampilannya
+    // tetap bulanan; lebih baik menampilkan angka bulan yang benar daripada halaman kosong hanya
+    // karena kelas ini belum dinilai di pekan yang kebetulan sedang dipilih.
+    const pekanAktifWK = pekan != null && (skorPekanRows || []).some(
+      (r) => r.pekan === pekan && (!periodeId || r.periode_id === periodeId)
+    );
+    const skorRows = pekanAktifWK ? (skorPekanRows || []).filter((r) => r.pekan === pekan) : skorBulananRows;
+    const skorIndRows = pekanAktifWK ? (skorIndPekanRows || []).filter((r) => r.pekan === pekan) : skorIndBulananRows;
+    // Rata-rata tertimbang jumlah murid kalau wali kelas memegang lebih dari satu kelas, sejalan
+    // dengan cara view menghitungnya per kelas.
+    const barisPekanAvg = pekanAktifWK
+      ? (pekanAvgRows || []).filter((r) => r.pekan === pekan && (!periodeId || r.periode_id === periodeId))
+      : [];
+    const bobotPekan = barisPekanAvg.reduce((t, r) => t + (r.jumlah_murid || 0), 0);
+    const rataPekanKelas = bobotPekan > 0
+      ? Math.round(barisPekanAvg.reduce((t, r) => t + (r.rata || 0) * (r.jumlah_murid || 0), 0) / bobotPekan)
+      : null;
 
     // availablePeriods dan validasi periodeId TIDAK cuma dari summaryRows -- briefing/tindak
     // lanjut bisa saja sudah disetujui untuk periode yang summary-nya kebetulan belum lengkap
@@ -191,7 +363,7 @@ export function useKarakterWaliKelas(session, periodeId) {
       ...tlRows.map((r) => r.periode_id),
     ]);
     const availablePeriods = Array.from(periodeSet).sort((a, b) => (a > b ? -1 : 1));
-    const periode = periodeId && periodeSet.has(periodeId)
+    const periode = periodeId && (periodeSet.has(periodeId) || skorRows.some((r) => r.periode_id === periodeId))
       ? periodeId
       : (latestPeriode(summaryRows) || latestPeriode(briefingRows) || latestPeriode(tlRows) || latestPeriode(skorRows));
     const sekolahSummary = sekolahSummaryRows.find((r) => r.periode_id === periode) || sekolahSummaryRows[0] || null;
@@ -230,6 +402,14 @@ export function useKarakterWaliKelas(session, periodeId) {
 
     return {
       periode,
+      // Pekan yang benar-benar dipakai, null kalau tampilan sedang bulanan. Angka per murid dan
+      // per indikator ikut pekan ini; ringkasan dari berkas, briefing, tindak lanjut, dan
+      // refleksi orang tua tetap bulanan.
+      pekan: pekanAktifWK ? pekan : null,
+      pekanAktif: pekanAktifWK,
+      // Rata-rata kelas pekan ini, dari database. null saat tampilan bulanan: yang dipakai
+      // tampilan waktu itu tetap angka resmi dari sheet ringkasan.
+      rataPekan: pekanAktifWK ? rataPekanKelas : null,
       availablePeriods,
       kelasList: kl,
       aspek: aspekEffective,
@@ -246,7 +426,7 @@ export function useKarakterWaliKelas(session, periodeId) {
       briefing: briefingRows.find((r) => r.periode_id === periode) || null,
       tindakLanjut: tlRows.filter((r) => r.periode_id === periode),
     };
-  }, [state.raw, periodeId]);
+  }, [state.raw, periodeId, pekan]);
 
   return { loading: state.loading, error: state.error, data };
 }
@@ -257,7 +437,7 @@ export function useKarakterWaliKelas(session, periodeId) {
  * di-fetch SEKALI penuh (semua periode), lalu diiris ulang di sisi klien tiap periodeId
  * berubah — tidak perlu fetch ulang ke Supabase tiap ganti periode.
  */
-export function useKarakterKepsek(session, periodeId) {
+export function useKarakterKepsek(session, periodeId, pekan = null) {
   const [state, setState] = useState({ loading: true, error: null, raw: null });
 
   useEffect(() => {
@@ -267,7 +447,7 @@ export function useKarakterKepsek(session, periodeId) {
     async function run() {
       setState((s) => ({ ...s, loading: true, error: null }));
 
-      const [aspekRes, indikatorRes, summaryRes, briefingRes, tlRes, ortuRes, indikatorKelasRes, indeksRes] = await Promise.all([
+      const [aspekRes, indikatorRes, summaryRes, briefingRes, tlRes, ortuRes, indikatorKelasRes, indeksRes, pekanRes, pekanAspekRes, muridPekanRes, indikatorPekanRes] = await Promise.all([
         queryAspekConfig(sekolahId),
         queryIndikatorConfig(sekolahId),
         supabase
@@ -325,6 +505,36 @@ export function useKarakterKepsek(session, periodeId) {
           .select("periode_id, indeks, jumlah_murid, jumlah_jenjang")
           .eq("sekolah_id", sekolahId)
           .eq("sumber", "guru"),
+        // Empat agregat PER PEKAN (migration 20260901120000). Ditarik selalu, bukan cuma saat
+        // pekan sedang dipilih: semuanya sudah teragregat (bukan baris murid mentah) sehingga
+        // ringan, dan menariknya sekali di sini membuat perpindahan bulan <-> pekan tidak perlu
+        // request ulang.
+        //
+        // pekan > 0 saja: pekan 0 berarti penilaian bulanan, dan itu sudah dilayani jalur bulanan.
+        //
+        // Errornya TIDAK fatal, sama seperti karakter_indikator_kelas_avg. View-nya baru; kalau
+        // frontend tayang sebelum migration jalan, yang hilang cuma penyaring pekan, bukan
+        // seluruh halaman Karakter Kepala Sekolah.
+        fetchAllRows((from, to) => supabase
+          .from("karakter_pekan_avg")
+          .select("jenjang, kelas_id, periode_id, pekan, jumlah_murid, rata")
+          .eq("sekolah_id", sekolahId).eq("sumber", "guru").gt("pekan", 0)
+          .range(from, to)),
+        fetchAllRows((from, to) => supabase
+          .from("karakter_pekan_aspek_avg")
+          .select("jenjang, kelas_id, periode_id, pekan, aspek_kode, jumlah_murid, rata")
+          .eq("sekolah_id", sekolahId).eq("sumber", "guru").gt("pekan", 0)
+          .range(from, to)),
+        fetchAllRows((from, to) => supabase
+          .from("karakter_murid_pekan_avg")
+          .select("kelas_id, periode_id, pekan, murid_id, nama_murid, rata")
+          .eq("sekolah_id", sekolahId).eq("sumber", "guru").gt("pekan", 0)
+          .range(from, to)),
+        fetchAllRows((from, to) => supabase
+          .from("karakter_indikator_kelas_pekan_avg")
+          .select("jenjang, kelas_id, periode_id, pekan, aspek_kode, indikator_kode, skor")
+          .eq("sekolah_id", sekolahId).eq("sumber", "guru").gt("pekan", 0)
+          .range(from, to)),
       ]);
 
       if (!alive) return;
@@ -354,6 +564,10 @@ export function useKarakterKepsek(session, periodeId) {
           // tayang lebih dulu, query-nya gagal, dan menjadikannya fatal berarti seluruh halaman
           // Karakter Kepala Sekolah mati cuma karena satu angka cadangan.
           indeksRows: indeksRes.data || [],
+          pekanRows: pekanRes.data || [],
+          pekanAspekRows: pekanAspekRes.data || [],
+          muridPekanRows: muridPekanRes.data || [],
+          indikatorPekanRows: indikatorPekanRes.data || [],
         },
       });
     }
@@ -364,7 +578,7 @@ export function useKarakterKepsek(session, periodeId) {
 
   const data = useMemo(() => {
     if (!state.raw) return null;
-    const { aspek, indikatorConfigRows, summaryRows, briefingRows, tlRows, ortuRows, indikatorKelasRows, indikatorKelasError, indeksRows } = state.raw;
+    const { aspek, indikatorConfigRows, summaryRows, briefingRows, tlRows, ortuRows, indikatorKelasRows, indikatorKelasError, indeksRows, pekanRows, pekanAspekRows, muridPekanRows, indikatorPekanRows } = state.raw;
 
     // Lihat catatan di useKarakterWaliKelas: periode digabung dari summary + briefing +
     // tindak lanjut, bukan cuma summary.
@@ -374,10 +588,26 @@ export function useKarakterKepsek(session, periodeId) {
       ...tlRows.map((r) => r.periode_id),
     ]);
     const availablePeriods = Array.from(periodeSet).sort((a, b) => (a > b ? -1 : 1));
-    const periode = periodeId && periodeSet.has(periodeId)
+    // Bulan yang punya skor pekanan boleh dipilih walau belum punya baris ringkasan sama sekali.
+    // Berkas pekanan biasanya diunggah lebih dulu daripada sheet ringkasan bulanannya, jadi tanpa
+    // ini memilih pekan di bulan itu terlempar balik ke bulan lain yang kebetulan punya ringkasan.
+    const pekanPeriodeSet = new Set((pekanRows || []).map((r) => r.periode_id));
+    const periode = periodeId && (periodeSet.has(periodeId) || pekanPeriodeSet.has(periodeId))
       ? periodeId
       : (latestPeriode(summaryRows) || latestPeriode(briefingRows) || latestPeriode(tlRows));
-    const atPeriode = summaryRows.filter((r) => r.periode_id === periode);
+
+    // Satu pekan sedang dipilih DAN pekan itu memang punya skor di bulan ini. Pengecekan kedua
+    // bukan formalitas: pilihan pekan bertahan saat berpindah bulan, jadi tanpa ini "Pekan 3" yang
+    // sah di Agustus akan mengosongkan September yang baru terisi sampai Pekan 1.
+    const pekanAktif = pekan != null
+      && (pekanRows || []).some((r) => r.periode_id === periode && r.pekan === pekan);
+
+    // Inti perubahannya cuma di sini. Seluruh tampilan Kepala Sekolah membaca satu daftar baris
+    // berbentuk karakter_summary; saat satu pekan dipilih, daftar itu disusun dari agregat per
+    // pekan alih-alih dari sheet ringkasan bulanan. Tidak ada komponen tampilan yang perlu tahu.
+    const atPeriode = pekanAktif
+      ? ringkasanDariPekan({ pekanRows, aspekRows: pekanAspekRows, muridRows: muridPekanRows, periode, pekan })
+      : summaryRows.filter((r) => r.periode_id === periode);
 
     // Lihat catatan di useKarakterWaliKelas: karakter_aspek_config bisa belum lengkap untuk
     // sekolah ini, jadi dilengkapi dengan kode aspek yang benar-benar ada di ringkasan
@@ -465,8 +695,14 @@ export function useKarakterKepsek(session, periodeId) {
       || indikatorLabelByKey[`*_${aspekKode}_${indikatorKode}`]
       || indikatorFallbackLabel(aspekKode, indikatorKode);
 
+    // Indikator ikut per pekan saat satu pekan dipilih. Kalau tetap memakai angka bulanan, panel
+    // Detail Kelas akan memasang indikator pekan terakhir di bawah judul pekan yang lain.
+    const indikatorSumber = pekanAktif
+      ? (indikatorPekanRows || []).filter((r) => r.pekan === pekan)
+      : indikatorKelasRows;
+
     const indikatorByKelas = {};
-    (indikatorKelasRows || []).forEach((r) => {
+    (indikatorSumber || []).forEach((r) => {
       if (r.periode_id !== periode || r.skor == null) return;
       (indikatorByKelas[kelasKey(r.kelas_id)] ||= []).push({
         label: labelIndikator(r.jenjang, r.aspek_kode, r.indikator_kode),
@@ -476,6 +712,11 @@ export function useKarakterKepsek(session, periodeId) {
 
     return {
       periode,
+      // Pekan yang benar-benar dipakai (null kalau tampilan sedang bulanan). Tampilan memakainya
+      // untuk menandai bagian mana yang tetap bulanan: briefing, tindak lanjut, dan suara orang
+      // tua tidak punya versi pekanan.
+      pekan: pekanAktif ? pekan : null,
+      pekanAktif,
       availablePeriods,
       aspek: aspekEffective,
       indeksSekolah,
@@ -495,7 +736,7 @@ export function useKarakterKepsek(session, periodeId) {
       pernyataanBySumber,
       sumberRefleksi,
     };
-  }, [state.raw, periodeId]);
+  }, [state.raw, periodeId, pekan]);
 
   return { loading: state.loading, error: state.error, data };
 }

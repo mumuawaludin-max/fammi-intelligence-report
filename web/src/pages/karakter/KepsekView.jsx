@@ -139,8 +139,8 @@ function frasaSumberRefleksi(sumberRefleksi = []) {
     .join(" dan ");
 }
 
-export default function KepsekView({ session, periodeId }) {
-  const { loading, error, data } = useKarakterKepsek(session, periodeId);
+export default function KepsekView({ session, periodeId, pekan = null }) {
+  const { loading, error, data } = useKarakterKepsek(session, periodeId, pekan);
   const { points: trendPoints } = useSummaryTrend({
     sekolahId: session.school_id, scope: "sekolah", scopeId: session.school_id,
   });
@@ -165,11 +165,18 @@ export default function KepsekView({ session, periodeId }) {
     setFilterKelas(null);
     setSelectedKelasId(null);
     setKelasTab("semua");
-  }, [periodeId]);
+  }, [periodeId, pekan]);
 
   if (loading || error) return <KarakterStateBox loading={loading} error={error} />;
 
-  const { periode, aspek, aspekUntukJenjang, perJenjang, indeksSekolah, indeksTrend, indikatorByKelas, indikatorError, sekolah, jenjang, kelas, pernyataanBySumber, sumberRefleksi, tindakLanjut } = data;
+  const { periode, pekanAktif, aspek, aspekUntukJenjang, perJenjang, indeksSekolah, indeksTrend, indikatorByKelas, indikatorError, sekolah, jenjang, kelas, pernyataanBySumber, sumberRefleksi, tindakLanjut } = data;
+
+  // Yang punya versi pekanan cuma penilaian guru. Briefing, tindak lanjut, dan refleksi orang tua
+  // dirumuskan per bulan, jadi saat satu pekan dipilih bagian-bagian itu tetap menampilkan angka
+  // bulan berjalan. Dikatakan terang-terangan, bukan dibiarkan pembaca menebak.
+  const catatanPekan = pekanAktif
+    ? `Angka di bagian ini masih ringkasan ${periodeLabel(periode)} penuh. Rincian per pekan baru tersedia untuk penilaian guru.`
+    : null;
 
   // Grafik tren dibatasi ke tahun ajaran periode yang sedang dibuka. Tanpa ini, Oktober 2025
   // tersambung langsung ke Agustus 2026 sebagai satu garis perkembangan, padahal itu dua tahun
@@ -219,11 +226,14 @@ export default function KepsekView({ session, periodeId }) {
   const nilaiRingkasan = pct(ringkasan?.rata_pencapaian_guru ?? ringkasan?.pencapaian_guru);
   const pakaiIndeks = nilaiRingkasan == null && indeksSekolah?.indeks != null;
   const latestValue = nilaiRingkasan ?? (indeksSekolah?.indeks ?? null);
-  const latestLabel = periodeLabel(periode);
+  const latestLabel = pekanAktif ? `Pekan ${pekan} · ${periodeLabel(periode)}` : periodeLabel(periode);
   // Delta dihitung relatif ke periode yang SEDANG DIPILIH, bukan selalu titik terbaru di grafik
   // tren -- kalau periode terpilih ada di jendela tren dan punya titik sebelumnya, hitung selisihnya.
+  // Saat satu pekan dipilih, delta-nya sengaja dikosongkan: angka hero berasal dari pekan itu
+  // sedangkan trendPoints berisi angka bulanan, jadi selisih keduanya membandingkan dua hal
+  // berbeda dan akan terbaca sebagai kenaikan/penurunan yang tidak pernah terjadi.
   const periodeIndexInTrend = trendPoints.findIndex((p) => p.periode === periode);
-  const heroDelta = periodeIndexInTrend > 0 ? deltaVsPrevious(trendPoints.slice(0, periodeIndexInTrend + 1)) : null;
+  const heroDelta = !pekanAktif && periodeIndexInTrend > 0 ? deltaVsPrevious(trendPoints.slice(0, periodeIndexInTrend + 1)) : null;
 
   // Sekolah-wide, TIDAK terpengaruh filter jenjang/kelas di bawah (kartu statistik atas selalu gambaran utuh sekolah).
   const kelasSplitAll = splitByClassify(kelas, (k) => k.ringkasan?.rata_rata_pencapaian_guru);
@@ -595,6 +605,7 @@ export default function KepsekView({ session, periodeId }) {
             Sinyal dari rumah tentang bagaimana karakter anak terlihat di luar sekolah, dan langkah
             sekolah-wide yang mengikutinya untuk memperkuat kepercayaan {frasaSumber}.
           </p>
+          {catatanPekan && <p className={styles.catatanPekan}>{catatanPekan}</p>}
         </div>
 
         <section className={styles.section}>
@@ -627,6 +638,7 @@ export default function KepsekView({ session, periodeId }) {
             layanan, sebagian menyasar citra sekolah di mata {frasaSumber}; yang perlu perhatian
             didahulukan, lalu yang tinggal dipertahankan. Tiap kartu bisa dibuka dan dibagikan ke WhatsApp.
           </p>
+          {catatanPekan && <p className={styles.catatanPekan}>{catatanPekan}</p>}
         </div>
 
         <section className={styles.section}>

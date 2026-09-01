@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { getSession, logoutSupabase, refreshSession, saveSession, clearSession } from "./lib/auth";
 import { useOverviewBriefing } from "./hooks/useOverviewBriefing";
 import { useAvailablePeriods } from "./hooks/useAvailablePeriods";
+import { useAvailablePekan, pekanId, parsePekanId } from "./hooks/useAvailablePekan";
 import LoginPage from "./pages/LoginPage";
 import Header from "./components/Header";
 import NavBar from "./components/NavBar";
@@ -131,6 +132,7 @@ export default function App() {
   const overview = useOverviewBriefing(session);
   const isKepsekShell = isSingleModuleShellPeran(session?.peran);
   const availablePeriods = useAvailablePeriods(session);
+  const availablePekan = useAvailablePekan(session);
 
   // Sesi di sessionStorage bisa sudah basi (token dicabut/kedaluwarsa di server, atau peran
   // /sekolah/cakupan user ini sudah diubah admin sejak login terakhir) tanpa browser tahu --
@@ -217,6 +219,12 @@ export default function App() {
   }
 
   const bulananOptions = availablePeriods.map((id) => ({ id, label: periodeLabel(id) }));
+  // Pilihan mingguan berasal dari pekan yang benar-benar diinput sekolah ini: baru ada P3 berarti
+  // yang muncul cuma P3; begitu P4 masuk, P4 ikut sendiri tanpa perlu diatur.
+  const mingguanOptions = availablePekan.map((p) => ({
+    id: pekanId(p.periode, p.pekan),
+    label: `Pekan ${p.pekan} · ${periodeLabel(p.periode)}`,
+  }));
   const shellModules = (session.modules || []).filter((m) => m !== "overview");
   const modules = isKepsekShell
     ? (shellModules.length ? shellModules : [defaultModuleForPeran(session.peran, session.modules)])
@@ -259,6 +267,7 @@ export default function App() {
         onPeriodChange={setPeriod}
         showPeriod={showPeriodPicker}
         bulananOptions={bulananOptions}
+        mingguanOptions={mingguanOptions}
         inlineNav={isKepsekShell ? (<>{navBar}{scSubNav}</>) : null}
       />
       {!isKepsekShell && navBar}
@@ -286,7 +295,16 @@ export default function App() {
         )}
 
         {activeTab === "karakter" && (
-          <KarakterPage session={session} periodeId={isKepsekShell ? period.period : null} />
+          <KarakterPage
+            session={session}
+            {...(() => {
+              // Periode mingguan disimpan sebagai satu string ("2026-08|P3") supaya bentuk state
+              // tidak berubah, tapi hook Karakter tetap menerima bulan dan pekan terpisah.
+              const raw = isKepsekShell ? period.period : null;
+              const w = parsePekanId(raw);
+              return w ? { periodeId: w.periode, pekan: w.pekan } : { periodeId: raw, pekan: null };
+            })()}
+          />
         )}
 
         {activeTab === "cw" && <CwPage session={session} />}

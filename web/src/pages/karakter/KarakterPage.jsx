@@ -9,14 +9,14 @@ import styles from "./KarakterViews.module.css";
  * (lihat useKarakterData.js): Wali Kelas → kelasnya, Kepala Sekolah →
  * sekolahnya, Yayasan → sekolah-sekolah di bawah yayasan_id-nya.
  */
-export default function KarakterPage({ session, periodeId }) {
+export default function KarakterPage({ session, periodeId, pekan = null }) {
   switch (session.peran) {
     case "WaliKelas":
-      return <WaliKelasView session={session} periodeId={periodeId} />;
+      return <WaliKelasView session={session} periodeId={periodeId} pekan={pekan} />;
     case "KepalaSekolah":
     case "WakilKepalaSekolah":
     case "AdminFammi":
-      return <KepsekView session={session} periodeId={periodeId} />;
+      return <KepsekView session={session} periodeId={periodeId} pekan={pekan} />;
     case "Yayasan":
       return <YayasanView session={session} periodeId={periodeId} />;
     default:

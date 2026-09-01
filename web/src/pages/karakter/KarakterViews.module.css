@@ -1447,3 +1447,17 @@
   line-height: 1.6;
 }
 
+
+/* Catatan kecil di bawah judul kategori saat satu pekan sedang dipilih. Angka pekanan hanya ada
+   untuk penilaian guru; briefing, tindak lanjut, dan refleksi orang tua tetap bulanan. Tanpa
+   penanda ini, pembaca akan mengira seluruh isi halaman sudah menyempit ke pekan itu. */
+.catatanPekan {
+  margin: 10px 0 0;
+  padding: 8px 12px;
+  border-radius: var(--r-12, 12px);
+  background: var(--perhatian-bg, #FAF1DC);
+  color: var(--ink-2);
+  font-size: 12.5px;
+  font-weight: 600;
+  line-height: 1.5;
+}

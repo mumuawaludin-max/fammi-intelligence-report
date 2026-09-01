@@ -70,8 +70,8 @@ function MuridTrendBlock({ sekolahId, muridId }) {
   return <TrendChart points={points} />;
 }
 
-export default function WaliKelasView({ session, periodeId }) {
-  const { loading, error, data } = useKarakterWaliKelas(session, periodeId);
+export default function WaliKelasView({ session, periodeId, pekan = null }) {
+  const { loading, error, data } = useKarakterWaliKelas(session, periodeId, pekan);
   const kelasList = Array.isArray(session.cakupan) ? session.cakupan.filter(Boolean) : [];
   const { points: trendPoints } = useSummaryTrend({
     sekolahId: session.school_id, scope: "kelas", scopeId: kelasList,
@@ -106,7 +106,14 @@ export default function WaliKelasView({ session, periodeId }) {
 
   if (loading || error) return <KarakterStateBox loading={loading} error={error} />;
 
-  const { periode, aspek, indikator, summary, skorIndikator, pernyataanBySumber, sumberRefleksi, tindakLanjut } = data;
+  const { periode, pekanAktif, rataPekan, aspek, indikator, summary, skorIndikator, pernyataanBySumber, sumberRefleksi, tindakLanjut } = data;
+
+  // Yang punya versi pekanan cuma penilaian guru. Briefing, tindak lanjut, dan refleksi orang tua
+  // dirumuskan per bulan, jadi bagian itu tetap menampilkan bulan berjalan walau satu pekan
+  // sedang dipilih. Dikatakan terang-terangan, bukan dibiarkan pembaca menebak.
+  const catatanPekan = pekanAktif
+    ? `Angka di bagian ini masih ringkasan ${periodeLabel(periode)} penuh. Rincian per pekan baru tersedia untuk penilaian guru.`
+    : null;
 
   // Grafik tren dibatasi ke tahun ajaran periode yang sedang dibuka -- lihat catatan yang sama
   // di KepsekView.
@@ -139,10 +146,15 @@ export default function WaliKelasView({ session, periodeId }) {
 
   // Rata-rata kelas resmi dari ringkasan (bukan hitung ulang); multi-kelas dirata-ratakan.
   const kelasRataVals = summary.map((r) => pct(r.ringkasan?.rata_rata_pencapaian_guru)).filter((v) => v != null);
-  const rataKelas = kelasRataVals.length
+  const rataBulanan = kelasRataVals.length
     ? Math.round(kelasRataVals.reduce((s, v) => s + v, 0) / kelasRataVals.length)
     : null;
-  const heroDelta = deltaVsPrevious(trendPoints);
+  // Saat satu pekan dipilih, angka hero datang dari view pekanan, bukan dari ringkasan bulanan.
+  const rataKelas = pekanAktif ? rataPekan : rataBulanan;
+  // Delta sengaja dikosongkan saat pekan dipilih: trendPoints berisi angka bulanan, jadi
+  // selisihnya membandingkan satu pekan dengan satu bulan penuh dan akan terbaca sebagai
+  // kenaikan/penurunan yang tidak pernah terjadi.
+  const heroDelta = pekanAktif ? null : deltaVsPrevious(trendPoints);
 
   const muridSplitAll = splitByClassify(muridList, (m) => m.rata);
   const muridTerbaik = muridList[0] || null;
@@ -225,7 +237,7 @@ export default function WaliKelasView({ session, periodeId }) {
               value={rataKelas != null ? rataKelas : "—"} unit={rataKelas != null ? "%" : ""}
               sub={heroDelta
                 ? `${heroDelta.direction === "up" ? "↑" : heroDelta.direction === "down" ? "↓" : "→"} ${heroDelta.value > 0 ? "+" : ""}${heroDelta.value}pp dari bulan lalu`
-                : `Periode ${periodeLabel(periode) || "ini"}`}
+                : (pekanAktif ? `Pekan ${pekan} · ${periodeLabel(periode) || "ini"}` : `Periode ${periodeLabel(periode) || "ini"}`)}
               subTone={heroDelta ? (heroDelta.direction === "up" ? "aman" : heroDelta.direction === "down" ? "perhatian" : "default") : "default"}
             >
               <TrendModeSwitch value={trenMode} onChange={setTrenMode} adaPekanan={adaPekananTA} />
@@ -427,6 +439,7 @@ export default function WaliKelasView({ session, periodeId }) {
           <p className={styles.megaCategorySub}>
             {narasi.megaSub(kelasList.join(", "))}
           </p>
+          {catatanPekan && <p className={styles.catatanPekan}>{catatanPekan}</p>}
         </div>
 
         <section className={styles.section}>
@@ -450,6 +463,7 @@ export default function WaliKelasView({ session, periodeId }) {
           <p className={styles.megaCategorySub}>
             {narasi.tindakLanjutSub}
           </p>
+          {catatanPekan && <p className={styles.catatanPekan}>{catatanPekan}</p>}
         </div>
 
         <section className={styles.section}>

@@ -17,9 +17,16 @@ import styles from "./PeriodPicker.module.css";
 // Tampilan pekanan sekarang ada di tempat yang benar: penyaring Per bulan / Per pekan pada
 // grafik tren, yang datanya dari karakter_pekan_avg. Tahun ajaran jadi pengelompokan di daftar
 // bulan di bawah, bukan tipe periode tersendiri.
-const PERIOD_TYPES = [
-  { id: "bulanan", label: "Bulanan" },
-];
+// Tipe periode yang BENAR-BENAR punya data. "Mingguan" cuma muncul kalau sekolahnya memang
+// mengisi pekan; "Tahunan" sudah dibuang sejak c7c3a64 dan tidak dihidupkan lagi karena tidak
+// ada agregat setahun di mana pun.
+//
+// Ketiganya dulu diisi daftar CONTOH yang ditulis langsung di kode, tanpa penanda contoh. Itu
+// menghasilkan tiga "Pekan Juni 2026" yang datanya sama persis karena id-nya tidak pernah cocok
+// dengan periode mana pun (terlaporkan dari produksi 2026-08-28). Sekarang setiap pilihan di sini
+// berasal dari baris yang ada di database.
+const TYPE_BULANAN = { id: "bulanan", label: "Bulanan" };
+const TYPE_MINGGUAN = { id: "mingguan", label: "Mingguan" };
 
 /**
  * PeriodPicker — pemilih tipe dan label periode.
@@ -37,13 +44,23 @@ export default function PeriodPicker({
   selectedPeriod = "",
   onSelect = () => {},
   bulananOptions,
+  mingguanOptions,
 }) {
   const [open, setOpen] = useState(false);
   const [activeType, setActiveType] = useState(selectedType);
 
-  const periodsForType = bulananOptions && bulananOptions.length > 0 ? bulananOptions : [];
+  const opsiBulanan = bulananOptions && bulananOptions.length > 0 ? bulananOptions : [];
+  const opsiMingguan = mingguanOptions && mingguanOptions.length > 0 ? mingguanOptions : [];
+  // Tab Mingguan cuma ada kalau sekolahnya memang punya pekan. Tab yang selalu kosong lebih
+  // membingungkan daripada tidak ada tabnya sama sekali.
+  const tipeTersedia = opsiMingguan.length > 0 ? [TYPE_MINGGUAN, TYPE_BULANAN] : [TYPE_BULANAN];
+  const tipeEfektif = tipeTersedia.some((t) => t.id === activeType) ? activeType : TYPE_BULANAN.id;
+  const periodsForType = tipeEfektif === "mingguan" ? opsiMingguan : opsiBulanan;
+  // Label di tombol dicari di KEDUA daftar: periode yang sedang aktif bisa saja mingguan
+  // sementara panel kebetulan sedang menampilkan tab bulanan.
+  const semuaOpsi = [...opsiMingguan, ...opsiBulanan];
 
-  const selectedLabel = periodsForType.find((o) => o.id === selectedPeriod)?.label ?? selectedPeriod;
+  const selectedLabel = semuaOpsi.find((o) => o.id === selectedPeriod)?.label ?? selectedPeriod;
 
   /**
    * Bulan dikelompokkan per tahun ajaran (Juli sampai Juni), pilihan pemilik produk atas
@@ -59,7 +76,9 @@ export default function PeriodPicker({
    */
   const grup = [];
   periodsForType.forEach((opt) => {
-    const ta = tahunAjaran(opt.id);
+    // Id mingguan berbentuk "2026-08|P3"; ambil bagian bulannya dulu supaya pengelompokan tahun
+    // ajaran berlaku untuk kedua tipe, bukan cuma bulanan.
+    const ta = tahunAjaran(String(opt.id).split("|")[0]);
     const kunci = ta || "";
     let g = grup.find((x) => x.ta === kunci);
     if (!g) { g = { ta: kunci, items: [] }; grup.push(g); }
@@ -73,7 +92,7 @@ export default function PeriodPicker({
   }
 
   function handlePeriodClick(periodId) {
-    onSelect({ type: activeType, period: periodId });
+    onSelect({ type: tipeEfektif, period: periodId });
     setOpen(false);
   }
 
@@ -87,7 +106,7 @@ export default function PeriodPicker({
         aria-haspopup="listbox"
       >
         <span className={styles.triggerLabel}>
-          <span className={styles.typeTag}>{selectedType}</span>
+          <span className={styles.typeTag}>{selectedType === "mingguan" ? "Mingguan" : "Bulanan"}</span>
           <span className={styles.periodText}>{selectedLabel || "Pilih periode"}</span>
         </span>
         <svg
@@ -106,10 +125,10 @@ export default function PeriodPicker({
           <div className={styles.panel} role="dialog" aria-label="Pilih periode">
             {/* Tipe periode */}
             <div className={styles.typeRow}>
-              {PERIOD_TYPES.map((t) => (
+              {tipeTersedia.map((t) => (
                 <button
                   key={t.id}
-                  className={`${styles.typeBtn} ${activeType === t.id ? styles.typeBtnActive : ""}`}
+                  className={`${styles.typeBtn} ${tipeEfektif === t.id ? styles.typeBtnActive : ""}`}
                   onClick={() => handleTypeClick(t.id)}
                 >
                   {t.label}

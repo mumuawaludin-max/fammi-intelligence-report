@@ -3,7 +3,7 @@ import styles from "./Header.module.css";
 
 export default function Header({
   userName = "Demo User", role = "Kepala Sekolah", schoolLogoUrl = null, onLogout,
-  period, onPeriodChange, showPeriod = false, inlineNav = null, bulananOptions,
+  period, onPeriodChange, showPeriod = false, inlineNav = null, bulananOptions, mingguanOptions,
 }) {
   return (
     <header className={styles.header}>
@@ -21,6 +21,7 @@ export default function Header({
               selectedPeriod={period.period}
               onSelect={onPeriodChange}
               bulananOptions={bulananOptions}
+              mingguanOptions={mingguanOptions}
             />
           )}
           {showPeriod && <span className={styles.divider} aria-hidden="true" />}
