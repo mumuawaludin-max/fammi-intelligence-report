@@ -84,3 +84,20 @@ perilaku lama, pekan_list kosong tidak menggandakan data, berkas bulanan tidak b
 perilakunya, dan periode lain tidak pernah tersentuh.
 
 Sudah dijalankan di postgres:15 dan postgres:17, keduanya 8 LULUS 0 GAGAL, idempoten.
+
+## Migration kelima: YPT skor 0 = tidak dinilai (20260901110000)
+
+Urutan sama, tambah m5 dan ypt_skor_nol_verify.sql.
+
+Latar belakangnya: sekolah Telkom mengunggah roster lengkap dan murid yang tidak dinilai guru
+tersimpan sebagai skor 0, sehingga keempat matview YPT menyeret rata-rata sekolah ke bawah
+(SMK Telkom Jakarta 2026-05 tampil 16% padahal rekap sekolahnya 80%). Migration ini menyaring
+`skor > 0` di keempat matview.
+
+Yang diperiksa, selain SQL-nya jalan: rata sekolah dan jumlah_siswa hanya dari murid yang
+dinilai, murid nol-semua-aspek keluar dari peringkat siswa ekstrem, murid dinilai sebagian
+dirata-rata dari aspek terisinya saja, rata per aspek dan per indikator ikut bersih, sekolah
+tanpa baris nol tidak berubah, dan batas sekolah pekanan (nol di pekan terakhir membuat murid
+hilang dari bulan itu) dipatok sebagai perilaku yang disadari.
+
+Sudah dijalankan di postgres:15 dan postgres:17, keduanya 7 LULUS 0 GAGAL, idempoten.
