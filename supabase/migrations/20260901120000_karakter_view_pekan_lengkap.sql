@@ -14,6 +14,9 @@
 -- dari berkas) tetap bulanan apa pun pekan yang dipilih. Tampilan WAJIB menyebutkan itu, bukan
 -- membiarkan pembaca mengira semuanya sudah tersaring ke pekan yang dipilih.
 --
+-- Nomornya 120000, bukan 110000: 20260901110000 sudah dipakai migration lain (ypt_skor_nol).
+-- Dua migration bernomor sama membuat urutan jalannya tidak pasti.
+--
 -- Idempoten, aman dijalankan ulang. Jalankan lewat Supabase SQL Editor.
 
 -- ── 1. Indikator per kelas per pekan ───────────────────────────────────────────────────────
