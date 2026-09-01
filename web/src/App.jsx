@@ -118,7 +118,11 @@ export default function App() {
       ? defaultModuleForPeran(peran, initialSession?.modules)
       : "overview";
   });
-  const [period, setPeriod]       = useState({ type: "bulanan", period: "Juni 2026" });
+  // Kosong, BUKAN bulan karangan. Bulan bawaan yang ditulis di kode tampil di header seolah
+  // periode sungguhan, dan untuk sekolah yang daftar periodenya kebetulan kosong ia tidak pernah
+  // tergantikan -- persis yang terjadi ke SD Amal Mulia (header menulis "Juni 2026" padahal
+  // datanya Agustus 2026). Diisi periode terbaru yang nyata oleh effect di bawah.
+  const [period, setPeriod]       = useState({ type: "bulanan", period: "" });
   const [loginNotice, setLoginNotice] = useState("");
   // Sub-tab School Culture (Dashboard/Laporan Individu) -- diangkat ke sini (bukan state
   // internal ScPage.jsx) supaya bisa dirender menyatu di baris Header yang sama dengan nav

@@ -34,7 +34,7 @@ const PERIOD_TYPES = [
  */
 export default function PeriodPicker({
   selectedType = "bulanan",
-  selectedPeriod = "Juni 2026",
+  selectedPeriod = "",
   onSelect = () => {},
   bulananOptions,
 }) {
@@ -88,7 +88,7 @@ export default function PeriodPicker({
       >
         <span className={styles.triggerLabel}>
           <span className={styles.typeTag}>{selectedType}</span>
-          <span className={styles.periodText}>{selectedLabel}</span>
+          <span className={styles.periodText}>{selectedLabel || "Pilih periode"}</span>
         </span>
         <svg
           className={`${styles.chevron} ${open ? styles.chevronOpen : ""}`}
