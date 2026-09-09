@@ -19,7 +19,7 @@ export default function StatTile({ label, value, unit, sub, tone = "default", co
       {sub && <div className={styles.sub}>{sub}</div>}
       {delta && (
         <div className={`${styles.deltaPill} ${styles[`delta${delta.direction === "up" ? "Up" : delta.direction === "down" ? "Down" : "Flat"}`]}`}>
-          {DELTA_ARROW[delta.direction] || DELTA_ARROW.flat} {delta.value > 0 ? "+" : ""}{delta.value}pp vs bulan lalu
+          {DELTA_ARROW[delta.direction] || DELTA_ARROW.flat} {delta.value > 0 ? "+" : ""}{delta.value}% vs bulan lalu
         </div>
       )}
     </div>

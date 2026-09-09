@@ -97,6 +97,14 @@
   --status-alert:     #D6455A;
   --status-alert-bg:  #FBE7EA;
 
+  /* ---- Status: Berkembang ----
+     Pita tengah bar pencapaian di laporan per anak modul Karakter (50-79). Keputusan pemilik
+     produk 2026-09-09: pita tengah di laporan itu biru, bukan kuning "perlu perhatian".
+     Ketebalannya sengaja disamakan dengan hijau dan merah di atas supaya tiga bar sebelahan
+     terbaca satu keluarga. Bukan pengganti --status-warn: kuning tetap dipakai di tempat lain. */
+  --status-berkembang:     #2E6BD6;
+  --status-berkembang-bg:  #E7EEFA;
+
   /* ---- CW (Culture & Wellbeing): token khusus modul ini, terpisah dari status 3-tingkat di
      atas per keputusan docs/cw-module-design-spec.md bagian 2. Nilai hex masih proposal,
      belum sign-off final pemilik produk -- gampang diganti karena cuma dipakai lewat token ini. ---- */

@@ -4,11 +4,12 @@ import {
   KarakterStateBox, BelumAdaState, AskMascot, AspekBarList, ScoreBarList, GoodEmptyState, Donut,
   VoiceBento, SourceSwitch, TrendChart, TrendModeSwitch, useSummaryTrend, useKarakterPekanTrend, labelTitikPekan,
 } from "./KarakterShared";
-import { StatCardMini, StatCardLandscape, AllGoodBanner, splitByClassify, scrollToId } from "./KarakterViewParts";
+import { StatCardMini, StatCardLandscape, AllGoodBanner, SiswaKelasList, splitByClassify, scrollToId } from "./KarakterViewParts";
 import KebijakanGoals from "./KebijakanGoals";
 import DetailDialog from "./DetailDialog";
+import MuridDetailPanel from "./MuridDetailPanel";
 import FollowupRibbon from "../../components/FollowupRibbon";
-import { useKarakterKepsek, kelasKey } from "./useKarakterData";
+import { useKarakterKepsek, useKarakterKelasMurid, kelasKey } from "./useKarakterData";
 import {
   pct, ringkasanAspekValue, parseTop5Pair, parseTop5Indikator, deltaVsPrevious,
   classifyPencapaian, periodeLabel, aspekIcon, avgAspek, persen, isKebijakanReady, SECTION_ICON,
@@ -152,6 +153,7 @@ export default function KepsekView({ session, periodeId, pekan = null }) {
   const [filterKelas, setFilterKelas] = useState(null);
   const [kelasTab, setKelasTab] = useState("semua");
   const [selectedKelasId, setSelectedKelasId] = useState(null);
+  const [selectedMuridId, setSelectedMuridId] = useState(null);
   const [selectedJenjangDialog, setSelectedJenjangDialog] = useState(null);
   // Sumber refleksi dipilih lewat SourceSwitch di section Suara. null di awal, nilai efektif
   // dihitung saat render (sumberEfektif di bawah) supaya selalu jatuh ke elemen pertama
@@ -164,12 +166,31 @@ export default function KepsekView({ session, periodeId, pekan = null }) {
     setFilterJenjang(null);
     setFilterKelas(null);
     setSelectedKelasId(null);
+    setSelectedMuridId(null);
     setKelasTab("semua");
   }, [periodeId, pekan]);
 
+  // Skor per murid kelas yang sedang dibuka. Ditarik terpisah dari hook utama (lihat catatannya
+  // di useKarakterKelasMurid): halaman ini mencakup seluruh sekolah, dan baris indikator setiap
+  // murid sekaligus terlalu besar untuk ditarik di muka.
+  const muridKelas = useKarakterKelasMurid({
+    sekolahId: session.school_id,
+    kelasId: selectedKelasId,
+    periode: data?.periode || null,
+    pekan: data?.pekanAktif ? pekan : null,
+  });
+
   if (loading || error) return <KarakterStateBox loading={loading} error={error} />;
 
-  const { periode, pekanAktif, aspek, aspekUntukJenjang, perJenjang, indeksSekolah, indeksTrend, indikatorByKelas, indikatorError, sekolah, jenjang, kelas, pernyataanBySumber, sumberRefleksi, tindakLanjut } = data;
+  const { periode, pekanAktif, aspek, aspekUntukJenjang, perJenjang, indeksSekolah, indeksTrend, indikatorByKelas, labelIndikator, indikatorError, sekolah, jenjang, kelas, pernyataanBySumber, sumberRefleksi, tindakLanjut } = data;
+
+  // Anak yang sedang dibuka di lapis ketiga (sekolah → kelas → anak). Sengaja dicari di daftar
+  // murid kelas yang SEDANG dimuat: begitu kepala sekolah pindah kelas, daftarnya berganti dan
+  // panel anak menutup sendiri, tanpa perlu effect yang mereset pilihan.
+  const activeMurid = muridKelas.muridList.find((m) => m.murid_id === selectedMuridId) || null;
+  const skorIndikatorMurid = activeMurid
+    ? muridKelas.skorIndikator.filter((r) => r.murid_id === activeMurid.murid_id)
+    : [];
 
   // Yang punya versi pekanan cuma penilaian guru. Briefing, tindak lanjut, dan refleksi orang tua
   // dirumuskan per bulan, jadi saat satu pekan dipilih bagian-bagian itu tetap menampilkan angka
@@ -290,7 +311,7 @@ export default function KepsekView({ session, periodeId, pekan = null }) {
             icon="📈" label={pakaiIndeks ? "Indeks Karakter Sekolah" : "Rata-rata Perkembangan Karakter Sekolah"}
             value={latestValue != null ? latestValue : "—"} unit={latestValue != null ? "%" : ""}
             sub={heroDelta
-              ? `${heroDelta.direction === "up" ? "↑" : heroDelta.direction === "down" ? "↓" : "→"} ${heroDelta.value > 0 ? "+" : ""}${heroDelta.value}pp dari bulan lalu`
+              ? `${heroDelta.direction === "up" ? "↑" : heroDelta.direction === "down" ? "↓" : "→"} ${heroDelta.value > 0 ? "+" : ""}${heroDelta.value}% dari bulan lalu`
               : `Periode ${latestLabel || "ini"}`}
             subTone={heroDelta ? (heroDelta.direction === "up" ? "aman" : heroDelta.direction === "down" ? "perhatian" : "default") : "default"}
           >
@@ -426,7 +447,32 @@ export default function KepsekView({ session, periodeId, pekan = null }) {
             </div>
 
             <div className={styles.masterDetailPanel}>
-              {activeKelasRow ? (
+              {activeKelasRow && activeMurid ? (
+                <>
+                  {/* Lapis 3: satu anak. Isinya komponen yang sama persis dengan panel per anak
+                      milik Wali Kelas, bukan tampilan kembar. */}
+                  <div className={styles.breadcrumbRow}>
+                    <button type="button" className={styles.breadcrumbBack} onClick={() => setSelectedMuridId(null)}>
+                      ← Kembali ke {activeKelasRow.scope_id}
+                    </button>
+                    <span className={styles.breadcrumbTrail}>
+                      Sekolah › {activeKelasRow.scope_id} › {activeMurid.nama}
+                    </span>
+                  </div>
+                  <MuridDetailPanel
+                    sekolahId={session.school_id}
+                    murid={activeMurid}
+                    aspek={aspekUntukJenjang(activeMurid.jenjang)}
+                    skorIndikatorRows={skorIndikatorMurid}
+                    labelIndikator={(r) => labelIndikator(r.jenjang, r.aspek_kode, r.indikator_kode)}
+                    pernyataanBySumber={pernyataanBySumber}
+                    sumberRefleksi={sumberRefleksi}
+                    pekanAktif={pekanAktif}
+                    pekan={pekan}
+                    periode={periode}
+                  />
+                </>
+              ) : activeKelasRow ? (
                 <>
                   <div className={styles.masterDetailHeader}>
                     <span className={styles.eyebrow}>Detail Kelas</span>
@@ -584,6 +630,12 @@ export default function KepsekView({ session, periodeId, pekan = null }) {
                       </div>
                     );
                   })()}
+
+                  {/* Lapis 2: daftar siswa kelas ini. Klik satu nama untuk turun ke panel anak. */}
+                  <section style={{ marginTop: 22 }}>
+                    <p className={styles.dialogSectionTitle}>👥 Siswa kelas ini</p>
+                    <SiswaKelasList state={muridKelas} onSelect={setSelectedMuridId} />
+                  </section>
                 </>
               ) : (
                 <p className={styles.emptyNote}>Pilih kelas di daftar sebelah kiri.</p>

@@ -140,6 +140,123 @@ export function kelasKey(nama) {
   return String(nama || "").trim().replace(/\s+/g, " ").toLowerCase();
 }
 
+/**
+ * Satu baris per murid dari baris skor per aspek: skorByAspek untuk panel detail, rata untuk
+ * daftar dan pemetaan baik/perlu perhatian. Dipakai Wali Kelas dan Kepala Sekolah supaya
+ * angkanya tidak mungkin berbeda antar peran.
+ *
+ * Skor 0 tetap disimpan apa adanya di skorByAspek (tampilan yang memutuskan menyebutnya "belum
+ * dinilai"), tapi TIDAK ikut rata-rata: 0 berarti guru tidak menilai murid itu, bukan nilai nol
+ * (CLAUDE.md butir 9). Ikut menghitungnya membuat anak yang baru dinilai separuh karakternya
+ * terlihat jauh lebih rendah daripada keadaan sebenarnya.
+ */
+export function bangunMuridList(rows) {
+  const byMurid = {};
+  (rows || []).forEach((r) => {
+    if (!byMurid[r.murid_id]) {
+      byMurid[r.murid_id] = {
+        murid_id: r.murid_id, nama: r.nama_murid, kelas_id: r.kelas_id,
+        jenjang: r.jenjang || null, skorByAspek: {}, sum: 0, n: 0,
+      };
+    }
+    byMurid[r.murid_id].skorByAspek[r.aspek_kode] = r.skor;
+    if (r.skor != null && r.skor !== 0) { byMurid[r.murid_id].sum += r.skor; byMurid[r.murid_id].n += 1; }
+  });
+  return Object.values(byMurid)
+    .map((m) => ({ ...m, rata: m.n ? Math.round(m.sum / m.n) : null }))
+    .sort((a, b) => (b.rata ?? -1) - (a.rata ?? -1));
+}
+
+/**
+ * Skor per murid SATU KELAS pada satu periode, ditarik saat kelas itu dibuka di halaman Kepala
+ * Sekolah. Sengaja tidak ikut hook utama: halaman Kepala Sekolah mencakup seluruh sekolah, dan
+ * menarik baris indikator setiap murid setiap periode sekaligus berarti ratusan ribu baris untuk
+ * sekolah menengah-besar. Per kelas per periode cuma ratusan.
+ *
+ * Saat satu pekan dipilih, sumbernya tabel mentah karakter_skor/karakter_skor_indikator dengan
+ * saringan pekan; kalau tidak, view bulanan (yang memilih pekan terakhir). Pola yang sama dengan
+ * useKarakterWaliKelas, supaya angka satu murid tidak berubah cuma karena dibuka dari peran lain.
+ */
+export function useKarakterKelasMurid({ sekolahId, kelasId, periode, pekan = null }) {
+  const [state, setState] = useState({ loading: false, error: null, muridList: [], skorIndikator: [] });
+
+  useEffect(() => {
+    let alive = true;
+
+    const tabelSkor = pekan == null ? "karakter_skor_bulanan" : "karakter_skor";
+    const tabelIndikator = pekan == null ? "karakter_skor_indikator_bulanan" : "karakter_skor_indikator";
+    const saring = (q) => (pekan == null ? q : q.eq("pekan", pekan));
+
+    async function run() {
+      // Tidak ada kelas yang dibuka: kosongkan, jangan biarkan sisa kelas sebelumnya menempel.
+      if (!sekolahId || !kelasId || !periode) {
+        setState({ loading: false, error: null, muridList: [], skorIndikator: [] });
+        return;
+      }
+      setState({ loading: true, error: null, muridList: [], skorIndikator: [] });
+
+      const [skorRes, indRes] = await Promise.all([
+        fetchAllRows((from, to) => saring(supabase
+          .from(tabelSkor)
+          .select("jenjang, kelas_id, murid_id, nama_murid, periode_id, aspek_kode, skor, pekan")
+          .eq("sekolah_id", sekolahId)
+          .eq("periode_id", periode)
+          .eq("kelas_id", kelasId)).range(from, to)),
+        fetchAllRows((from, to) => saring(supabase
+          .from(tabelIndikator)
+          .select("jenjang, kelas_id, murid_id, periode_id, aspek_kode, indikator_kode, skor, pekan")
+          .eq("sekolah_id", sekolahId)
+          .eq("periode_id", periode)
+          .eq("kelas_id", kelasId)).range(from, to)),
+      ]);
+      if (!alive) return;
+
+      const err = skorRes.error || indRes.error;
+      if (err) { setState({ loading: false, error: err.message, muridList: [], skorIndikator: [] }); return; }
+
+      let skorRows = skorRes.data || [];
+      let indRows = indRes.data || [];
+
+      // Cadangan untuk selisih penulisan nama kelas. Nama kelas yang dipilih di panel berasal
+      // dari scope_id karakter_summary (kolom "kelas" sheet summary_kelas), sedangkan baris skor
+      // memakai kolom "kelas" sheet detail -- dua kolom di dua sheet, jadi beda spasi atau
+      // kapitalisasi sudah cukup membuat kecocokan persis gagal. Kasus yang sama sudah terbukti
+      // pada indikator per kelas (lihat kelasKey). Kalau kecocokan persis kosong, ambil periode
+      // ini satu sekolah lalu cocokkan dengan kunci yang dinormalkan.
+      if (skorRows.length === 0) {
+        const [skorAllRes, indAllRes] = await Promise.all([
+          fetchAllRows((from, to) => saring(supabase
+            .from(tabelSkor)
+            .select("jenjang, kelas_id, murid_id, nama_murid, periode_id, aspek_kode, skor, pekan")
+            .eq("sekolah_id", sekolahId)
+            .eq("periode_id", periode)).range(from, to)),
+          fetchAllRows((from, to) => saring(supabase
+            .from(tabelIndikator)
+            .select("jenjang, kelas_id, murid_id, periode_id, aspek_kode, indikator_kode, skor, pekan")
+            .eq("sekolah_id", sekolahId)
+            .eq("periode_id", periode)).range(from, to)),
+        ]);
+        if (!alive) return;
+        const kunci = kelasKey(kelasId);
+        skorRows = (skorAllRes.data || []).filter((r) => kelasKey(r.kelas_id) === kunci);
+        indRows = (indAllRes.data || []).filter((r) => kelasKey(r.kelas_id) === kunci);
+      }
+
+      setState({
+        loading: false,
+        error: null,
+        muridList: bangunMuridList(skorRows),
+        skorIndikator: indRows,
+      });
+    }
+
+    run();
+    return () => { alive = false; };
+  }, [sekolahId, kelasId, periode, pekan]);
+
+  return state;
+}
+
 function queryIndikatorConfig(sekolahId) {
   return supabase
     .from("karakter_indikator_config")
@@ -725,6 +842,10 @@ export function useKarakterKepsek(session, periodeId, pekan = null) {
       aspekUntukJenjang,
       perJenjang,
       indikatorByKelas,
+      // Dipakai panel detail per anak, yang baris indikatornya ditarik terpisah per kelas dan
+      // karena itu belum berlabel. Kuncinya per (jenjang, aspek, indikator), sama dengan yang
+      // menamai indikator per kelas di atas.
+      labelIndikator,
       indikatorError: indikatorKelasError,
       sekolah: sekolahRow,
       jenjang: atPeriode.filter((r) => r.scope === "jenjang"),

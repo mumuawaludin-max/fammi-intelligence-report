@@ -1,4 +1,4 @@
-import { KARAKTER_PENCAPAIAN_BAIK, KARAKTER_BAR_TONE_CUTOFF } from "../../lib/cutoffs";
+import { KARAKTER_PENCAPAIAN_BAIK, KARAKTER_BAR_TONE_CUTOFF, KARAKTER_BAR_INDIVIDU_CUTOFF } from "../../lib/cutoffs";
 
 // Warna spoke aspek karakter, dipetakan dari token --dv-1..--dv-6 (tokens.css).
 // Aspek sendiri (label, urutan) datang dari tabel karakter_aspek_config, bukan hardcode di sini,
@@ -342,6 +342,67 @@ export function classifyBarTone(value) {
   if (v >= KARAKTER_BAR_TONE_CUTOFF.aman) return "aman";
   if (v >= KARAKTER_BAR_TONE_CUTOFF.perhatian) return "perhatian";
   return "waspada";
+}
+
+/**
+ * Warna bar di laporan per anak: hijau / biru / merah, plus null untuk "belum dinilai".
+ *
+ * Skor 0 sengaja dianggap BELUM DINILAI, bukan nilai nol. Di modul Karakter, 0 berarti guru
+ * tidak menilai murid itu (lihat CLAUDE.md butir 9), jadi menggambarnya sebagai bar merah 0%
+ * membuat anak yang belum dinilai terbaca gagal total. Keputusan pemilik produk 2026-09-09:
+ * baris seperti itu tampil abu-abu bertuliskan "Belum dinilai", tanpa persen dan tanpa bintang.
+ *
+ * Ini SEMATA soal tampilan baris per anak. Tidak ada agregat yang ikut berubah karenanya;
+ * saringan skor > 0 di matview YPT tetap satu-satunya tempat angka benar-benar dibuang.
+ */
+export function classifyBarIndividu(value) {
+  const v = pct(value);
+  if (v === null || v === 0) return null;
+  if (v >= KARAKTER_BAR_INDIVIDU_CUTOFF.hijau) return "hijau";
+  if (v >= KARAKTER_BAR_INDIVIDU_CUTOFF.biru) return "biru";
+  return "merah";
+}
+
+/** Bintang cuma untuk pita hijau (80 ke atas). Di bawah itu tidak ada bintang sama sekali,
+ * bukan bintang redup: keputusan pemilik produk 2026-09-09. */
+export function berbintang(value) {
+  return classifyBarIndividu(value) === "hijau";
+}
+
+/**
+ * Berapa bintang yang dikumpulkan satu anak sepanjang periode yang sedang dibuka.
+ *
+ * Satu bintang = satu karakter yang mencapai 80% pada SATU KALI penilaian. Di sekolah yang
+ * menilai pekanan, karakter yang sama bisa menghasilkan bintang di beberapa pekan dan semuanya
+ * dijumlahkan; itu memang maksudnya (keputusan pemilik produk 2026-09-09: "di-SUM-kan saja
+ * bintangnya dapat berapa selama periode tersebut"). Karena itu perhitungannya memakai baris
+ * mentah karakter_skor, bukan view bulanan yang cuma menyimpan pekan terakhir.
+ *
+ * Aturannya:
+ * - satu pekan sedang dipilih  → hitung pekan itu saja;
+ * - sekolah pekanan, tampilan bulanan → jumlahkan seluruh pekan di periode itu;
+ * - sekolah bulanan (pekan 0)  → hitung baris periode itu, satu baris per karakter.
+ *
+ * Skor 0 tidak pernah ikut, baik sebagai bintang maupun sebagai penyebut "dinilai": 0 berarti
+ * guru tidak menilai (CLAUDE.md butir 9).
+ *
+ * `fallback` dikembalikan apa adanya kalau tidak ada baris yang bisa dihitung, supaya pemanggil
+ * bisa memakai angka yang sudah ada di layar alih-alih menampilkan nol yang keliru.
+ */
+export function hitungBintang({ rows = [], pekan = null, fallback = { bintang: 0, dinilai: 0, jumlahPekan: 0 } }) {
+  const pekanRows = rows.filter((r) => r.pekan > 0);
+  let dipakai;
+  if (pekan != null) dipakai = pekanRows.filter((r) => r.pekan === pekan);
+  else if (pekanRows.length > 0) dipakai = pekanRows;
+  else dipakai = rows;
+
+  if (dipakai.length === 0) return fallback;
+
+  return {
+    bintang: dipakai.filter((r) => berbintang(r.skor)).length,
+    dinilai: dipakai.filter((r) => classifyBarIndividu(r.skor)).length,
+    jumlahPekan: new Set(dipakai.filter((r) => r.pekan > 0).map((r) => r.pekan)).size,
+  };
 }
 
 /**

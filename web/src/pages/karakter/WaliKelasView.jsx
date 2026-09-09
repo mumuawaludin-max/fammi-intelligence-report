@@ -2,19 +2,19 @@ import { useMemo, useState } from "react";
 import SectionHeading from "../../components/SectionHeading";
 import FollowupRibbon from "../../components/FollowupRibbon";
 import {
-  KarakterStateBox, BelumAdaState, AskMascot, ScoreBarList, GoodEmptyState,
-  SourceSwitch, VoiceBento, ReflectionBlock, TrendChart, TrendModeSwitch, useSummaryTrend, useMuridTrend,
+  KarakterStateBox, BelumAdaState, AskMascot,
+  SourceSwitch, VoiceBento, TrendChart, TrendModeSwitch, useSummaryTrend,
   useKarakterPekanTrend, labelTitikPekan,
 } from "./KarakterShared";
 import { StatCardMini, StatCardLandscape, AllGoodBanner, splitByClassify, scrollToId } from "./KarakterViewParts";
 import KebijakanGoals from "./KebijakanGoals";
-import { useKarakterWaliKelas } from "./useKarakterData";
+import MuridDetailPanel from "./MuridDetailPanel";
+import { useKarakterWaliKelas, bangunMuridList } from "./useKarakterData";
 import {
-  pct, deltaVsPrevious, classifyPencapaian, periodeLabel, aspekIcon,
-  extractPlainText, isBlankEssay, matchedCategoryTags, isKebijakanReady, SECTION_ICON,
+  pct, deltaVsPrevious, classifyPencapaian, periodeLabel,
+  isKebijakanReady, SECTION_ICON,
   indikatorFallbackLabel, judulSectionSuara, titikSetahunAjaran,
 } from "./karakterMeta";
-import { KARAKTER_BAR_TONE_CUTOFF } from "../../lib/cutoffs";
 import styles from "./KarakterViews.module.css";
 
 const WHO_WALIKELAS = { short: "untuk Wali Kelas", long: "untuk Wali Kelas & Kepala Sekolah" };
@@ -53,23 +53,6 @@ function narasiSumber(sumberRefleksi) {
   };
 }
 
-/** Judul dan teks kosong blok refleksi per murid saat cuma satu sumber tersedia (tanpa saklar,
- * tanpa badge). Nilai default (bukan "siswa") disalin persis dari teks lama. */
-function judulRefleksiTunggal(sumber) {
-  return sumber === "siswa" ? "💬 Refleksi siswa anak ini" : "💬 Refleksi orang tua anak ini";
-}
-function emptyRefleksiTunggal(sumber) {
-  return sumber === "siswa"
-    ? "Siswa ini belum menulis refleksi pada periode ini."
-    : "Orang tua anak ini belum menulis refleksi pada periode ini.";
-}
-
-/** Tren rata-rata satu anak antar periode; dipisah jadi komponen supaya hook-nya per murid terpilih. */
-function MuridTrendBlock({ sekolahId, muridId }) {
-  const { points } = useMuridTrend(sekolahId, muridId);
-  return <TrendChart points={points} />;
-}
-
 export default function WaliKelasView({ session, periodeId, pekan = null }) {
   const { loading, error, data } = useKarakterWaliKelas(session, periodeId, pekan);
   const kelasList = Array.isArray(session.cakupan) ? session.cakupan.filter(Boolean) : [];
@@ -88,21 +71,10 @@ export default function WaliKelasView({ session, periodeId, pekan = null }) {
   // sumber pilihan sebelumnya sudah tidak ada di periode baru, otomatis jatuh ke sumber pertama.
   const [sumberAktif, setSumberAktif] = useState(null);
 
-  // Listing progres seluruh murid: gabungkan skor per aspek jadi satu baris per anak.
-  const muridList = useMemo(() => {
-    if (!data) return [];
-    const byMurid = {};
-    data.skor.forEach((r) => {
-      if (!byMurid[r.murid_id]) {
-        byMurid[r.murid_id] = { murid_id: r.murid_id, nama: r.nama_murid, kelas_id: r.kelas_id, skorByAspek: {}, sum: 0, n: 0 };
-      }
-      byMurid[r.murid_id].skorByAspek[r.aspek_kode] = r.skor;
-      if (r.skor != null) { byMurid[r.murid_id].sum += r.skor; byMurid[r.murid_id].n += 1; }
-    });
-    return Object.values(byMurid)
-      .map((m) => ({ ...m, rata: m.n ? Math.round(m.sum / m.n) : null }))
-      .sort((a, b) => (b.rata ?? -1) - (a.rata ?? -1));
-  }, [data]);
+  // Listing progres seluruh murid: gabungkan skor per aspek jadi satu baris per anak. Pakai
+  // helper bersama, sama dengan yang dipakai daftar siswa di halaman Kepala Sekolah, supaya
+  // angka satu anak tidak berbeda cuma karena dibuka dari peran yang lain.
+  const muridList = useMemo(() => (data ? bangunMuridList(data.skor) : []), [data]);
 
   if (loading || error) return <KarakterStateBox loading={loading} error={error} />;
 
@@ -169,45 +141,13 @@ export default function WaliKelasView({ session, periodeId, pekan = null }) {
     muridFiltered;
   const activeMurid = muridTabRows.find((m) => m.murid_id === selectedMuridId) || muridTabRows[0] || null;
 
-  // Detail per anak: refleksi tiap sumber (orang tua/siswa) dicari SENDIRI-SENDIRI dari
-  // pernyataanBySumber, bukan lewat .find() atas satu array gabungan -- kalau digabung dulu,
-  // baris siswa bisa terambil untuk slot yang dilabeli orang tua begitu ada dua sumber sekaligus.
-  const refleksiMuridBySumber = activeMurid
-    ? sumberRefleksi.map((sumber) => ({
-        sumber,
-        row: (pernyataanBySumber[sumber] || []).find((p) => p.murid_id === activeMurid.murid_id) || null,
-      }))
+  // Baris indikator milik anak yang sedang dibuka; pengelompokan ke karakter induknya dikerjakan
+  // MuridDetailPanel, yang dipakai bersama dengan tampilan Kepala Sekolah.
+  const activeSkorIndikator = activeMurid
+    ? skorIndikator.filter((r) => r.murid_id === activeMurid.murid_id)
     : [];
-  // Sumber tunggal (tanpa saklar): dipakai kutipan singkat di bawah -- sama seperti sebelumnya,
-  // yang selalu merujuk satu-satunya sumber yang ada saat itu (dulu selalu orang tua).
-  const sumberTunggal = sumberRefleksi.length === 1 ? sumberRefleksi[0] : null;
-  const refleksiTunggal = sumberTunggal
-    ? refleksiMuridBySumber.find((b) => b.sumber === sumberTunggal)?.row || null
-    : null;
-  const activeIndikator = activeMurid
-    ? skorIndikator
-        .filter((r) => r.murid_id === activeMurid.murid_id)
-        .map((r) => ({
-          label: indikatorLabel[`${r.aspek_kode}_${r.indikator_kode}`] || indikatorFallbackLabel(r.aspek_kode, r.indikator_kode),
-          value: pct(r.skor),
-        }))
-        .filter((r) => r.value != null)
-    : [];
-  const indTerbaik = [...activeIndikator].sort((a, b) => b.value - a.value).slice(0, 5);
-  const indLemah = activeIndikator.filter((r) => r.value < KARAKTER_BAR_TONE_CUTOFF.aman).sort((a, b) => a.value - b.value).slice(0, 5);
-
-  const aspekItems = activeMurid
-    ? aspek.map((a) => ({
-        label: a.aspek_label, icon: aspekIcon(a.aspek_label),
-        value: pct(activeMurid.skorByAspek[a.aspek_kode]),
-      }))
-    : [];
-
-  // Dipakai hanya di jalur satu-sumber (lihat "Baris 4" di render); jalur dua-sumber memakai
-  // ReflectionBlock langsung dari refleksiMuridBySumber, tidak lewat quoteText/quoteTags ini.
-  const quoteText = refleksiTunggal ? extractPlainText(refleksiTunggal.pernyataan) : "";
-  const showQuote = refleksiTunggal && !isBlankEssay(refleksiTunggal.pernyataan);
-  const quoteTags = refleksiTunggal ? matchedCategoryTags(refleksiTunggal.kategori_pernyataan) : [];
+  const labelIndikatorRow = (r) =>
+    indikatorLabel[`${r.aspek_kode}_${r.indikator_kode}`] || indikatorFallbackLabel(r.aspek_kode, r.indikator_kode);
 
   return (
     <div className={`${styles.page} ${styles.pageFullBleed}`}>
@@ -236,7 +176,7 @@ export default function WaliKelasView({ session, periodeId, pekan = null }) {
               icon="📈" label="Rata-rata Perkembangan Karakter Kelas"
               value={rataKelas != null ? rataKelas : "—"} unit={rataKelas != null ? "%" : ""}
               sub={heroDelta
-                ? `${heroDelta.direction === "up" ? "↑" : heroDelta.direction === "down" ? "↓" : "→"} ${heroDelta.value > 0 ? "+" : ""}${heroDelta.value}pp dari bulan lalu`
+                ? `${heroDelta.direction === "up" ? "↑" : heroDelta.direction === "down" ? "↓" : "→"} ${heroDelta.value > 0 ? "+" : ""}${heroDelta.value}% dari bulan lalu`
                 : (pekanAktif ? `Pekan ${pekan} · ${periodeLabel(periode) || "ini"}` : `Periode ${periodeLabel(periode) || "ini"}`)}
               subTone={heroDelta ? (heroDelta.direction === "up" ? "aman" : heroDelta.direction === "down" ? "perhatian" : "default") : "default"}
             >
@@ -350,77 +290,18 @@ export default function WaliKelasView({ session, periodeId, pekan = null }) {
 
               <div className={styles.masterDetailPanel}>
                 {activeMurid ? (
-                  <>
-                    <div className={styles.masterDetailHeader}>
-                      <span className={styles.eyebrow}>Progres per Anak</span>
-                      <h3 className={styles.masterDetailTitle}>{activeMurid.nama}</h3>
-                      <p className={styles.cardSub}>
-                        {activeMurid.kelas_id} · rata-rata perkembangan {activeMurid.rata != null ? `${activeMurid.rata}%` : "—"}
-                      </p>
-                    </div>
-
-                    <div className={styles.detailRows}>
-                      {/* Baris 1: progres anak antar bulan */}
-                      <section>
-                        <p className={styles.dialogSectionTitle}>📈 Progres antar bulan</p>
-                        <MuridTrendBlock sekolahId={session.school_id} muridId={activeMurid.murid_id} />
-                      </section>
-
-                      {/* Baris 2: skor per aspek, urut tertinggi */}
-                      <section>
-                        <p className={styles.dialogSectionTitle}>📊 Skor per aspek (urut tertinggi)</p>
-                        <ScoreBarList items={aspekItems} emptyText="Belum ada skor aspek untuk anak ini." />
-                      </section>
-
-                      {/* Baris 3: dua kolom indikator */}
-                      <div className={styles.detail2col}>
-                        <section>
-                          <p className={styles.dialogSectionTitle}>⭐ Top 5 indikator terbaik</p>
-                          <ScoreBarList items={indTerbaik} emptyText="Belum ada data indikator." />
-                        </section>
-                        <section>
-                          <p className={styles.dialogSectionTitle}>🔧 Top 5 indikator perlu penguatan</p>
-                          {indLemah.length > 0 ? (
-                            <ScoreBarList items={indLemah} />
-                          ) : (
-                            <GoodEmptyState
-                              title="Semua indikator sudah di atas 80%"
-                              text="Tidak ada indikator di bawah 80% untuk anak ini periode ini."
-                            />
-                          )}
-                        </section>
-                      </div>
-
-                      {/* Baris 4: suara anak ini sendiri -- satu blok per sumber yang tersedia
-                          periode ini. Dua sumber sekaligus lewat ReflectionBlock (badge per
-                          sumber); satu sumber (varian lama/varian siswa-saja) tetap kutipan
-                          polos tanpa badge, sama seperti sebelum fitur multi-sumber ada. */}
-                      <section>
-                        {sumberRefleksi.length > 1 ? (
-                          <>
-                            <p className={styles.dialogSectionTitle}>💬 Refleksi anak ini</p>
-                            <ReflectionBlock blocks={refleksiMuridBySumber} namaMurid={activeMurid.nama} />
-                          </>
-                        ) : (
-                          <>
-                            <p className={styles.dialogSectionTitle}>{judulRefleksiTunggal(sumberTunggal)}</p>
-                            {showQuote ? (
-                              <>
-                                {quoteTags.length > 0 && (
-                                  <div className={styles.quoteTagsRow}>
-                                    {quoteTags.map((t) => <span key={t.label} className={styles.quoteTagChip}>{t.icon} {t.label}</span>)}
-                                  </div>
-                                )}
-                                <p className={styles.detailQuote}>“{quoteText}”</p>
-                              </>
-                            ) : (
-                              <p className={styles.emptyNote}>{emptyRefleksiTunggal(sumberTunggal)}</p>
-                            )}
-                          </>
-                        )}
-                      </section>
-                    </div>
-                  </>
+                  <MuridDetailPanel
+                    sekolahId={session.school_id}
+                    murid={activeMurid}
+                    aspek={aspek}
+                    skorIndikatorRows={activeSkorIndikator}
+                    labelIndikator={labelIndikatorRow}
+                    pernyataanBySumber={pernyataanBySumber}
+                    sumberRefleksi={sumberRefleksi}
+                    pekanAktif={pekanAktif}
+                    pekan={pekan}
+                    periode={periode}
+                  />
                 ) : (
                   <p className={styles.emptyNote}>Pilih siswa di daftar sebelah kiri.</p>
                 )}

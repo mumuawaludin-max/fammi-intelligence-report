@@ -159,7 +159,7 @@ export default function YayasanView({ session, periodeId }) {
               icon="📈" label="Rata-rata Perkembangan Karakter Yayasan"
               value={rataYayasan != null ? rataYayasan : "—"} unit={rataYayasan != null ? "%" : ""}
               sub={heroDelta
-                ? `${heroDelta.direction === "up" ? "↑" : heroDelta.direction === "down" ? "↓" : "→"} ${heroDelta.value > 0 ? "+" : ""}${heroDelta.value}pp dari bulan lalu`
+                ? `${heroDelta.direction === "up" ? "↑" : heroDelta.direction === "down" ? "↓" : "→"} ${heroDelta.value > 0 ? "+" : ""}${heroDelta.value}% dari bulan lalu`
                 : `Periode ${periodeLabel(periode) || "ini"}`}
               subTone={heroDelta ? (heroDelta.direction === "up" ? "aman" : heroDelta.direction === "down" ? "perhatian" : "default") : "default"}
             >

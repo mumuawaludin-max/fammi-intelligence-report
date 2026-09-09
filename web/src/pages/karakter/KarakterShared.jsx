@@ -1412,8 +1412,16 @@ export function useMuridTrend(sekolahId, muridId) {
     let alive = true;
     setState({ loading: true, points: [] });
 
+    // View BULANAN, bukan tabel mentah karakter_skor. Di sekolah yang menilai pekanan, tabel
+    // mentah memuat empat baris per murid per bulan; merata-ratakannya menghasilkan titik yang
+    // tidak sama dengan angka bulanan di seluruh tempat lain, yang memakai nilai pekan TERAKHIR
+    // (migration 20260828120000, keputusan pemilik produk). Sebelum perbaikan ini garis progres
+    // tiap anak di SMK Telkom Purwokerto memang berselisih dari angka bulanannya sendiri.
+    //
+    // Skor 0 dilewati, bukan dihitung nol: 0 berarti guru tidak menilai anak itu (CLAUDE.md
+    // butir 9), jadi memasukkannya menyeret rata-rata anak ke bawah tanpa ada penilaian nyata.
     supabase
-      .from("karakter_skor")
+      .from("karakter_skor_bulanan")
       .select("periode_id, aspek_kode, skor")
       .eq("sekolah_id", sekolahId)
       .eq("murid_id", muridId)
@@ -1421,13 +1429,101 @@ export function useMuridTrend(sekolahId, muridId) {
         if (!alive) return;
         const byPeriode = {};
         (data || []).forEach((r) => {
+          if (r.skor == null || r.skor === 0) return;
           if (!byPeriode[r.periode_id]) byPeriode[r.periode_id] = { sum: 0, n: 0 };
-          byPeriode[r.periode_id].sum += r.skor ?? 0;
+          byPeriode[r.periode_id].sum += r.skor;
           byPeriode[r.periode_id].n += 1;
         });
         const points = Object.entries(byPeriode)
           .map(([periode, v]) => ({ periode, rata: Math.round(v.sum / v.n) }))
           .sort((a, b) => (a.periode > b.periode ? 1 : -1));
+        setState({ loading: false, points });
+      });
+
+    return () => { alive = false; };
+  }, [sekolahId, muridId]);
+
+  return state;
+}
+
+/**
+ * Baris skor mentah satu anak pada SATU periode, dipakai menghitung bintang yang dikumpulkan.
+ *
+ * Tabel mentah karakter_skor, bukan view bulanan, karena yang dihitung di sini bukan angka
+ * bulanan melainkan berapa kali anak ini mencapai 80% sepanjang periode. Di sekolah yang menilai
+ * pekanan, bintang pekan 1 dan pekan 3 adalah dua bintang yang berbeda; view bulanan cuma
+ * menyimpan pekan terakhir, jadi memakainya akan menghapus bintang pekan-pekan sebelumnya.
+ *
+ * Sekolah yang menilai bulanan tetap benar tanpa cabang tersendiri: barisnya berpekan 0, satu
+ * baris per aspek per bulan, jadi jumlah bintangnya sama saja dengan menghitung dari skor bulanan.
+ */
+export function useMuridSkorPeriode({ sekolahId, muridId, periode }) {
+  const [state, setState] = useState({ loading: true, rows: [] });
+
+  useEffect(() => {
+    if (!muridId || !periode) { setState({ loading: false, rows: [] }); return undefined; }
+    let alive = true;
+
+    async function run() {
+      setState({ loading: true, rows: [] });
+      const { data, error } = await supabase
+        .from("karakter_skor")
+        .select("periode_id, pekan, aspek_kode, skor")
+        .eq("sekolah_id", sekolahId)
+        .eq("murid_id", muridId)
+        .eq("periode_id", periode);
+      if (!alive) return;
+      setState({ loading: false, rows: error ? [] : (data || []) });
+    }
+
+    run();
+    return () => { alive = false; };
+  }, [sekolahId, muridId, periode]);
+
+  return state;
+}
+
+/**
+ * Tren satu anak PER PEKAN, pasangan pekanan dari useMuridTrend. Bentuk titiknya disamakan
+ * dengan bangunTitikPekan (periode, pekan, pekanUrut, rata) supaya TrendChart yang sama bisa
+ * memakainya lewat labelTitikPekan.
+ *
+ * Di sini tabel mentah karakter_skor memang yang benar: yang diminta satu pekan tertentu, bukan
+ * angka bulanan. Volumenya kecil karena disaring ke satu murid. Skor 0 dilewati dengan alasan
+ * yang sama seperti di useMuridTrend.
+ *
+ * pekanUrut sengaja diisi nomor pekan apa adanya. Untuk satu murid, urutan dalam satu bulan
+ * sudah cukup ditentukan nomor pekannya sendiri; kolom pekan_urut hanya ada di agregat kelas.
+ */
+export function useMuridPekanTrend(sekolahId, muridId) {
+  const [state, setState] = useState({ loading: true, points: [] });
+
+  useEffect(() => {
+    if (!muridId) return;
+    let alive = true;
+    setState({ loading: true, points: [] });
+
+    supabase
+      .from("karakter_skor")
+      .select("periode_id, pekan, aspek_kode, skor")
+      .eq("sekolah_id", sekolahId)
+      .eq("murid_id", muridId)
+      .gt("pekan", 0)
+      .then(({ data, error }) => {
+        if (!alive) return;
+        if (error) { setState({ loading: false, points: [] }); return; }
+        const perTitik = new Map();
+        (data || []).forEach((r) => {
+          if (r.skor == null || r.skor === 0) return;
+          const kunci = `${r.periode_id}|${r.pekan}`;
+          const e = perTitik.get(kunci) || { periode: r.periode_id, pekan: r.pekan, sum: 0, n: 0 };
+          e.sum += r.skor;
+          e.n += 1;
+          perTitik.set(kunci, e);
+        });
+        const points = [...perTitik.values()]
+          .map((e) => ({ periode: e.periode, pekan: e.pekan, pekanUrut: e.pekan, rata: Math.round(e.sum / e.n) }))
+          .sort((a, b) => a.periode.localeCompare(b.periode) || a.pekanUrut - b.pekanUrut);
         setState({ loading: false, points });
       });
 

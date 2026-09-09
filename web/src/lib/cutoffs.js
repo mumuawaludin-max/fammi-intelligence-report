@@ -20,3 +20,13 @@ export const KARAKTER_PENCAPAIAN_BAIK = 80;
 // "perlu penguatan" (masuk daftar lemah) di KepsekView/WaliKelasView/YayasanView -- ambang
 // yang sama, bukan kebetulan, karena maknanya memang "belum di zona aman".
 export const KARAKTER_BAR_TONE_CUTOFF = { aman: 80, perhatian: 60 };
+
+// Cutoff warna bar di LAPORAN PER ANAK modul Karakter (panel "Perkembangan tiap karakter" milik
+// Wali Kelas dan Kepala Sekolah). Sengaja terpisah dari KARAKTER_BAR_TONE_CUTOFF di atas:
+// keputusan pemilik produk 2026-09-09 memakai 80 hijau / 50 biru / di bawah 50 merah, sedangkan
+// bar di halaman lain (kelas, jenjang, sekolah) tetap 80/60 hijau-kuning-merah.
+//
+// Menyeragamkan keduanya BUKAN perbaikan: ambang "perlu perhatian" untuk daftar siswa dan tindak
+// lanjut tetap KARAKTER_PENCAPAIAN_BAIK (80), jadi anak dengan 65% tetap masuk daftar perlu
+// perhatian walau barnya biru. Itu memang yang diminta.
+export const KARAKTER_BAR_INDIVIDU_CUTOFF = { hijau: 80, biru: 50 };

@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { classifyPencapaian } from "./karakterMeta";
 import styles from "./KarakterViews.module.css";
 
@@ -87,4 +88,60 @@ export function splitByClassify(items, getValue) {
 /** Gulir halus ke satu section berdasarkan id, dipakai supaya kartu statistik ringkasan clickable. */
 export function scrollToId(id) {
   document.getElementById(id)?.scrollIntoView({ behavior: "smooth", block: "start" });
+}
+
+/**
+ * Daftar siswa satu kelas: lapis kedua dari tiga di halaman Kepala Sekolah (sekolah → kelas →
+ * anak). Kepala Sekolah dan Wakil Kepala Sekolah memakainya untuk turun dari angka kelas ke satu
+ * anak tanpa harus membuka akun wali kelasnya.
+ *
+ * `state` = hasil useKarakterKelasMurid. Datanya ditarik saat kelas dibuka, jadi tiga keadaan
+ * diurus terang-terangan: sedang dimuat, gagal dimuat, dan memang belum ada. "Belum ada data"
+ * untuk sesuatu yang sebenarnya gagal dimuat adalah jawaban yang salah.
+ */
+export function SiswaKelasList({ state, onSelect }) {
+  const [tab, setTab] = useState("semua");
+  const split = splitByClassify(state.muridList, (m) => m.rata);
+  const rows = tab === "baik" ? split.baik : tab === "perhatian" ? split.perhatian : state.muridList;
+
+  if (state.loading) return <p className={styles.emptyNote}>Memuat siswa kelas ini…</p>;
+  if (state.error) return <p className={styles.emptyNote}>Data siswa gagal dimuat: {state.error}</p>;
+  if (state.muridList.length === 0) return <p className={styles.emptyNote}>Belum ada data siswa untuk kelas ini pada periode ini.</p>;
+
+  return (
+    <>
+      <div className={styles.masterListTabs}>
+        <button type="button" className={`${styles.masterListTab} ${tab === "semua" ? styles.masterListTabActive : ""}`} onClick={() => setTab("semua")}>
+          Semua ({state.muridList.length})
+        </button>
+        <button type="button" className={`${styles.masterListTab} ${tab === "baik" ? styles.masterListTabActive : ""}`} onClick={() => setTab("baik")}>
+          Sudah Baik ({split.baik.length})
+        </button>
+        <button type="button" className={`${styles.masterListTab} ${tab === "perhatian" ? styles.masterListTabActive : ""}`} onClick={() => setTab("perhatian")}>
+          Perlu Perhatian ({split.perhatian.length})
+        </button>
+      </div>
+      <div className={styles.masterListRows}>
+        {rows.length === 0 ? (
+          <p className={styles.emptyNote}>Tidak ada siswa di kategori ini.</p>
+        ) : rows.map((m) => {
+          const tone = classifyPencapaian(m.rata);
+          return (
+            <button
+              type="button" key={m.murid_id}
+              className={styles.masterListRow}
+              onClick={() => onSelect(m.murid_id)}
+            >
+              <span className={styles.masterListAvatar}>{(m.nama || "?").charAt(0).toUpperCase()}</span>
+              <span className={styles.masterListName}>{m.nama}</span>
+              <span className={`${styles.masterListTone} ${tone === "baik" ? styles.tonePillAman : tone === "perlu_perhatian" ? styles.tonePillPerhatian : styles.tonePillDefault}`}>
+                {tone === "baik" ? "Sudah Baik" : tone === "perlu_perhatian" ? "Perlu Perhatian" : "Belum ada data"}
+              </span>
+              <span className={styles.masterListScore}>{m.rata != null ? `${m.rata}%` : "—"}</span>
+            </button>
+          );
+        })}
+      </div>
+    </>
+  );
 }
