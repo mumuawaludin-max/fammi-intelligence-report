@@ -101,3 +101,28 @@ tanpa baris nol tidak berubah, dan batas sekolah pekanan (nol di pekan terakhir 
 hilang dari bulan itu) dipatok sebagai perilaku yang disadari.
 
 Sudah dijalankan di postgres:15 dan postgres:17, keduanya 7 LULUS 0 GAGAL, idempoten.
+
+## Migration keenam: YPT hanya penilaian guru (20260901130000)
+
+Urutan sama, tambah m6 dan ypt_hanya_guru_verify.sql.
+
+Keempat matview YPT menyaring `sumber = 'guru'`. Ini PENJAGA, bukan perbaikan angka: per
+2026-09-01 seluruh baris skor YPT memang sudah `guru`, jadi migration ini tidak mengubah satu
+angka pun hari ini. Gunanya menahan baris penilaian siswa atau orang tua yang kelak terkirim
+supaya tidak masuk diam-diam ke rata-rata pencapaian.
+
+Berkas ini dibungkus BEGIN/COMMIT, jadi kalau ada satu perintah gagal, database kembali persis
+ke keadaan semula dan tidak ada view YPT yang tertinggal dalam keadaan sudah di-drop.
+
+Yang diperiksa: baris siswa dan orangtua bernilai ekstrem disisipkan, lalu dipastikan rata
+sekolah, rata per aspek, dan rata per indikator tetap dari guru saja, murid dari baris itu tidak
+masuk peringkat siswa ekstrem, aturan skor 0 dari migration sebelumnya masih berlaku, sekolah
+yang datanya murni guru tidak berubah sama sekali, dan tiga uji terakhir khusus memastikan
+SEKOLAH PEKANAN tidak tersentuh: empat pekan tetap empat titik terpisah di karakter_pekan_avg,
+angka bulanannya tetap diambil dari pekan terakhir (90, bukan rata-rata 75), dan view pekanan
+dari migration 20260901120000 (karakter_pekan_tersedia, karakter_murid_pekan_avg) tetap hidup.
+
+Rantai ujinya memakai urutan lengkap m1..m6 termasuk 20260901120000_karakter_view_pekan_lengkap,
+supaya bentrok nomor migration ketahuan kalau terulang.
+
+Sudah dijalankan di postgres:15 dan postgres:17, keduanya 9 LULUS 0 GAGAL, idempoten.
