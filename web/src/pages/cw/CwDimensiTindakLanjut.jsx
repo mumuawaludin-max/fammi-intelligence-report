@@ -1,0 +1,74 @@
+import { CwLaporanReveal } from "./CwLaporanReveal";
+import tokens from "./cwBudayaTokens.module.css";
+import styles from "./CwDimensiTindakLanjut.module.css";
+
+/**
+ * CwDimensiTindakLanjut -- bagian "C": N kartu berdampingan (Fokus yang Disarankan / Lakukan
+ * Tiga Langkah / Indikator Keberhasilan / Hal yang Perlu Diwaspadai). Field yang genuinely data
+ * gap dirender sebagai catatan jujur, TIDAK dikarang.
+ *
+ * Salinan ScDimensiTindakLanjut.jsx modul School Culture.
+ */
+export function CwDimensiTindakLanjut({ sectionIndex, title, subtitle, items, id }) {
+  return (
+    <section className={`${tokens.scope} ${styles.section}`} id={id}>
+      <CwLaporanReveal className={styles.heading}>
+        <span className={styles.index}>{sectionIndex}</span>
+        <h2>{title}</h2>
+        <p>{subtitle}</p>
+      </CwLaporanReveal>
+
+      <div className={styles.grid}>
+        {items.map((item, i) => (
+          <CwLaporanReveal className={styles.card} delay={i * 0.05} amount={0.15} key={item.key}>
+            <h3>{item.label}</h3>
+
+            <div className={styles.block}>
+              <p className={styles.blockTitle}>Fokus yang Disarankan</p>
+              <p className={styles.blockText}>{item.focus || "Belum ada fokus spesifik untuk dimensi ini pada periode ini."}</p>
+            </div>
+
+            <div className={styles.block}>
+              <p className={styles.blockTitle}>
+                {item.steps?.length > 0 ? `Lakukan ${item.steps.length} Langkah` : "Langkah yang Disarankan"}
+              </p>
+              {item.steps?.length > 0 ? (
+                <ol className={styles.stepList}>
+                  {item.steps.map((s, idx) => (
+                    <li key={idx}>{s.aksi}</li>
+                  ))}
+                </ol>
+              ) : (
+                <p className={styles.gapNote}>Rencana langkah belum tersedia untuk dimensi ini pada periode ini.</p>
+              )}
+            </div>
+
+            <div className={styles.block}>
+              <p className={styles.blockTitle}>Indikator Keberhasilan</p>
+              {item.indicators?.length > 0 ? (
+                <ol className={styles.stepList}>
+                  {item.indicators.map((ind, idx) => (
+                    <li key={idx}>{ind.detail ? `${ind.title}: ${ind.detail}` : ind.title}</li>
+                  ))}
+                </ol>
+              ) : (
+                <p className={styles.gapNote}>Indikator keberhasilan belum ditetapkan untuk dimensi ini.</p>
+              )}
+            </div>
+
+            <div className={styles.block}>
+              <p className={styles.blockTitle}>Hal yang Perlu Diwaspadai</p>
+              {item.warnings?.length > 0 ? (
+                <div className={styles.warningText}>
+                  {item.warnings.map((w, idx) => <p key={idx}>{w}</p>)}
+                </div>
+              ) : (
+                <p className={styles.gapNote}>Belum ada catatan risiko untuk dimensi ini.</p>
+              )}
+            </div>
+          </CwLaporanReveal>
+        ))}
+      </div>
+    </section>
+  );
+}

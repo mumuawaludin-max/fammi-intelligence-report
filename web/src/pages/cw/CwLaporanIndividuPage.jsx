@@ -1,38 +1,30 @@
-import { useState } from "react";
-import CultureRadarChart from "./CultureRadarChart";
-import CwDetailDialog from "./CwDetailDialog";
-import { KATEGORI_KESEJAHTERAAN_COLOR } from "./cwColors";
-import {
-  TIPE_BUDAYA_INFO, arahTeks, ARAH_ICON, interpretasiKesejahteraan,
-} from "./cwMeta";
-import { useReveal, useCountUp } from "./cwHooks";
+import { useEffect, useMemo, useState } from "react";
+import { DIMENSI_PROFIL_INFO, KESEJAHTERAAN_INFO, TIPE_BUDAYA_INFO, implikasiBudaya } from "./cwMeta";
+import { useReveal } from "./cwHooks";
+import { useCwKomitmen } from "./useCwData";
 import styles from "./CwLaporanIndividuPage.module.css";
 
-/** Palet pastel token FIR untuk kartu tipe budaya (grid 2x2 ala "Quick actions" benchmark). */
-const CULTURE_STYLE = [
-  { bg: "var(--lilac-soft)", ink: "var(--lilac-ink)" },
-  { bg: "var(--sun-soft)", ink: "var(--sun-ink)" },
-  { bg: "var(--mint-soft)", ink: "var(--mint-ink)" },
-  { bg: "var(--sky-soft)", ink: "var(--sky-ink)" },
-];
-
-const BULAN = ["Januari", "Februari", "Maret", "April", "Mei", "Juni", "Juli", "Agustus", "September", "Oktober", "November", "Desember"];
-
-function periodeLabel(periodeId) {
-  if (!periodeId) return "";
-  const [y, m] = String(periodeId).split("-").map(Number);
-  return `${BULAN[m - 1] || ""} ${y}`.trim();
+/** Label TAMPILAN subdimensi kesejahteraan, selalu ikut KESEJAHTERAAN_INFO (cwMeta.js) --
+ * beberapa baris cw_personal lama masih menyimpan label istilah sebelum wording diperbarui
+ * (mis. "Keseimbangan Kerja-Hidup"). HANYA dipakai untuk teks yang dibaca pengguna. */
+function labelKesejahteraan(kode, labelAsli) {
+  return KESEJAHTERAAN_INFO[kode]?.label || labelAsli;
 }
 
-function fmtGap(n) {
-  return n == null ? "—" : `${n > 0 ? "+" : ""}${n}`;
+/** Sapaan "Bapak"/"Ibu" dari kolom demografi_jenis_kelamin (raw string dari Excel, mis.
+ * "Laki-laki"/"Perempuan"/"L"/"P") -- cuma dicek huruf pertama supaya toleran ke variasi
+ * penulisan. String kosong kalau datanya kosong/tidak dikenali, laporan lama tetap "Halo, Nama". */
+function sapaanFromJenisKelamin(jenisKelamin) {
+  const huruf = String(jenisKelamin || "").trim().charAt(0).toLowerCase();
+  if (huruf === "l") return "Bapak";
+  if (huruf === "p") return "Ibu";
+  return "";
 }
 
-function inisial(nama) {
-  return String(nama || "?").trim().charAt(0).toUpperCase();
-}
-
-/** Reveal halus saat elemen masuk viewport. */
+/** Reveal halus saat elemen masuk viewport -- animasi "benchmark Fammi" yang sama dipakai
+ * seluruh laporan individu FIR (Karakter/MI), cuma salinan lokal SC (lihat cwHooks.js).
+ * SENGAJA tetap CSS transition + useReveal, BUKAN framer-motion/@phosphor-icons -- dua library
+ * itu dikunci CLAUDE.md khusus untuk dashboard "Laporan Organisasi" pimpinan, bukan laporan individu. */
 function Reveal({ children, delay = 0, className = "" }) {
   const [ref, shown] = useReveal();
   return (
@@ -46,553 +38,746 @@ function Reveal({ children, delay = 0, className = "" }) {
   );
 }
 
-/**
- * Hero gelap: indeks kesejahteraan besar di tengah + baris pintasan bulat di bawahnya.
- * Bentuknya mengikuti kartu saldo di benchmark (angka besar terpusat, tiga tombol bulat,
- * satu di antaranya beraksen), warna memakai token FIR.
- */
-function HeroIndeks({ indeks, kategori, onOpenIndeks, onJump }) {
-  const [ref, shown] = useReveal();
-  const counted = useCountUp(indeks, shown);
-  const warna = KATEGORI_KESEJAHTERAAN_COLOR[kategori] || "var(--ink-4)";
+/** Ikon expand/collapse -- SVG dibuat manual (bukan karakter unicode "⌄") supaya benar-benar
+ * center secara pixel di dalam lingkaran, unicode chevron punya bias baseline yang beda-beda
+ * antar font/browser. Bola nafas halus (styles.chevronPulse, CSS-only, BUKAN framer-motion --
+ * library itu dikunci CLAUDE.md khusus dashboard pimpinan) menandakan elemen ini bisa diklik,
+ * berhenti begitu section-nya dibuka (chevronUp) supaya rotasi 180 derajat sendiri yang jadi
+ * penanda status saat itu. */
+function ExpandIcon({ expanded }) {
+  return (
+    <span className={`${styles.chevron} ${expanded ? styles.chevronUp : styles.chevronPulse}`} aria-hidden="true">
+      <svg viewBox="0 0 20 20" width="12" height="12">
+        <path d="M5 8 L10 13 L15 8" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" />
+      </svg>
+    </span>
+  );
+}
+
+function SectionHead({ index, title, lead }) {
+  return (
+    <div className={styles.sectionHead}>
+      <p className={styles.sectionIndex}>{index}</p>
+      <h2 className={styles.sectionTitle}>{title}</h2>
+      {lead && <p className={styles.sectionLead}>{lead}</p>}
+    </div>
+  );
+}
+
+function formatScore(v) {
+  return v == null ? "--" : Math.round(v);
+}
+
+const WELLBEING_ICON = {
+  kepuasan_kepemimpinan: "🛡️",
+  kenyamanan_bekerja: "💗",
+  pengembangan_diri: "📖",
+  ekspektasi: "🚩",
+  work_life_balance: "⚖️",
+};
+
+/** Tiga langkah kontribusi peran, copy STATIS (padanan TIPE_BUDAYA_INFO/KESEJAHTERAAN_INFO),
+ * bukan dihitung per laporan. Skema data tidak punya field granular per-langkah untuk ini.
+ * Fungsi (bukan konstanta) supaya sapaan menyesuaikan siapa yang membuka laporan: pemilik
+ * sendiri ("Anda") vs drill-down pimpinan ("karyawan"). Modul School Culture memakai kata "Tim"
+ * di posisi yang sama; di CW konteksnya korporat, jadi "karyawan". */
+function roleContributionSteps(viewerIsOwner) {
+  const p = viewerIsOwner ? "Anda" : "karyawan";
+  return [
+    { icon: "🚩", title: "Fokus strategi", detail: "Arah utama perusahaan yang menjadi panduan bersama." },
+    { icon: "📋", title: "Prioritas unit", detail: `Pilihan kerja unit ${p} yang paling mendukung arah itu.` },
+    { icon: "🗓️", title: "Kebiasaan kerja", detail: `Keputusan harian yang benar-benar ada di tangan ${p}.` },
+  ];
+}
+
+/** Lingkar kontribusi -- judul + definisi konsep tiga area (kendali/pengaruh/sistem), TETAP
+ * statis (konsepnya sendiri tidak berubah per orang). Konten di dalam tiap area (mengapa_fokus +
+ * tiga langkah konkret) sekarang DINAMIS, digenerate Gemini per orang (laporan.lingkar_kontribusi,
+ * lihat cw.types.ts LingkarKontribusiArea) -- instruksi eksplisit pemilik produk supaya tidak
+ * generik antarorang. `fallbackDesc` di sini cuma dipakai kalau laporan belum punya field itu
+ * (laporan lama sebelum fitur ini ditambahkan). Bukan kategorisasi ulang rencana_aksi -- rencana
+ * aksi asli tetap tampil terpisah apa adanya di bagian "Komitmen 30 hari" di bawah ini. */
+function agencyTerritories(viewerIsOwner) {
+  const p = viewerIsOwner ? "Anda" : "karyawan";
+  return [
+    { key: "control", title: "Dalam kendali saya", fallbackDesc: `Langkah yang bisa langsung ${p} putuskan dan jalankan sendiri, tanpa menunggu pihak lain.` },
+    { key: "influence", title: "Bisa saya pengaruhi", fallbackDesc: `Butuh percakapan atau kerja sama dengan rekan/pimpinan, tapi ${p} bisa mendorongnya.` },
+    { key: "system", title: "Membutuhkan dukungan sistem", fallbackDesc: "Perubahan yang perlu dibawa ke ruang keputusan perusahaan, bukan tanggung jawab satu orang." },
+  ];
+}
+
+const BULAN_ID = ["Januari", "Februari", "Maret", "April", "Mei", "Juni", "Juli", "Agustus", "September", "Oktober", "November", "Desember"];
+function formatTanggalID(date) {
+  return `${date.getDate()} ${BULAN_ID[date.getMonth()]} ${date.getFullYear()}`;
+}
+function tambahHari(dariIso, jumlahHari) {
+  const dari = dariIso ? new Date(dariIso) : new Date();
+  return new Date(dari.getTime() + jumlahHari * 86400000);
+}
+
+/** Satu kartu tipe budaya: dumbbell chart (Persepsi Anda -> Harapan Anda), progressive disclosure
+ * per dimensi -- ganti tampilan dua-bar lama, sumber angka SAMA PERSIS (saat_ini/harapan/tabel_gap
+ * yang sudah final dari upstream). Interpretasi pakai implikasiBudaya() (cwMeta.js), template statis
+ * per tipe+arah yang sudah ada, bukan narasi baru per laporan. */
+function BudayaGapRow({ dim, gapRow, expanded, onToggle, delay, viewerIsOwner }) {
+  const info = TIPE_BUDAYA_INFO[dim.tipe];
+  const cur = Math.max(0, Math.min(100, dim.saat_ini ?? 0));
+  const tgt = Math.max(0, Math.min(100, dim.harapan ?? 0));
+  const gap = gapRow?.nilai_gap;
+  const interpretasi = implikasiBudaya(dim.tipe, gapRow?.arah);
+  const p = viewerIsOwner ? "Anda" : "karyawan";
 
   return (
-    <div ref={ref} className={`${styles.hero} ${styles.reveal} ${shown ? styles.revealShown : ""}`}>
-      <button type="button" className={styles.heroTop} onClick={onOpenIndeks}>
-        <span className={styles.heroLabel}>Indeks Kesejahteraan Anda</span>
-        <span className={styles.heroValue}>{counted}</span>
-        <span className={styles.heroBadge} style={{ background: warna }}>{kategori}</span>
+    <Reveal delay={delay} className={styles.gapItem}>
+      <button type="button" className={styles.gapHead} onClick={onToggle} aria-expanded={expanded}>
+        <span className={styles.gapIcon} aria-hidden="true">{info?.icon || "🔹"}</span>
+        <span className={styles.gapHeading}>
+          <strong>{dim.tipe}</strong>
+          {gap != null && <small>Gap {Math.abs(gap)} poin</small>}
+        </span>
+        <ExpandIcon expanded={expanded} />
       </button>
 
-      <div className={styles.heroActions}>
-        {[
-          { id: "budaya", ikon: "🧭", label: "Budaya" },
-          { id: "kesejahteraan", ikon: "💚", label: "Kesejahteraan", utama: true },
-          { id: "aksi", ikon: "🎯", label: "Rencana Aksi" },
-        ].map((a) => (
-          <button
-            key={a.id}
-            type="button"
-            className={styles.heroAction}
-            onClick={() => onJump(a.id)}
-          >
-            <span className={`${styles.heroActionIcon} ${a.utama ? styles.heroActionIconUtama : ""}`}>
-              {a.ikon}
-            </span>
-            <span className={styles.heroActionLabel}>{a.label}</span>
-          </button>
-        ))}
-      </div>
-    </div>
+      <span className={styles.gapValues}>
+        <span><strong>{formatScore(dim.saat_ini)}%</strong> Persepsi {p}</span>
+        <span><strong>{formatScore(dim.harapan)}%</strong> Harapan {p}</span>
+      </span>
+
+      <svg className={styles.dumbbell} viewBox="0 0 100 14" role="img" aria-label={`${dim.tipe}: persepsi ${formatScore(dim.saat_ini)} persen, harapan ${formatScore(dim.harapan)} persen`}>
+        <line x1="0" y1="7" x2="100" y2="7" className={styles.dumbbellTrack} />
+        <line x1={cur} y1="7" x2={tgt} y2="7" className={styles.dumbbellGapLine} />
+        <circle cx={cur} cy="7" r="2.2" className={styles.dumbbellCurrent} />
+        <circle cx={tgt} cy="7" r="2.2" className={styles.dumbbellTarget} />
+      </svg>
+
+      {expanded && interpretasi && (
+        <p className={styles.gapInsight}>{interpretasi}</p>
+      )}
+    </Reveal>
   );
 }
 
-/** Bar tersegmentasi warna, meniru ringkasan pengeluaran per kategori di benchmark. */
-function SegmentBar({ items }) {
-  const total = items.reduce((s, i) => s + i.nilai, 0) || 1;
-  return (
-    <div className={styles.segmentBar}>
-      {items.map((it) => (
-        <span
-          key={it.kode}
-          className={styles.segment}
-          style={{
-            width: `${(it.nilai / total) * 100}%`,
-            background: KATEGORI_KESEJAHTERAAN_COLOR[it.kategori] || "var(--ink-4)",
-          }}
-          title={`${it.label}: ${it.nilai}%`}
-        />
-      ))}
-    </div>
-  );
-}
+/** Satu baris subdimensi kesejahteraan: skor + label "Respons Anda", dengan penjelas generik
+ * (KESEJAHTERAAN_INFO) saat dibuka. Yang ditampilkan sengaja facet kerangka, BUKAN rincian butir
+ * per pertanyaan: rata-rata butir mentah lintas responden memang ada, tapi cuma di dashboard
+ * pimpinan (CwKesejahteraanDriver.jsx), dan untuk satu orang butirnya tidak disimpan granular.
+ * Skor agregat perusahaan sebagai pembanding juga sengaja tidak dimunculkan di sini: begitu tabel
+ * CW dibuat, agregat organisasi hanya boleh dibaca peran pimpinan, sama seperti aturan yang sudah
+ * berjalan di modul School Culture. Jangan dilonggarkan lewat layar ini. */
+function KesejahteraanRow({ item, expanded, onToggle, delay, viewerIsOwner }) {
+  const info = KESEJAHTERAAN_INFO[item.kode];
+  const label = labelKesejahteraan(item.kode, item.label);
 
-/** Kotak informasi kuning, meniru callout "Smart category" di benchmark. */
-function InfoCallout({ ikon = "💡", judul, children }) {
   return (
-    <div className={styles.info}>
-      <p className={styles.infoJudul}><span aria-hidden="true">{ikon}</span> {judul}</p>
-      <p className={styles.infoTeks}>{children}</p>
-    </div>
-  );
-}
+    <Reveal delay={delay} className={styles.wbItem}>
+      <button type="button" className={styles.wbHead} onClick={onToggle} aria-expanded={expanded}>
+        <span className={styles.wbIcon} aria-hidden="true">{WELLBEING_ICON[item.kode] || "🔹"}</span>
+        <span className={styles.wbBody}>
+          <span className={styles.wbTop}>
+            <strong>{label}</strong>
+          </span>
+          <span className={styles.wbScoreRow}>
+            <span className={styles.wbScore}>{formatScore(item.nilai)}%</span>
+            <span className={styles.wbScoreLabel}>{viewerIsOwner ? "Respons Anda" : "Respons karyawan"}</span>
+          </span>
+          <div className={styles.barTrackSlim}>
+            <div className={styles.barFillSlim} style={{ width: `${Math.max(0, Math.min(100, item.nilai ?? 0))}%` }} />
+          </div>
+        </span>
+        <ExpandIcon expanded={expanded} />
+      </button>
 
-function DialogSection({ title, children }) {
-  return (
-    <section>
-      <p className={styles.dialogSectionTitle}>{title}</p>
-      {children}
-    </section>
-  );
-}
-
-function DialogStats({ items }) {
-  return (
-    <div className={styles.dialogStats}>
-      {items.map((s) => (
-        <div className={styles.dialogStat} key={s.label}>
-          <span className={styles.dialogStatValue} style={s.color ? { color: s.color } : undefined}>{s.value}</span>
-          <span className={styles.dialogStatLabel}>{s.label}</span>
+      {expanded && (
+        <div className={styles.wbDetail}>
+          <p>{info?.deskripsi}</p>
+          {info?.facets?.length > 0 && (
+            <ul className={styles.facetList}>
+              {info.facets.map((f, i) => <li key={i}>{f}</li>)}
+            </ul>
+          )}
         </div>
-      ))}
+      )}
+    </Reveal>
+  );
+}
+
+/** Visual orbit dekoratif untuk section "Lingkar Kontribusi" -- murni ilustrasi konsep (kendali
+ * makin dekat ke pusat), TIDAK merepresentasikan data apa pun, jadi aman dianimasikan bebas tanpa
+ * menyalahi "jangan mengarang data". Tiga titik bernomor mengorbit terus-menerus (loop) di jalur
+ * elipsnya masing-masing lewat CSS motion path (offset-path), kecepatan beda per cincin supaya
+ * terasa seperti sistem, bukan sekadar berputar bareng. Menghormati prefers-reduced-motion lewat
+ * CSS murni (module.css), tidak perlu JS terpisah karena animasinya cuma dekoratif, bukan reveal
+ * konten yang perlu disinkronkan ke viewport seperti useReveal. */
+function OrbitVisual() {
+  return (
+    <div className={styles.orbit} aria-hidden="true">
+      <span className={`${styles.orbitRing} ${styles.orbitRing1}`} />
+      <span className={`${styles.orbitRing} ${styles.orbitRing2}`} />
+      <span className={`${styles.orbitRing} ${styles.orbitRing3}`} />
+      <span className={styles.orbitCenter}>
+        {/* SVG, bukan emoji "👤" -- emoji berwarna tetap (tidak ikut CSS color), jadi
+            tidak bisa dipastikan putih di atas latar ungu. currentColor mengikuti .orbitCenter. */}
+        <svg viewBox="0 0 24 24" width="26" height="26" fill="currentColor" aria-hidden="true">
+          <circle cx="12" cy="8" r="4" />
+          <path d="M4 20c0-4.4 3.6-8 8-8s8 3.6 8 8v1H4v-1z" />
+        </svg>
+      </span>
+      <span className={`${styles.orbitDot} ${styles.orbitDot1}`}>1</span>
+      <span className={`${styles.orbitDot} ${styles.orbitDot2}`}>2</span>
+      <span className={`${styles.orbitDot} ${styles.orbitDot3}`}>3</span>
     </div>
   );
 }
 
-function DialogCallout({ tone = "netral", icon, children }) {
+/** Satu kartu jawaban esai verbatim, kutipan asli karyawan sendiri, bukan sintesis Gemini. */
+function SurveyCard({ heading, teks, delay }) {
+  if (!teks) return null;
   return (
-    <div className={`${styles.callout} ${styles[`callout_${tone}`]}`}>
-      {icon && <span className={styles.calloutIcon} aria-hidden="true">{icon}</span>}
-      <p className={styles.calloutText}>{children}</p>
-    </div>
+    <Reveal delay={delay} className={styles.surveyCard}>
+      <span className={styles.quoteMark} aria-hidden="true">&ldquo;</span>
+      <p className={styles.surveyHeading}>{heading}</p>
+      <p className={styles.surveyText}>{teks}</p>
+    </Reveal>
   );
 }
 
 /**
- * CwLaporanIndividuPage -- laporan Culture & Wellbeing untuk satu karyawan, MOBILE-FIRST.
+ * CwLaporanIndividuPage -- laporan Corporate Culture & Wellbeing untuk satu karyawan,
+ * MOBILE-ONLY (maksimum 480px, lihat CwLaporanIndividuPage.module.css). Strukturnya disamakan
+ * dengan ScLaporanIndividuPage.jsx modul School Culture atas instruksi pemilik produk
+ * (2026-09-09), sama seperti dashboardnya. Alur satu scroll: pahami (hero) lalu refleksikan
+ * (celah budaya, kesejahteraan, kontribusi peran, cermin rekan kerja, refleksi privat) lalu
+ * profil organisasi; Lingkar Kontribusi dan Komitmen 30 hari ada di halaman terpisah yang
+ * dibuka lewat tombol mengambang di bawah.
  *
- * Tata letak, bentuk kartu, dan radius mengikuti pola aplikasi mobile di benchmark
- * (design-reference/.../corporate culture benchmark): kartu hero gelap dengan angka besar dan
- * baris tombol bulat, grid 2x2 kartu pastel, bar tersegmentasi, callout kuning, dan daftar
- * tugas ber-icon-chip. Warna seluruhnya token FIR.
+ * `viewerIsOwner`: true kalau yang membuka adalah karyawan pemilik laporan sendiri
+ * (CwKaryawanPage), false kalau pimpinan sedang drill-down lewat CwRespondenListPage. Komposer
+ * komitmen jadi read-only kalau bukan pemilik. Di SC ini lapis kedua di atas RLS cw_komitmen;
+ * Komitmen disimpan ke tabel sc_komitmen yang sama dengan School Culture (lihat useCwData.js);
+ * RLS sc_komitmen_rw yang menegakkan bahwa satu orang cuma bisa menulis barisnya sendiri.
  *
- * Isinya mengikuti 6 bagian skema JSON baku (header, bagian_budaya, bagian_kesejahteraan,
- * bagian_cermin, bagian_refleksi, footer) plus rencana_aksi -- lihat catatan ASUMSI di
- * cw.types.ts untuk field yang bukan bagian kontrak asli.
- *
- * Semua kartu data bisa diklik dan membuka dialog yang menjelaskan angkanya dengan bahasa
- * sehari-hari, karena pembacanya karyawan biasa, bukan HR atau psikolog.
+ * Dua bagian yang tidak ada di SC dipertahankan karena memang bagian dari skema laporan CW
+ * sejak awal: cermin dari rekan kerja (bagian_cermin) dan bahan renungan (bagian_refleksi).
  */
-export default function CwLaporanIndividuPage({ laporan }) {
-  const { meta, header, bagian_budaya, bagian_kesejahteraan, bagian_cermin, bagian_refleksi, rencana_aksi, footer } = laporan;
+export default function CwLaporanIndividuPage({ laporan, viewerIsOwner = false }) {
+  const {
+    meta, header, bagian_budaya, bagian_kesejahteraan, bagian_profil_organisasi,
+    jawaban_survey, rencana_aksi, lingkar_kontribusi, bagian_cermin, bagian_refleksi,
+  } = laporan;
 
-  const [budayaDipilih, setBudayaDipilih] = useState(null);
-  const [subdimensiDipilih, setSubdimensiDipilih] = useState(null);
-  const [aksiDipilih, setAksiDipilih] = useState(null);
-  const [infoDipilih, setInfoDipilih] = useState(null);
+  const budayaItems = bagian_budaya?.chart_data || [];
+  const tabelGap = bagian_budaya?.tabel_gap || [];
+  const kesejahteraanItems = bagian_kesejahteraan?.chart_data || [];
+  const aksiList = rencana_aksi || [];
 
-  const gapByLabel = Object.fromEntries((bagian_budaya.tabel_gap || []).map((g) => [g.label, g]));
-  const subdimensi = bagian_kesejahteraan.chart_data || [];
-  const urut = [...subdimensi].sort((a, b) => a.nilai - b.nilai);
-  const terlemah = urut[0];
-  const terkuat = urut[urut.length - 1];
-  const gapTerbesar = [...(bagian_budaya.tabel_gap || [])]
-    .sort((a, b) => Math.abs(b.nilai_gap ?? 0) - Math.abs(a.nilai_gap ?? 0))[0];
-  const kesejahteraanWarna = KATEGORI_KESEJAHTERAAN_COLOR[bagian_kesejahteraan.kategori] || "var(--ink-4)";
+  const [expandedBudaya, setExpandedBudaya] = useState(budayaItems[0]?.tipe || null);
+  const [expandedKes, setExpandedKes] = useState(kesejahteraanItems[0]?.kode || null);
+  const [expandedAgency, setExpandedAgency] = useState("control");
+  const [showReflections, setShowReflections] = useState(false);
+  const [showRencana, setShowRencana] = useState(false);
 
-  function jumpTo(id) {
-    const el = document.getElementById(`cw-sec-${id}`);
-    if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
+  const adaJawabanSurvey = jawaban_survey && (
+    jawaban_survey.betah || jawaban_survey.hal_menguras_energi || jawaban_survey.yang_ingin_diubah
+  );
+
+  // Judul hero dirakit di frontend (bukan backend) supaya bisa POV-aware saat render --
+  // header.hook dari backend dipakai sebagai fallback untuk laporan lama / Q1 kosong.
+  const heroHeadline = (jawaban_survey?.gambaran_perusahaan && meta?.nama_perusahaan)
+    ? `${viewerIsOwner ? "Anda" : "Karyawan"} melihat ${meta.nama_perusahaan} sebagai "${jawaban_survey.gambaran_perusahaan}"`
+    : header.hook;
+
+  // ── Komitmen 30 hari: hook cuma dipanggil (fetch+RLS) kalau viewerIsOwner, supaya pimpinan
+  // yang drill-down tidak memicu request yang toh akan ditolak RLS.
+  const { komitmen, simpan: simpanKomitmen, error: komitmenError } = useCwKomitmen(
+    viewerIsOwner ? meta.responden_id : undefined,
+    viewerIsOwner ? meta.periode_id : undefined,
+  );
+
+  const [selectedAksiId, setSelectedAksiId] = useState(aksiList[0]?.id ?? null);
+  const [langkahPertama, setLangkahPertama] = useState("");
+  const [frekuensi, setFrekuensi] = useState(aksiList[0]?.jangka || "");
+  const [buktiKemajuan, setBuktiKemajuan] = useState("");
+  const [dukungan, setDukungan] = useState("");
+  const [savedForLater, setSavedForLater] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState(null);
+
+  // Sinkron sekali setelah draf tersimpan berhasil dimuat -- useState awal di atas tidak bisa
+  // menunggu hasil query async, jadi field composer diisi ulang begitu `komitmen` datang.
+  useEffect(() => {
+    if (!komitmen) return;
+    setSelectedAksiId(komitmen.aksi_id);
+    setLangkahPertama(komitmen.langkah_pertama || "");
+    setFrekuensi(komitmen.frekuensi || "");
+    setBuktiKemajuan(komitmen.bukti_kemajuan || "");
+    setDukungan(komitmen.dukungan || "");
+  }, [komitmen]);
+
+  const selectedAksi = aksiList.find((a) => a.id === selectedAksiId) || aksiList[0] || null;
+  const committed = komitmen?.status === "committed";
+  const canCommit = Boolean(langkahPertama.trim() && frekuensi.trim() && buktiKemajuan.trim());
+
+  function pilihAksi(id) {
+    const next = aksiList.find((a) => a.id === id);
+    if (!next) return;
+    setSelectedAksiId(id);
+    setLangkahPertama("");
+    setFrekuensi(next.jangka || "");
+    setBuktiKemajuan("");
+    setDukungan("");
+    setSavedForLater(false);
+    setSaveError(null);
+  }
+
+  async function simpanDraf() {
+    if (!selectedAksi) return;
+    setSaving(true);
+    setSaveError(null);
+    try {
+      await simpanKomitmen({
+        aksi_id: selectedAksi.id, aksi_judul: selectedAksi.judul,
+        langkah_pertama: langkahPertama, frekuensi, bukti_kemajuan: buktiKemajuan, dukungan,
+      }, { commit: false });
+      setSavedForLater(true);
+    } catch (e) {
+      setSaveError(e.message || String(e));
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function kunciKomitmen() {
+    if (!selectedAksi || !canCommit) return;
+    setSaving(true);
+    setSaveError(null);
+    try {
+      await simpanKomitmen({
+        aksi_id: selectedAksi.id, aksi_judul: selectedAksi.judul,
+        langkah_pertama: langkahPertama.trim(), frekuensi: frekuensi.trim(),
+        bukti_kemajuan: buktiKemajuan.trim(), dukungan: dukungan.trim(),
+      }, { commit: true });
+      setSavedForLater(false);
+    } catch (e) {
+      setSaveError(e.message || String(e));
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  // Titik nol "Perjalanan 30 hari" = kapan laporan ini disetujui (laporan.approved_at), BUKAN
+  // kapan karyawan mengunci komitmennya. Pola sama dengan SC. Fallback ke "sekarang" untuk
+  // laporan yang belum punya field itu, termasuk seluruh data contoh CW sekarang.
+  const checkIns = useMemo(() => {
+    const base = laporan.approved_at || null;
+    const judul = ["Refleksi dan penyesuaian awal", "Evaluasi pertengahan", "Refleksi akhir dan langkah berikutnya"];
+    return [10, 20, 30].map((hari, i) => ({
+      sequence: i + 1,
+      date: formatTanggalID(tambahHari(base, hari)),
+      title: judul[i],
+    }));
+  }, [laporan.approved_at]);
+
+  // ── 05/06 Lingkar kontribusi + Komitmen 30 hari: HALAMAN TERPISAH, dibuka lewat tombol
+  // mengambang "Baca Rencana Tindak Lanjut" di beranda -- instruksi eksplisit pemilik produk
+  // (sebelumnya section ini inline di scroll beranda). State lokal murni tampilan (bukan
+  // routing), semua state komitmen/aksi tetap hidup di komponen ini supaya kartu pengingat di
+  // beranda (komitmenReminder) tetap bisa membaca komitmen tanpa perlu membuka halaman ini.
+  if (showRencana) {
+    return (
+      <div className={styles.page}>
+        <div className={styles.rencanaTopBar}>
+          <button
+            type="button"
+            className={styles.rencanaBackBtn}
+            onClick={() => setShowRencana(false)}
+            aria-label="Kembali ke beranda laporan"
+          >
+            ‹
+          </button>
+          <h1 className={styles.rencanaTitle}>Rencana Tindak Lanjut</h1>
+        </div>
+
+        <section className={styles.section}>
+          <SectionHead index="05" title={`Mulai dari yang paling dekat dengan kendali ${viewerIsOwner ? "Anda" : "karyawan"}`} lead={viewerIsOwner ? "Kontribusi Anda penting, tetapi perubahan tidak dibebankan kepada Anda sendiri." : "Kontribusi karyawan penting, tetapi perubahan tidak dibebankan kepada karyawan sendiri."} />
+
+          <OrbitVisual />
+
+          <div className={styles.agencyList}>
+            {agencyTerritories(viewerIsOwner).map((t, i) => {
+              const expanded = expandedAgency === t.key;
+              const area = (lingkar_kontribusi || []).find((a) => a.locus === t.key);
+              return (
+                <div className={`${styles.agencyItem} ${expanded ? styles.agencyItemOpen : ""}`} key={t.key}>
+                  <button type="button" onClick={() => setExpandedAgency(expanded ? null : t.key)} aria-expanded={expanded}>
+                    <span className={styles.agencyNumber}>{i + 1}</span>
+                    <span>
+                      <strong>{t.title}</strong>
+                    </span>
+                    <ExpandIcon expanded={expanded} />
+                  </button>
+                  {expanded && (
+                    area ? (
+                      <div className={styles.agencyDetail}>
+                        <div className={styles.agencyMengapa}>
+                          <p className={styles.agencyMengapaLabel}>{`Mengapa Ini Menjadi Fokus ${viewerIsOwner ? "Anda" : "karyawan"}`}</p>
+                          <p>{area.mengapa_fokus}</p>
+                        </div>
+                        {area.langkah?.length > 0 && (
+                          <div className={styles.agencyLangkah}>
+                            <p className={styles.agencyLangkahLabel}>{`Tiga Hal yang Bisa ${viewerIsOwner ? "Anda" : "karyawan"} Lakukan`}</p>
+                            {area.langkah.map((l, li) => (
+                              <div className={styles.langkahItem} key={li}>
+                                <span className={styles.langkahNumber} aria-hidden="true">{li + 1}</span>
+                                <div>
+                                  <strong>{l.judul}</strong>
+                                  {l.instruksi && <p className={styles.langkahInstruksi}>{l.instruksi}</p>}
+                                  {l.contoh?.length > 0 && (
+                                    <ul className={styles.langkahContoh}>
+                                      {l.contoh.map((c, ci) => <li key={ci}>{c}</li>)}
+                                    </ul>
+                                  )}
+                                  {l.tujuan && (
+                                    <p className={styles.langkahTujuan}>
+                                      <span aria-hidden="true">🎯</span> <span className={styles.langkahTujuanLabel}>Tujuan</span><br />
+                                      {l.tujuan}
+                                    </p>
+                                  )}
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    ) : (
+                      <p className={styles.agencyDesc}>{t.fallbackDesc}</p>
+                    )
+                  )}
+                </div>
+              );
+            })}
+          </div>
+
+          {aksiList.length > 0 && (
+            <div className={styles.actionBlock}>
+              <h3 className={styles.actionTitle}>Pilih satu perubahan kecil untuk 30 hari</h3>
+              <p className={styles.actionLead}>{viewerIsOwner ? "Fokus pada tindakan yang bisa Anda kendalikan atau pengaruhi langsung." : "Fokus pada tindakan yang bisa karyawan kendalikan atau pengaruhi langsung."}</p>
+
+              <fieldset className={styles.actionOptions}>
+                <legend className={styles.srOnly}>{viewerIsOwner ? "Pilih fokus Anda" : "Pilih fokus karyawan"}</legend>
+                {aksiList.map((aksi, i) => {
+                  const isSelected = aksi.id === selectedAksiId;
+                  return (
+                    <label className={`${styles.actionOption} ${isSelected ? styles.actionOptionSelected : ""}`} key={aksi.id}>
+                      <input
+                        type="radio"
+                        name="cw-individu-aksi"
+                        value={aksi.id}
+                        checked={isSelected}
+                        onChange={() => pilihAksi(aksi.id)}
+                        disabled={!viewerIsOwner}
+                      />
+                      <span className={styles.radioDot} aria-hidden="true" />
+                      <span>
+                        <strong>{aksi.judul}</strong>
+                        {aksi.jangka && <small>{aksi.jangka}</small>}
+                        {aksi.alasan && <em>{aksi.alasan}</em>}
+                      </span>
+                      {i === 0 && <span className={styles.recommendedMarker}>⭐ Disarankan</span>}
+                    </label>
+                  );
+                })}
+              </fieldset>
+
+              {!viewerIsOwner ? (
+                <p className={styles.gapNote}>Komitmen 30 hari hanya dapat diedit dan disimpan oleh karyawan pemilik laporan ini.</p>
+              ) : (
+                <>
+                  <div className={styles.composer}>
+                    <h3>Rancang komitmen Anda</h3>
+                    <p>Anda dapat menyesuaikan langkah ini dengan konteks kerja Anda sendiri.</p>
+
+                    <label>
+                      <span>Langkah pertama</span>
+                      <textarea
+                        value={langkahPertama}
+                        maxLength={180}
+                        placeholder="Apa langkah pertama yang akan Anda lakukan?"
+                        onChange={(e) => { setLangkahPertama(e.target.value); setSavedForLater(false); }}
+                      />
+                      <small>{langkahPertama.length}/180</small>
+                    </label>
+
+                    <label>
+                      <span>Frekuensi</span>
+                      <input
+                        type="text"
+                        value={frekuensi}
+                        maxLength={60}
+                        placeholder="Seberapa sering Anda akan melakukannya?"
+                        onChange={(e) => { setFrekuensi(e.target.value); setSavedForLater(false); }}
+                      />
+                    </label>
+
+                    <label>
+                      <span>Bukti kemajuan</span>
+                      <textarea
+                        value={buktiKemajuan}
+                        maxLength={180}
+                        placeholder="Apa yang menandakan langkah ini berjalan?"
+                        onChange={(e) => { setBuktiKemajuan(e.target.value); setSavedForLater(false); }}
+                      />
+                    </label>
+
+                    <label>
+                      <span>Dukungan yang saya perlukan</span>
+                      <textarea
+                        value={dukungan}
+                        maxLength={180}
+                        placeholder="Dukungan apa yang ingin Anda minta? (opsional)"
+                        onChange={(e) => { setDukungan(e.target.value); setSavedForLater(false); }}
+                      />
+                    </label>
+                  </div>
+
+                  <div className={styles.checkins}>
+                    <h3>Perjalanan 30 hari Anda</h3>
+                    {checkIns.map((c) => (
+                      <article key={c.sequence} className={styles.checkinItem}>
+                        <span>{c.sequence}</span>
+                        <div>
+                          <strong>{c.date}</strong>
+                          <p>{c.title}</p>
+                        </div>
+                      </article>
+                    ))}
+                  </div>
+
+                  <div className={styles.privacyNote}>
+                    <span aria-hidden="true">🔒</span>
+                    <p>Refleksi dan komitmen pribadi Anda hanya dapat dilihat oleh Anda.</p>
+                  </div>
+
+                  {saveError && <p className={styles.errorNote}>Gagal menyimpan: {saveError}</p>}
+                  {komitmenError && <p className={styles.errorNote}>Gagal memuat komitmen tersimpan: {komitmenError}</p>}
+
+                  {committed && (
+                    <div className={styles.commitSuccess} role="status">
+                      <span aria-hidden="true">✅</span>
+                      <div>
+                        <strong>Komitmen 30 hari tersimpan</strong>
+                        <p>Check-in pertama dijadwalkan pada {checkIns[0].date}.</p>
+                      </div>
+                    </div>
+                  )}
+
+                  <div className={styles.commitmentBar}>
+                    <button
+                      type="button"
+                      className={styles.commitBtn}
+                      onClick={kunciKomitmen}
+                      disabled={!canCommit || saving}
+                    >
+                      {saving ? "Menyimpan…" : committed ? "✓ Komitmen tersimpan" : "Saya memilih fokus ini →"}
+                    </button>
+                    <button type="button" className={styles.saveLaterBtn} onClick={simpanDraf} disabled={saving}>
+                      {savedForLater ? "Tersimpan untuk nanti" : "Simpan untuk nanti"}
+                    </button>
+                  </div>
+                </>
+              )}
+            </div>
+          )}
+        </section>
+      </div>
+    );
   }
 
   return (
     <div className={styles.page}>
-      {/* ── Sapaan + identitas ─────────────────────────────────────────────── */}
-      <Reveal>
-        <div className={styles.greet}>
-          <span className={styles.avatar}>{inisial(meta.nama_responden)}</span>
-          <div className={styles.greetBody}>
-            <p className={styles.greetHalo}>Halo,</p>
-            <p className={styles.greetNama}>{meta.nama_responden}</p>
-            <div className={styles.chips}>
-              {meta.jabatan && <span className={styles.chip}>{meta.jabatan}</span>}
-              {meta.unit && <span className={styles.chip}>{meta.unit}</span>}
-            </div>
+      {/* ── 00 Pembuka personal ─────────────────────────────────────────────────────── */}
+      <Reveal className={styles.hero}>
+        <p className={styles.heroGreet}>Halo, <strong>{[sapaanFromJenisKelamin(meta.jenis_kelamin), meta.nama_responden].filter(Boolean).join(" ")}</strong></p>
+        <h1 className={styles.heroHook}>{heroHeadline}</h1>
+
+        <div className={styles.chips}>
+          {meta.jabatan && <span className={styles.chip}>Jabatan: {meta.jabatan}</span>}
+          {meta.unit && <span className={styles.chip}>Unit: {meta.unit}</span>}
+        </div>
+
+        {/* Kutipan esai pribadi juga -- sumbernya sama dengan Refleksi Pribadi (jawaban_survey),
+            jadi ikut disembunyikan total dari drill-down pimpinan supaya konsisten: bukan cuma
+            3 dari 4 jawaban esai yang privat. */}
+        {viewerIsOwner && jawaban_survey?.yang_ingin_diubah && (
+          <div className={styles.heroQuote}>
+            <span className={styles.quoteMark} aria-hidden="true">&ldquo;</span>
+            <p className={styles.heroQuoteHeading}>Perubahan perusahaan yang Anda harapkan</p>
+            <p className={styles.heroQuoteText}>{jawaban_survey.yang_ingin_diubah}</p>
           </div>
-          <span className={styles.periodePill}>{periodeLabel(meta.periode_id)}</span>
-        </div>
+        )}
       </Reveal>
 
-      {/* ── Pesan pembuka ──────────────────────────────────────────────────── */}
-      <Reveal delay={60}>
-        <div className={styles.hookCard}>
-          <p className={styles.hookText}>{header.hook}</p>
-          <p className={styles.hookSub}>{header.sub_hook}</p>
-        </div>
-      </Reveal>
-
-      {/* ── Hero indeks ────────────────────────────────────────────────────── */}
-      <HeroIndeks
-        indeks={bagian_kesejahteraan.indeks}
-        kategori={bagian_kesejahteraan.kategori}
-        onOpenIndeks={() => setInfoDipilih("indeks")}
-        onJump={jumpTo}
-      />
-
-      {/* ── Sorotan cepat ──────────────────────────────────────────────────── */}
-      <Reveal delay={60}>
-        <div className={styles.sorotanGrid}>
-          <button type="button" className={styles.sorotanCard} onClick={() => terkuat && setSubdimensiDipilih(terkuat)}>
-            <span className={styles.sorotanIkon} style={{ background: "var(--status-safe-bg)" }}>✓</span>
-            <span className={styles.sorotanLabel}>Kekuatan Anda</span>
-            <span className={styles.sorotanNilai}>{terkuat?.label}</span>
-            <span className={styles.sorotanSub}>{terkuat?.nilai}% · {terkuat?.kategori}</span>
-          </button>
-          <button type="button" className={styles.sorotanCard} onClick={() => terlemah && setSubdimensiDipilih(terlemah)}>
-            <span className={styles.sorotanIkon} style={{ background: "var(--status-warn-bg)" }}>!</span>
-            <span className={styles.sorotanLabel}>Perlu perhatian</span>
-            <span className={styles.sorotanNilai}>{terlemah?.label}</span>
-            <span className={styles.sorotanSub}>{terlemah?.nilai}% · {terlemah?.kategori}</span>
-          </button>
-        </div>
-      </Reveal>
-
-      {/* ── Budaya ─────────────────────────────────────────────────────────── */}
-      <section id="cw-sec-budaya" className={styles.section}>
-        <div className={styles.sectionHead}>
-          <h3 className={styles.sectionTitle}>Budaya Kerja</h3>
-          <span className={styles.sectionHint}>Ketuk kartu</span>
-        </div>
-
-        <Reveal>
-          <div className={styles.budayaGrid}>
-            {(bagian_budaya.chart_data || []).map((c, i) => {
-              const s = CULTURE_STYLE[i % CULTURE_STYLE.length];
-              const g = gapByLabel[c.tipe];
-              const info = TIPE_BUDAYA_INFO[c.tipe] || {};
-              return (
-                <button
-                  type="button"
-                  key={c.tipe}
-                  className={styles.budayaCard}
-                  style={{ background: s.bg, animationDelay: `${80 + i * 80}ms` }}
-                  onClick={() => setBudayaDipilih({ ...c, gap: g, info })}
-                >
-                  <span className={styles.budayaIkon} style={{ background: "rgba(255,255,255,0.55)" }}>
-                    {info.icon}
-                  </span>
-                  <span className={styles.budayaNama} style={{ color: s.ink }}>{c.tipe}</span>
-                  <span className={styles.budayaRingkas} style={{ color: s.ink }}>{info.ringkas}</span>
-                  <span className={styles.budayaNilai} style={{ color: s.ink }}>{c.saat_ini}%</span>
-                  <span className={styles.budayaGap} style={{ color: s.ink }}>
-                    {ARAH_ICON[g?.arah] || ""} {fmtGap(g?.nilai_gap)} vs harapan
-                  </span>
-                </button>
-              );
-            })}
-          </div>
-        </Reveal>
-
-        <Reveal delay={60}>
-          <button type="button" className={styles.radarCard} onClick={() => setInfoDipilih("radar")}>
-            <div className={styles.radarWrap}>
-              <CultureRadarChart data={bagian_budaya.chart_data} size={230} />
-            </div>
-            <p className={styles.radarHint}>
-              Garis penuh = yang Anda rasakan, putus-putus = yang Anda harapkan.
-              <span className={styles.radarCta}> Cara membaca ›</span>
-            </p>
+      {/* ── Pengingat komitmen aktif/draf: sengaja di dekat paling atas (bukan cuma di bawah
+          section 06) supaya jadi reminder tiap buka laporan, bukan cuma sekali muncul saat
+          menyimpan. Cuma untuk pemilik laporan sendiri -- komitmen tidak pernah tampil ke
+          pimpinan sama sekali (lihat gating fetch di useScKomitmen di bawah). */}
+      {viewerIsOwner && komitmen && (
+        <Reveal delay={0.04} className={styles.komitmenReminder}>
+          <span className={styles.komitmenReminderIcon} aria-hidden="true">{committed ? "✅" : "📝"}</span>
+          <span className={styles.komitmenReminderBody}>
+            <span className={styles.komitmenReminderEyebrow}>{committed ? "Komitmen 30 hari Anda" : "Draf komitmen tersimpan"}</span>
+            <strong className={styles.komitmenReminderTitle}>{komitmen.aksi_judul}</strong>
+            {committed && <span className={styles.komitmenReminderMeta}>Check-in berikutnya: {checkIns[0].date}</span>}
+          </span>
+          <button
+            type="button"
+            className={styles.komitmenReminderCta}
+            onClick={() => setShowRencana(true)}
+          >
+            {committed ? "Lihat" : "Lanjutkan"} →
           </button>
         </Reveal>
+      )}
 
-        {gapTerbesar && (
-          <Reveal delay={90}>
-            <InfoCallout judul="Yang paling menonjol dari jawaban Anda">
-              Selisih terbesar ada di <strong>{gapTerbesar.label}</strong> ({fmtGap(gapTerbesar.nilai_gap)} poin).{" "}
-              {arahTeks(gapTerbesar.arah).replace("Karyawan berharap", "Anda berharap")}
-            </InfoCallout>
+      {/* ── 01 Celah budaya ─────────────────────────────────────────────────────────── */}
+      <section className={styles.section}>
+        <SectionHead index="01" title="Laporan Budaya Kerja" lead={viewerIsOwner ? "Bandingkan persepsi Anda saat ini dengan harapan Anda tentang budaya perusahaan." : "Bandingkan persepsi karyawan saat ini dengan harapan karyawan tentang budaya perusahaan."} />
+
+        <div className={styles.legend} aria-label="Legenda celah budaya">
+          <span><i className={styles.legendCurrent} /> Persepsi {viewerIsOwner ? "Anda" : "karyawan"}</span>
+          <span><i className={styles.legendTarget} /> Harapan {viewerIsOwner ? "Anda" : "karyawan"}</span>
+        </div>
+
+        <div className={styles.gapList}>
+          {budayaItems.map((dim, i) => (
+            <BudayaGapRow
+              key={dim.tipe}
+              dim={dim}
+              gapRow={tabelGap.find((g) => g.label === dim.tipe)}
+              expanded={expandedBudaya === dim.tipe}
+              onToggle={() => setExpandedBudaya((cur) => (cur === dim.tipe ? null : dim.tipe))}
+              delay={i * 40}
+              viewerIsOwner={viewerIsOwner}
+            />
+          ))}
+        </div>
+
+        <div className={styles.note}>
+          <span aria-hidden="true">ℹ️</span>
+          <p>{viewerIsOwner ? "Gap tidak sepenuhnya menjadi tanggung jawab Anda. Bagian berikutnya membantu memisahkan kontribusi pribadi dari kebutuhan dukungan sistem." : "Gap tidak sepenuhnya menjadi tanggung jawab karyawan. Bagian berikutnya membantu memisahkan kontribusi pribadi dari kebutuhan dukungan sistem."}</p>
+        </div>
+      </section>
+
+      {/* ── 02 Energi dan kesejahteraan ─────────────────────────────────────────────── */}
+      <section className={styles.section}>
+        <SectionHead index="02" title="Laporan Kesejahteraan Karyawan" lead={viewerIsOwner ? "Ini menggambarkan pengalaman Anda, bukan penilaian kinerja." : "Ini menggambarkan pengalaman karyawan, bukan penilaian kinerja."} />
+        <div className={styles.wbList}>
+          {kesejahteraanItems.map((item, i) => (
+            <KesejahteraanRow
+              key={item.kode}
+              item={item}
+              expanded={expandedKes === item.kode}
+              onToggle={() => setExpandedKes((cur) => (cur === item.kode ? null : item.kode))}
+              delay={i * 35}
+              viewerIsOwner={viewerIsOwner}
+            />
+          ))}
+        </div>
+      </section>
+
+      {/* ── 03 Kontribusi peran (statis) ────────────────────────────────────────────── */}
+      <section className={styles.section}>
+        <SectionHead index="03" title={`Kontribusi peran ${viewerIsOwner ? "Anda" : "karyawan"}`} lead={viewerIsOwner ? "Peran Anda paling berdampak saat tiga hal ini saling terhubung." : "Peran karyawan paling berdampak saat tiga hal ini saling terhubung."} />
+        <div className={styles.roleList}>
+          {roleContributionSteps(viewerIsOwner).map((step, i) => (
+            <Reveal delay={i * 60} className={styles.roleStep} key={step.title}>
+              <span className={styles.roleNumber}>{i + 1}</span>
+              <span className={styles.roleIcon} aria-hidden="true">{step.icon}</span>
+              <div>
+                <strong>{step.title}</strong>
+                <p>{step.detail}</p>
+              </div>
+            </Reveal>
+          ))}
+        </div>
+
+        {/* Dua bagian yang tidak ada di School Culture tapi sudah lama ada di skema laporan
+            individu CW: cermin dari rekan kerja dan bahan renungan. Keduanya bukan jawaban esai
+            pribadi (jawaban_survey), jadi tetap tampil untuk pimpinan yang drill-down. */}
+        {bagian_cermin && (
+          <Reveal delay={200} className={styles.surveyCard}>
+            <span className={styles.quoteMark} aria-hidden="true">&ldquo;</span>
+            <p className={styles.surveyHeading}>Kata rekan kerja</p>
+            <p className={styles.surveyText}>{bagian_cermin}</p>
           </Reveal>
+        )}
+
+        {bagian_refleksi && (
+          <Reveal delay={240} className={styles.note}>
+            <span aria-hidden="true">🤔</span>
+            <p>{bagian_refleksi}</p>
+          </Reveal>
+        )}
+
+        {/* ── Refleksi privat: SELALU disembunyikan total dari drill-down pimpinan
+            (viewerIsOwner false) -- ini berbeda dari perilaku RLS cw_hasil_baca yang tadinya
+            mengizinkan baca, instruksi eksplisit pemilik produk mempersempitnya jadi cuma
+            tampil untuk pemilik laporan sendiri di layar ini. Tersembunyi default (toggle)
+            bahkan untuk pemilik sendiri. */}
+        {viewerIsOwner && adaJawabanSurvey && (
+          <>
+            <button
+              type="button"
+              className={styles.reflectionToggle}
+              onClick={() => setShowReflections((v) => !v)}
+              aria-expanded={showReflections}
+            >
+              <span aria-hidden="true">🔒</span>
+              <span>
+                <strong>Refleksi pribadi Anda</strong>
+                <small>Hanya dapat dilihat oleh Anda</small>
+              </span>
+              <ExpandIcon expanded={showReflections} />
+            </button>
+
+            {showReflections && (
+              <div className={styles.surveyList}>
+                <SurveyCard heading="Sumber energi Anda" teks={jawaban_survey.betah} delay={0} />
+                <SurveyCard heading="Hal yang menguras energi Anda" teks={jawaban_survey.hal_menguras_energi} delay={50} />
+                <SurveyCard heading="Perubahan yang Anda harapkan" teks={jawaban_survey.yang_ingin_diubah} delay={100} />
+              </div>
+            )}
+          </>
         )}
       </section>
 
-      {/* ── Kesejahteraan ──────────────────────────────────────────────────── */}
-      <section id="cw-sec-kesejahteraan" className={styles.section}>
-        <div className={styles.sectionHead}>
-          <h3 className={styles.sectionTitle}>Kesejahteraan Anda</h3>
-          <span className={styles.sectionHint}>Ketuk kartu</span>
-        </div>
-
-        <Reveal>
-          <SegmentBar items={subdimensi} />
-        </Reveal>
-
-        <Reveal delay={60}>
-          <div className={styles.subGrid}>
-            {subdimensi.map((it) => {
-              const warna = KATEGORI_KESEJAHTERAAN_COLOR[it.kategori] || "var(--ink-4)";
-              return (
-                <button
-                  type="button"
-                  key={it.kode}
-                  className={styles.subCard}
-                  onClick={() => setSubdimensiDipilih(it)}
-                >
-                  <span className={styles.subTop}>
-                    <span className={styles.subDot} style={{ background: warna }} />
-                    <span className={styles.subLabel}>{it.label}</span>
-                  </span>
-                  <span className={styles.subNilai}>{it.nilai}%</span>
-                  <span className={styles.subKategori} style={{ color: warna }}>{it.kategori}</span>
-                </button>
-              );
-            })}
-          </div>
-        </Reveal>
-
-        <Reveal delay={90}>
-          <InfoCallout ikon="💚" judul={`Kesejahteraan Anda: ${bagian_kesejahteraan.kategori}`}>
-            {interpretasiKesejahteraan(bagian_kesejahteraan.kategori)}
-          </InfoCallout>
-        </Reveal>
-      </section>
-
-      {/* ── Rencana aksi ───────────────────────────────────────────────────── */}
-      {rencana_aksi?.length > 0 && (
-        <section id="cw-sec-aksi" className={styles.section}>
-          <div className={styles.sectionHead}>
-            <h3 className={styles.sectionTitle}>
-              Rencana Aksi
-              <span className={styles.countBadge}>{rencana_aksi.length}</span>
-            </h3>
-            <span className={styles.sectionHint}>Ketuk untuk detail</span>
-          </div>
-
-          <div className={styles.aksiList}>
-            {rencana_aksi.map((a, i) => (
-              <AksiRow key={a.id} aksi={a} delay={i * 60} onClick={() => setAksiDipilih(a)} />
+      {/* ── Profil organisasi (dipertahankan dari versi sebelumnya) ─────────────────── */}
+      {(bagian_profil_organisasi?.chart_data?.length > 0) && (
+        <section className={styles.section}>
+          <SectionHead index="04" title="Laporan Profil Organisasi" />
+          <Reveal className={styles.orgGrid}>
+            {bagian_profil_organisasi.chart_data.map((d) => (
+              <div className={styles.orgCard} key={d.kode}>
+                <span className={styles.orgIcon} aria-hidden="true">{DIMENSI_PROFIL_INFO[d.kode]?.icon}</span>
+                <span className={styles.orgBody}>
+                  <span className={styles.orgLabel}>Nilai {DIMENSI_PROFIL_INFO[d.kode]?.label || d.label}</span>
+                  <strong className={styles.orgNilai}>{formatScore(d.nilai)}%</strong>
+                </span>
+              </div>
             ))}
-          </div>
+          </Reveal>
         </section>
       )}
 
-      {/* ── Cermin & refleksi ──────────────────────────────────────────────── */}
-      <section className={styles.section}>
-        <div className={styles.sectionHead}>
-          <h3 className={styles.sectionTitle}>Kata Rekan Kerja</h3>
-        </div>
-        <Reveal>
-          <div className={styles.cermin}>
-            <span className={styles.cerminKutip} aria-hidden="true">"</span>
-            <p className={styles.cerminTeks}>{bagian_cermin}</p>
-          </div>
-        </Reveal>
-      </section>
-
-      <Reveal>
-        <div className={styles.refleksi}>
-          <p className={styles.refleksiLabel}>Bahan renungan</p>
-          <p className={styles.refleksiTeks}>{bagian_refleksi}</p>
-        </div>
-      </Reveal>
-
-      <p className={styles.disclaimer}>{footer.disclaimer}</p>
-
-      {/* ── Dialog: tipe budaya ────────────────────────────────────────────── */}
-      {budayaDipilih && (
-        <CwDetailDialog
-          icon={budayaDipilih.info?.icon}
-          eyebrow="Tipe Budaya"
-          title={budayaDipilih.tipe}
-          subtitle={budayaDipilih.info?.ringkas}
-          onClose={() => setBudayaDipilih(null)}
-        >
-          <DialogSection title="Apa artinya">
-            <p className={styles.dialogText}>{budayaDipilih.info?.deskripsi}</p>
-          </DialogSection>
-
-          <DialogSection title="Jawaban Anda">
-            <DialogStats
-              items={[
-                { value: `${budayaDipilih.saat_ini}%`, label: "Anda rasakan" },
-                { value: `${budayaDipilih.harapan}%`, label: "Anda harapkan" },
-                { value: `${ARAH_ICON[budayaDipilih.gap?.arah] || ""} ${fmtGap(budayaDipilih.gap?.nilai_gap)}`, label: "Selisih" },
-              ]}
-            />
-            <p className={styles.dialogText}>
-              {arahTeks(budayaDipilih.gap?.arah).replace("Karyawan berharap", "Anda berharap").replace("Harapan karyawan", "Harapan Anda")}
-            </p>
-          </DialogSection>
-
-          <p className={styles.dialogFootnote}>
-            Angka 0-100 menunjukkan seberapa kuat tipe budaya ini Anda rasakan, bukan nilai
-            baik atau buruk. Keempat tipe selalu ada di tiap organisasi, yang berbeda porsinya.
-          </p>
-        </CwDetailDialog>
-      )}
-
-      {/* ── Dialog: subdimensi ─────────────────────────────────────────────── */}
-      {subdimensiDipilih && (() => {
-        const warna = KATEGORI_KESEJAHTERAAN_COLOR[subdimensiDipilih.kategori] || "var(--ink-4)";
-        const selisih = subdimensiDipilih.nilai - bagian_kesejahteraan.indeks;
-        const tone = ["Sangat Rendah", "Rendah"].includes(subdimensiDipilih.kategori)
-          ? "waspada" : subdimensiDipilih.kategori === "Sedang" ? "netral" : "baik";
-        const aksiTerkait = (rencana_aksi || []).filter((a) => a.terkait === subdimensiDipilih.label);
-        return (
-          <CwDetailDialog
-            icon="💚"
-            eyebrow="Kesejahteraan"
-            title={subdimensiDipilih.label}
-            subtitle={`${subdimensiDipilih.nilai}% · ${subdimensiDipilih.kategori}`}
-            onClose={() => setSubdimensiDipilih(null)}
-          >
-            <DialogSection title="Angka Anda">
-              <DialogStats
-                items={[
-                  { value: `${subdimensiDipilih.nilai}%`, label: "Skor Anda", color: warna },
-                  { value: subdimensiDipilih.kategori, label: "Kategori", color: warna },
-                  { value: `${selisih > 0 ? "+" : ""}${selisih}`, label: "vs indeks Anda" },
-                ]}
-              />
-            </DialogSection>
-
-            <DialogSection title="Apa artinya buat Anda">
-              <DialogCallout tone={tone} icon={tone === "waspada" ? "⚠️" : tone === "baik" ? "✓" : "•"}>
-                {interpretasiKesejahteraan(subdimensiDipilih.kategori)}
-              </DialogCallout>
-            </DialogSection>
-
-            {aksiTerkait.length > 0 && (
-              <DialogSection title="Langkah yang disarankan untuk ini">
-                <ol className={styles.langkahList}>
-                  {aksiTerkait.map((a) => (
-                    <li className={styles.langkahItem} key={a.id}>
-                      <span className={styles.langkahIkon} aria-hidden="true">{a.ikon}</span>
-                      <span className={styles.langkahText}>
-                        <strong>{a.judul}</strong>
-                        <span className={styles.langkahJangka}>{a.jangka}</span>
-                      </span>
-                    </li>
-                  ))}
-                </ol>
-              </DialogSection>
-            )}
-
-            <p className={styles.dialogFootnote}>
-              Skor ini berasal dari jawaban Anda sendiri di asesmen periode ini. Satu angka rendah
-              tidak berarti ada yang salah dengan Anda, lihat bersama subdimensi lain.
-            </p>
-          </CwDetailDialog>
-        );
-      })()}
-
-      {/* ── Dialog: aksi pribadi ───────────────────────────────────────────── */}
-      {aksiDipilih && (
-        <CwDetailDialog
-          icon={aksiDipilih.ikon}
-          eyebrow={`Rencana Aksi · ${aksiDipilih.jangka}`}
-          title={aksiDipilih.judul}
-          subtitle={`Terkait: ${aksiDipilih.terkait}`}
-          onClose={() => setAksiDipilih(null)}
-        >
-          <DialogSection title="Kenapa ini disarankan untuk Anda">
-            <p className={styles.dialogText}>{aksiDipilih.alasan}</p>
-          </DialogSection>
-
-          <DialogSection title="Kapan sebaiknya dimulai">
-            <DialogCallout tone="aksi" icon="🕒">
-              {aksiDipilih.jangka}. Mulai dari langkah paling kecil yang bisa Anda kendalikan
-              sendiri, tanpa menunggu keputusan pihak lain.
-            </DialogCallout>
-          </DialogSection>
-
-          <p className={styles.dialogFootnote}>
-            Saran ini disusun dari pola jawaban Anda, bukan penilaian kinerja. Anda bebas
-            menyesuaikan atau melewatinya bila tidak relevan dengan kondisi Anda saat ini.
-          </p>
-        </CwDetailDialog>
-      )}
-
-      {/* ── Dialog: indeks & radar ─────────────────────────────────────────── */}
-      {infoDipilih === "indeks" && (
-        <CwDetailDialog
-          icon="💚"
-          eyebrow="Indeks Kesejahteraan"
-          title={`${bagian_kesejahteraan.indeks} · ${bagian_kesejahteraan.kategori}`}
-          subtitle={periodeLabel(meta.periode_id)}
-          onClose={() => setInfoDipilih(null)}
-        >
-          <DialogSection title="Cara membacanya">
-            <p className={styles.dialogText}>
-              Angka ini gabungan dari {subdimensi.length} aspek kesejahteraan, skalanya 0-100 dan
-              makin tinggi makin baik. Berguna untuk melihat gambaran umum, tapi yang lebih
-              berguna ditindaklanjuti adalah aspek mana yang paling menariknya turun.
-            </p>
-          </DialogSection>
-
-          <DialogSection title="Yang menopang dan yang menekan">
-            <DialogStats
-              items={[
-                { value: `${terkuat?.nilai}%`, label: `Terkuat: ${terkuat?.label}`, color: "var(--cw-nilai-sangat-tinggi)" },
-                { value: `${terlemah?.nilai}%`, label: `Terlemah: ${terlemah?.label}`, color: "var(--cw-nilai-rendah)" },
-                { value: bagian_kesejahteraan.indeks, label: "Indeks gabungan", color: kesejahteraanWarna },
-              ]}
-            />
-            <p className={styles.dialogText}>{bagian_kesejahteraan.narasi}</p>
-          </DialogSection>
-
-          <p className={styles.dialogFootnote}>
-            Laporan ini rahasia. Atasan Anda melihat angka gabungan seluruh unit, bukan jawaban
-            pribadi Anda satu per satu.
-          </p>
-        </CwDetailDialog>
-      )}
-
-      {infoDipilih === "radar" && (
-        <CwDetailDialog
-          icon="🧭"
-          eyebrow="Profil Budaya"
-          title="Cara membaca grafik ini"
-          subtitle="Empat tipe budaya organisasi"
-          onClose={() => setInfoDipilih(null)}
-        >
-          <DialogSection title="Dua garis, dua makna">
-            <p className={styles.dialogText}>
-              <strong>Garis penuh</strong> adalah budaya yang Anda RASAKAN sekarang.{" "}
-              <strong>Garis putus-putus</strong> adalah budaya yang Anda HARAPKAN. Jarak antara
-              keduanya di satu sumbu itulah yang disebut selisih atau gap.
-            </p>
-          </DialogSection>
-
-          <DialogSection title="Empat sumbu">
-            <div className={styles.axisList}>
-              {(bagian_budaya.chart_data || []).map((c) => {
-                const info = TIPE_BUDAYA_INFO[c.tipe] || {};
-                const g = gapByLabel[c.tipe];
-                return (
-                  <div className={styles.axisRow} key={c.tipe}>
-                    <span className={styles.axisIcon} aria-hidden="true">{info.icon}</span>
-                    <div>
-                      <p className={styles.axisTitle}>{c.tipe}<span className={styles.axisRingkas}>{info.ringkas}</span></p>
-                      <p className={styles.axisMeta}>
-                        Dirasakan {c.saat_ini}% → diharapkan {c.harapan}% ({ARAH_ICON[g?.arah] || ""} {fmtGap(g?.nilai_gap)})
-                      </p>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </DialogSection>
-
-          <p className={styles.dialogFootnote}>
-            Tidak ada tipe budaya yang paling benar. Yang berguna dibaca adalah selisih antara
-            yang Anda rasakan dan yang Anda harapkan.
-          </p>
-        </CwDetailDialog>
+      {/* ── FAB "Baca Rencana Tindak Lanjut": satu-satunya jalan ke section 05/06 (Lingkar
+          Kontribusi + Komitmen 30 hari) sejak dipindah jadi halaman terpisah. Sama syarat
+          tampil dengan actionBlock di halaman rencana (ada rencana_aksi), supaya tidak ada
+          tombol menuju halaman kosong. */}
+      {aksiList.length > 0 && (
+        <button type="button" className={styles.fabRencana} onClick={() => setShowRencana(true)}>
+          Baca Rencana Tindak Lanjut
+          <span aria-hidden="true">→</span>
+        </button>
       )}
     </div>
-  );
-}
-
-/** Satu baris rencana aksi, pola "PENDING TASKS" di benchmark. */
-function AksiRow({ aksi, delay, onClick }) {
-  const [ref, shown] = useReveal();
-  return (
-    <button
-      type="button"
-      ref={ref}
-      className={`${styles.aksiRow} ${styles.reveal} ${shown ? styles.revealShown : ""}`}
-      style={{ transitionDelay: `${delay}ms` }}
-      onClick={onClick}
-    >
-      <span className={styles.aksiIkon} aria-hidden="true">{aksi.ikon}</span>
-      <span className={styles.aksiBody}>
-        <span className={styles.aksiJudul}>{aksi.judul}</span>
-        <span className={styles.aksiMeta}>
-          <span className={styles.aksiTag}>{aksi.terkait}</span>
-          <span className={styles.aksiJangka}>{aksi.jangka}</span>
-        </span>
-      </span>
-      <span className={styles.aksiChevron} aria-hidden="true">›</span>
-    </button>
   );
 }

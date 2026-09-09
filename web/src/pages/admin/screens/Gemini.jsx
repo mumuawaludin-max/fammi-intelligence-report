@@ -17,7 +17,7 @@ const ROLES = [
   ['kepala_sekolah', 'Kepala Sekolah'],
   ['yayasan', 'Yayasan'],
   ['orang_tua', 'Orang Tua'],
-  ['manajemen', 'Manajemen (School Culture)'],
+  ['manajemen', 'Manajemen (Culture)'],
 ];
 const INTERVAL_OPTIONS = [1, 3, 6, 12, 24];
 
@@ -230,7 +230,7 @@ export function Gemini() {
         labelBaris={(r) => `${r.sekolahNama} · ${r.yayasanNama}`}
       />
       <RekomendasiSederhanaPanel
-        judul="Rekomendasi School Culture" ikon="🏢" satuan="sekolah×periode" busyPrefix="sc"
+        judul="Rekomendasi Culture" ikon="🏢" satuan="sekolah×periode" busyPrefix="sc"
         items={rekomendasiSc} busyKey={busyKey} onGenerate={generateSc}
         onGenerateSemua={() => generateSemuaLevel('sc', rekomendasiSc, 'manajemen', 'sc')}
         batchProgress={batchSimple?.panel === 'sc' ? batchSimple : null}

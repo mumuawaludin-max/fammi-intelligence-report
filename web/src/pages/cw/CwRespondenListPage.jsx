@@ -15,7 +15,7 @@ function budayaDominan(chartData) {
 }
 
 /**
- * CwRespondenListPage -- daftar responden (guru/karyawan) yang bisa dibuka pimpinan untuk
+ * CwRespondenListPage -- daftar responden (karyawan) yang bisa dibuka pimpinan untuk
  * melihat laporan individu masing-masing. TIDAK ada di wireframe secara literal (dua file SVG
  * yang dibaca cuma menunjukkan sidebar dengan label "Laporan Individu", tanpa isi layarnya) --
  * ini pelengkap yang saya bangun supaya alur navigasi yang tersirat sidebar itu benar-benar bisa
@@ -35,7 +35,8 @@ export default function CwRespondenListPage({ respondenList = [] }) {
     if (!q) return true;
     return (
       r.meta.nama_responden.toLowerCase().includes(q) ||
-      (r.meta.jabatan || "").toLowerCase().includes(q)
+      (r.meta.jabatan || "").toLowerCase().includes(q) ||
+      (r.meta.unit || "").toLowerCase().includes(q)
     );
   });
 
@@ -46,7 +47,7 @@ export default function CwRespondenListPage({ respondenList = [] }) {
       <input
         type="text"
         className={styles.search}
-        placeholder="Cari nama atau jabatan..."
+        placeholder="Cari nama, jabatan, atau unit..."
         value={query}
         onChange={(e) => setQuery(e.target.value)}
       />
@@ -100,7 +101,7 @@ export default function CwRespondenListPage({ respondenList = [] }) {
           subtitle={selected.meta.jabatan || "—"}
           onClose={() => setSelected(null)}
         >
-          <CwLaporanIndividuPage laporan={selected} />
+          <CwLaporanIndividuPage laporan={selected} viewerIsOwner={false} />
         </CwDetailDialog>
       )}
     </div>

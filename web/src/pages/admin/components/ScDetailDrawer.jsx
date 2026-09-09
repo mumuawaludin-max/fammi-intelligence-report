@@ -1,7 +1,9 @@
 import { useState } from 'react';
 import { IconX } from './icons';
+import { moduleColor, moduleShort } from '../data/helpers';
 
-// Preview isi lengkap laporan individu School Culture hasil generate Gemini, dibaca dari kolom
+// Preview isi lengkap laporan individu Culture (School maupun Corporate) hasil generate,
+// dibaca dari kolom
 // sc_hasil.detail (jsonb, struktur LaporanIndividuSC -- lihat web/src/pages/sc/sc.types.ts).
 // Alat review admin sebelum approve, bukan tampilan final ke staf (itu ScLaporanIndividuPage di
 // web/src/pages/sc). Pola sama dengan MiDetailDrawer.jsx, DITAMBAH Fase C: field naratif kini
@@ -113,21 +115,23 @@ function EditableText({ value, onChange, minHeight = 60, style }) {
   );
 }
 
-export function ScDetailDrawer({ row, onClose, onSave, onRegenerate }) {
+// `modul` cuma menentukan pill di kepala drawer (School Culture vs Corporate Culture). Isi
+// laporannya identik, keduanya baris sc_hasil yang sama, jadi tidak ada percabangan lain.
+export function ScDetailDrawer({ row, modul = 'sc', onClose, onSave, onRegenerate }) {
   const open = !!row;
   return (
     <>
       {open && <div style={{ position: 'fixed', inset: 0, background: 'rgba(33,27,46,.35)', zIndex: 40 }} onClick={onClose} />}
       {open && (
         <div className="drawer-enter" style={{ position: 'fixed', top: 0, right: 0, bottom: 0, width: 'min(760px,94vw)', background: 'var(--surface-soft)', zIndex: 50, boxShadow: '-24px 0 60px rgba(33,27,46,.18)', display: 'flex', flexDirection: 'column' }}>
-          <ScDetailDrawerBody key={row.id} row={row} onClose={onClose} onSave={onSave} onRegenerate={onRegenerate} />
+          <ScDetailDrawerBody key={row.id} row={row} modul={modul} onClose={onClose} onSave={onSave} onRegenerate={onRegenerate} />
         </div>
       )}
     </>
   );
 }
 
-function ScDetailDrawerBody({ row, onClose, onSave, onRegenerate }) {
+function ScDetailDrawerBody({ row, modul, onClose, onSave, onRegenerate }) {
   const [d, setD] = useState(() => row?.detail || {});
   const [dirty, setDirty] = useState(false);
   const [busySave, setBusySave] = useState(false);
@@ -171,7 +175,7 @@ function ScDetailDrawerBody({ row, onClose, onSave, onRegenerate }) {
     <>
       <div style={{ padding: '20px 26px 16px', borderBottom: '1px solid var(--line)', background: 'var(--surface)', display: 'flex', flexDirection: 'column', gap: 8 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 9, flexWrap: 'wrap' }}>
-          <span className="pill" style={{ background: '#FFEBCB', color: '#8A4E00' }}>School Culture</span>
+          <span className="pill" style={{ background: moduleColor(modul).bg, color: moduleColor(modul).ink }}>{moduleShort(modul)}</span>
           {dirty && <span className="pill" style={{ background: 'var(--status-warn-bg)', color: 'var(--status-warn)' }}>✎ belum disimpan</span>}
           <span className="mono" style={{ marginLeft: 'auto', fontSize: 11.5, color: 'var(--ink-3)' }}>{String(row?.id || '').slice(0, 8)}</span>
           <button className="btn-ghost" style={{ padding: 6 }} onClick={onClose}><IconX size={16} /></button>

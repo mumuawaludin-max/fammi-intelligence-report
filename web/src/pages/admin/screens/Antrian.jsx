@@ -5,7 +5,7 @@ import { EmptyState } from '../components/EmptyState';
 import { ErrorState } from '../components/ErrorState';
 import { ChipRow } from '../components/ChipRow';
 import { SekolahPeriodeFilter } from '../components/SekolahPeriodeFilter';
-import { moduleColor, moduleShort, prioritasColor, statusColor, periodeMatch } from '../data/helpers';
+import { moduleColor, moduleShort, modulTampil, prioritasColor, statusColor, periodeMatch } from '../data/helpers';
 
 export function Antrian() {
   const { data, loading, error, state, setScreen, setApprovalFilter, setSelectedApproval, actApproval, refetch } = useCms();
@@ -19,18 +19,24 @@ export function Antrian() {
 
   const source = tab === 'menunggu' ? data.antrian : data.riwayatDisetujui;
   const f = state.approvalFilter;
+  // Baris School Culture dan Corporate Culture sama-sama bermodul 'sc' di database (tabelnya
+  // memang satu, lihat CLAUDE.md), jadi label dan penyaring modul di layar ini diturunkan dari
+  // entitlement kliennya lewat modulTampil. Tanpa ini, antrian yang memuat klien sekolah dan
+  // klien korporat sekaligus tampil seragam "School Culture" dan admin tidak bisa membedakan.
+  const modulesById = Object.fromEntries((data.sekolah || []).map((s) => [s.id, s.modules || []]));
+  const modulRow = (a) => modulTampil(a.modul, modulesById[a.sekolah]);
   // Yayasan lalu sekolah difilter dulu berjenjang -- opsi/checkbox di tingkat berikutnya
   // (sekolah, lalu periode) cuma menawarkan pilihan yang relevan untuk tingkat sebelumnya.
   const sourceByYayasan = f.yayasan === 'all' ? source : source.filter(a => a.yayasan === f.yayasan);
   const sourceBySekolah = f.sekolah === 'all' ? sourceByYayasan : sourceByYayasan.filter(a => a.sekolah === f.sekolah);
   const items = sourceBySekolah.filter(a =>
-    (f.modul === 'all' || a.modul === f.modul) &&
+    (f.modul === 'all' || modulRow(a) === f.modul) &&
     (f.prioritas === 'all' || a.prioritas === f.prioritas) &&
     periodeMatch(a.periode, f.periode)
   );
 
-  const modulCount = { all: sourceBySekolah.length, karakter: 0, mi: 0, screening: 0 };
-  sourceBySekolah.forEach(a => { modulCount[a.modul] = (modulCount[a.modul] || 0) + 1; });
+  const modulCount = { all: sourceBySekolah.length, karakter: 0, mi: 0, screening: 0, sc: 0, cw: 0 };
+  sourceBySekolah.forEach(a => { const m = modulRow(a); modulCount[m] = (modulCount[m] || 0) + 1; });
 
   const prioritasCount = { all: sourceBySekolah.length, tinggi: 0, sedang: 0, rendah: 0 };
   sourceBySekolah.forEach(a => { prioritasCount[a.prioritas] = (prioritasCount[a.prioritas] || 0) + 1; });
@@ -132,6 +138,10 @@ export function Antrian() {
             { key: 'karakter', label: `Karakter (${modulCount.karakter})`, color: moduleColor('karakter') },
             { key: 'mi', label: `MI (${modulCount.mi})`, color: moduleColor('mi') },
             { key: 'screening', label: `Screening (${modulCount.screening})`, color: moduleColor('screening') },
+            // Dua chip di bawah cuma muncul kalau memang ada barisnya, supaya baris chip tidak
+            // penuh untuk klien yang tidak memakai modul budaya organisasi sama sekali.
+            ...(modulCount.sc > 0 ? [{ key: 'sc', label: `School Culture (${modulCount.sc})`, color: moduleColor('sc') }] : []),
+            ...(modulCount.cw > 0 ? [{ key: 'cw', label: `Corporate Culture (${modulCount.cw})`, color: moduleColor('cw') }] : []),
           ]}
         />
         <div style={{ width: 1, height: 22, background: 'var(--line)' }} />
@@ -165,16 +175,17 @@ export function Antrian() {
 
 function ApprovalCard({ a, data, onOpen, onApprove }) {
   const pr = prioritasColor(a.prioritas);
-  const mc = moduleColor(a.modul);
   const st = statusColor(a.status);
   const sekolah = data.sekolah.find(s => s.id === a.sekolah);
+  const modul = modulTampil(a.modul, sekolah?.modules);
+  const mc = moduleColor(modul);
   const isBriefing = a.tipe === 'briefing';
   const isDisetujui = a.status === 'disetujui';
 
   return (
     <div className="card lift clk" onClick={onOpen} style={{ padding: '18px 20px', position: 'relative', display: 'flex', flexDirection: 'column', gap: 11 }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-        <span className="pill" style={{ background: mc.bg, color: mc.ink }}>{moduleShort(a.modul)}</span>
+        <span className="pill" style={{ background: mc.bg, color: mc.ink }}>{moduleShort(modul)}</span>
         <span className="pill" style={{ background: pr.bg, color: pr.ink }}>
           <span className="dot" style={{ background: pr.ink }} />
           Prioritas {a.prioritas}

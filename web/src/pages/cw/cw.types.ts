@@ -14,8 +14,12 @@
  * istilah (akademik vs sehari-hari). Belum dikonfirmasi, jangan dianggap pasti sama.
  */
 
-/** Empat tipe budaya organisasi menurut kerangka OCAI. Urutan tetap: Klan, Adhokrasi, Pasar, Hierarki. */
-export type TipeBudayaOrganisasi = "Klan" | "Adhokrasi" | "Pasar" | "Hierarki";
+/**
+ * Empat tipe budaya organisasi, kerangka nilai bersaing. Nilainya PERSIS seperti yang ditulis
+ * data olahan (sheet Personal/Lembaga), bukan istilah akademik OCAI Klan/Adhokrasi/Pasar/Hierarki
+ * yang sempat dipakai di sini sampai 2026-09-09. Urutan tetap.
+ */
+export type TipeBudayaOrganisasi = "Kekeluargaan" | "Inovasi" | "Orientasi" | "Aturan";
 
 /**
  * ASUMSI: arah gap antara "saat_ini" dan "harapan" untuk satu tipe budaya. Nilai union ini
@@ -37,6 +41,18 @@ export interface RadarBudayaPoint {
   saat_ini: number;
   /** 0-100. */
   harapan: number;
+  /** Label status hasil pemeringkatan gap di hulu ("Selaras"/"Perlu perhatian"/dst). */
+  status?: string;
+  /** Kalimat interpretasi khusus tipe ini untuk periode berjalan, dari hulu. */
+  interpretation?: string;
+  /** Ringkasan fokus yang disarankan, dipakai kartu "Fokus yang Disarankan" di bagian C. */
+  focus?: string;
+  /** Daftar aksi ringkas untuk panel "Arah fokus" di 01-B. */
+  priorityActions?: string[];
+  /** Langkah bertahap untuk bagian C, urut. */
+  phases?: LangkahTindakLanjut[];
+  indicators?: IndikatorKeberhasilan[];
+  warnings?: string[];
 }
 
 /** Satu baris tabel gap: ringkasan tekstual dari RadarBudayaPoint yang bersangkutan. */
@@ -72,6 +88,12 @@ export type KategoriKesejahteraan =
   | "Sangat Tinggi";
 
 /** Satu batang pada chart_data kesejahteraan: satu subdimensi (mis. "Beban Kerja"). */
+export interface ButirKesejahteraan {
+  label: string;
+  /** Skala 1-5, rata-rata butir mentah. */
+  nilai: number;
+}
+
 export interface SubdimensiKesejahteraan {
   /**
    * ASUMSI: kode pendek subdimensi, dipakai sebagai React key/identitas stabil. Nama subdimensi
@@ -83,6 +105,13 @@ export interface SubdimensiKesejahteraan {
   /** 0-100, ASUMSI skala sama dengan radar budaya. */
   nilai: number;
   kategori: KategoriKesejahteraan;
+  /** Breakdown butir mentah pembentuk subdimensi ini, skala 1-5. */
+  items?: ButirKesejahteraan[];
+  focus?: string;
+  priorityActions?: string[];
+  phases?: LangkahTindakLanjut[];
+  indicators?: IndikatorKeberhasilan[];
+  warnings?: string[];
 }
 
 export interface BagianKesejahteraan {
@@ -92,6 +121,19 @@ export interface BagianKesejahteraan {
   indeks: number;
   kategori: KategoriKesejahteraan;
   chart_data: SubdimensiKesejahteraan[];
+}
+
+/** Satu langkah tindak lanjut hasil perumusan di hulu, sudah lewat gerbang persetujuan. */
+export interface LangkahTindakLanjut {
+  aksi: string;
+  /** Jangka waktu, mis. "Minggu ini", "30 hari". Boleh kosong. */
+  waktu?: string | null;
+}
+
+/** Penanda keberhasilan satu langkah tindak lanjut. */
+export interface IndikatorKeberhasilan {
+  title: string;
+  detail?: string;
 }
 
 export interface CwFooter {
@@ -108,6 +150,11 @@ export interface CwFooter {
 export interface CwMeta {
   responden_id: string;
   nama_responden: string;
+  /** Raw dari kolom demografi, mis. "Laki-laki"/"Perempuan"/"L"/"P". Dipakai untuk sapaan
+   * Bapak/Ibu di hero laporan individu; kosong berarti sapaan dilewati. */
+  jenis_kelamin?: string;
+  /** Nama perusahaan, dipakai di kalimat hero laporan individu. */
+  nama_perusahaan?: string;
   /** Mis. "Analis Data", "Manajer Penjualan". Opsional karena belum tentu semua responden punya. */
   jabatan?: string;
   /** Unit/divisi tempat responden bekerja, dipakai untuk agregasi antarunit. */
@@ -139,12 +186,52 @@ export interface AksiPribadi {
   ikon: string;
 }
 
+/**
+ * Jawaban esai verbatim satu karyawan. Ditampilkan apa adanya (bukan sintesis Gemini) dan cuma
+ * ke pemilik laporan sendiri, lihat gating viewerIsOwner di CwLaporanIndividuPage.jsx.
+ */
+export interface JawabanSurveyCW {
+  /** Q1: gambaran perusahaan dalam satu frasa, dipakai jadi judul hero. */
+  gambaran_perusahaan?: string;
+  /** Q2: yang membuat betah bekerja. */
+  betah?: string;
+  /** Q3: hal yang menguras energi. */
+  hal_menguras_energi?: string;
+  /** Q4: perubahan yang diharapkan. */
+  yang_ingin_diubah?: string;
+}
+
+/** Satu langkah konkret di dalam satu area lingkar kontribusi. */
+export interface LangkahKontribusi {
+  judul: string;
+  instruksi?: string;
+  contoh?: string[];
+  tujuan?: string;
+}
+
+/**
+ * Satu area lingkar kontribusi: apa yang ada di kendali sendiri, apa yang bisa dipengaruhi, apa
+ * yang butuh dukungan sistem. Isinya per orang (di SC digenerate Gemini di hulu), konsep tiga
+ * areanya sendiri statis di CwLaporanIndividuPage.jsx.
+ */
+export interface LingkarKontribusiArea {
+  locus: "control" | "influence" | "system";
+  mengapa_fokus: string;
+  langkah?: LangkahKontribusi[];
+}
+
 /** Struktur penuh satu laporan individu CW. */
 export interface LaporanIndividuCW {
   meta: CwMeta;
   header: CwHeader;
   bagian_budaya: BagianBudaya;
   bagian_kesejahteraan: BagianKesejahteraan;
+  /** Enam dimensi profil organisasi menurut satu orang ini. Opsional: laporan lama belum punya. */
+  bagian_profil_organisasi?: BagianProfilOrganisasi;
+  jawaban_survey?: JawabanSurveyCW;
+  lingkar_kontribusi?: LingkarKontribusiArea[];
+  /** Kapan laporan ini disetujui admin. Jadi titik nol jadwal check-in 30 hari. */
+  approved_at?: string | null;
   /** Teks bebas -- refleksi "cermin" (bagaimana responden dipersepsikan/memandang dirinya). */
   bagian_cermin: string;
   /** Teks bebas -- ajakan/pertanyaan refleksi untuk responden. */
@@ -225,8 +312,78 @@ export interface LaporanAgregatCW {
   /** Sama shape dengan individu, tapi mewakili rata-rata/agregat seluruh responden organisasi. */
   bagian_budaya: BagianBudaya;
   bagian_kesejahteraan: BagianKesejahteraan;
+  bagian_profil_organisasi: BagianProfilOrganisasi;
+  analisis: AnalisisAgregatCW;
+  cerita_karyawan: CeritaKaryawan;
+  tema_esai: TemaEsaiCW[];
+  /**
+   * Dipertahankan di skema tapi TIDAK lagi dirender di dashboard: section Perbandingan
+   * Antarunit dan Prioritas Perbaikan lintas-fokus ikut dihapus saat struktur disamakan dengan
+   * School Culture. Jangan dikembalikan ke tampilan tanpa instruksi baru.
+   */
   perbandingan_antarunit: PerbandinganAntarunit;
   /** Selalu 3 item, urut peringkat 1-3. */
   prioritas_perbaikan: PrioritasPerbaikan[];
   footer: CwFooter;
+}
+
+/* ============================================================================================
+ * BAGIAN TAMBAHAN LAPORAN AGREGAT
+ *
+ * Ditambahkan saat dashboard Laporan Organisasi CW disamakan strukturnya dengan modul School
+ * Culture (tiga section 01/02/03, masing-masing A/B/C). Bentuk field mengikuti padanannya di
+ * pages/sc/sc.types.ts supaya kalau nanti pipeline hulu CW dibangun, skemanya tinggal mengikuti
+ * yang sudah berjalan di SC, bukan bentuk ketiga yang baru.
+ * ============================================================================================ */
+
+/** Satu dari enam dimensi profil organisasi, rata-rata lintas keempat tipe budaya. */
+export interface DimensiProfilOrganisasi {
+  /** Kode pendek, cocok dengan DIMENSI_PROFIL_INFO di cwMeta.js. */
+  kode: string;
+  label: string;
+  /** 0-100. */
+  nilai: number;
+  kategori: KategoriKesejahteraan;
+  phases?: LangkahTindakLanjut[];
+  indicators?: IndikatorKeberhasilan[];
+  warnings?: string[];
+}
+
+export interface BagianProfilOrganisasi {
+  narasi: string;
+  /** Selalu 6 entri, urutan mengikuti DIMENSI_PROFIL_INFO. */
+  chart_data: DimensiProfilOrganisasi[];
+}
+
+/**
+ * Satu sel rata-rata item mentah gambaran_<dimensi>_<tipe>, skala 1-5. Dipakai dua kali dengan
+ * sumber yang sama: dikelompokkan per tipe di 01-D, per dimensi di 03-B.
+ */
+export interface SelHeatmap {
+  dimensi: string;
+  tipe: TipeBudayaOrganisasi;
+  nilai_mentah: number | null;
+}
+
+export interface AnalisisAgregatCW {
+  heatmap: SelHeatmap[];
+}
+
+/** Satu frasa word cloud hasil sintesis jawaban esai karyawan (bukan kutipan asli, demi privasi). */
+export interface FrasaCeritaKaryawan {
+  frasa: string;
+  jumlah_mention: number;
+}
+
+export interface CeritaKaryawan {
+  gambaran_perusahaan: FrasaCeritaKaryawan[];
+  saat_ini: FrasaCeritaKaryawan[];
+  ingin_diubah: FrasaCeritaKaryawan[];
+}
+
+/** Satu tema hasil sintesis jawaban esai, dipakai section 02-C. */
+export interface TemaEsaiCW {
+  tema: string;
+  ringkasan: string;
+  jumlah_mention: number;
 }

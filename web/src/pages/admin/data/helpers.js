@@ -5,7 +5,30 @@ export function moduleLabel(m) {
 }
 
 export function moduleShort(m) {
-  return { karakter: 'Karakter', mi: 'MI', screening: 'Screening', cw: 'Culture', sc: 'School Culture', pa: 'Perilaku Anak' }[m] || m;
+  return { karakter: 'Karakter', mi: 'MI', screening: 'Screening', cw: 'Corporate Culture', sc: 'School Culture', pa: 'Perilaku Anak' }[m] || m;
+}
+
+/**
+ * Modul budaya organisasi yang dipakai satu klien, diturunkan dari entitlement school_modules.
+ *
+ * Kenapa perlu diturunkan: School Culture dan Corporate Culture memakai instrumen dan TABEL yang
+ * sama (sc_personal/sc_lembaga/sc_hasil, lihat CLAUDE.md), jadi kolom `modul` di baris
+ * tindak_lanjut/briefing SELALU berbunyi 'sc' walau unggahannya lewat modul Corporate Culture.
+ * Yang benar-benar membedakan klien sekolah dari klien korporat cuma entitlement ini. Tanpa
+ * penurunan ini, seluruh baris milik klien korporat tampil berlabel "School Culture" di layar
+ * admin, dan itu yang bikin bingung saat antrian memuat dua jenis klien sekaligus.
+ */
+export function modulBudaya(modules) {
+  const aktif = modules || [];
+  if (aktif.includes('cw')) return 'cw';
+  if (aktif.includes('sc')) return 'sc';
+  return null;
+}
+
+/** Modul yang pantas DITAMPILKAN untuk satu baris antrian/persetujuan. Baris pipeline budaya
+ * ('sc') direlabel jadi 'cw' kalau kliennya korporat; modul lain dikembalikan apa adanya. */
+export function modulTampil(modul, modules) {
+  return modul === 'sc' ? (modulBudaya(modules) || 'sc') : modul;
 }
 
 export function moduleColor(m) {

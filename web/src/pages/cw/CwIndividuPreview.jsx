@@ -24,7 +24,7 @@ export default function CwIndividuPreview() {
             <span className={styles.respondenJabatan}> · {laporan.meta.jabatan}</span>
           </h2>
           <SampleTag />
-          <CwLaporanIndividuPage laporan={laporan} />
+          <CwLaporanIndividuPage laporan={laporan} viewerIsOwner />
         </section>
       ))}
     </div>

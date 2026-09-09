@@ -2,6 +2,8 @@
 
 Dibuat dari pembacaan langsung dua wireframe Figma (`Laporan Individu culture.svg`, `Laporan Agregat untuk Pimpinan.svg`) dan seluruh folder benchmark visual di `design-reference/project/screenshots/corporate culture benchmark/`. Belum ada kode ditulis. Dokumen ini adalah spec, bukan implementasi.
 
+> **Status per 2026-09-09.** Bagian laporan agregat (dashboard pimpinan) di dokumen ini SUDAH TIDAK menggambarkan kode yang berjalan. Atas instruksi pemilik produk, dashboard "Laporan Lembaga" CW disamakan strukturnya dengan modul School Culture yang lebih mutakhir: tiga kartu gelap 01/02/03 sebagai filter, tiap bagian punya struktur A (ringkasan + skor) / B (perbandingan atau pendalaman) / C (tindak lanjut). Hero gelap, Angka Kunci, Perbandingan Antarunit, Prioritas Perbaikan lintas-fokus, radar, dan bar chart tidak lagi dirender di halaman itu. Lihat `web/src/pages/cw/CwLaporanAgregatPage.jsx` dan paragraf "Pengecualian yang disengaja (2)" di `CLAUDE.md`. Bagian laporan individu dan skema data di dokumen ini masih berlaku.
+
 Cara baca dokumen ini: tiap komponen ditandai **[REUSE]** (pakai komponen yang sudah ada persis atau dengan props baru), **[BARU]** (komponen baru khusus CW, belum ada padanannya), atau **[BARU – pola existing]** (komponen baru tapi meniru pola visual/interaksi yang sudah ada di modul lain). Tiap keputusan yang masih terbuka ditandai 🔶 **OPEN** inline, dan direkap ulang di bagian 8.
 
 ---

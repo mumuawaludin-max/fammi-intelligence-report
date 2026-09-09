@@ -146,7 +146,14 @@ export function Upload() {
   }
 
   const isMi = modul === 'mi';
-  const isSc = modul === 'sc';
+  // Corporate Culture & Wellbeing memakai instrumen, format berkas, importer, dan tabel yang
+  // SAMA PERSIS dengan School Culture (sudah dicek langsung ke berkas olahan PT Glamindo:
+  // sheet Personal + Lembaga, kolom identik). Yang berbeda cuma konteks kliennya, perusahaan
+  // bukan sekolah. Jadi seluruh cabang isSc di layar ini sengaja ikut menyala untuk modul cw,
+  // dan datanya menulis ke sc_personal/sc_lembaga yang sama. Keputusan pemilik produk
+  // 2026-09-09: jangan menggandakan tabel cw_* selama instrumennya belum berbeda.
+  const isCw = modul === 'cw';
+  const isSc = modul === 'sc' || isCw;
   const isPa = modul === 'pa';
   const isKarakter = modul === 'karakter';
   // SC dan PA sama-sama tidak punya kolom periode di dalam filenya, jadi keduanya memakai input
@@ -215,7 +222,7 @@ export function Upload() {
       }
       setScApproveResult({ okCount, failed, akunBaru, akunGagal });
     } catch (e) {
-      setParseError(e.message || 'Gagal memuat antrian persetujuan School Culture.');
+      setParseError(e.message || 'Gagal memuat antrian persetujuan Culture.');
     } finally {
       setScApproveBusy(false);
       setScApproveProgress(null);
@@ -261,13 +268,13 @@ export function Upload() {
           result.unresolved.forEach((u) => { initial[u.namaFile] = u.suggestion?.id || ''; });
           setMiMapping(initial);
         }
-      } else if (modul === 'sc') {
+      } else if (isSc) {
         result = await parseScWorkbook(f, { sekolahId, periodeId: periodeSc });
       } else if (modul === 'pa') {
         // Perilaku Anak ikut pola SC: periode tidak ada di dalam file, diketik admin di langkah 2.
         result = await parsePaWorkbook(f, { sekolahId, periodeId: periodeSc });
       } else {
-        setParseError('Importer untuk modul ini belum tersedia (baru Karakter, MI, School Culture, dan Perilaku Anak).');
+        setParseError('Importer untuk modul ini belum tersedia (baru Karakter, MI, School Culture, Corporate Culture, dan Perilaku Anak).');
         return;
       }
       // Pratinjau kerangka tetap disimpan walau parse GAGAL. Justru di situlah admin paling
@@ -404,7 +411,7 @@ export function Upload() {
         <div className="card" style={{ padding: 24 }}>
           <div className="disp" style={{ fontSize: 16, fontWeight: 700, color: 'var(--ink)', marginBottom: 10 }}>Pilih modul</div>
           <div style={{ display: 'flex', gap: 8, marginBottom: 6 }}>
-            {['karakter', 'mi', 'screening', 'sc', 'pa'].map((m) => {
+            {['karakter', 'mi', 'screening', 'sc', 'cw', 'pa'].map((m) => {
               const mc = moduleColor(m);
               const active = m === modul;
               // Modul MI selalu boleh dipilih, baik untuk satu sekolah spesifik (dari file
@@ -424,6 +431,8 @@ export function Upload() {
               ? (sekolahId === SEKOLAH_MI
                 ? 'MI: tiap baris file = satu siswa, boleh lintas sekolah. Sekolah tiap baris dicocokkan ke sekolah terdaftar lewat namanya; yang tidak cocok bisa dipetakan manual sebelum generate. Periode dibaca dari file.'
                 : `MI: tiap baris file = satu siswa. Semua baris langsung dianggap milik ${sekolah?.nama || 'sekolah yang dipilih'} -- kolom sekolah di file (kalau ada) diabaikan. Periode dibaca dari file.`)
+              : isCw
+              ? 'Corporate Culture: sheet "Personal" (satu baris per karyawan) + sheet "Lembaga" (agregat perusahaan). Formatnya sama persis dengan School Culture dan masuk ke tabel yang sama. File ini TIDAK punya kolom bulan sendiri, jadi periode wajib diisi manual di bawah.'
               : isSc
               ? 'School Culture: sheet "Personal" (satu baris per staf) + sheet "Lembaga" (agregat sekolah). File ini TIDAK punya kolom bulan sendiri, jadi periode wajib diisi manual di bawah.'
               : isPa
@@ -492,8 +501,8 @@ export function Upload() {
                 ? (sekolahId === SEKOLAH_MI
                   ? '.xlsx / .xls · satu sheet, satu baris per siswa (kolom nama_siswa, kelas_id, sekolah_id, periode, r_inter..r_spasial, essay_*)'
                   : '.xlsx / .xls · satu sheet, satu baris per siswa (kolom nama_siswa, kelas_id, periode, r_inter..r_spasial, essay_*). Kolom sekolah di file boleh ada atau tidak, tidak dipakai.')
-                : modul === 'sc'
-                ? '.xlsx / .xls · sheet "Personal" (satu baris per staf) + sheet "Lembaga" (agregat sekolah)'
+                : isSc
+                ? `.xlsx / .xls · sheet "Personal" (satu baris per ${isCw ? 'karyawan' : 'staf'}) + sheet "Lembaga" (agregat ${isCw ? 'perusahaan' : 'sekolah'})`
                 : '.xlsx / .xls · sheet detail_persentase_karakter dkk (format sama seperti data awal). Sheet detail_pernyataan_siswa opsional, untuk refleksi siswa sendiri.'}
             </div>
             <label className="btn-primary" style={{ display: 'inline-flex', cursor: 'pointer' }}>
@@ -623,7 +632,7 @@ export function Upload() {
                 <div className="disp" style={{ fontSize: 16, fontWeight: 700, color: 'var(--ink)' }}>Preview file: {file?.name}</div>
                 <div style={{ fontSize: 12, color: 'var(--ink-3)', marginTop: 3 }}>
                   {isSc
-                    ? `${parsed.rows.personalRows.length} responden · ${parsed.rows.lembagaRows.length} baris agregat lembaga`
+                    ? `${parsed.rows.personalRows.length} responden · ${parsed.rows.lembagaRows.length} baris agregat ${isCw ? 'perusahaan' : 'lembaga'}`
                     : isPa
                     ? `${parsed.rows.siswaRows.length} baris siswa/domain · ${parsed.rows.lembagaRows.length} baris agregat · ${parsed.rows.esaiRows.length} jawaban esai`
                     : `${parsed.rows.skorRows.length} baris skor · ${parsed.muridBaru} murid baru terdeteksi`}
@@ -862,7 +871,7 @@ export function Upload() {
                   ) : (
                     <>
                       <div style={{ fontSize: 12.5, color: 'var(--ink-2)', marginBottom: 12 }}>
-                        Draf laporan menunggu ditinjau. Klik di bawah untuk menyetujui SEMUA sekaligus (satu klik) -- akun Karyawan + kode login langsung dibuat untuk staf yang belum punya akun, dan laporan langsung tayang ke mereka. Cek dulu ringkasan hasil generate di atas kalau mau meninjau satu-satu lewat menu Persetujuan School Culture sebelum menyetujui semua.
+                        Draf laporan menunggu ditinjau. Klik di bawah untuk menyetujui SEMUA sekaligus (satu klik) -- akun Karyawan + kode login langsung dibuat untuk yang belum punya akun, dan laporan langsung tayang ke mereka. Cek dulu ringkasan hasil generate di atas kalau mau meninjau satu-satu lewat menu Persetujuan Culture sebelum menyetujui semua (menu itu melayani School Culture maupun Corporate Culture, tabelnya sama).
                       </div>
                       {scApproveProgress && (
                         <div style={{ marginBottom: 12 }}>
@@ -884,14 +893,14 @@ export function Upload() {
               ) : (
                 <>
                   <div style={{ fontSize: 12.5, color: 'var(--ink-2)', lineHeight: 1.6, marginBottom: 12 }}>
-                    Generate laporan narasi per staf otomatis berjalan setelah import. Kalau belum mulai atau sempat gagal di tengah jalan, pakai tombol di bawah untuk memicu ulang (aman diulang, draf lama untuk staf yang sudah berhasil tidak akan ditimpa dua kali).
+                    Generate laporan narasi per responden otomatis berjalan setelah import. Kalau belum mulai atau sempat gagal di tengah jalan, pakai tombol di bawah untuk memicu ulang (aman diulang, draf lama untuk staf yang sudah berhasil tidak akan ditimpa dua kali).
                   </div>
                   {scProgress && (
                     <div style={{ marginBottom: 12 }}>
                       <div style={{ height: 8, background: 'var(--surface-soft)', borderRadius: 99, overflow: 'hidden' }}>
                         <div style={{ height: '100%', width: `${Math.round((scProgress.done / scProgress.total) * 100)}%`, background: 'var(--purple-600)', transition: '.3s' }} />
                       </div>
-                      <div style={{ fontSize: 12, color: 'var(--ink-3)', marginTop: 6 }}>Memproses {scProgress.done}/{scProgress.total} staf…</div>
+                      <div style={{ fontSize: 12, color: 'var(--ink-3)', marginTop: 6 }}>Memproses {scProgress.done}/{scProgress.total} responden…</div>
                       {retryStatusText(scProgress.retry) && (
                         <div style={{ fontSize: 12, color: 'var(--status-warn)', marginTop: 4 }}>⚠ {retryStatusText(scProgress.retry)}</div>
                       )}

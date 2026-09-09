@@ -55,7 +55,7 @@ export function Sekolah() {
                 <th>Karakter</th>
                 <th>MI</th>
                 <th>Screening</th>
-                <th>Culture</th>
+                <th>Corporate Culture</th>
                 <th>School Culture</th>
                 <th>Perilaku Anak</th>
                 <th>Leadership</th>

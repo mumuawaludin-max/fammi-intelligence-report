@@ -1,0 +1,39 @@
+/**
+ * Token warna KHUSUS dashboard "Laporan Organisasi" Corporate Culture & Wellbeing (ketiga bagian:
+ * Budaya Kerja, Kesejahteraan Karyawan, Profil Organisasi). Nilainya SAMA PERSIS dengan
+ * pages/sc/scBudayaTokens.module.css -- instruksi pemilik produk: CW mengikuti struktur dan
+ * tampilan School Culture yang paling mutakhir, jadi pengecualian palet di CLAUDE.md
+ * "Pengecualian yang disengaja (2)" berlaku untuk kedua modul, bukan SC saja.
+ *
+ * Custom property diberi awalan --cwd-* (bukan --sc-*) supaya kedua modul bisa berubah
+ * sendiri-sendiri kalau nanti paletnya dibedakan. Di-scope lewat class .scope yang dipasang di
+ * tiap komponen section, supaya TIDAK menjalar ke laporan individu karyawan
+ * (CwLaporanIndividuPage/CwKaryawanPage, tetap token FIR biasa) atau modul lain.
+ */
+.scope {
+  --cwd-primary: #6c2bd9;
+  --cwd-heading: #3b1e77;
+  --cwd-soft: #f1eaff;
+  --cwd-bg: #fafaf7;
+  --cwd-surface: #ffffff;
+  --cwd-border: #e6e2da;
+  --cwd-gold: #d9a406;
+  --cwd-gold-soft: #fff7dc;
+  --cwd-ink: #211c2d;
+  --cwd-muted: #675f71;
+  --cwd-muted-2: #8c8494;
+  --cwd-shadow-sm: 0 6px 22px rgba(59, 30, 119, 0.06);
+  --cwd-shadow-md: 0 18px 48px rgba(59, 30, 119, 0.09);
+  --cwd-radius-sm: 10px;
+  --cwd-radius-md: 16px;
+  --cwd-radius-lg: 24px;
+
+  /* Tiga status kualitatif (ranking gap untuk Budaya Kerja, kategori 5-tingkat untuk
+     Kesejahteraan/Organisasi) -- dipakai pill status maupun latar kotak gap. */
+  --cwd-status-attention-bg: #fbe9d2;
+  --cwd-status-attention-ink: #8a4e00;
+  --cwd-status-light-bg: #f2eee8;
+  --cwd-status-light-ink: #5c5347;
+  --cwd-status-aligned-bg: #e3f5ea;
+  --cwd-status-aligned-ink: #1f7a49;
+}

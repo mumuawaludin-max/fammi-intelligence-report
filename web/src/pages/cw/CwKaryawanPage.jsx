@@ -1,6 +1,5 @@
-import SampleTag from "../../components/SampleTag";
 import CwLaporanIndividuPage from "./CwLaporanIndividuPage";
-import { MOCK_LAPORAN_INDIVIDU_CW } from "./cw.mock";
+import { useCwIndividu } from "./useCwData";
 import styles from "./CwKaryawanPage.module.css";
 
 function IconLogout({ size = 14 }) {
@@ -31,8 +30,10 @@ function IconLogout({ size = 14 }) {
  * lihat blok `if (session.peran === "Karyawan")`, persis pola Siswa/OrangTua.
  */
 export default function CwKaryawanPage({ session, onLogout }) {
-  // Data masih dummy -- tabel cw_* belum ada, lihat catatan di CwPage.jsx.
-  const laporan = MOCK_LAPORAN_INDIVIDU_CW[0];
+  // Data asli dari sc_hasil lewat useCwIndividu (tabelnya dipakai bersama modul School
+  // Culture, lihat useCwData.js). RLS membatasi baris yang kembali ke milik
+  // profiles.sc_responden_id akun ini sendiri, dan cuma yang berstatus 'disetujui'.
+  const { loading, error, data: laporan } = useCwIndividu(session);
 
   return (
     <div className={styles.root}>
@@ -51,8 +52,15 @@ export default function CwKaryawanPage({ session, onLogout }) {
 
         <main className={styles.main}>
           <div className={styles.content}>
-            <div className={styles.sampleRow}><SampleTag /></div>
-            <CwLaporanIndividuPage laporan={laporan} />
+            {loading ? (
+              <p className={styles.stateMsg}>Memuat laporan…</p>
+            ) : error ? (
+              <p className={styles.stateMsg}>Gagal memuat laporan: {error}</p>
+            ) : laporan ? (
+              <CwLaporanIndividuPage laporan={laporan} viewerIsOwner />
+            ) : (
+              <p className={styles.stateMsg}>Laporan Anda belum tersedia atau belum disetujui untuk periode ini.</p>
+            )}
           </div>
         </main>
       </div>

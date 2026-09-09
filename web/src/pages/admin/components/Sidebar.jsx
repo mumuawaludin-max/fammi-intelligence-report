@@ -5,7 +5,9 @@ const NAV = [
   { key: 'dashboard', label: 'Dashboard', Icon: IconDash, badge: null },
   { key: 'antrian', label: 'Antrian Persetujuan', Icon: IconCheck, badge: 'dynamic' },
   { key: 'persetujuan-mi', label: 'Persetujuan MI', Icon: IconCheck, badge: null },
-  { key: 'persetujuan-sc', label: 'Persetujuan School Culture', Icon: IconCheck, badge: null },
+    // Satu menu untuk School Culture dan Corporate Culture: keduanya memakai tabel sc_hasil yang
+  // sama, jadi antriannya memang satu. Tiap baris di dalamnya diberi label modulnya sendiri.
+  { key: 'persetujuan-sc', label: 'Persetujuan Culture', Icon: IconCheck, badge: null },
   { key: 'upload', label: 'Upload Data', Icon: IconUpload, badge: null },
   // Sinkronisasi tarik dari spreadsheet YPT, dipisah dari "Upload Data" karena alurnya beda:
   // sumbernya respons form yang terus bertambah, bukan berkas Excel sekali jalan per periode.

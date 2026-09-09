@@ -77,6 +77,13 @@ const SC_SUB_TABS = [
   { id: "individu", label: "Laporan Individu" },
 ];
 
+// Sengaja daftar terpisah walau isinya sama persis dengan SC_SUB_TABS: wording modul CW
+// (korporat) dan SC (sekolah) diurus sendiri-sendiri, lihat catatan di CLAUDE.md.
+const CW_SUB_TABS = [
+  { id: "dashboard", label: "Dashboard" },
+  { id: "individu", label: "Laporan Individu" },
+];
+
 function isSingleModuleShellPeran(peran) {
   return peran === "KepalaSekolah" || peran === "WakilKepalaSekolah" || peran === "WaliKelas"
     || peran === "Yayasan" || peran === "Manajemen";
@@ -125,10 +132,12 @@ export default function App() {
   // datanya Agustus 2026). Diisi periode terbaru yang nyata oleh effect di bawah.
   const [period, setPeriod]       = useState({ type: "bulanan", period: "" });
   const [loginNotice, setLoginNotice] = useState("");
-  // Sub-tab School Culture (Dashboard/Laporan Individu) -- diangkat ke sini (bukan state
-  // internal ScPage.jsx) supaya bisa dirender menyatu di baris Header yang sama dengan nav
-  // modul (inlineNav), persis instruksi pemilik produk.
-  const [scTab, setScTab] = useState("dashboard");
+  // Sub-tab modul budaya organisasi, School Culture maupun Corporate Culture & Wellbeing
+  // (Dashboard/Laporan Individu). Diangkat ke sini (bukan state internal ScPage/CwPage) supaya
+  // bisa dirender menyatu di baris Header yang sama dengan nav modul (inlineNav), instruksi
+  // pemilik produk untuk SC lalu diikutkan ke CW. Satu state untuk dua modul karena id
+  // sub-tabnya sama; berpindah modul tidak mereset pilihan, dan itu tidak masalah.
+  const [budayaTab, setBudayaTab] = useState("dashboard");
   const overview = useOverviewBriefing(session);
   const isKepsekShell = isSingleModuleShellPeran(session?.peran);
   const availablePeriods = useAvailablePeriods(session);
@@ -245,13 +254,13 @@ export default function App() {
     />
   );
 
-  // Sub-tab School Culture, cuma tampil menyatu di baris Header yang sama saat modul SC aktif --
-  // lihat catatan lengkap di deklarasi state scTab.
-  const scSubNav = activeTab === "sc" ? (
+  // Sub-tab modul budaya organisasi, cuma tampil saat modul SC atau CW yang aktif -- lihat
+  // catatan lengkap di deklarasi state budayaTab.
+  const budayaSubNav = activeTab === "sc" || activeTab === "cw" ? (
     <NavBar
-      items={SC_SUB_TABS}
-      activeTab={scTab}
-      onTabChange={setScTab}
+      items={activeTab === "sc" ? SC_SUB_TABS : CW_SUB_TABS}
+      activeTab={budayaTab}
+      onTabChange={setBudayaTab}
       pillNav
     />
   ) : null;
@@ -268,7 +277,7 @@ export default function App() {
         showPeriod={showPeriodPicker}
         bulananOptions={bulananOptions}
         mingguanOptions={mingguanOptions}
-        inlineNav={isKepsekShell ? (<>{navBar}{scSubNav}</>) : null}
+        inlineNav={isKepsekShell ? (<>{navBar}{budayaSubNav}</>) : null}
       />
       {!isKepsekShell && navBar}
 
@@ -281,6 +290,7 @@ export default function App() {
               selectedPeriod={period.period}
               onSelect={setPeriod}
             />
+            {budayaSubNav}
           </div>
         </div>
       )}
@@ -307,9 +317,9 @@ export default function App() {
           />
         )}
 
-        {activeTab === "cw" && <CwPage session={session} />}
+        {activeTab === "cw" && <CwPage session={session} tab={budayaTab} />}
 
-        {activeTab === "sc" && <ScPage session={session} tab={scTab} />}
+        {activeTab === "sc" && <ScPage session={session} tab={budayaTab} />}
 
         {/* Perilaku Anak: modul tampilan-dulu, data masih contoh (lihat pa/pa.mock.js).
             Aktif untuk sekolah yang punya penanda "pa" di school_modules. */}

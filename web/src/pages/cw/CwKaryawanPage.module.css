@@ -109,6 +109,17 @@
   gap: 16px;
 }
 
+/* Pesan status (memuat / gagal / belum ada laporan) di dalam bingkai HP. Padanan .stateMsg
+   di ScKaryawanPage.module.css. Kelas .sampleRow sudah tidak dipakai sejak data CW tidak lagi
+   memakai cw.mock.ts, tapi dibiarkan karena halaman preview QA masih memanggilnya. */
+.stateMsg {
+  font-size: 13.5px;
+  color: var(--ink-3);
+  line-height: 1.55;
+  text-align: center;
+  padding: 40px 20px;
+}
+
 .sampleRow {
   display: flex;
 }

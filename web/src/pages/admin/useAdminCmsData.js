@@ -420,6 +420,10 @@ export async function runImportAction({ sekolahId, modul, fileName, parsed, paMo
     // Karakter: opsi kedua menentukan cakupan hapus -- per pekan (bawaan) atau seluruh bulan.
     karakter: (p) => importKarakterWorkbook(p, { gantiSeluruhBulan }),
     sc: importScWorkbook,
+    // Corporate Culture memakai importer, Edge Function, dan tabel yang SAMA dengan SC (lihat
+    // catatan di Upload.jsx). Yang dicatat berbeda cuma import_log.modul, supaya riwayat unggah
+    // tetap bisa dibedakan per modul.
+    cw: importScWorkbook,
     // Perilaku Anak satu-satunya importer yang butuh argumen kedua (mode ulang/baru) -- lihat
     // catatan di paImporter.js.
     pa: (p) => importPaWorkbook(p, paMode),

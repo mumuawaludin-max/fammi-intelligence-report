@@ -4,7 +4,7 @@ import { LoadingCards } from '../components/LoadingCards';
 import { EmptyState } from '../components/EmptyState';
 import { ErrorState } from '../components/ErrorState';
 import { ScDetailDrawer } from '../components/ScDetailDrawer';
-import { moduleColor } from '../data/helpers';
+import { moduleColor, moduleShort, modulTampil } from '../data/helpers';
 import { loadScPendingAction, actScApproval, updateScDraftAction, regenerateScIndividuAction } from '../useAdminCmsData';
 import { periodeLabel } from '../../karakter/karakterMeta';
 
@@ -40,6 +40,9 @@ export function PersetujuanSc() {
   useEffect(() => { load(); }, [load]);
 
   const schoolNameById = Object.fromEntries((data.sekolah || []).map((s) => [s.id, s.nama]));
+  // Entitlement per klien, dipakai memberi label modul yang benar ke tiap baris: sekolah dapat
+  // "School Culture", perusahaan dapat "Corporate Culture". Lihat modulTampil di helpers.js.
+  const modulesById = Object.fromEntries((data.sekolah || []).map((s) => [s.id, s.modules || []]));
 
   async function saveDraft(id, detail) {
     try {
@@ -95,7 +98,7 @@ export function PersetujuanSc() {
   async function setujuiSemua() {
     const targets = [...state.rows];
     if (targets.length === 0) return;
-    if (!window.confirm(`Setujui ${targets.length} laporan School Culture sekaligus? Semuanya langsung tayang ke staf, dan akun Karyawan baru akan dibuat untuk responden yang belum punya akun.`)) return;
+    if (!window.confirm(`Setujui ${targets.length} laporan Culture sekaligus? Semuanya langsung tayang ke respondennya, dan akun Karyawan baru akan dibuat untuk yang belum punya akun.`)) return;
 
     setBulkBusy(true);
     setBulkProgress({ done: 0, total: targets.length });
@@ -157,16 +160,14 @@ export function PersetujuanSc() {
   }
 
   if (state.loading) return <LoadingCards rows={5} />;
-  if (state.error) return <ErrorState title="Gagal memuat antrian School Culture" desc={state.error} cta="Muat ulang" onCta={load} />;
-
-  const mc = moduleColor('sc');
+  if (state.error) return <ErrorState title="Gagal memuat antrian Culture" desc={state.error} cta="Muat ulang" onCta={load} />;
 
   return (
     <div style={{ padding: '22px 26px 40px' }}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16, gap: 12, flexWrap: 'wrap' }}>
         <div>
-          <div className="disp" style={{ fontSize: 18, fontWeight: 700, color: 'var(--ink)' }}>Persetujuan School Culture</div>
-          <div style={{ fontSize: 12.5, color: 'var(--ink-3)', marginTop: 2 }}>Laporan individu SC hasil generate Gemini yang menunggu ditinjau. Setelah disetujui, tayang ke staf yang bersangkutan.</div>
+          <div className="disp" style={{ fontSize: 18, fontWeight: 700, color: 'var(--ink)' }}>Persetujuan Culture</div>
+          <div style={{ fontSize: 12.5, color: 'var(--ink-3)', marginTop: 2 }}>Laporan individu School Culture dan Corporate Culture yang menunggu ditinjau. Keduanya satu antrian karena memakai tabel yang sama; label di tiap kartu menunjukkan modul kliennya. Setelah disetujui, laporan tayang ke respondennya.</div>
         </div>
         <div style={{ display: 'flex', gap: 8 }}>
           <button className="btn-ghost" style={{ fontSize: 12 }} onClick={load} disabled={bulkBusy}>Refresh</button>
@@ -228,15 +229,17 @@ export function PersetujuanSc() {
       })()}
 
       {state.rows.length === 0 ? (
-        <EmptyState title="Tidak ada laporan School Culture menunggu" desc="Laporan SC yang digenerate lewat generate-sc-individu muncul di sini untuk ditinjau." />
+        <EmptyState title="Tidak ada laporan Culture menunggu" desc="Laporan School Culture maupun Corporate Culture yang digenerate lewat generate-sc-individu muncul di sini untuk ditinjau." />
       ) : (
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
           {state.rows.map((r) => {
             const busy = busyId === r.id || bulkBusy;
+            const modul = modulTampil('sc', modulesById[r.sekolah_id]);
+            const mc = moduleColor(modul);
             return (
               <div key={r.id} className="card" style={{ padding: '16px 18px', display: 'flex', flexDirection: 'column', gap: 10 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-                  <span className="pill" style={{ background: mc.bg, color: mc.ink }}>SC</span>
+                  <span className="pill" style={{ background: mc.bg, color: mc.ink }}>{moduleShort(modul)}</span>
                   {r.peran_kerja && <span className="pill" style={{ background: 'var(--purple-050)', color: 'var(--purple-700)' }}>{r.peran_kerja}</span>}
                   {r.sumber === 'excel' && (
                     <span className="pill" style={{ background: 'var(--status-safe-bg)', color: 'var(--status-safe)' }} title="Laporan ini datang siap pakai dari kolom laporan_json di file Excel, bukan dirumuskan Gemini saat generate. Tetap wajib ditinjau seperti biasa sebelum disetujui.">
@@ -277,7 +280,7 @@ export function PersetujuanSc() {
         </div>
       )}
 
-      <ScDetailDrawer row={detailRow} onClose={() => setDetailRow(null)} onSave={saveDraft} onRegenerate={regenerateDraft} />
+      <ScDetailDrawer row={detailRow} modul={detailRow ? modulTampil('sc', modulesById[detailRow.sekolah_id]) : 'sc'} onClose={() => setDetailRow(null)} onSave={saveDraft} onRegenerate={regenerateDraft} />
     </div>
   );
 }
