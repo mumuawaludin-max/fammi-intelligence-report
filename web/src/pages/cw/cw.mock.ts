@@ -64,8 +64,14 @@ const RESPONDEN_1: LaporanIndividuCW = {
       { kode: "ekspektasi", label: "Ekspektasi Terpenuhi", nilai: 80, kategori: "Tinggi" },
     ],
   },
+  // bagian_cermin TIDAK lagi ditampilkan utuh: layar cuma mengambil kutipan di dalam tanda
+  // petiknya (lihat kutipanSurvei di CwLaporanIndividuPage.jsx). Bentuknya di sini dibuat sama
+  // dengan keluaran buildCermin() asli, yaitu jawaban esai orang itu di dalam petik lalu satu
+  // kalimat konteks di luar petik, supaya jalur pemulihan untuk laporan lama ikut teruji. Teks
+  // lama di field ini pernah mengarang persepsi rekan kerja ("Rekan-rekan melihat Anda...");
+  // data seperti itu tidak pernah ada di instrumen ini.
   bagian_cermin:
-    "Rekan-rekan melihat Anda sebagai sosok yang mudah diajak berdiskusi dan konsisten hadir saat tim butuh bantuan teknis. Kehangatan ini jadi salah satu perekat suasana kerja di unit Anda.",
+    '"Tim lapangan saya gampang diajak diskusi. Kalau ada masalah sumur, semua turun tangan tanpa saling menyalahkan." "Rapat koordinasi yang berulang untuk hal yang sudah diputuskan minggu sebelumnya." Dua hal itu sering berjalan bersama di unit yang sibuk.',
   bagian_refleksi:
     "Apa satu hal kecil yang bisa Anda lakukan bulan ini supaya ruang mencoba pendekatan teknis baru terasa lebih terbuka di tim Anda?",
   bagian_profil_organisasi: {
@@ -200,7 +206,7 @@ const RESPONDEN_2: LaporanIndividuCW = {
     ],
   },
   bagian_cermin:
-    "Rekan kerja menilai Anda sebagai orang yang teliti dan bisa diandalkan untuk urusan administratif dan pelaporan, meski beberapa menyebut Anda jarang berbagi cerita di luar urusan pekerjaan.",
+    '"Pekerjaan saya jelas ukurannya. Saya tahu apa yang harus selesai dan kapan." "Menunggu tanda tangan untuk hal kecil, kadang sampai tiga lapis untuk nominal yang tidak seberapa." Kejelasan ukuran dan panjangnya alur persetujuan biasanya datang dari sistem yang sama.',
   bagian_refleksi:
     "Prosedur mana yang menurut Anda sudah tidak perlu terlalu berlapis, dan siapa satu rekan kerja yang bisa Anda ajak bicara lebih terbuka minggu ini?",
   bagian_profil_organisasi: {
@@ -320,7 +326,7 @@ const RESPONDEN_3: LaporanIndividuCW = {
     ],
   },
   bagian_cermin:
-    "Rekan kerja mengagumi dedikasi Anda mengejar target proyek tim, namun beberapa juga khawatir Anda jarang terlihat benar-benar berhenti sejenak di sela jam kerja.",
+    '"Saya suka pekerjaan proyeknya. Hasilnya kelihatan dan bisa saya ukur sendiri." "Linimasa proyek yang bertabrakan, lalu semuanya jadi mendesak di minggu yang sama." Pekerjaan yang terukur memang lebih mudah menumpuk tanpa terasa.',
   bagian_refleksi:
     "Kalau boleh menunda satu target minggu ini demi waktu istirahat yang cukup, target mana yang akan Anda pilih?",
   bagian_profil_organisasi: {

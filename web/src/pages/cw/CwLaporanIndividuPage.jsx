@@ -280,6 +280,24 @@ export default function CwLaporanIndividuPage({ laporan, viewerIsOwner = false }
     jawaban_survey.betah || jawaban_survey.hal_menguras_energi || jawaban_survey.yang_ingin_diubah
   );
 
+  // Kutipan apa adanya dari jawaban esai orang itu sendiri, TANPA kalimat analisis. Sebelumnya
+  // bagian ini menampilkan bagian_cermin utuh, yaitu kutipan plus satu kalimat konteks tulisan
+  // Gemini (dirakit buildCermin() di generate-sc-individu). Kalimat konteks itu dibuang atas
+  // instruksi pemilik produk: isinya memparafrase kutipan yang tepat di sebelahnya (padahal
+  // dilarang di system instruction) dan bentuk kalimatnya seragam untuk semua orang, jadi tiap
+  // laporan terbaca sama walau jawabannya berbeda.
+  //
+  // Sumber utamanya jawaban_survey (verbatim dari kolom esai). Laporan lama yang belum punya
+  // field itu masih bisa dipulihkan dari bagian_cermin, karena buildCermin() selalu menaruh tiap
+  // jawaban di dalam tanda petik dan menempel konteksnya di luar petik.
+  const kutipanSurvei = useMemo(() => {
+    const langsung = [jawaban_survey?.betah, jawaban_survey?.hal_menguras_energi]
+      .map((t) => (t ? String(t).trim() : ""))
+      .filter(Boolean);
+    if (langsung.length > 0) return langsung;
+    return (String(bagian_cermin || "").match(/"[^"]+"/g) || []).map((t) => t.slice(1, -1).trim()).filter(Boolean);
+  }, [jawaban_survey, bagian_cermin]);
+
   // Judul hero dirakit di frontend (bukan backend) supaya bisa POV-aware saat render --
   // header.hook dari backend dipakai sebagai fallback untuk laporan lama / Q1 kosong.
   const heroHeadline = (jawaban_survey?.gambaran_perusahaan && meta?.nama_perusahaan)
@@ -701,13 +719,20 @@ export default function CwLaporanIndividuPage({ laporan, viewerIsOwner = false }
         </div>
 
         {/* Dua bagian yang tidak ada di School Culture tapi sudah lama ada di skema laporan
-            individu CW: cermin dari rekan kerja dan bahan renungan. Keduanya bukan jawaban esai
-            pribadi (jawaban_survey), jadi tetap tampil untuk pimpinan yang drill-down. */}
-        {bagian_cermin && (
+            individu CW: catatan dari survei orang itu sendiri dan bahan renungan.
+            Judulnya dulu "Kata rekan kerja", dan itu SALAH: tidak pernah ada data penilaian
+            rekan kerja di instrumen ini (system instruction geminiPromptSc.ts menyatakannya
+            eksplisit), yang tampil adalah jawaban esai orang itu sendiri.
+            Karena isinya jawaban esai pribadi, blok ini ikut gerbang viewerIsOwner sama seperti
+            "Refleksi pribadi Anda" di bawah. Tanpa gerbang itu, pimpinan yang drill-down tetap
+            membaca jawaban yang sengaja dikunci, cuma lewat judul lain. */}
+        {viewerIsOwner && kutipanSurvei.length > 0 && (
           <Reveal delay={200} className={styles.surveyCard}>
             <span className={styles.quoteMark} aria-hidden="true">&ldquo;</span>
-            <p className={styles.surveyHeading}>Kata rekan kerja</p>
-            <p className={styles.surveyText}>{bagian_cermin}</p>
+            <p className={styles.surveyHeading}>Catatan dari survei Anda</p>
+            {kutipanSurvei.map((teks, i) => (
+              <p className={styles.surveyText} key={i}>{teks}</p>
+            ))}
           </Reveal>
         )}
 
