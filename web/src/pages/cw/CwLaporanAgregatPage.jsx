@@ -13,6 +13,11 @@ import styles from "./CwLaporanAgregatPage.module.css";
 
 const BUDAYA_TINDAK_LANJUT_ID = "cw-budaya-tindak-lanjut";
 
+/** Bagian "Tindak Lanjut yang Perlu Dilakukan" untuk sementara hanya tampil di Laporan Budaya
+ * Kerja (01-C). Padanannya di Laporan Profil Organisasi (03-C) disembunyikan atas permintaan
+ * pemilik produk (2026-09-11); kodenya dibiarkan utuh, tinggal ubah flag ini jadi true. */
+const TAMPILKAN_TINDAK_LANJUT_ORGANISASI = false;
+
 /** Item dengan value tertinggi dari daftar {key,value}. */
 function tertinggiDari(items) {
   return (items || []).reduce((acc, d) => (acc == null || (d.value ?? 0) > (acc.value ?? 0) ? d : acc), null);
@@ -214,12 +219,14 @@ export default function CwLaporanAgregatPage({ laporan }) {
             items={bagian_profil_organisasi.chart_data}
             heatmapCells={analisis?.heatmap || []}
           />
-          <CwDimensiTindakLanjut
-            sectionIndex="03-C"
-            title="Tindak Lanjut yang Perlu Dilakukan"
-            subtitle="Melihat hasil tiap dimensi, berikut ini hal yang bisa dilakukan"
-            items={organisasiTindakLanjut}
-          />
+          {TAMPILKAN_TINDAK_LANJUT_ORGANISASI && (
+            <CwDimensiTindakLanjut
+              sectionIndex="03-C"
+              title="Tindak Lanjut yang Perlu Dilakukan"
+              subtitle="Melihat hasil tiap dimensi, berikut ini hal yang bisa dilakukan"
+              items={organisasiTindakLanjut}
+            />
+          )}
         </>
       )}
     </div>
