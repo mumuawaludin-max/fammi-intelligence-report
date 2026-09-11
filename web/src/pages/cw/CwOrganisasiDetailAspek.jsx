@@ -5,8 +5,11 @@ import styles from "./CwOrganisasiDetailAspek.module.css";
 
 const DIMENSI_ORDER = DIMENSI_LABEL_DATA;
 
-/** Reframing tipe budaya jadi kalimat pendek deskriptif KHUSUS kartu ini, supaya jelas ini
- * menilai "seberapa terasa ciri X" pada tiap dimensi organisasi, bukan skor tipe budaya lagi. */
+/** CADANGAN saja. Label baris yang sebenarnya adalah redaksi butir survei itu sendiri, dibawa
+ * per sel lewat cell.label_item (diturunkan dari nama kolom di useCwData.js). Empat kalimat di
+ * bawah cuma dipakai kalau kolomnya tidak ketemu di berkas klien, supaya barisnya tidak kosong.
+ * JANGAN dijadikan sumber utama lagi: tiap pasangan dimensi x tipe menanyakan hal yang berbeda,
+ * jadi memakai daftar per tipe bikin keenam kartu tampil dengan indikator yang sama persis. */
 const TIPE_ROW_LABEL = {
   Kekeluargaan: "Perusahaan seperti keluarga",
   Inovasi: "Terbuka pada hal baru",
@@ -32,7 +35,8 @@ function formatScore(value) {
 
 /**
  * CwOrganisasiDetailAspek -- bagian "03-B" Profil Organisasi: satu kartu per dimensi organisasi
- * (6 kartu, header skor asli dimensi itu + kategori), isi kartu rating bintang per tipe budaya.
+ * (6 kartu, header skor asli dimensi itu + kategori), isi kartu rating bintang per butir survei
+ * dimensi itu (satu butir per tipe budaya, redaksinya ikut berkas klien).
  * Sumbernya SAMA dengan 01-D (analisis.heatmap), cuma ditranspos: di sana dikelompokkan per
  * tipe, di sini per dimensi.
  *
@@ -73,7 +77,7 @@ export function CwOrganisasiDetailAspek({ sectionIndex, items, heatmapCells = []
                     const rating = cell?.nilai_mentah;
                     return (
                       <div className={styles.row} key={tipe}>
-                        <span className={styles.rowLabel}>{TIPE_ROW_LABEL[tipe]}</span>
+                        <span className={styles.rowLabel}>{cell?.label_item || TIPE_ROW_LABEL[tipe]}</span>
                         <span className={styles.rowValue}>
                           <Stars rating={rating} />
                           <span className={styles.rowNumber}>

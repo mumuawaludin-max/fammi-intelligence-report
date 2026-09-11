@@ -91,12 +91,26 @@ const DIMENSI_KODE_LIST = Object.keys(DIMENSI_KODE_LABEL);
 const TIPE_KODE_LIST = ["kekeluargaan", "inovasi", "orientasi", "aturan"];
 const TIPE_LABEL_LIST = ["Kekeluargaan", "Inovasi", "Orientasi", "Aturan"];
 
+/** Pola nama kolom satu sel dimensi x tipe: awalannya kunci, akhirannya deskripsi butir yang
+ * beda-beda per klien. Sama persis findRawItemCol() di scImporter.js, cuma dijalankan di sisi
+ * baca (client), bukan saat impor. */
+function polaItemMentah(prefix, dim, tipe) {
+  return new RegExp(`^${prefix}_${dim}_${tipe}(_|$)`, "i");
+}
+
+/** Nama kolom asli yang cocok dengan satu sel dimensi x tipe, mis.
+ * "gambaran_leadership_kekeluargaan_pimpinan_seperti_pembimbing". Dipakai buat mengambil
+ * redaksi butirnya, bukan angkanya. */
+function cariKolomItem(headerKeys, prefix, dim, tipe) {
+  const re = polaItemMentah(prefix, dim, tipe);
+  return headerKeys.find((k) => re.test(k.trim()));
+}
+
 /** Cari nilai item Likert 1-5 mentah di jawaban_mentah (kunci-nya nama kolom ASLI Excel,
- * mis. "gambaran_karakter_kekeluargaan_seperti_keluarga") -- pola pencarian sama persis
- * findRawItemCol() di scImporter.js, cuma dijalankan di sisi baca (client), bukan saat impor. */
+ * mis. "gambaran_karakter_kekeluargaan_seperti_keluarga"). */
 function cariItemMentah(jawabanMentah, prefix, dim, tipe) {
   if (!jawabanMentah) return null;
-  const re = new RegExp(`^${prefix}_${dim}_${tipe}(_|$)`, "i");
+  const re = polaItemMentah(prefix, dim, tipe);
   const key = Object.keys(jawabanMentah).find((k) => re.test(k.trim()));
   if (key === undefined) return null;
   const n = parseFloat(String(jawabanMentah[key]).replace(",", "."));
@@ -186,6 +200,14 @@ function donutKategoriWellbeing(personalRows) {
  * (Fase A), cuma level agregat sekolah, bukan individu, dan pakai item "gambaran" bukan
  * "harapan". */
 function heatmapDimensiTipe(personalRows) {
+  // Gabungan nama kolom seluruh responden, dikumpulkan sekali -- pola sama
+  // driverItemsKesejahteraan di bawah. Dipakai cuma untuk mengambil redaksi butir; angkanya
+  // tetap dicari per baris supaya responden dari batch impor dengan redaksi kolom berbeda
+  // tidak ikut hilang.
+  const headerKeys = new Set();
+  personalRows.forEach((p) => Object.keys(p.jawaban_mentah || {}).forEach((k) => headerKeys.add(k)));
+  const headerList = [...headerKeys];
+
   const cells = [];
   DIMENSI_ITEM_PREFIX.forEach((dim, i) => {
     const dimKode = DIMENSI_KODE_LIST[i];
@@ -194,8 +216,13 @@ function heatmapDimensiTipe(personalRows) {
         .map((p) => cariItemMentah(p.jawaban_mentah, "gambaran", dim, tipe))
         .filter((n) => n != null);
       const mean = nilai.length > 0 ? nilai.reduce((a, b) => a + b, 0) / nilai.length : null;
+      const kolom = cariKolomItem(headerList, "gambaran", dim, tipe);
       cells.push({
         dimensi: DIMENSI_KODE_LABEL[dimKode], tipe: TIPE_LABEL_LIST[j],
+        // Redaksi butir asli survei, mis. "Pimpinan seperti pembimbing". Tiap pasangan
+        // dimensi x tipe menanyakan hal yang berbeda, jadi labelnya ikut kolomnya, bukan
+        // daftar tetap per tipe. Null kalau kolomnya tidak ketemu; layar yang memilih cadangan.
+        label_item: kolom ? labelDariKolom(kolom, new RegExp(`^gambaran_${dim}_${tipe}_?`, "i")) || null : null,
         nilai: mean != null ? Math.round((mean / 5) * 100) : null,
         // Skala 1-5 mentah (belum dikonversi ke persen) -- dipakai 01-D (rating bintang) supaya
         // tidak ada round-trip persen->5 yang bikin selisih pembulatan, BUKAN angka baru, cuma
@@ -229,12 +256,15 @@ function cariKolomB(headerKeys, nomor) {
   return headerKeys.find((k) => re.test(k.trim()));
 }
 
-/** Ubah nama kolom mentah jadi label tampilan generik: "survey_b1_puas_cara_kerja_pimpinan" ->
- * "Puas cara kerja pimpinan". Dipakai apa adanya (bukan dikarang) supaya label tetap benar kalau
- * sekolah lain pakai redaksi kolom yang berbeda dari NF. */
-function labelDariKolomB(kolom) {
-  const teks = kolom.replace(/^survey_b\d+_/i, '').replace(/_/g, ' ').trim();
-  return teks.length > 0 ? teks.charAt(0).toUpperCase() + teks.slice(1) : kolom;
+/** Ubah nama kolom mentah jadi label tampilan: buang awalan kuncinya, sisakan deskripsi
+ * butirnya. "survey_b1_puas_cara_kerja_pimpinan" -> "Puas cara kerja pimpinan",
+ * "gambaran_leadership_kekeluargaan_pimpinan_seperti_pembimbing" -> "Pimpinan seperti
+ * pembimbing". Dipakai apa adanya (bukan dikarang) supaya label tetap benar kalau klien lain
+ * pakai redaksi kolom yang berbeda. Kembalikan string kosong kalau tidak ada sisa teks, biar
+ * pemanggilnya yang memilih cadangan. */
+function labelDariKolom(kolom, awalanRe) {
+  const teks = String(kolom).replace(awalanRe, '').replace(/_/g, ' ').trim();
+  return teks.length > 0 ? teks.charAt(0).toUpperCase() + teks.slice(1) : '';
 }
 
 /**
@@ -266,7 +296,7 @@ function driverItemsKesejahteraan(personalRows) {
           .filter((n) => n != null);
         if (nilai.length === 0) return null;
         const mean = nilai.reduce((a, b) => a + b, 0) / nilai.length;
-        return { label: labelDariKolomB(kolom), nilai: Math.round(mean * 100) / 100 };
+        return { label: labelDariKolom(kolom, /^survey_b\d+_/i) || kolom, nilai: Math.round(mean * 100) / 100 };
       })
       .filter(Boolean);
   });

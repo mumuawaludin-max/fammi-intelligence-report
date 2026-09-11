@@ -363,6 +363,11 @@ export interface SelHeatmap {
   dimensi: string;
   tipe: TipeBudayaOrganisasi;
   nilai_mentah: number | null;
+  /** Redaksi butir survei untuk sel ini, mis. "Pimpinan seperti pembimbing". Diturunkan dari
+   * nama kolom berkas klien, jadi bunyinya beda-beda per klien dan per pasangan dimensi x tipe.
+   * Opsional supaya laporan lama yang belum membawanya tetap sah; layar jatuh ke label cadangan
+   * per tipe kalau null. */
+  label_item?: string | null;
 }
 
 export interface AnalisisAgregatCW {
