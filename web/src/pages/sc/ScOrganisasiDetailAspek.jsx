@@ -4,8 +4,11 @@ import styles from "./ScOrganisasiDetailAspek.module.css";
 
 const DIMENSI_ORDER = ["Karakter Lembaga", "Kepemimpinan", "Manajemen", "Sinergi Tim", "Fokus Strategis", "Kinerja/Performa"];
 
-/** Reframing tipe budaya jadi kalimat pendek deskriptif KHUSUS kartu ini, supaya jelas ini
- * menilai "seberapa terasa ciri X" pada tiap dimensi organisasi, bukan skor tipe budaya lagi. */
+/** CADANGAN saja. Label baris yang sebenarnya adalah redaksi butir survei itu sendiri, dibawa
+ * per sel lewat cell.label_item (diturunkan dari nama kolom di useScData.js). Empat kalimat di
+ * bawah cuma dipakai kalau kolomnya tidak ketemu di berkas sekolah, supaya barisnya tidak kosong.
+ * JANGAN dijadikan sumber utama lagi: tiap pasangan dimensi x tipe menanyakan hal yang berbeda,
+ * jadi memakai daftar per tipe bikin keenam kartu tampil dengan indikator yang sama persis. */
 const TIPE_ROW_LABEL = {
   Kekeluargaan: "Lembaga seperti keluarga",
   Inovasi: "Terbuka pada hal baru",
@@ -32,8 +35,9 @@ function formatScore(value) {
 /**
  * ScOrganisasiDetailAspek -- padanan "03-B" Profil Organisasi, REMAKE TOTAL atas instruksi
  * eksplisit pemilik produk (referensi screenshot terpisah): satu kartu per dimensi organisasi
- * (6 kartu, header skor asli dimensi itu + kategori), isi kartu rating bintang per tipe budaya
- * (4 baris, sumber SAMA dengan heatmap Fase B yang dipakai ScBudayaDetailAspek/01-D, cuma
+ * (6 kartu, header skor asli dimensi itu + kategori), isi kartu rating bintang per butir survei
+ * dimensi itu (4 baris, satu butir per tipe budaya, redaksinya ikut berkas sekolah; sumber SAMA
+ * dengan heatmap Fase B yang dipakai ScBudayaDetailAspek/01-D, cuma
  * ditranspos: di sana dikelompokkan per tipe, di sini dikelompokkan per dimensi). Warna header
  * SENGAJA pakai token tema SC yang sudah ada (--sc-primary), BUKAN hijau/navy gelap seperti
  * screenshot referensi -- instruksi eksplisit "warna mengikuti tema sekarang saja".
@@ -73,7 +77,7 @@ export function ScOrganisasiDetailAspek({ sectionIndex, items, heatmapCells = []
                     const rating = cell?.nilai_mentah;
                     return (
                       <div className={styles.row} key={tipe}>
-                        <span className={styles.rowLabel}>{TIPE_ROW_LABEL[tipe]}</span>
+                        <span className={styles.rowLabel}>{cell?.label_item || TIPE_ROW_LABEL[tipe]}</span>
                         <span className={styles.rowValue}>
                           <Stars rating={rating} />
                           <span className={styles.rowNumber}>

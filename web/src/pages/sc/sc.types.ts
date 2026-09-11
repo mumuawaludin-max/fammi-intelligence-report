@@ -380,6 +380,11 @@ export interface HeatmapCell {
   /** Skala 1-5 mentah (bukan persen) -- dipakai 01-D untuk rating bintang, hindari round-trip
    * pembulatan persen->5. Opsional: cell lama sebelum field ini ada tetap valid. */
   nilai_mentah?: number | null;
+  /** Redaksi butir survei untuk sel ini, mis. "Pimpinan seperti orang tua". Diturunkan dari nama
+   * kolom berkas sekolah, jadi bunyinya beda-beda per sekolah dan per pasangan dimensi x tipe.
+   * Opsional supaya laporan lama yang belum membawanya tetap sah; layar jatuh ke label cadangan
+   * per tipe kalau null. */
+  label_item?: string | null;
 }
 
 /** Satu titik scatter (Fase D, Blueprint bagian 3 Level 6): tipe budaya dominan staf itu vs
