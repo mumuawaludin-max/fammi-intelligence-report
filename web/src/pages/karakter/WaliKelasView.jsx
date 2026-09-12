@@ -9,6 +9,7 @@ import {
 import { StatCardMini, StatCardLandscape, AllGoodBanner, splitByClassify, scrollToId } from "./KarakterViewParts";
 import KebijakanGoals from "./KebijakanGoals";
 import MuridDetailPanel from "./MuridDetailPanel";
+import RingkasanKelasDialog from "./RingkasanKelasDialog";
 import { useKarakterWaliKelas, bangunMuridList } from "./useKarakterData";
 import {
   pct, deltaVsPrevious, classifyPencapaian, periodeLabel,
@@ -66,6 +67,7 @@ export default function WaliKelasView({ session, periodeId, pekan = null }) {
   const [muridTab, setMuridTab] = useState("semua");
   const [filterKelas, setFilterKelas] = useState(null);
   const [selectedMuridId, setSelectedMuridId] = useState(null);
+  const [ringkasanBuka, setRingkasanBuka] = useState(false);
   // Sumber refleksi aktif di saklar; null sampai data periode pertama datang. Nilai efektifnya
   // dihitung ulang tiap render (bukan lewat effect) supaya tahan ganti periode/kelas: begitu
   // sumber pilihan sebelumnya sudah tidak ada di periode baru, otomatis jatuh ke sumber pertama.
@@ -140,6 +142,10 @@ export default function WaliKelasView({ session, periodeId, pekan = null }) {
     muridTab === "perhatian" ? muridSplit.perhatian :
     muridFiltered;
   const activeMurid = muridTabRows.find((m) => m.murid_id === selectedMuridId) || muridTabRows[0] || null;
+
+  // Judul ringkasan sekelas ikut filter kelas yang sedang aktif; wali kelas yang memegang lebih
+  // dari satu kelas tanpa filter melihat seluruh cakupannya sekaligus.
+  const judulKelasRingkasan = filterKelas || kelasList.join(", ");
 
   // Baris indikator milik anak yang sedang dibuka; pengelompokan ke karakter induknya dikerjakan
   // MuridDetailPanel, yang dipakai bersama dengan tampilan Kepala Sekolah.
@@ -234,6 +240,22 @@ export default function WaliKelasView({ session, periodeId, pekan = null }) {
             title="Siswa: Sudah Baik vs Perlu Perhatian"
             subtitle="Siswa yang perlu perhatian bukan siswa yang lemah; butuh dukungan tambahan sekarang, bisa berubah periode berikutnya. Klik satu nama untuk melihat progres per anak."
           />
+          {/* Jalan pintas: perkembangan karakter dan bintang SELURUH siswa dalam satu layar,
+              untuk guru yang tidak ingin membuka anak satu per satu. */}
+          <div className={styles.ringkasanBar}>
+            <button
+              type="button"
+              className={styles.ringkasanCta}
+              onClick={() => setRingkasanBuka(true)}
+              disabled={muridFiltered.length === 0}
+            >
+              📋 Lihat Ringkasan Sekelas
+            </button>
+            <p className={styles.ringkasanHint}>
+              Perkembangan karakter dan bintang seluruh siswa kelas {judulKelasRingkasan} dalam satu
+              layar, langsung terbuka semua.
+            </p>
+          </div>
           {muridSplit.allGood && <div style={{ marginBottom: 14 }}><AllGoodBanner subject="siswa" /></div>}
           {muridFiltered.length === 0 ? (
             <p className={styles.emptyNote}>Belum ada data siswa pada periode ini.</p>
@@ -307,6 +329,21 @@ export default function WaliKelasView({ session, periodeId, pekan = null }) {
                 )}
               </div>
             </div>
+          )}
+
+          {ringkasanBuka && (
+            <RingkasanKelasDialog
+              sekolahId={session.school_id}
+              judulKelas={judulKelasRingkasan}
+              muridList={muridFiltered}
+              aspekUntukMurid={() => aspek}
+              skorIndikator={skorIndikator}
+              labelIndikator={labelIndikatorRow}
+              periode={periode}
+              pekanAktif={pekanAktif}
+              pekan={pekan}
+              onClose={() => setRingkasanBuka(false)}
+            />
           )}
         </section>
       </div>

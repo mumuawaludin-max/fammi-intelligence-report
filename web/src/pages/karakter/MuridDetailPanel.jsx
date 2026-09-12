@@ -4,10 +4,10 @@ import {
   useMuridTrend, useMuridPekanTrend, useMuridSkorPeriode, labelTitikPekan,
 } from "./KarakterShared";
 import {
-  pct, aspekIcon, periodeLabel, classifyBarIndividu, berbintang, hitungBintang,
+  periodeLabel, classifyBarIndividu, berbintang, hitungBintang,
+  bangunItemsKarakter, indikatorPerluPenguatan,
   extractPlainText, isBlankEssay, matchedCategoryTags,
 } from "./karakterMeta";
-import { KARAKTER_BAR_TONE_CUTOFF } from "../../lib/cutoffs";
 import styles from "./MuridDetailPanel.module.css";
 
 /**
@@ -29,7 +29,7 @@ const WARNA_BAR = {
   merah: "var(--status-alert)",
 };
 
-function Bintang({ className }) {
+export function Bintang({ className }) {
   return (
     <svg className={className || styles.bintang} viewBox="0 0 24 24" aria-hidden="true" focusable="false">
       <polygon
@@ -45,7 +45,7 @@ function Bintang({ className }) {
 const BINTANG_MAKS_GAMBAR = 12;
 
 /** Kartu ringkas "bintang terkumpul": jumlahnya digambar, bukan cuma ditulis. */
-function BintangSummary({ bintang, dinilai, jumlahPekan, pekan, labelPeriode }) {
+export function BintangSummary({ bintang, dinilai, jumlahPekan, pekan, labelPeriode }) {
   const digambar = Math.min(bintang, BINTANG_MAKS_GAMBAR);
   const sisa = bintang - digambar;
   const labelSaat = pekan != null ? `pekan ${pekan}` : labelPeriode;
@@ -86,7 +86,7 @@ function BintangSummary({ bintang, dinilai, jumlahPekan, pekan, labelPeriode }) 
 }
 
 /** Baris indikator: dipakai di dalam rincian satu karakter maupun di daftar perlu penguatan. */
-function IndikatorRows({ items }) {
+export function IndikatorRows({ items }) {
   const [shown, setShown] = useState(false);
   useEffect(() => {
     const id = requestAnimationFrame(() => setShown(true));
@@ -127,7 +127,7 @@ function IndikatorRows({ items }) {
  * indikator di bawahnya. Keadaan buka-tutup disimpan per baris, jadi guru bisa membuka dua
  * karakter sekaligus tanpa yang lain ikut terbuka.
  */
-function KarakterBreakdown({ items, emptyText }) {
+export function KarakterBreakdown({ items, emptyText }) {
   const [terbuka, setTerbuka] = useState(() => new Set());
   const [shown, setShown] = useState(false);
   useEffect(() => {
@@ -254,36 +254,12 @@ export default function MuridDetailPanel({
   const { points: pointsPekan } = useMuridPekanTrend(sekolahId, murid?.murid_id);
   const { rows: skorPeriode } = useMuridSkorPeriode({ sekolahId, muridId: murid?.murid_id, periode });
 
-  const items = useMemo(() => {
-    if (!murid) return [];
-    const byAspek = {};
-    skorIndikatorRows.forEach((r) => {
-      (byAspek[r.aspek_kode] ||= []).push({
-        label: labelIndikator ? labelIndikator(r) : `${r.aspek_kode} ${r.indikator_kode}`,
-        value: pct(r.skor),
-      });
-    });
-    // Indikator yang sudah dinilai lebih dulu, urut tertinggi; yang belum dinilai turun ke bawah
-    // supaya tidak menghalangi yang bisa ditindaklanjuti.
-    const nilaiUrut = (v) => (classifyBarIndividu(v) ? v : -1);
-    Object.values(byAspek).forEach((list) => list.sort((a, b) => nilaiUrut(b.value) - nilaiUrut(a.value)));
+  const items = useMemo(
+    () => bangunItemsKarakter({ murid, aspek, skorIndikatorRows, labelIndikator }),
+    [murid, aspek, skorIndikatorRows, labelIndikator],
+  );
 
-    return aspek
-      .map((a) => ({
-        kode: a.aspek_kode,
-        label: a.aspek_label,
-        icon: aspekIcon(a.aspek_label),
-        value: pct(murid.skorByAspek?.[a.aspek_kode]),
-        indikator: byAspek[a.aspek_kode] || [],
-      }))
-      .sort((a, b) => nilaiUrut(b.value) - nilaiUrut(a.value));
-  }, [murid, aspek, skorIndikatorRows, labelIndikator]);
-
-  const indLemah = useMemo(() => items
-    .flatMap((it) => it.indikator.map((r) => ({ ...r, aspekLabel: it.label })))
-    .filter((r) => classifyBarIndividu(r.value) && r.value < KARAKTER_BAR_TONE_CUTOFF.aman)
-    .sort((a, b) => a.value - b.value)
-    .slice(0, 5), [items]);
+  const indLemah = useMemo(() => indikatorPerluPenguatan(items), [items]);
 
   const refleksiBySumber = useMemo(() => (murid
     ? sumberRefleksi.map((sumber) => ({

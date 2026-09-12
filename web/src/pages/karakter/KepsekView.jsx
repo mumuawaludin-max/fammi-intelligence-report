@@ -8,6 +8,7 @@ import { StatCardMini, StatCardLandscape, AllGoodBanner, SiswaKelasList, splitBy
 import KebijakanGoals from "./KebijakanGoals";
 import DetailDialog from "./DetailDialog";
 import MuridDetailPanel from "./MuridDetailPanel";
+import RingkasanKelasDialog from "./RingkasanKelasDialog";
 import FollowupRibbon from "../../components/FollowupRibbon";
 import { useKarakterKepsek, useKarakterKelasMurid, kelasKey } from "./useKarakterData";
 import {
@@ -154,6 +155,7 @@ export default function KepsekView({ session, periodeId, pekan = null }) {
   const [kelasTab, setKelasTab] = useState("semua");
   const [selectedKelasId, setSelectedKelasId] = useState(null);
   const [selectedMuridId, setSelectedMuridId] = useState(null);
+  const [ringkasanBuka, setRingkasanBuka] = useState(false);
   const [selectedJenjangDialog, setSelectedJenjangDialog] = useState(null);
   // Sumber refleksi dipilih lewat SourceSwitch di section Suara. null di awal, nilai efektif
   // dihitung saat render (sumberEfektif di bawah) supaya selalu jatuh ke elemen pertama
@@ -167,6 +169,7 @@ export default function KepsekView({ session, periodeId, pekan = null }) {
     setFilterKelas(null);
     setSelectedKelasId(null);
     setSelectedMuridId(null);
+    setRingkasanBuka(false);
     setKelasTab("semua");
   }, [periodeId, pekan]);
 
@@ -631,11 +634,37 @@ export default function KepsekView({ session, periodeId, pekan = null }) {
                     );
                   })()}
 
-                  {/* Lapis 2: daftar siswa kelas ini. Klik satu nama untuk turun ke panel anak. */}
+                  {/* Lapis 2: daftar siswa kelas ini. Klik satu nama untuk turun ke panel anak,
+                      atau buka ringkasan sekelas untuk membaca semuanya sekaligus. */}
                   <section style={{ marginTop: 22 }}>
-                    <p className={styles.dialogSectionTitle}>👥 Siswa kelas ini</p>
+                    <div className={`${styles.ringkasanBar} ${styles.ringkasanBarSpread}`}>
+                      <p className={styles.dialogSectionTitle} style={{ margin: 0 }}>👥 Siswa kelas ini</p>
+                      <button
+                        type="button"
+                        className={styles.ringkasanCta}
+                        onClick={() => setRingkasanBuka(true)}
+                        disabled={muridKelas.loading || muridKelas.muridList.length === 0}
+                      >
+                        📋 Lihat Ringkasan Sekelas
+                      </button>
+                    </div>
                     <SiswaKelasList state={muridKelas} onSelect={setSelectedMuridId} />
                   </section>
+
+                  {ringkasanBuka && (
+                    <RingkasanKelasDialog
+                      sekolahId={session.school_id}
+                      judulKelas={activeKelasRow.scope_id}
+                      muridList={muridKelas.muridList}
+                      aspekUntukMurid={(m) => aspekUntukJenjang(m.jenjang)}
+                      skorIndikator={muridKelas.skorIndikator}
+                      labelIndikator={(r) => labelIndikator(r.jenjang, r.aspek_kode, r.indikator_kode)}
+                      periode={periode}
+                      pekanAktif={pekanAktif}
+                      pekan={pekan}
+                      onClose={() => setRingkasanBuka(false)}
+                    />
+                  )}
                 </>
               ) : (
                 <p className={styles.emptyNote}>Pilih kelas di daftar sebelah kiri.</p>

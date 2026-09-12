@@ -1,0 +1,306 @@
+/* Ringkasan perkembangan sekelas (satu kartu per anak di dalam satu dialog lebar).
+   Duduk di atas latar dialog Karakter yang abu muda, jadi kartunya putih supaya tiap anak
+   terbaca sebagai satu blok sendiri. Bar, bintang, dan rincian indikator di dalam kartu
+   memakai gaya milik MuridDetailPanel; di berkas ini cuma kerangka daftarnya. */
+
+/* ── Baris meta di atas: hitungan kelas dan tombol buka/tutup semua ── */
+.metaBar {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px 18px;
+  padding: 12px 16px;
+  background: var(--surface);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-card);
+}
+
+.metaItem {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12.5px;
+  color: var(--ink-2);
+}
+
+.metaItem strong {
+  font-family: var(--font-display);
+  font-size: 15px;
+  font-weight: 800;
+  color: var(--ink);
+}
+
+.metaBintang { width: 14px; height: 14px; display: block; }
+
+.metaLoading {
+  font-size: 11px;
+  color: var(--ink-4);
+}
+
+.metaBtn {
+  font: inherit;
+  font-size: 11.5px;
+  font-weight: 700;
+  color: var(--ink-2);
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  padding: 5px 13px;
+  margin-left: auto;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: border-color 0.15s ease, color 0.15s ease;
+}
+
+.metaBtn:hover { border-color: var(--purple-300); color: var(--purple-700); }
+
+/* ── Judul bagian ── */
+.sectionTitle {
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+  margin: 0 0 6px;
+}
+
+.sectionNote {
+  font-size: 12px;
+  color: var(--ink-3);
+  margin: 0 0 12px;
+  line-height: 1.45;
+}
+
+/* ── Top 5 perlu perhatian ── */
+.perhatianRows { display: flex; flex-direction: column; gap: 8px; }
+
+.perhatianRow {
+  font: inherit;
+  text-align: left;
+  display: grid;
+  grid-template-columns: 22px minmax(110px, 200px) 1fr 44px 56px;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 9px 14px;
+  background: var(--surface);
+  border: 1px solid transparent;
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-card);
+  cursor: pointer;
+  transition: border-color 0.15s ease;
+}
+
+.perhatianRow:hover { border-color: var(--purple-300); }
+
+.perhatianRank {
+  width: 22px;
+  height: 22px;
+  border-radius: 999px;
+  background: var(--status-warn-bg);
+  color: var(--status-warn);
+  font-size: 11.5px;
+  font-weight: 800;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.perhatianNama {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--ink);
+  overflow-wrap: anywhere;
+}
+
+.perhatianTrack {
+  height: 7px;
+  background: var(--bg-2);
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.perhatianFill {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+  background: var(--status-warn);
+}
+
+.perhatianVal {
+  font-family: var(--font-display);
+  font-size: 12.5px;
+  font-weight: 800;
+  color: var(--status-warn);
+  text-align: right;
+}
+
+.perhatianJump {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--purple-700);
+  text-align: right;
+  white-space: nowrap;
+}
+
+/* ── Kartu per anak ── */
+.kartuList { display: flex; flex-direction: column; gap: 12px; }
+
+.kartu {
+  background: var(--surface);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-card);
+  overflow: hidden;
+  /* Jarak aman supaya kepala kartu tidak menempel di tepi atas saat dilompati dari daftar
+     perlu perhatian. */
+  scroll-margin-top: 12px;
+}
+
+.kartuHead {
+  font: inherit;
+  text-align: left;
+  display: grid;
+  grid-template-columns: 32px 1fr auto auto 48px 18px;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 12px 16px;
+  background: none;
+  border: 0;
+  cursor: pointer;
+}
+
+.kartuHead:hover { background: var(--surface-soft); }
+
+.avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 999px;
+  background: var(--purple-050);
+  color: var(--purple-700);
+  font-weight: 800;
+  font-size: 13px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.kartuNama {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--ink);
+  overflow-wrap: anywhere;
+}
+
+.kartuKelas {
+  font-size: 10.5px;
+  font-weight: 700;
+  color: var(--ink-3);
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  padding: 2px 8px;
+}
+
+.kartuBintang {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-family: var(--font-display);
+  font-size: 13px;
+  font-weight: 800;
+  color: var(--status-safe);
+  background: var(--status-safe-bg);
+  border-radius: 999px;
+  padding: 3px 10px;
+}
+
+
+/* Nol bintang tampil netral, bukan chip hijau berangka 0: hijau untuk ketiadaan pencapaian
+   adalah sinyal yang salah, alasan yang sama dengan empty-state di BintangSummary. */
+.kartuBintangKosong { background: var(--bg-2); color: var(--ink-3); }
+.kartuBintangKosong svg polygon { fill: var(--ink-4); }
+
+.kartuBintangIkon { width: 13px; height: 13px; display: block; }
+
+.kartuTone {
+  font-size: 11px;
+  font-weight: 700;
+  border-radius: 999px;
+  padding: 3px 10px;
+  white-space: nowrap;
+}
+
+.toneBaik { background: var(--status-safe-bg); color: var(--status-safe); }
+.tonePerhatian { background: var(--status-warn-bg); color: var(--status-warn); }
+.toneKosong { background: var(--bg-2); color: var(--ink-3); }
+
+.kartuNilai {
+  font-family: var(--font-display);
+  font-size: 14px;
+  font-weight: 800;
+  color: var(--ink);
+  text-align: right;
+}
+
+.kartuChevron {
+  font-size: 15px;
+  color: var(--ink-3);
+  text-align: center;
+  transition: transform 0.18s ease;
+}
+
+.kartuChevronBuka { transform: rotate(180deg); }
+
+.kartuBody {
+  padding: 4px 16px 18px;
+  border-top: 1px solid var(--line);
+}
+
+.emptyNote {
+  font-size: 13.5px;
+  color: var(--ink-3);
+  background: var(--surface);
+  border-radius: var(--radius-md);
+  padding: 16px 18px;
+  margin: 0;
+}
+
+/* ── Mobile ──
+   Wali Kelas dan Kepala Sekolah wajib enak dipakai di HP (CLAUDE.md butir 8), dan baris enam
+   kolom di atas terlalu sempit di layar 360px. */
+@media (max-width: 700px) {
+  .perhatianRow {
+    grid-template-columns: 22px 1fr auto;
+    grid-template-areas:
+      "rank nama val"
+      "track track track";
+    row-gap: 7px;
+  }
+
+  .perhatianRank { grid-area: rank; }
+  .perhatianNama { grid-area: nama; }
+  .perhatianVal { grid-area: val; }
+  .perhatianTrack { grid-area: track; }
+  .perhatianJump { display: none; }
+
+  .kartuHead {
+    grid-template-columns: 32px 1fr auto 18px;
+    grid-template-areas:
+      "avatar nama nilai chevron"
+      "bintang bintang tone tone";
+    row-gap: 8px;
+  }
+
+  .avatar { grid-area: avatar; }
+  .kartuNama { grid-area: nama; }
+  .kartuNilai { grid-area: nilai; }
+  .kartuChevron { grid-area: chevron; }
+  .kartuBintang { grid-area: bintang; justify-self: start; }
+  .kartuTone { grid-area: tone; justify-self: end; }
+
+  .kartuBody { padding: 4px 12px 16px; }
+}

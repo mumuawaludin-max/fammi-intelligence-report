@@ -3,7 +3,7 @@ import BriefingHero from "../../components/BriefingHero";
 import RadarChart from "../../components/charts/RadarChart";
 import GroupedBarChart from "../../components/charts/GroupedBarChart";
 import DetailDialog from "./DetailDialog";
-import { supabase } from "../../lib/supabase";
+import { supabase, fetchAllRows } from "../../lib/supabase";
 import styles from "./KarakterShared.module.css";
 import {
   ringkasanAspekValue, aspekIcon, periodeLabel, pct, classifyBarTone,
@@ -1479,6 +1479,52 @@ export function useMuridSkorPeriode({ sekolahId, muridId, periode }) {
     run();
     return () => { alive = false; };
   }, [sekolahId, muridId, periode]);
+
+  return state;
+}
+
+/**
+ * Baris skor mentah SELURUH MURID yang diminta pada satu periode, dipakai ringkasan sekelas
+ * untuk menghitung bintang tiap anak. Pasangan sekelas dari useMuridSkorPeriode, dengan alasan
+ * yang sama: view bulanan cuma menyimpan pekan terakhir, sedangkan bintang dijumlahkan dari
+ * seluruh pekan di periode itu (lihat hitungBintang).
+ *
+ * Disaring per murid_id, bukan per nama kelas: nama kelas ditulis di dua sheet berbeda dan
+ * sudah terbukti tidak selalu sama persis (lihat kelasKey di useKarakterData), sedangkan
+ * murid_id selalu sama. Ditarik hanya saat `aktif`, yaitu ketika ringkasannya benar-benar
+ * dibuka; tanpa itu tiap kunjungan ke daftar siswa ikut menarik ratusan baris yang belum tentu
+ * dilihat.
+ */
+export function useKelasSkorPeriode({ sekolahId, muridIds = [], periode, aktif = false }) {
+  const kunci = muridIds.join(",");
+  const [state, setState] = useState({ loading: false, rowsByMurid: {} });
+
+  useEffect(() => {
+    if (!aktif || !sekolahId || !periode || kunci === "") {
+      setState({ loading: false, rowsByMurid: {} });
+      return undefined;
+    }
+    let alive = true;
+
+    async function run() {
+      setState({ loading: true, rowsByMurid: {} });
+      const ids = kunci.split(",");
+      const { data, error } = await fetchAllRows((from, to) => supabase
+        .from("karakter_skor")
+        .select("murid_id, periode_id, pekan, aspek_kode, skor")
+        .eq("sekolah_id", sekolahId)
+        .eq("periode_id", periode)
+        .in("murid_id", ids)
+        .range(from, to));
+      if (!alive) return;
+      const rowsByMurid = {};
+      if (!error) (data || []).forEach((r) => { (rowsByMurid[r.murid_id] ||= []).push(r); });
+      setState({ loading: false, rowsByMurid });
+    }
+
+    run();
+    return () => { alive = false; };
+  }, [sekolahId, periode, kunci, aktif]);
 
   return state;
 }

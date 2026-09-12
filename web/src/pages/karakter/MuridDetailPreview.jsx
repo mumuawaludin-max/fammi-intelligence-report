@@ -1,5 +1,6 @@
 import { useState } from "react";
 import MuridDetailPanel from "./MuridDetailPanel";
+import RingkasanKelasDialog from "./RingkasanKelasDialog";
 import { SiswaKelasList } from "./KarakterViewParts";
 import styles from "./KarakterViews.module.css";
 
@@ -93,6 +94,7 @@ const STATE_KELAS = {
 
 export default function MuridDetailPreview() {
   const [muridId, setMuridId] = useState(null);
+  const [ringkasanBuka, setRingkasanBuka] = useState(false);
   const murid = STATE_KELAS.muridList.find((m) => m.murid_id === muridId) || null;
 
   return (
@@ -119,11 +121,29 @@ export default function MuridDetailPreview() {
           </>
         ) : (
           <section>
-            <p className={styles.dialogSectionTitle}>👥 Siswa kelas ini (lapis Kepala Sekolah)</p>
+            <div className={`${styles.ringkasanBar} ${styles.ringkasanBarSpread}`}>
+              <p className={styles.dialogSectionTitle} style={{ margin: 0 }}>👥 Siswa kelas ini (lapis Kepala Sekolah)</p>
+              <button type="button" className={styles.ringkasanCta} onClick={() => setRingkasanBuka(true)}>
+                📋 Lihat Ringkasan Sekelas
+              </button>
+            </div>
             <SiswaKelasList state={STATE_KELAS} onSelect={setMuridId} />
           </section>
         )}
       </div>
+
+      {ringkasanBuka && (
+        <RingkasanKelasDialog
+          sekolahId="preview"
+          judulKelas="5B"
+          muridList={STATE_KELAS.muridList}
+          aspekUntukMurid={() => ASPEK}
+          skorIndikator={SKOR_INDIKATOR}
+          labelIndikator={(r) => LABEL[`${r.aspek_kode}_${r.indikator_kode}`] || `${r.aspek_kode} ${r.indikator_kode}`}
+          periode="2026-09"
+          onClose={() => setRingkasanBuka(false)}
+        />
+      )}
 
       <div className={styles.masterDetailPanel}>
         <MuridDetailPanel

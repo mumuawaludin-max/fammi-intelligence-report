@@ -1492,3 +1492,46 @@
   color: var(--ink-4);
   overflow-wrap: anywhere;
 }
+
+/* ── Tombol "Ringkasan Sekelas" ──
+   Satu tombol di atas daftar siswa, dipakai Wali Kelas maupun Kepala Sekolah. Sengaja ungu
+   pekat, bukan tombol pinggiran: ini jalan pintas utama guru yang ingin membaca perkembangan
+   seluruh anak sekaligus alih-alih membuka satu per satu. */
+.ringkasanBar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 14px;
+}
+
+.ringkasanBarSpread { justify-content: space-between; }
+
+.ringkasanCta {
+  font: inherit;
+  font-size: 13px;
+  font-weight: 800;
+  color: var(--surface);
+  background: linear-gradient(135deg, var(--purple-600), var(--purple-700));
+  border: 0;
+  border-radius: 999px;
+  padding: 10px 20px;
+  cursor: pointer;
+  box-shadow: var(--shadow-hero);
+  transition: transform 0.15s ease, filter 0.15s ease;
+}
+
+.ringkasanCta:hover { transform: translateY(-1px); filter: brightness(1.05); }
+.ringkasanCta:disabled { opacity: 0.5; cursor: default; transform: none; filter: none; }
+
+.ringkasanHint {
+  font-size: 12px;
+  color: var(--ink-3);
+  margin: 0;
+  line-height: 1.45;
+  flex: 1 1 240px;
+}
+
+@media (max-width: 700px) {
+  .ringkasanCta { width: 100%; }
+}

@@ -406,6 +406,48 @@ export function hitungBintang({ rows = [], pekan = null, fallback = { bintang: 0
 }
 
 /**
+ * Susun baris "perkembangan tiap karakter" satu anak: nilai per karakter, ikonnya, dan daftar
+ * indikator yang menempel di bawahnya. Karakter dan indikator yang sudah dinilai naik ke atas
+ * urut tertinggi; yang belum dinilai turun ke bawah supaya tidak menghalangi yang bisa
+ * ditindaklanjuti.
+ *
+ * Dipakai panel per anak DAN ringkasan sekelas, jadi angka satu anak tidak mungkin berbeda cuma
+ * karena dibuka dari layar yang lain. Tidak ada skor yang dihitung di sini, cuma dikelompokkan
+ * dan diurutkan.
+ */
+export function bangunItemsKarakter({ murid, aspek = [], skorIndikatorRows = [], labelIndikator }) {
+  if (!murid) return [];
+  const byAspek = {};
+  skorIndikatorRows.forEach((r) => {
+    (byAspek[r.aspek_kode] ||= []).push({
+      label: labelIndikator ? labelIndikator(r) : `${r.aspek_kode} ${r.indikator_kode}`,
+      value: pct(r.skor),
+    });
+  });
+  const nilaiUrut = (v) => (classifyBarIndividu(v) ? v : -1);
+  Object.values(byAspek).forEach((list) => list.sort((a, b) => nilaiUrut(b.value) - nilaiUrut(a.value)));
+
+  return aspek
+    .map((a) => ({
+      kode: a.aspek_kode,
+      label: a.aspek_label,
+      icon: aspekIcon(a.aspek_label),
+      value: pct(murid.skorByAspek?.[a.aspek_kode]),
+      indikator: byAspek[a.aspek_kode] || [],
+    }))
+    .sort((a, b) => nilaiUrut(b.value) - nilaiUrut(a.value));
+}
+
+/** Indikator terlemah satu anak lintas karakter, yang masih di bawah ambang aman. */
+export function indikatorPerluPenguatan(items, maks = 5) {
+  return items
+    .flatMap((it) => it.indikator.map((r) => ({ ...r, aspekLabel: it.label })))
+    .filter((r) => classifyBarIndividu(r.value) && r.value < KARAKTER_BAR_TONE_CUTOFF.aman)
+    .sort((a, b) => a.value - b.value)
+    .slice(0, maks);
+}
+
+/**
  * Kelompokkan tindak_lanjut yang sudah disetujui jadi 3 bucket tampilan, murni reklasifikasi
  * client-side dari data yang ada (tidak mengubah data/Gemini). scope="kelas" yang scope_id-nya
  * cocok dengan salah satu kelas dipetakan lewat pencapaian kelas itu; sisanya (scope="sekolah"

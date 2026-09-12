@@ -6,7 +6,7 @@ import styles from "./DetailDialog.module.css";
  * di modul Karakter: detail siswa, detail kelas, detail jenjang, detail sekolah,
  * detail indikator. Isinya fleksibel lewat children.
  */
-export default function DetailDialog({ icon, eyebrow, title, subtitle, onClose, children }) {
+export default function DetailDialog({ icon, eyebrow, title, subtitle, size = "normal", onClose, children }) {
   useEffect(() => {
     function onKey(e) { if (e.key === "Escape") onClose(); }
     window.addEventListener("keydown", onKey);
@@ -15,7 +15,7 @@ export default function DetailDialog({ icon, eyebrow, title, subtitle, onClose, 
 
   return (
     <div className={styles.overlay} onClick={onClose}>
-      <div className={styles.dialog} onClick={(e) => e.stopPropagation()}>
+      <div className={`${styles.dialog} ${size === "wide" ? styles.dialogWide : ""}`} onClick={(e) => e.stopPropagation()}>
         <button className={styles.closeBtn} onClick={onClose} aria-label="Tutup">✕</button>
 
         <div className={styles.header}>
