@@ -9,8 +9,8 @@ import { StatCardMini, StatCardLandscape, AllGoodBanner, splitByClassify, scroll
 import KebijakanGoals from "./KebijakanGoals";
 import { useKarakterYayasan } from "./useKarakterData";
 import {
-  pct, deltaVsPrevious, classifyPencapaian, periodeLabel, aspekIcon,
-  avgAspek, ringkasanAspekValue, isKebijakanReady, SECTION_ICON,
+  deltaVsPrevious, classifyPencapaian, periodeLabel, aspekIcon,
+  avgAspek, nilaiGuruSekolah, ringkasanAspekValue, isKebijakanReady, SECTION_ICON,
   REFLEKSI_META, REFLEKSI_SUMBER_URUTAN, judulSectionSuara,
 } from "./karakterMeta";
 import { KARAKTER_BAR_TONE_CUTOFF } from "../../lib/cutoffs";
@@ -60,7 +60,9 @@ export default function YayasanView({ session, periodeId }) {
     return (data.sekolahList || [])
       .map((s) => {
         const rk = ringkasanById[s.id] || null;
-        return { id: s.id, nama: s.nama, ringkasan: rk, rata: pct(rk?.rata_pencapaian_guru ?? rk?.pencapaian_guru) };
+        // Tiga tingkat lewat nilaiGuruSekolah, bukan lompat langsung ke `pencapaian_guru` yang
+        // artinya kelengkapan input. Lihat catatannya di karakterMeta.js.
+        return { id: s.id, nama: s.nama, ringkasan: rk, rata: nilaiGuruSekolah(rk) };
       })
       .sort((a, b) => (b.rata ?? -1) - (a.rata ?? -1));
   }, [data]);

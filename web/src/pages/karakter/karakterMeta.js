@@ -184,6 +184,37 @@ export function avgAspek(ringkasan, aspek, prefix) {
   return Math.round(vals.reduce((s, v) => s + v, 0) / vals.length);
 }
 
+/**
+ * Pencapaian karakter GURU satu sekolah, dari baris ringkasan karakter_summary scope='sekolah'.
+ * Tiga tingkat, urut:
+ *
+ *   1. `rata_pencapaian_guru` -- angka final yang ditulis sekolah sendiri.
+ *   2. rata-rata kolom `rata_input_guru_karakterN_*` di baris yang sama.
+ *   3. `pencapaian_guru` sebagai pilihan terakhir.
+ *
+ * Tingkat 2 WAJIB ada di tengah, dan itu inti helper ini. `pencapaian_guru` (tanpa awalan
+ * `rata_`) berarti KELENGKAPAN INPUT, bukan pencapaian karakter; melompat dari tingkat 1 langsung
+ * ke tingkat 3 membuat lima TK Telkom (Banjarbaru, Batam, Buahbatu, Dayeuhkolot, Ternate) tampil
+ * 100% padahal pencapaian sebenarnya 68-98%. Diperiksa pada 78 baris rekap YPT 2026-03..05:
+ * 68 di antaranya punya `pencapaian_guru` yang beda lebih dari 5 poin dari pencapaian sebenarnya.
+ *
+ * Tingkat 3 tetap dipertahankan, jangan dibuang: sebagian sekolah di luar YPT memang menyimpan
+ * angka pencapaiannya di kolom tanpa awalan `rata_` itu, dan cadangan ini yang membuat grafik
+ * tren mereka tidak kosong.
+ *
+ * `aspek` opsional. Kalau pemanggil sudah punya daftar aspek resmi sekolah itu, kirimkan; kalau
+ * tidak, kodenya digali dari nama kolom ringkasan itu sendiri.
+ */
+export function nilaiGuruSekolah(ringkasan, aspek = null) {
+  if (!ringkasan) return null;
+  const final = pct(ringkasan.rata_pencapaian_guru);
+  if (final != null) return final;
+  const daftar = aspek || aspekKodeFromRingkasan(ringkasan).map((kode) => ({ aspek_kode: kode }));
+  const rata = avgAspek(ringkasan, daftar, "rata_input_guru_");
+  if (rata != null) return rata;
+  return pct(ringkasan.pencapaian_guru);
+}
+
 /** "89" → "89%"; null → "—". */
 export function persen(v) {
   return v == null ? "—" : `${v}%`;

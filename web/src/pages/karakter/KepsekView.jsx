@@ -13,7 +13,7 @@ import FollowupRibbon from "../../components/FollowupRibbon";
 import { useKarakterKepsek, useKarakterKelasMurid, kelasKey } from "./useKarakterData";
 import {
   pct, ringkasanAspekValue, parseTop5Pair, parseTop5Indikator, deltaVsPrevious,
-  classifyPencapaian, periodeLabel, aspekIcon, avgAspek, persen, isKebijakanReady, SECTION_ICON,
+  classifyPencapaian, periodeLabel, aspekIcon, avgAspek, nilaiGuruSekolah, persen, isKebijakanReady, SECTION_ICON,
   judulSectionSuara, REFLEKSI_META, REFLEKSI_SUMBER_URUTAN, resolveSummaryKey, titikSetahunAjaran,
 } from "./karakterMeta";
 import { KARAKTER_BAR_TONE_CUTOFF } from "../../lib/cutoffs";
@@ -247,7 +247,10 @@ export default function KepsekView({ session, periodeId, pekan = null }) {
   // yang dihitung database dari skornya sendiri. Sekolah berkerangka per jenjang SELALU jatuh ke
   // cadangan, karena ringkasan tingkat sekolah dari berkasnya sengaja tidak diimpor -- keenam
   // sheetnya sebenarnya ringkasan per jenjang dan akan saling menimpa.
-  const nilaiRingkasan = pct(ringkasan?.rata_pencapaian_guru ?? ringkasan?.pencapaian_guru);
+  // nilaiGuruSekolah, bukan "rata_pencapaian_guru ?? pencapaian_guru": kolom kedua itu
+  // KELENGKAPAN input, dan melompat langsung ke sana membuat sekolah yang tidak menulis
+  // rata_pencapaian_guru tampil 100%. Lihat catatan tiga tingkat di karakterMeta.js.
+  const nilaiRingkasan = nilaiGuruSekolah(ringkasan, aspek);
   const pakaiIndeks = nilaiRingkasan == null && indeksSekolah?.indeks != null;
   const latestValue = nilaiRingkasan ?? (indeksSekolah?.indeks ?? null);
   const latestLabel = pekanAktif ? `Pekan ${pekan} · ${periodeLabel(periode)}` : periodeLabel(periode);

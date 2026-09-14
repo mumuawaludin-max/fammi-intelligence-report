@@ -126,3 +126,38 @@ Rantai ujinya memakai urutan lengkap m1..m6 termasuk 20260901120000_karakter_vie
 supaya bentrok nomor migration ketahuan kalau terulang.
 
 Sudah dijalankan di postgres:15 dan postgres:17, keduanya 9 LULUS 0 GAGAL, idempoten.
+
+## Migration ketujuh: YPT membaca rekap sekolah (20260914100000)
+
+Urutan sama, tambah m7 dan ypt_rekap_sekolah_verify.sql.
+
+`ypt_k_sekolah_mat.rata_total` dan `ypt_k_aspek_mat.rata` tidak lagi dihitung dari
+karakter_skor_bulanan, melainkan dibaca dari `karakter_summary` scope='sekolah' -- rekap yang
+sama dengan yang dipakai kartu hero Kepala Sekolah. Hitungan lama tetap ada sebagai cadangan
+untuk sekolah-bulan yang rekapnya belum masuk, dan `jumlah_siswa` tetap dari skor karena ia
+cuma bobot agregasi.
+
+Yang diperiksa: rata_total ikut rekap (88, bukan 75 hasil hitungan sendiri) sementara
+jumlah_siswa tetap dari skor, sekolah tanpa kolom `rata_pencapaian_guru` jatuh ke rata-rata
+kolom per karakter dan BUKAN ke `pencapaian_guru` yang artinya kelengkapan input, nilai per
+karakter ikut rekap kalau kolomnya ada dan jatuh ke cadangan kalau tidak, label aspek dan
+jumlah_siswa per aspek tidak ikut berubah, `ypt_pct()` membaca keempat bentuk nilai yang nyata
+ada di berkas ("95 %", "84,67 %", pecahan Excel 0.91, angka biasa) plus nilai kosong, periode
+tanpa rekap tetap memakai hitungan lama, rekap tanpa skor sama sekali tidak memunculkan periode
+baru, baris rekap ganda dimenangkan yang terakhir masuk, baris scope='kelas' tidak ikut terbaca,
+`pencapaian_guru` dipakai HANYA kalau tingkat 1 dan 2 sama-sama tidak ada (parity dengan React),
+dan ketiga view rekap internal tidak di-grant ke `authenticated`.
+
+CATATAN JUJUR SOAL CARA MENJALANKANNYA: Docker Desktop tidak bisa start di mesin tempat
+migration ini ditulis (backend process exited), jadi rantai ini BELUM dijalankan di
+postgres:15/postgres:17 lewat perintah docker di atas seperti enam migration sebelumnya.
+Yang dipakai sebagai gantinya adalah Postgres embedded `@electric-sql/pglite` (mesin Postgres 17)
+dengan rantai berkas yang sama persis: 11 LULUS 0 GAGAL, dan idempoten (berkas migration
+dijalankan tiga kali berturut-turut, hasil uji tetap sama). Jalankan ulang lewat Docker kalau
+mesin lain sudah bisa, terutama untuk memastikan postgres:15 juga lolos.
+
+Selain berkas verifikasi, angkanya dicocokkan ke berkas rekap sungguhan ("Summary Sekolah
+YPT.xlsx", 26 sekolah x 3 bulan = 78 baris): ke-78 baris dimuat ke karakter_summary, lalu
+`ypt_k_sekolah_mat.rata_total` dibandingkan dengan `nilaiGuruSekolah()` di React. 78 dari 78
+sama persis, dan tidak ada satu baris pun yang jatuh ke cadangan. Artinya dashboard YPT dan
+layar Kepala Sekolah kini menampilkan angka yang sama untuk sekolah yang sama.

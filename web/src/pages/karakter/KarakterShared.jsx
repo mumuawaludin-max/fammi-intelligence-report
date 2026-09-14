@@ -6,7 +6,7 @@ import DetailDialog from "./DetailDialog";
 import { supabase, fetchAllRows } from "../../lib/supabase";
 import styles from "./KarakterShared.module.css";
 import {
-  ringkasanAspekValue, aspekIcon, periodeLabel, pct, classifyBarTone,
+  ringkasanAspekValue, aspekIcon, periodeLabel, pct, nilaiGuruSekolah, classifyBarTone,
   extractPlainText, isBlankEssay, REFLEKSI_META,
   countMultiValue, matchedOptions, countEmosi,
 } from "./karakterMeta";
@@ -1847,13 +1847,15 @@ export function useSummaryTrend({ sekolahId, scope, scopeId, limit = 6 }) {
         const byPeriode = {};
         (data || []).forEach((r) => {
           // Sekolah lain bisa simpan angka ringkasan sekolah tanpa prefix "rata_" (mis.
-          // "pencapaian_guru" alih-alih "rata_pencapaian_guru") -- kartu hero KepsekView/
-          // YayasanView sudah toleran ke dua-duanya (lihat latestValue/rata di sana), tapi
-          // hook ini (dipakai buat grafik tren) dulu cuma cek "rata_pencapaian_guru", jadi
-          // grafik trennya kosong sama sekali untuk sekolah yang pakai nama kolom satunya,
-          // padahal angka hero-nya sendiri tetap tampil normal lewat fallback itu.
+          // "pencapaian_guru" alih-alih "rata_pencapaian_guru") -- hook ini (dipakai buat grafik
+          // tren) dulu cuma cek "rata_pencapaian_guru", jadi grafik trennya kosong sama sekali
+          // untuk sekolah yang pakai nama kolom satunya.
+          // nilaiGuruSekolah menyisipkan satu tingkat DI TENGAH kedua kolom itu: rata-rata kolom
+          // per karakter. Tanpa itu, sekolah yang punya kolom per karakter tapi tidak punya
+          // rata_pencapaian_guru (lima TK Telkom) menggambar garis tren rata di 100%, karena
+          // "pencapaian_guru" berarti kelengkapan input, bukan pencapaian karakter.
           const v = scope === "sekolah"
-            ? pct(r.ringkasan?.rata_pencapaian_guru ?? r.ringkasan?.pencapaian_guru)
+            ? nilaiGuruSekolah(r.ringkasan)
             : pct(r.ringkasan?.rata_rata_pencapaian_guru);
           if (v === null) return;
           if (!byPeriode[r.periode_id]) byPeriode[r.periode_id] = { sum: 0, n: 0, ringkasan: null };
