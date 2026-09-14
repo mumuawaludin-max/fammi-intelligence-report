@@ -133,7 +133,7 @@ export default function RingkasanKelasDialog({
     <DetailDialog
       size="wide"
       icon="📋"
-      eyebrow="Ringkasan sekelas"
+      eyebrow="Ringkasan satu kelas"
       title={`Perkembangan Karakter ${judulKelas}`}
       subtitle={`${muridList.length} siswa · ${labelPeriode}`}
       onClose={onClose}
@@ -147,7 +147,7 @@ export default function RingkasanKelasDialog({
             <span className={styles.metaItem}><strong>{adaNilai - jumlahBaik}</strong> perlu perhatian</span>
             <span className={styles.metaItem}>
               <Bintang className={styles.metaBintang} />
-              <strong>{totalBintang}</strong> bintang sekelas
+              <strong>{totalBintang}</strong> bintang satu kelas
               {bintangLoading && <span className={styles.metaLoading}>menghitung</span>}
             </span>
             {anak.length > 1 && (

@@ -124,7 +124,7 @@ export default function MuridDetailPreview() {
             <div className={`${styles.ringkasanBar} ${styles.ringkasanBarSpread}`}>
               <p className={styles.dialogSectionTitle} style={{ margin: 0 }}>👥 Siswa kelas ini (lapis Kepala Sekolah)</p>
               <button type="button" className={styles.ringkasanCta} onClick={() => setRingkasanBuka(true)}>
-                📋 Lihat Ringkasan Sekelas
+                📋 Lihat Ringkasan Satu Kelas
               </button>
             </div>
             <SiswaKelasList state={STATE_KELAS} onSelect={setMuridId} />

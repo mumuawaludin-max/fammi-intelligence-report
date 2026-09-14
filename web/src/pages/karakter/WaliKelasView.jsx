@@ -249,7 +249,7 @@ export default function WaliKelasView({ session, periodeId, pekan = null }) {
               onClick={() => setRingkasanBuka(true)}
               disabled={muridFiltered.length === 0}
             >
-              📋 Lihat Ringkasan Sekelas
+              📋 Lihat Ringkasan Satu Kelas
             </button>
             <p className={styles.ringkasanHint}>
               Perkembangan karakter dan bintang seluruh siswa kelas {judulKelasRingkasan} dalam satu

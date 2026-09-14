@@ -645,7 +645,7 @@ export default function KepsekView({ session, periodeId, pekan = null }) {
                         onClick={() => setRingkasanBuka(true)}
                         disabled={muridKelas.loading || muridKelas.muridList.length === 0}
                       >
-                        📋 Lihat Ringkasan Sekelas
+                        📋 Lihat Ringkasan Satu Kelas
                       </button>
                     </div>
                     <SiswaKelasList state={muridKelas} onSelect={setSelectedMuridId} />
