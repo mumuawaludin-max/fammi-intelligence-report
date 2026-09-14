@@ -1450,7 +1450,7 @@ export function useMuridTrend(sekolahId, muridId) {
  * Baris skor mentah satu anak pada SATU periode, dipakai menghitung bintang yang dikumpulkan.
  *
  * Tabel mentah karakter_skor, bukan view bulanan, karena yang dihitung di sini bukan angka
- * bulanan melainkan berapa kali anak ini mencapai 80% sepanjang periode. Di sekolah yang menilai
+ * bulanan melainkan berapa kali anak ini mencapai 85% sepanjang periode. Di sekolah yang menilai
  * pekanan, bintang pekan 1 dan pekan 3 adalah dua bintang yang berbeda; view bulanan cuma
  * menyimpan pekan terakhir, jadi memakainya akan menghapus bintang pekan-pekan sebelumnya.
  *

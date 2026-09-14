@@ -30,3 +30,9 @@ export const KARAKTER_BAR_TONE_CUTOFF = { aman: 80, perhatian: 60 };
 // lanjut tetap KARAKTER_PENCAPAIAN_BAIK (80), jadi anak dengan 65% tetap masuk daftar perlu
 // perhatian walau barnya biru. Itu memang yang diminta.
 export const KARAKTER_BAR_INDIVIDU_CUTOFF = { hijau: 80, biru: 50 };
+
+// Ambang satu bintang di laporan per anak dan ringkasan satu kelas. SENGAJA terpisah dari pita
+// hijau di atas: keputusan pemilik produk 2026-09-14 menaikkan syarat bintang jadi 85, sementara
+// warna bar tetap hijau mulai 80. Akibatnya karakter 80-84 tampil hijau tanpa bintang, dan itu
+// memang yang diminta; jangan menyamakan kedua angka ini dengan alasan konsistensi.
+export const KARAKTER_BINTANG_CUTOFF = 85;

@@ -58,7 +58,7 @@ export function BintangSummary({ bintang, dinilai, jumlahPekan, pekan, labelPeri
       <div className={styles.bintangKosong}>
         <BelumAdaState
           title="Belum ada bintang terkumpul"
-          text={`Bintang didapat tiap karakter yang mencapai 80%. Di ${labelSaat} belum ada yang sampai ke sana.`}
+          text={`Bintang didapat tiap karakter yang mencapai 85%. Di ${labelSaat} belum ada yang sampai ke sana.`}
         />
       </div>
     );

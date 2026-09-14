@@ -1,4 +1,7 @@
-import { KARAKTER_PENCAPAIAN_BAIK, KARAKTER_BAR_TONE_CUTOFF, KARAKTER_BAR_INDIVIDU_CUTOFF } from "../../lib/cutoffs";
+import {
+  KARAKTER_PENCAPAIAN_BAIK, KARAKTER_BAR_TONE_CUTOFF, KARAKTER_BAR_INDIVIDU_CUTOFF,
+  KARAKTER_BINTANG_CUTOFF,
+} from "../../lib/cutoffs";
 
 // Warna spoke aspek karakter, dipetakan dari token --dv-1..--dv-6 (tokens.css).
 // Aspek sendiri (label, urutan) datang dari tabel karakter_aspek_config, bukan hardcode di sini,
@@ -363,16 +366,22 @@ export function classifyBarIndividu(value) {
   return "merah";
 }
 
-/** Bintang cuma untuk pita hijau (80 ke atas). Di bawah itu tidak ada bintang sama sekali,
- * bukan bintang redup: keputusan pemilik produk 2026-09-09. */
+/**
+ * Bintang mulai dari 85 (KARAKTER_BINTANG_CUTOFF), naik dari 80 pada 2026-09-14 atas permintaan
+ * pemilik produk. Di bawah itu tidak ada bintang sama sekali, bukan bintang redup (keputusan
+ * 2026-09-09), dan skor 0 tidak pernah berbintang karena artinya guru tidak menilai.
+ *
+ * Ambangnya sengaja TIDAK sama lagi dengan pita hijau bar (tetap 80), jadi karakter 80-84 tampil
+ * hijau tanpa bintang.
+ */
 export function berbintang(value) {
-  return classifyBarIndividu(value) === "hijau";
+  return classifyBarIndividu(value) !== null && pct(value) >= KARAKTER_BINTANG_CUTOFF;
 }
 
 /**
  * Berapa bintang yang dikumpulkan satu anak sepanjang periode yang sedang dibuka.
  *
- * Satu bintang = satu karakter yang mencapai 80% pada SATU KALI penilaian. Di sekolah yang
+ * Satu bintang = satu karakter yang mencapai 85% pada SATU KALI penilaian. Di sekolah yang
  * menilai pekanan, karakter yang sama bisa menghasilkan bintang di beberapa pekan dan semuanya
  * dijumlahkan; itu memang maksudnya (keputusan pemilik produk 2026-09-09: "di-SUM-kan saja
  * bintangnya dapat berapa selama periode tersebut"). Karena itu perhitungannya memakai baris
