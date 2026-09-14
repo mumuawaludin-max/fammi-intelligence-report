@@ -22,17 +22,19 @@ export const KARAKTER_PENCAPAIAN_BAIK = 80;
 export const KARAKTER_BAR_TONE_CUTOFF = { aman: 80, perhatian: 60 };
 
 // Cutoff warna bar di LAPORAN PER ANAK modul Karakter (panel "Perkembangan tiap karakter" milik
-// Wali Kelas dan Kepala Sekolah). Sengaja terpisah dari KARAKTER_BAR_TONE_CUTOFF di atas:
-// keputusan pemilik produk 2026-09-09 memakai 80 hijau / 50 biru / di bawah 50 merah, sedangkan
-// bar di halaman lain (kelas, jenjang, sekolah) tetap 80/60 hijau-kuning-merah.
+// Wali Kelas dan Kepala Sekolah, juga ringkasan satu kelas). Sengaja terpisah dari
+// KARAKTER_BAR_TONE_CUTOFF di atas: 85 hijau / 50 biru / di bawah 50 merah, sedangkan bar di
+// halaman lain (kelas, jenjang, sekolah) tetap 80/60 hijau-kuning-merah.
 //
-// Menyeragamkan keduanya BUKAN perbaikan: ambang "perlu perhatian" untuk daftar siswa dan tindak
-// lanjut tetap KARAKTER_PENCAPAIAN_BAIK (80), jadi anak dengan 65% tetap masuk daftar perlu
-// perhatian walau barnya biru. Itu memang yang diminta.
-export const KARAKTER_BAR_INDIVIDU_CUTOFF = { hijau: 80, biru: 50 };
+// Pita hijau naik dari 80 ke 85 pada 2026-09-14 mengikuti ambang bintang yang baru, supaya tidak
+// ada baris hijau yang tidak berbintang di sebelah baris hijau yang berbintang.
+//
+// Menyeragamkan dengan halaman lain BUKAN perbaikan: ambang "perlu perhatian" untuk daftar siswa
+// dan tindak lanjut tetap KARAKTER_PENCAPAIAN_BAIK (80), jadi anak dengan 65% tetap masuk daftar
+// perlu perhatian walau barnya biru, dan anak 82% tetap terhitung "sudah baik" walau barnya biru.
+export const KARAKTER_BAR_INDIVIDU_CUTOFF = { hijau: 85, biru: 50 };
 
-// Ambang satu bintang di laporan per anak dan ringkasan satu kelas. SENGAJA terpisah dari pita
-// hijau di atas: keputusan pemilik produk 2026-09-14 menaikkan syarat bintang jadi 85, sementara
-// warna bar tetap hijau mulai 80. Akibatnya karakter 80-84 tampil hijau tanpa bintang, dan itu
-// memang yang diminta; jangan menyamakan kedua angka ini dengan alasan konsistensi.
+// Ambang satu bintang di laporan per anak dan ringkasan satu kelas, dinaikkan dari 80 ke 85 oleh
+// pemilik produk 2026-09-14. Angkanya kebetulan sama dengan pita hijau di atas, tapi tetap ditulis
+// sebagai knob sendiri: keduanya sudah pernah digeser terpisah, jadi jangan disatukan.
 export const KARAKTER_BINTANG_CUTOFF = 85;

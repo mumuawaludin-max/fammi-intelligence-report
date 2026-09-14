@@ -58,14 +58,14 @@ Warna status, dipakai hemat sebagai penanda kecil:
 - Waspada `#D6455A`, latar `#FBE7EA`.
 - Berkembang `#2E6BD6`, latar `#E7EEFA`. Ditetapkan pemilik produk 2026-09-09 khusus untuk pita
   tengah bar di laporan per anak modul Karakter (`MuridDetailPanel`, juga ringkasan satu kelas):
-  80-100 hijau, 50-79 biru, di bawah 50 merah, skor 0 abu-abu bertuliskan "Belum dinilai" (0 berarti
-  guru tidak menilai, lihat butir 9). Bar di halaman lain (kelas, jenjang, sekolah) TETAP memakai
-  hijau/kuning/merah 80/60; jangan menyeragamkan keduanya. Ambang "perlu perhatian" untuk daftar
-  siswa dan tindak lanjut juga tetap 80, jadi anak 65% tetap masuk daftar perlu perhatian walau
-  barnya biru. BINTANG punya ambangnya sendiri: mulai 85 ke atas (`KARAKTER_BINTANG_CUTOFF` di
-  `lib/cutoffs.js`), dinaikkan dari 80 oleh pemilik produk 2026-09-14. Jadi karakter 80-84 tampil
-  hijau TANPA bintang, dan itu memang yang diminta; jangan menyamakan lagi ambang bintang dengan
-  pita hijau bar.
+  85-100 hijau dengan bintang hijau pekat, 50-84 biru, di bawah 50 merah, skor 0 abu-abu bertuliskan
+  "Belum dinilai" (0 berarti guru tidak menilai, lihat butir 9). Pita hijau dan ambang bintang
+  sama-sama naik dari 80 ke 85 pada 2026-09-14 atas permintaan pemilik produk (`KARAKTER_BINTANG_CUTOFF`
+  dan `KARAKTER_BAR_INDIVIDU_CUTOFF` di `lib/cutoffs.js`, dua knob terpisah yang kebetulan sama).
+  Bar di halaman lain (kelas, jenjang, sekolah) TETAP memakai hijau/kuning/merah 80/60; jangan
+  menyeragamkan keduanya. Ambang "perlu perhatian" untuk daftar siswa dan tindak lanjut juga tetap
+  80, jadi anak 65% tetap masuk daftar perlu perhatian walau barnya biru, dan anak 82% tetap
+  terhitung "sudah baik" walau barnya biru.
 
 Radius: 12, 16, 22, 28. Bayangan kartu lembut, bayangan hero kebiruan ungu tipis. Jangan menambah warna di luar token ini.
 

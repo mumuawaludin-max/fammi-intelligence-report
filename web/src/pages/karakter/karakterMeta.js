@@ -371,8 +371,8 @@ export function classifyBarIndividu(value) {
  * pemilik produk. Di bawah itu tidak ada bintang sama sekali, bukan bintang redup (keputusan
  * 2026-09-09), dan skor 0 tidak pernah berbintang karena artinya guru tidak menilai.
  *
- * Ambangnya sengaja TIDAK sama lagi dengan pita hijau bar (tetap 80), jadi karakter 80-84 tampil
- * hijau tanpa bintang.
+ * Pita hijau bar ikut dinaikkan ke 85, jadi sekarang tiap baris hijau pasti berbintang. Dua
+ * ambang itu tetap knob terpisah di cutoffs.js karena sudah pernah digeser sendiri-sendiri.
  */
 export function berbintang(value) {
   return classifyBarIndividu(value) !== null && pct(value) >= KARAKTER_BINTANG_CUTOFF;
