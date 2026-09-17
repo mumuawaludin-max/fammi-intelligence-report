@@ -4,7 +4,7 @@ import assert from "node:assert/strict";
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { angkaDepan, jenjangUnit, kunciKebutuhan, kunciPermintaan, labelTema } from "./swPembaca.js";
+import { angkaDepan, bacaDaftarInduk, jenjangUnit, kunciKebutuhan, kunciPermintaan, labelTema } from "./swPembaca.js";
 import { hitungAlasan } from "./swAturan.js";
 
 const folder = path.dirname(fileURLToPath(import.meta.url));
@@ -33,6 +33,39 @@ test("jenjang unit dan label tema yang diganti", () => {
   assert.equal(jenjangUnit("Departemen HC"), "Lintas jenjang");
   assert.equal(labelTema("Kesehatan fisik & mental"), "Kondisi fisik & pikiran");
   assert.equal(labelTema("Rekan kerja & kerja sama tim"), "Rekan kerja & kerja sama tim");
+});
+
+test("daftar induk: jumlah pegawai per blok, blok gabungan dipecah lewat Kepala Seksi", () => {
+  const unit = ["Departemen Kurikulum", "QGDP TK dan SD", "Pendidikan Inklusi", "Asrama Athirah Baruga", "SMA Athirah Baruga"];
+  const rows = [
+    ["Screening 3", "Departemen Kurikulum"],
+    ["", "NO", "NAMA_LENGKAP", "JABATAN"],
+    ["dptkur", "1", "Guru A", "Kadept. Kurikulum"],
+    ["", "2", "Guru B", "Staf Kurikulum"],
+    ["", "3", "Guru C", "Kepala Seksi QGDP Unit TK dan SD"],
+    ["", "4", "Guru D", "Staf QGDP"],
+    ["", "5", "Guru E", "Kepala Seksi Pendidikan Inklusi"],
+    ["", "6", "Guru F", "Guru Pembimbing Khusus"],
+    ["", "", "", "", "catatan di luar tabel"],
+    ["Screening 17", "ASRAMA BARUGA"],
+    ["", "NO", "NAMA_LENGKAP", "JABATAN"],
+    ["", "1", "Guru G", "Pembina"],
+    ["", "2", "Guru G ", "Pembina"],
+    ["", "3", "", ""],
+    ["Screening 16", "SMA ATHIRAH BARUGA"],
+    ["", "NO", "NAMA_LENGKAP", "JABATAN"],
+    ["", "1", "Guru H", "Kepala Sekolah"],
+    ["Screening 99", "Unit Tak Dikenal"],
+    ["", "NO", "NAMA_LENGKAP", "JABATAN"],
+    ["", "1", "Orang Lain", "Staf"],
+  ];
+  const hasil = bacaDaftarInduk(rows, unit);
+  assert.equal(hasil.get("Departemen Kurikulum"), 2);
+  assert.equal(hasil.get("QGDP TK dan SD"), 2);
+  assert.equal(hasil.get("Pendidikan Inklusi"), 2);
+  assert.equal(hasil.get("Asrama Athirah Baruga"), 1, "nama sama dihitung sekali, baris kosong dilewati");
+  assert.equal(hasil.get("SMA Athirah Baruga"), 1);
+  assert.equal(hasil.size, 5, "blok yang tidak cocok ke unit mana pun diabaikan");
 });
 
 test("data contoh: satu baris individu per pengisi dan jumlah peserta konsisten", () => {
@@ -91,6 +124,11 @@ test("data Athirah: setiap pengisi Form A punya laporan individu", { skip: !fs.e
   assert.ok(d.individu.every((o) => typeof o.indeks === "number" && o.unitId && o.nama));
   assert.equal(d.unit.length, 25);
   assert.equal(d.unit.filter((u) => u.pengamatan).length, 19);
+  // Jumlah pegawai dari daftar induk, bukan dari sheet 07 (yang selalu sama dengan pengisi).
+  const unitNama = (n) => d.unit.find((u) => u.nama === n);
+  assert.equal(unitNama("SMA Athirah Baruga").nPegawai, 48);
+  assert.equal(unitNama("SMP Athirah Kajaolalido").nPegawai, 35);
+  assert.ok(d.unit.every((u) => u.nPegawai >= u.nPengisi), "pengisi tidak pernah melebihi pegawai");
   // Aturan kursi sheet 06 menghasilkan daftar yang sama dengan berkas pada data mentah, lalu
   // diterapkan ulang pada data bersih supaya tetap 200 orang (tanpa nama ganda).
   assert.equal(d.meta.kursi.cocokDenganBerkas, true, JSON.stringify(d.meta.kursi.selisih.slice(0, 5)));

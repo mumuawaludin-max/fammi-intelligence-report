@@ -71,6 +71,61 @@ function cariBaris(rows, cocok, mulai = 0) {
   return -1;
 }
 
+const tokenNama = (s) => new Set(teks(s).toLowerCase().split(/[^a-z0-9]+/).filter((k) => k && k !== "unit"));
+
+/**
+ * Cocokkan nama blok daftar induk ke nama unit. Sama persis dulu, lalu semua kata nama blok ada
+ * di nama unit ("ASRAMA BARUGA" -> "Asrama Athirah Baruga"), dan hanya kalau hasilnya tunggal.
+ */
+function unitUntukBlok(namaBlok, daftarNamaUnit) {
+  const q = tokenNama(namaBlok);
+  if (!q.size) return null;
+  const sama = daftarNamaUnit.find((n) => slug(n) === slug(namaBlok));
+  if (sama) return sama;
+  const muat = daftarNamaUnit.filter((n) => {
+    const t = tokenNama(n);
+    return [...q].every((k) => t.has(k));
+  });
+  return muat.length === 1 ? muat[0] : null;
+}
+
+/**
+ * Jumlah pegawai per unit dari daftar induk (sheet "Wellbeing Assessment ..."). Sheet 07 tidak bisa
+ * dipakai untuk ini: kolom "Jumlah pegawai" di sana sama dengan jumlah baris Personal Form, jadi
+ * setiap unit tampil 100% mengisi. Daftar induk berupa blok "Screening N | <nama unit>" diikuti
+ * baris bernomor. Satu blok bisa memuat beberapa unit (Departemen Kurikulum memuat QGDP TK dan SD,
+ * QGDP SMP dan SMA, dan Pendidikan Inklusi); pergantian unit di dalam blok ditandai baris berjabatan
+ * "Kepala Seksi <nama unit>". Hasil: Map nama unit -> jumlah nama unik.
+ */
+export function bacaDaftarInduk(rows, daftarNamaUnit) {
+  const nama = new Map();
+  let aktif = null;
+  let judul = null;
+  for (const r of rows || []) {
+    const a = teks(r?.[0]);
+    const b = teks(r?.[1]);
+    if (/^screening\b/i.test(a)) {
+      aktif = unitUntukBlok(b, daftarNamaUnit);
+      judul = null;
+      continue;
+    }
+    if (b === "NO") {
+      judul = petaKolom(r);
+      continue;
+    }
+    if (!judul || !/^\d+$/.test(b)) continue;
+    const orang = teks(r[judul.NAMA_LENGKAP ?? 2]);
+    if (!orang) continue;
+    const seksi = /^kepala seksi\s+(.+)$/i.exec(teks(r[judul.JABATAN ?? 3]));
+    const unitSeksi = seksi ? unitUntukBlok(seksi[1], daftarNamaUnit) : null;
+    if (unitSeksi) aktif = unitSeksi;
+    if (!aktif) continue;
+    if (!nama.has(aktif)) nama.set(aktif, new Set());
+    nama.get(aktif).add(orang.toLowerCase().replace(/\s+/g, " "));
+  }
+  return new Map([...nama].map(([k, v]) => [k, v.size]));
+}
+
 export function slug(s) {
   return teks(s).toLowerCase().normalize("NFKD").replace(/[^\w]+/g, "-").replace(/^-|-$/g, "");
 }
@@ -402,6 +457,18 @@ export function bacaDatasetSw(sheets, meta) {
     unitMentah.push(isi);
   }
 
+  // Jumlah pegawai sebenarnya dari daftar induk; unit yang tidak ada di sana memakai angka sheet 07.
+  const kunciInduk = Object.keys(sheets).find((k) => /^wellbeing assessment/i.test(k.trim()));
+  const pegawaiInduk = kunciInduk ? bacaDaftarInduk(sheets[kunciInduk], unitMentah.map((u) => u.nama)) : new Map();
+  for (const u of unitMentah) {
+    if (pegawaiInduk.has(u.nama)) {
+      u.nPegawai = pegawaiInduk.get(u.nama);
+      u.sumberPegawai = "daftar induk";
+    } else {
+      u.sumberPegawai = "07 Unit";
+    }
+  }
+
   const unitIdDariNama = (() => {
     const peta = new Map(unitMentah.map((u) => [slug(u.nama), `u-${slug(u.nama)}`]));
     return (nama) => peta.get(slug(nama)) || null;
@@ -654,7 +721,10 @@ export function bacaDatasetSw(sheets, meta) {
       nama: u.nama,
       kelompok: kelompokUnit[id] || "layanan",
       jenjang: jenjangUnit(u.nama),
-      nPegawai: u.nPegawai,
+      // Pengisi bisa melebihi daftar induk (orang di luar daftar ikut mengisi atas nama unit ini);
+      // jumlah pegawai tidak boleh lebih kecil dari yang benar-benar mengisi.
+      nPegawai: Math.max(u.nPegawai, orang.length),
+      nPegawaiInduk: u.sumberPegawai === "daftar induk" ? u.nPegawai : null,
       indeks: rataUnit.indeks,
       skor: rataUnit.skor,
       rataKondisi: rataUnit.rataKondisi,
