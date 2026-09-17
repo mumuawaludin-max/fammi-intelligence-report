@@ -6,12 +6,12 @@ import { useState } from "react";
 import { CaretDown, CaretUp, HandHeart, Sparkle } from "@phosphor-icons/react";
 import { ALASAN, BARIS_SKOR, JENJANG, KELOMPOK_UNIT, SKALA_KONDISI, SUBSKALA } from "./lib/swMeta";
 import {
-  bolehLihat, daftarKategori, formatAngka, formatPersen, jumlahUnitTersembunyi, kategoriKondisi, porsi,
+  daftarKategori, formatAngka, formatPersen, jumlahUnitKecil, kategoriKondisi, porsi,
   saringUnitTampil, unitKecil,
 } from "./lib/swAturan";
 import {
   AngkaKecil, BarBaris, BarTumpuk, CatatanUnitKecil, ChipKategori, Dialog, Kartu, KeadaanLayar, Pilihan,
-  Sakelar, TabelPadanan, Petunjuk,
+  TabelPadanan, Petunjuk,
 } from "./SwUi";
 import { WARNA_ALASAN } from "./swWarna";
 import styles from "./SwPetaUnit.module.css";
@@ -24,11 +24,10 @@ export default function SwPetaUnit({ data, peran }) {
   const { asumsi, lembaga } = data;
   const [kelompok, setKelompok] = useState("");
   const [jenjang, setJenjang] = useState("");
-  const [sembunyikanKecil, setSembunyikanKecil] = useState(true);
   const [urutan, setUrutan] = useState({ kunci: "indeks", arah: "naik" });
   const [dipilih, setDipilih] = useState(null);
 
-  const { tampil, disembunyikan } = saringUnitTampil(data.unit, peran, asumsi, { sembunyikanKecil });
+  const tampil = saringUnitTampil(data.unit, peran, asumsi);
   const kali = urutan.arah === "naik" ? 1 : -1;
   const baris = tampil
     .filter((u) => (!kelompok || u.kelompok === kelompok) && (!jenjang || u.jenjang === jenjang))
@@ -41,15 +40,18 @@ export default function SwPetaUnit({ data, peran }) {
   const kepalaUnit = peran === "kepalaUnit";
   const unitDipilih = data.unit.find((u) => u.id === dipilih) || null;
   const kategori = daftarKategori(asumsi);
-  const urutSkor = [...baris].sort((a, b) => b.indeks - a.indeks);
+  // Peringkat samping hanya dari unit di atas ambang: unit 3 orang mudah memuncaki atau menutup
+  // peringkat karena satu isian. Unit kecil tetap ada di tabel kiri.
+  const barisPeringkat = baris.filter((u) => !unitKecil(u, asumsi));
+  const urutSkor = [...(barisPeringkat.length ? barisPeringkat : baris)].sort((a, b) => b.indeks - a.indeks);
 
   if (kepalaUnit) {
     if (!tampil.length) {
       return (
         <KeadaanLayar
           jenis="kosong"
-          judul="Unit Anda belum bisa ditampilkan sendiri"
-          pesan={`Pengisinya kurang dari ${asumsi.minPengisiUnit} orang. Skor lembaga: ${formatAngka(lembaga.indeks)}.`}
+          judul="Unit Anda tidak ditemukan"
+          pesan="Hubungi tim Fammi agar akun Anda ditautkan ke unit yang benar."
         />
       );
     }
@@ -72,9 +74,6 @@ export default function SwPetaUnit({ data, peran }) {
           <>
             <Pilihan sebaris label="Kelompok" nilai={kelompok} onUbah={setKelompok} opsi={KELOMPOK_UNIT.map((k) => ({ nilai: k.kunci, label: k.label }))} />
             <Pilihan sebaris label="Jenjang" nilai={jenjang} onUbah={setJenjang} opsi={JENJANG.map((j) => ({ nilai: j, label: j }))} />
-            {bolehLihat(peran, "unit.kecil") && (
-              <Sakelar nyala={sembunyikanKecil} onUbah={setSembunyikanKecil} label={`Sembunyikan < ${asumsi.minPengisiUnit} pengisi`} />
-            )}
             <TabelPadanan
               judul="Skor tiap unit"
               kolom={["Unit", "Pengisi", ...BARIS_SKOR.map((s) => s.label)]}
@@ -136,7 +135,7 @@ export default function SwPetaUnit({ data, peran }) {
             <Petunjuk key={k.kunci} teks={`${k.label}: skor ${k.min} sampai ${k.max} dari 100.`}><span><i style={{ background: k.warna }} />{k.label}</span></Petunjuk>
           ))}
         </p>
-        {sembunyikanKecil && <CatatanUnitKecil jumlah={jumlahUnitTersembunyi(data, disembunyikan)} ambang={asumsi.minPengisiUnit} />}
+        <CatatanUnitKecil jumlah={jumlahUnitKecil(baris, asumsi)} ambang={asumsi.minPengisiUnit} />
       </Kartu>
 
       <DaftarUnit className={styles.atas} judul="Unit yang praktiknya layak dipelajari" ikon={Sparkle} warnaIkon="var(--fm-hijau)" daftar={urutSkor.slice(0, 5)} asumsi={asumsi} onPilih={setDipilih} />
@@ -224,7 +223,10 @@ function RincianUnit({ unit, lembaga, asumsi, dalamDialog = false }) {
             lebarLabel="118px"
           />
         ))}
-        <p className={styles.kecil}>Garis tegak = rata-rata lembaga</p>
+        <p className={styles.kecil}>
+          Garis tegak = rata-rata lembaga
+          {unitKecil(unit, asumsi) && ` · pengisi di bawah ${asumsi.minPengisiUnit} orang, angkanya mudah berubah`}
+        </p>
       </Kartu>
 
       <Kartu judul="Rasanya bekerja 4 pekan terakhir">

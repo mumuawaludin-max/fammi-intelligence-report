@@ -234,11 +234,6 @@
   color: var(--fm-teks-lembut);
 }
 
-.barisGabungan {
-  color: var(--fm-teks-lembut);
-  font-style: italic;
-}
-
 .barisTotal {
   grid-column: 1 / -1;
   padding: 7px 10px;

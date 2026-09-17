@@ -110,7 +110,7 @@ const HAK = {
   kepalaUnit: ["tab.ringkasan", "tab.daftar", "tab.peta", "tab.suara"],
   hc: [
     "tab.ringkasan", "tab.daftar", "tab.profil", "tab.peta", "tab.pimpinan", "tab.suara",
-    "daftar.nama", "profil.tinjauan", "profil.cari", "pimpinan.qc", "unit.kecil",
+    "daftar.nama", "profil.tinjauan", "profil.cari", "pimpinan.qc",
   ],
   pegawai: ["tab.profil"],
 };
@@ -122,34 +122,25 @@ export function bolehLihat(peran, fitur) {
 // ── Ambang penyajian unit ───────────────────────────────────────────────────────────────────
 
 /**
- * Satu-satunya aturan ambang penyajian unit, dipakai semua layar: unit dengan pengisi kurang dari
- * minPengisiUnit tidak boleh tampil sebagai baris terpisah pada tampilan agregat, kecuali untuk
- * Human Capital. Human Capital boleh menyalakan atau mematikan penyembunyian lewat `sembunyikanKecil`;
- * peran lain selalu disembunyikan, apa pun isi argumen itu.
+ * Satu-satunya aturan ambang penyajian unit, dipakai semua layar. Sejak 2026-09-17 (keputusan
+ * pemilik produk: laporan harus utuh, unit yang hilang dari daftar memancing pertanyaan) unit
+ * dengan pengisi kurang dari minPengisiUnit tetap tampil bagi Yayasan, Human Capital, dan kepala
+ * unit (yang terakhir hanya unitnya sendiri, dibatasi di siapkanDataUntukPeran). Ambang cuma
+ * berlaku untuk pegawai: unit kecil tidak dipakai sebagai pembanding laporan pribadinya.
  */
-export function unitBolehTampil(unit, peran, asumsi, { sembunyikanKecil = true } = {}) {
+export function unitBolehTampil(unit, peran, asumsi) {
   if (!unit) return false;
-  const min = lengkapiAsumsi(asumsi).minPengisiUnit;
-  const kecil = (unit.nPengisi ?? 0) < min;
-  if (!kecil) return true;
-  if (peran === "hc") return !sembunyikanKecil;
-  return false;
+  if (peran !== "pegawai") return true;
+  return !unitKecil(unit, asumsi);
 }
 
-export function saringUnitTampil(units, peran, asumsi, opsi) {
-  const tampil = [];
-  const disembunyikan = [];
-  for (const u of units || []) (unitBolehTampil(u, peran, asumsi, opsi) ? tampil : disembunyikan).push(u);
-  return { tampil, disembunyikan };
+export function saringUnitTampil(units, peran, asumsi) {
+  return (units || []).filter((u) => unitBolehTampil(u, peran, asumsi));
 }
 
-/**
- * Jumlah unit yang tidak tampil sebagai baris. Untuk peran selain Human Capital, unit kecil sudah
- * dibuang sebelum sampai ke layar, jadi hitungannya diambil dari jumlah unit lembaga.
- */
-export function jumlahUnitTersembunyi(data, disembunyikan = []) {
-  const total = data?.lembaga?.nUnit ?? (data?.unit || []).length;
-  return Math.max(0, total - (data?.unit || []).length) + disembunyikan.length;
+/** Jumlah unit kecil dalam daftar yang sedang tampil, untuk catatan "angkanya mudah berubah". */
+export function jumlahUnitKecil(units, asumsi) {
+  return (units || []).filter((u) => unitKecil(u, asumsi)).length;
 }
 
 export function unitKecil(unit, asumsi) {
@@ -394,23 +385,21 @@ export function siapkanDataUntukPeran(dataset, akses) {
     };
   }
 
-  const unitBesar = (dataset.unit || []).filter((u) => !unitKecil(u, asumsi));
   const tanpaNama = { ...base, individu: [], ringkasanPimpinan: dataset.ringkasanPimpinan || [] };
 
   if (peran === "yayasan") {
     return {
       ...tanpaNama,
-      unit: unitBesar.map(tanpaQc),
-      tema: temaUntukUnit(dataset.tema, unitBesar.map((u) => u.id)),
+      unit: (dataset.unit || []).map(tanpaQc),
+      tema: dataset.tema,
     };
   }
 
   if (peran === "kepalaUnit") {
-    const milik = unitBesar.filter((u) => u.id === unitId).map(tanpaQcDanPimpinan);
+    const milik = (dataset.unit || []).filter((u) => u.id === unitId).map(tanpaQcDanPimpinan);
     return {
       ...tanpaNama,
       unit: milik,
-      unitKecilMilikSendiri: (dataset.unit || []).some((u) => u.id === unitId && unitKecil(u, asumsi)),
       tema: temaUntukUnit(dataset.tema, milik.map((u) => u.id)),
       ringkasanPimpinan: [],
     };

@@ -7,7 +7,7 @@ import { useState } from "react";
 import { ClipboardText, Eye, Handshake, Info } from "@phosphor-icons/react";
 import { FREKUENSI, KALIMAT_PIMPINAN, KUADRAN, SELISIH, indikatorPerRanah } from "./lib/swMeta";
 import {
-  bolehLihat, formatAngka, formatPersen, jumlahUnitTersembunyi, labelKeselarasan, porsi, saringUnitTampil,
+  bolehLihat, formatAngka, formatPersen, jumlahUnitKecil, labelKeselarasan, porsi, saringUnitTampil,
 } from "./lib/swAturan";
 import {
   BarBaris, BarNilai, BarTumpuk, Catatan, CatatanUnitKecil, Dialog, Donat, Kartu, KeadaanLayar, KotakKuadran,
@@ -38,8 +38,7 @@ export default function SwPimpinan({ data, peran }) {
   const { asumsi, lembaga } = data;
   const [dipilih, setDipilih] = useState(null);
   const [bukaCek, setBukaCek] = useState(false);
-  const { tampil, disembunyikan } = saringUnitTampil(data.unit, peran, asumsi);
-  const baris = tampil
+  const baris = saringUnitTampil(data.unit, peran, asumsi)
     .filter((u) => u.pengamatan)
     .sort((a, b) => (b.pengamatan.gapTim ?? -1) - (a.pengamatan.gapTim ?? -1));
   const unitDipilih = baris.find((u) => u.id === dipilih) || null;
@@ -98,7 +97,7 @@ export default function SwPimpinan({ data, peran }) {
           </div>
         )}
         <Catatan>{`Selisih = jarak isian pegawai dengan penilaian atasannya. Sorot tanda "Sejalan", "Sedikit beda", dan seterusnya untuk batasnya.`}</Catatan>
-        <CatatanUnitKecil jumlah={jumlahUnitTersembunyi(data, disembunyikan)} ambang={asumsi.minPengisiUnit} />
+        <CatatanUnitKecil jumlah={jumlahUnitKecil(baris, asumsi)} ambang={asumsi.minPengisiUnit} />
       </Kartu>
 
       <Kartu

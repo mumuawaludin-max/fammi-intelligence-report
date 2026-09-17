@@ -11,7 +11,7 @@ import {
 } from "./lib/swMeta";
 import {
   LABEL_STATUS_DATA, bolehLihat, formatAngka, formatPersen, hitungAlasan,
-  jumlahUnitTersembunyi, porsi, saringPeserta, saringUnitTampil, statusData, susunAlasan, urutPeserta,
+  jumlahUnitKecil, porsi, saringPeserta, saringUnitTampil, statusData, susunAlasan, urutPeserta,
 } from "./lib/swAturan";
 import {
   AngkaKecil, BarBaris, BarNilai, BarTumpuk, Catatan, CatatanUnitKecil, Dialog, Kartu, KeadaanLayar,
@@ -237,13 +237,10 @@ function DialogNama({ data, hasil, namaUnit, onTutup, onBukaProfil }) {
 
 function DaftarPerUnit({ data, peran, saringan, onSaringan }) {
   const { asumsi, lembaga } = data;
-  const { tampil, disembunyikan } = saringUnitTampil(data.unit, peran, asumsi);
+  const tampil = saringUnitTampil(data.unit, peran, asumsi);
   const tersaring = tampil
     .filter((u) => (!saringan.kelompok || u.kelompok === saringan.kelompok) && (!saringan.jenjang || u.jenjang === saringan.jenjang))
     .sort((a, b) => a.nama.localeCompare(b.nama, "id"));
-  const pesertaTampil = tampil.reduce((a, u) => a + u.peserta.total, 0);
-  const nTersembunyi = jumlahUnitTersembunyi(data, disembunyikan);
-  const gabungan = { n: lembaga.nUnit - tampil.length, peserta: lembaga.peserta.total - pesertaTampil };
   const alasanDipilih = saringan.alasan || "";
   const hitung = (u) => (alasanDipilih ? u.peserta.perAlasan[alasanDipilih] || 0 : u.peserta.total);
   const maks = Math.max(1, ...tersaring.map(hitung));
@@ -252,8 +249,8 @@ function DaftarPerUnit({ data, peran, saringan, onSaringan }) {
     return (
       <KeadaanLayar
         jenis="kosong"
-        judul="Unit Anda belum bisa ditampilkan sendiri"
-        pesan={`Pengisinya kurang dari ${asumsi.minPengisiUnit} orang. Total lembaga: ${lembaga.peserta.total} peserta.`}
+        judul="Unit Anda tidak ditemukan"
+        pesan="Hubungi tim Fammi agar akun Anda ditautkan ke unit yang benar."
       />
     );
   }
@@ -271,8 +268,17 @@ function DaftarPerUnit({ data, peran, saringan, onSaringan }) {
           </>
         )}
         <div className={styles.statVertikal}>
-          <AngkaKecil nilai={lembaga.peserta.total} label={`peserta dari ${lembaga.nPengisi} pegawai`} />
-          <AngkaKecil nilai={lembaga.pesertaInfo?.tanpaPengamatan ?? lembaga.peserta.tanpaPengamatan} label="belum dinilai atasan" />
+          {peran === "kepalaUnit" ? (
+            <>
+              <AngkaKecil nilai={tampil[0].peserta.total} label={`peserta dari ${tampil[0].nPengisi} pegawai unit`} />
+              <AngkaKecil nilai={tampil[0].peserta.tanpaPengamatan ?? 0} label="belum dinilai atasan" />
+            </>
+          ) : (
+            <>
+              <AngkaKecil nilai={lembaga.peserta.total} label={`peserta dari ${lembaga.nPengisi} pegawai`} />
+              <AngkaKecil nilai={lembaga.pesertaInfo?.tanpaPengamatan ?? lembaga.peserta.tanpaPengamatan} label="belum dinilai atasan" />
+            </>
+          )}
         </div>
         <Catatan>Nama peserta dipegang tim Human Capital.</Catatan>
       </Kartu>
@@ -308,22 +314,15 @@ function DaftarPerUnit({ data, peran, saringan, onSaringan }) {
               <span className={styles.nilaiUnit}>{hitung(u)} <small>/ {u.nPengisi}</small></span>
             </div>
           ))}
-          {gabungan.n >= 2 && !saringan.kelompok && !saringan.jenjang && !alasanDipilih && (
-            <div className={`${styles.barisUnit} ${styles.barisGabungan}`}>
-              <span className={styles.namaUnit}>{peran === "kepalaUnit" ? `${gabungan.n} unit lain` : `${gabungan.n} unit kecil (digabung)`}</span>
-              <span />
-              <span className={styles.nilaiUnit}>{gabungan.peserta}</span>
-            </div>
-          )}
           <div className={`${styles.barisUnit} ${styles.barisTotal}`}>
-            <span className={styles.namaUnit}>Seluruh lembaga</span>
+            <span className={styles.namaUnit}>{peran === "kepalaUnit" ? "Seluruh lembaga (pembanding)" : "Seluruh lembaga"}</span>
             {alasanDipilih
               ? <BarNilai nilai={lembaga.peserta.perAlasan[alasanDipilih] || 0} maks={lembaga.peserta.total} warna={WARNA_ALASAN[alasanDipilih]} />
               : <BarTumpuk legenda={false} label="Seluruh lembaga" segmen={segmen(lembaga.peserta.perAlasan)} />}
             <span className={styles.nilaiUnit}>{alasanDipilih ? lembaga.peserta.perAlasan[alasanDipilih] || 0 : lembaga.peserta.total} <small>/ {lembaga.nPengisi}</small></span>
           </div>
         </div>
-        {peran === "yayasan" && <CatatanUnitKecil jumlah={nTersembunyi} ambang={asumsi.minPengisiUnit} />}
+        <CatatanUnitKecil jumlah={jumlahUnitKecil(tersaring, asumsi)} ambang={asumsi.minPengisiUnit} />
       </Kartu>
     </div>
   );

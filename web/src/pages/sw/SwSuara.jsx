@@ -8,11 +8,11 @@ import { useState } from "react";
 import { ChartBar, HandHeart, Quotes, Table, TrendUp } from "@phosphor-icons/react";
 import { HARAPAN, KALIMAT_BERAT_TETAP, KEBUTUHAN, SUBSKALA } from "./lib/swMeta";
 import {
-  bolehLihat, daftarKategori, formatAngka, formatPersen, jumlahUnitTersembunyi, porsi, saringUnitTampil,
+  daftarKategori, formatAngka, formatPersen, jumlahUnitKecil, porsi, saringUnitTampil,
   sebaranKategori,
 } from "./lib/swAturan";
 import {
-  BarBaris, BarTumpuk, CatatanUnitKecil, Dialog, Kartu, KeadaanLayar, Petunjuk, Sakelar, TabelPadanan, Tombol, Wafel,
+  BarBaris, BarTumpuk, CatatanUnitKecil, Dialog, Kartu, KeadaanLayar, Petunjuk, TabelPadanan, Tombol, Wafel,
 } from "./SwUi";
 import { IKON_ASPEK, IKON_TEMA, WARNA_TEMA } from "./swWarna";
 import styles from "./SwSuara.module.css";
@@ -30,8 +30,8 @@ export default function SwSuara({ data, peran, sub, onSub }) {
     return (
       <KeadaanLayar
         jenis="kosong"
-        judul="Unit Anda belum bisa ditampilkan sendiri"
-        pesan={`Pengisinya kurang dari ${data.asumsi.minPengisiUnit} orang.`}
+        judul="Unit Anda tidak ditemukan"
+        pesan="Hubungi tim Fammi agar akun Anda ditautkan ke unit yang benar."
       />
     );
   }
@@ -241,10 +241,9 @@ function DialogKutipan({ judul, tema, onTutup }) {
 
 function DialogSilang({ data, peran, onTutup }) {
   const { tema, asumsi } = data;
-  const [sembunyikanKecil, setSembunyikanKecil] = useState(true);
   const silang = tema.silangMenguras;
   const namaUnit = Object.fromEntries(data.unit.map((u) => [u.id, u.nama]));
-  const { tampil, disembunyikan } = saringUnitTampil(data.unit, peran, asumsi, { sembunyikanKecil });
+  const tampil = saringUnitTampil(data.unit, peran, asumsi);
   const boleh = new Set(tampil.map((u) => u.id));
   const baris = silang.baris.filter((b) => boleh.has(b.unitId));
   const maks = Math.max(1, ...baris.flatMap((b) => b.nilai));
@@ -254,9 +253,6 @@ function DialogSilang({ data, peran, onTutup }) {
       judul="Yang paling menguras tenaga, per unit"
       keterangan="Angka = jumlah orang di unit itu yang menyebut tema tersebut."
       onTutup={onTutup}
-      aksi={bolehLihat(peran, "unit.kecil") && (
-        <Sakelar nyala={sembunyikanKecil} onUbah={setSembunyikanKecil} label={`Sembunyikan unit di bawah ${asumsi.minPengisiUnit} pengisi`} />
-      )}
     >
       {baris.length === 0 ? <KeadaanLayar jenis="kosong" judul="Tidak ada unit yang bisa ditampilkan" /> : (
         <table className={styles.silang}>
@@ -292,7 +288,7 @@ function DialogSilang({ data, peran, onTutup }) {
           </tbody>
         </table>
       )}
-      {sembunyikanKecil && <CatatanUnitKecil jumlah={jumlahUnitTersembunyi(data, disembunyikan)} ambang={asumsi.minPengisiUnit} />}
+      <CatatanUnitKecil jumlah={jumlahUnitKecil(tampil.filter((u) => baris.some((b) => b.unitId === u.id)), asumsi)} ambang={asumsi.minPengisiUnit} />
     </Dialog>
   );
 }

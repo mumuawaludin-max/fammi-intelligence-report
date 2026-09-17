@@ -4,7 +4,7 @@ import assert from "node:assert/strict";
 import {
   bandingTigaLapis, bolehLihat, hitungAlasan, kalimatTigaLapis, kategoriKondisi, penjelasNol,
   saringPeserta, saringUnitTampil, sebaranKategori, siapkanDataUntukPeran, susunAlasan,
-  unitBolehTampil, urutPeserta,
+  jumlahUnitKecil, unitBolehTampil, urutPeserta,
 } from "./swAturan.js";
 import { ALASAN, KATEGORI_BAWAAN } from "./swMeta.js";
 
@@ -12,31 +12,27 @@ const ASUMSI = { minPengisiUnit: 10 };
 
 // ── Ambang penyajian unit ──
 
-test("unit dengan pengisi di bawah ambang disembunyikan untuk semua peran selain Human Capital", () => {
-  const kecil = { id: "u1", nPengisi: 9 };
-  const pas = { id: "u2", nPengisi: 10 };
-  for (const peran of ["yayasan", "kepalaUnit", "pegawai"]) {
-    assert.equal(unitBolehTampil(kecil, peran, ASUMSI), false, peran);
-    assert.equal(unitBolehTampil(kecil, peran, ASUMSI, { sembunyikanKecil: false }), false, `${peran} tidak bisa mematikan`);
-    assert.equal(unitBolehTampil(pas, peran, ASUMSI), true, peran);
+test("yayasan, Human Capital, dan kepala unit melihat unit kecil", () => {
+  const kecil = { id: "u1", nPengisi: 3 };
+  for (const peran of ["yayasan", "hc", "kepalaUnit"]) {
+    assert.equal(unitBolehTampil(kecil, peran, ASUMSI), true, peran);
   }
 });
 
-test("Human Capital menyembunyikan unit kecil secara bawaan dan boleh menampilkannya", () => {
-  const kecil = { id: "u1", nPengisi: 3 };
-  assert.equal(unitBolehTampil(kecil, "hc", ASUMSI), false);
-  assert.equal(unitBolehTampil(kecil, "hc", ASUMSI, { sembunyikanKecil: false }), true);
+test("ambang hanya berlaku untuk pembanding unit di laporan pegawai", () => {
+  assert.equal(unitBolehTampil({ id: "u1", nPengisi: 9 }, "pegawai", ASUMSI), false);
+  assert.equal(unitBolehTampil({ id: "u2", nPengisi: 10 }, "pegawai", ASUMSI), true);
 });
 
-test("ambang mengikuti asumsi dan saringUnitTampil memisah dua kelompok", () => {
+test("ambang mengikuti asumsi dan unit kecil dihitung untuk catatan", () => {
   const units = [{ id: "a", nPengisi: 4 }, { id: "b", nPengisi: 6 }, { id: "c", nPengisi: 40 }];
-  const hasil = saringUnitTampil(units, "yayasan", { minPengisiUnit: 5 });
-  assert.deepEqual(hasil.tampil.map((u) => u.id), ["b", "c"]);
-  assert.deepEqual(hasil.disembunyikan.map((u) => u.id), ["a"]);
+  assert.deepEqual(saringUnitTampil(units, "pegawai", { minPengisiUnit: 5 }).map((u) => u.id), ["b", "c"]);
+  assert.deepEqual(saringUnitTampil(units, "hc", { minPengisiUnit: 5 }).map((u) => u.id), ["a", "b", "c"]);
+  assert.equal(jumlahUnitKecil(units, { minPengisiUnit: 5 }), 1);
   assert.equal(unitBolehTampil(null, "hc", ASUMSI), false);
 });
 
-test("siapkanDataUntukPeran membuang nama dan unit kecil untuk yayasan dan kepala unit", () => {
+test("siapkanDataUntukPeran membuang nama untuk yayasan dan kepala unit, unit kecil tetap ikut", () => {
   const dataset = {
     asumsi: ASUMSI,
     lembaga: { indeks: 70, skor: {}, kondisi: {}, kebutuhan: {}, nPengisi: 50, peserta: { total: 3 } },
@@ -50,14 +46,13 @@ test("siapkanDataUntukPeran membuang nama dan unit kecil untuk yayasan dan kepal
   };
   const y = siapkanDataUntukPeran(dataset, { peran: "yayasan" });
   assert.equal(y.individu.length, 0);
-  assert.deepEqual(y.unit.map((u) => u.id), ["besar"]);
+  assert.deepEqual(y.unit.map((u) => u.id), ["besar", "kecil"], "yayasan melihat semua unit");
   assert.equal(y.unit[0].pengamatan.qc, undefined, "kendali mutu hanya untuk Human Capital");
   assert.deepEqual(y.unit[0].pengamatan.pimpinan, ["Pak A"]);
-  assert.deepEqual(y.tema.silangMenguras.baris.map((b) => b.unitId), ["besar"]);
+  assert.deepEqual(y.tema.silangMenguras.baris.map((b) => b.unitId), ["besar", "kecil"]);
 
   const k = siapkanDataUntukPeran(dataset, { peran: "kepalaUnit", unitId: "kecil" });
-  assert.equal(k.unit.length, 0);
-  assert.equal(k.unitKecilMilikSendiri, true);
+  assert.deepEqual(k.unit.map((u) => u.id), ["kecil"], "kepala unit melihat unitnya walau kecil");
   assert.equal(k.individu.length, 0);
 
   const p = siapkanDataUntukPeran(dataset, { peran: "pegawai", individuId: "p2" });

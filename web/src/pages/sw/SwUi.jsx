@@ -538,8 +538,9 @@ export function KalimatFooter() {
   return <span className={styles.footer}>{KALIMAT_FOOTER}</span>;
 }
 
-/** Catatan satu baris untuk unit yang tidak ditampilkan sendiri. */
+/** Catatan satu baris untuk unit kecil yang ikut tampil. */
 export function CatatanUnitKecil({ jumlah, ambang }) {
   if (!jumlah) return null;
-  return <Catatan>{`${jumlah} unit di bawah ${ambang} pengisi tidak ditampilkan sendiri, tetapi tetap dihitung di total.`}</Catatan>;
+  const subjek = jumlah === 1 ? "Satu unit" : `${jumlah} unit`;
+  return <Catatan>{`${subjek} pengisinya di bawah ${ambang} orang, jadi angkanya mudah berubah.`}</Catatan>;
 }

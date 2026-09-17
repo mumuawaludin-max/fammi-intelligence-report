@@ -10,7 +10,7 @@ import {
   subskalaTerendah, susunTemuan,
 } from "./lib/swAturan";
 import {
-  BarBaris, BarTumpuk, ChipKategori, Donat, Kartu, KeadaanLayar, Petunjuk, TabelPadanan, Tombol,
+  BarBaris, BarTumpuk, Catatan, ChipKategori, Donat, Kartu, KeadaanLayar, Petunjuk, TabelPadanan, Tombol,
 } from "./SwUi";
 import { IKON_ALASAN, IKON_ASPEK, IKON_KONDISI, TEKS_KONDISI, WARNA_ALASAN, WARNA_JALUR, WARNA_KONDISI } from "./swWarna";
 import styles from "./SwRingkasan.module.css";
@@ -81,10 +81,8 @@ export default function SwRingkasan({ data, peran, onKeDaftar }) {
     return (
       <KeadaanLayar
         jenis="kosong"
-        judul={data.unitKecilMilikSendiri ? "Unit Anda belum bisa ditampilkan sendiri" : "Unit Anda tidak ditemukan"}
-        pesan={data.unitKecilMilikSendiri
-          ? `Pengisinya kurang dari ${asumsi.minPengisiUnit} orang, jadi hasilnya digabung ke total lembaga.`
-          : "Hubungi tim Fammi agar akun Anda ditautkan ke unit yang benar."}
+        judul="Unit Anda tidak ditemukan"
+        pesan="Hubungi tim Fammi agar akun Anda ditautkan ke unit yang benar."
       />
     );
   }
@@ -196,10 +194,22 @@ export default function SwRingkasan({ data, peran, onKeDaftar }) {
             <Donat nilai={fokus.indeks} asumsi={asumsi} ukuran={112} tebal={12} />
             <div className={styles.skorKanan}>
               <ChipKategori nilai={fokus.indeks} asumsi={asumsi} />
-              {unit && <p>Lembaga: <b>{formatAngka(lembaga.indeks)}</b></p>}
-              <p><b>{lembaga.nPengisi}</b> pegawai mengisi</p>
-              <p><b>{formatPersen(porsi(lembaga.nPegawaiPengamatan, lembaga.nPengisi))}</b> juga dinilai atasan</p>
-              <p><b>{lembaga.nUnit - lembaga.nUnitPengamatan}</b> dari {lembaga.nUnit} unit belum dinilai atasan</p>
+              {unit ? (
+                <>
+                  {/* Kepala unit: semua angka milik unitnya, lembaga hanya satu baris pembanding bertanda jelas. */}
+                  <p><b>{unit.nPengisi}</b> dari {unit.nPegawai} pegawai unit mengisi</p>
+                  <p>{unit.pengamatan
+                    ? <><b>{formatPersen(porsi(unit.pengamatan.nPengisiDenganPengamatan, unit.nPengisi))}</b> juga dinilai atasan</>
+                    : "Belum dinilai atasan"}</p>
+                  <p>Pembanding, rata-rata lembaga: <b>{formatAngka(lembaga.indeks)}</b></p>
+                </>
+              ) : (
+                <>
+                  <p><b>{lembaga.nPengisi}</b> pegawai mengisi</p>
+                  <p><b>{formatPersen(porsi(lembaga.nPegawaiPengamatan, lembaga.nPengisi))}</b> juga dinilai atasan</p>
+                  <p><b>{lembaga.nUnit - lembaga.nUnitPengamatan}</b> dari {lembaga.nUnit} unit belum dinilai atasan</p>
+                </>
+              )}
             </div>
           </div>
         </Kartu>
@@ -239,6 +249,7 @@ export default function SwRingkasan({ data, peran, onKeDaftar }) {
               </div>
             );
           })}
+          {unit && <Catatan>Garis tegak = rata-rata lembaga.</Catatan>}
         </Kartu>
 
         {/* ── Jawaban 4 pekan ── */}

@@ -1,4 +1,4 @@
--- Verifikasi migration 20260917100000 (Screening Awal Wellbeing) di atas sw_baseline.sql dan
+-- Verifikasi migration 20260917100000 dan 20260917120000 (Screening Awal Wellbeing) di atas sw_baseline.sql dan
 -- seed data contoh. Setiap baris hasil punya kolom "lulus"; semua harus true.
 -- Akun uji diberi peran barunya di sini karena peran itu baru sah sesudah migration.
 
@@ -41,11 +41,11 @@ reset role;
 -- Ambang unit dinaikkan ke 15 oleh pengolahan hulu.
 update sw_dataset set asumsi = jsonb_set(asumsi, '{minPengisiUnit}', '15');
 
--- ── Yayasan (ambang sekarang 15) ──
+-- ── Yayasan (ambang sekarang 15, yayasan tetap melihat semua unit) ──
 select pg_temp.sebagai('yayasan');
 select pg_temp.catat('yayasan: dataset', (select count(*) from sw_dataset), 1::bigint);
-select pg_temp.catat('yayasan: hanya unit dengan pengisi >= 15', (select count(*) from sw_unit), 4::bigint);
-select pg_temp.catat('yayasan: tidak ada unit kecil', (select count(*) from sw_unit where n_pengisi < 15), 0::bigint);
+select pg_temp.catat('yayasan: semua unit terbaca walau ambang 15', (select count(*) from sw_unit), 8::bigint);
+select pg_temp.catat('yayasan: unit kecil ikut terbaca', (select count(*) from sw_unit where n_pengisi < 15), 4::bigint);
 select pg_temp.catat('yayasan: tanpa nama', (select count(*) from sw_individu), 0::bigint);
 select pg_temp.catat('yayasan: tanpa kendali mutu', (select count(*) from sw_pimpinan_qc), 0::bigint);
 select pg_temp.catat('yayasan: tanpa catatan', (select count(*) from sw_tinjauan), 0::bigint);
@@ -65,7 +65,7 @@ select pg_temp.catat('kepala SD: hanya unitnya', (select string_agg(unit_id, ','
 select pg_temp.catat('kepala SD: tanpa nama', (select count(*) from sw_individu), 0::bigint);
 reset role;
 select pg_temp.sebagai('kakeu');
-select pg_temp.catat('kepala unit kecil: unitnya tidak terbaca', (select count(*) from sw_unit), 0::bigint);
+select pg_temp.catat('kepala unit kecil: unitnya tetap terbaca', (select string_agg(unit_id, ',') from sw_unit), 'u-departemen-keuangan-contoh'::text);
 select pg_temp.catat('kepala unit kecil: dataset lembaga terbaca', (select count(*) from sw_dataset), 1::bigint);
 reset role;
 
