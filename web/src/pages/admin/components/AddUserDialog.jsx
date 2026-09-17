@@ -2,8 +2,10 @@ import { useEffect, useRef, useState } from 'react';
 import { useCms } from '../store/CmsStore';
 import { IconX } from './icons';
 import { parseGuruFile } from '../importers/guruImporter';
+import { SwLinkFields } from './SwLinkFields';
+import { PERAN_SW } from '../data/helpers';
 
-const PERAN_OPTIONS = ['AdminFammi', 'Yayasan', 'KepalaSekolah', 'WakilKepalaSekolah', 'Manajemen', 'Karyawan', 'WaliKelas', 'OrangTua', 'Siswa'];
+const PERAN_OPTIONS = ['AdminFammi', 'Yayasan', 'KepalaSekolah', 'WakilKepalaSekolah', 'Manajemen', 'Karyawan', 'WaliKelas', 'OrangTua', 'Siswa', ...PERAN_SW];
 const labelStyle = { fontSize: 10.5, fontWeight: 800, letterSpacing: '0.06em', textTransform: 'uppercase', color: 'var(--ink-3)', marginBottom: 5, display: 'block' };
 
 export function AddUserDialog() {
@@ -47,11 +49,18 @@ function SingleForm({ close }) {
   const peranRef = useRef(null);
   const cakupanRef = useRef(null);
   const schoolRef = useRef(null);
+  // Peran dan sekolah dipantau sebagai state supaya isian tautan modul sw bisa muncul/menghilang.
+  const [peran, setPeran] = useState(PERAN_OPTIONS[0]);
+  const [schoolId, setSchoolId] = useState('');
+  const [swUnitId, setSwUnitId] = useState('');
+  const [swIndividuId, setSwIndividuId] = useState('');
 
   const submit = async () => {
     const nama = namaRef.current?.value.trim();
     const username = usernameRef.current?.value.trim();
     if (!nama || !username) return;
+    if (peran === 'KepalaUnit' && !swUnitId.trim()) return;
+    if (peran === 'Pegawai' && !swIndividuId.trim()) return;
     setBusy(true);
     try {
       await createUser({
@@ -60,6 +69,8 @@ function SingleForm({ close }) {
         peran: peranRef.current?.value,
         schoolId: schoolRef.current?.value.trim() || null,
         cakupan: cakupanRef.current?.value.trim() || null,
+        swUnitId: peran === 'KepalaUnit' ? swUnitId.trim() : null,
+        swIndividuId: peran === 'Pegawai' ? swIndividuId.trim() : null,
       });
       close();
     } finally {
@@ -81,15 +92,16 @@ function SingleForm({ close }) {
           </div>
           <div>
             <label style={labelStyle}>Peran</label>
-            <select ref={peranRef} className="fld">
+            <select ref={peranRef} className="fld" value={peran} onChange={(e) => setPeran(e.target.value)}>
               {PERAN_OPTIONS.map(p => <option key={p} value={p}>{p}</option>)}
             </select>
           </div>
         </div>
         <div>
-          <label style={labelStyle}>Sekolah (school_id, opsional)</label>
-          <input ref={schoolRef} className="fld mono" placeholder="Contoh: SDIP-ALMADANI" />
+          <label style={labelStyle}>Sekolah (school_id{PERAN_SW.includes(peran) ? ', wajib' : ', opsional'})</label>
+          <input ref={schoolRef} className="fld mono" placeholder="Contoh: SDIP-ALMADANI" value={schoolId} onChange={(e) => setSchoolId(e.target.value)} />
         </div>
+        <SwLinkFields peran={peran} schoolId={schoolId.trim()} unitId={swUnitId} onUnitId={setSwUnitId} individuId={swIndividuId} onIndividuId={setSwIndividuId} />
         <div>
           <label style={labelStyle}>Cakupan</label>
           <input ref={cakupanRef} className="fld" placeholder="Sesuai peran: nama kelas / yayasan_id, pisah koma kalau lebih dari satu" />

@@ -9,6 +9,7 @@ const NAV_ITEMS = [
   { id: "sc", label: "School Culture" },
   { id: "pa", label: "Perilaku Anak" },
   { id: "lw", label: "Wellbeing Guru" },
+  { id: "sw", label: "Screening Awal Wellbeing" },
 ];
 
 /**

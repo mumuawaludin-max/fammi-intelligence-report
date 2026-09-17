@@ -15,7 +15,8 @@
 // bagian lokal email (huruf kecil saja, tanpa huruf besar biar minim salah ketik) + 6 digit
 // acak kriptografis. Contoh: "wiwifarida80@admin.sd.belajar.id" -> "wiwifarida482917".
 //
-// Mode: body `{ nama, username, peran, school_id, cakupan, password? }` (satu akun), atau
+// Mode: body `{ nama, username, peran, school_id, cakupan, password?, sw_unit_id?, sw_individu_id? }`
+// (satu akun; dua field terakhir tautan modul Screening Awal Wellbeing untuk KepalaUnit/Pegawai), atau
 // `{ users: [ {...sama seperti di atas}, ... ] }` (bulk, dipakai upload CSV guru/wali kelas),
 // atau `{ reset_user_id, reset_username }` (reset satu akun), atau
 // `{ reset_users: [ {user_id, username}, ... ] }` (reset banyak akun sekaligus, dipakai fitur
@@ -53,7 +54,8 @@ function buildCorsHeaders(req: Request) {
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 const ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY")!;
-const PERAN_VALID = ["AdminFammi", "Yayasan", "KepalaSekolah", "WakilKepalaSekolah", "Manajemen", "Karyawan", "WaliKelas", "OrangTua", "Siswa"];
+// KepalaUnit, HumanCapital, Pegawai: peran modul Screening Awal Wellbeing (migration 20260917100000).
+const PERAN_VALID = ["AdminFammi", "Yayasan", "KepalaSekolah", "WakilKepalaSekolah", "Manajemen", "Karyawan", "WaliKelas", "OrangTua", "Siswa", "KepalaUnit", "HumanCapital", "Pegawai"];
 
 Deno.serve(async (req) => {
   const corsHeaders = buildCorsHeaders(req);
@@ -143,12 +145,18 @@ Deno.serve(async (req) => {
 });
 
 async function createOne(admin, row) {
-  const { nama, username, peran, school_id, cakupan, password: givenPassword } = row;
+  const { nama, username, peran, school_id, cakupan, password: givenPassword, sw_unit_id, sw_individu_id } = row;
   if (!nama || !username || !peran) {
     return { ok: false, username, error: "Field wajib: nama, username, peran." };
   }
   if (!PERAN_VALID.includes(peran)) {
     return { ok: false, username, error: `peran harus salah satu dari: ${PERAN_VALID.join(", ")}` };
+  }
+  if (peran === "KepalaUnit" && !sw_unit_id) {
+    return { ok: false, username, error: "KepalaUnit wajib ditautkan ke unit (sw_unit_id)." };
+  }
+  if (peran === "Pegawai" && !sw_individu_id) {
+    return { ok: false, username, error: "Pegawai wajib ditautkan ke baris isiannya (sw_individu_id)." };
   }
 
   const usernameTrim = username.trim();
@@ -172,6 +180,8 @@ async function createOne(admin, row) {
     school_id: school_id || null,
     cakupan: Array.isArray(cakupan) && cakupan.length > 0 ? cakupan : null,
     murid_id: null,
+    sw_unit_id: peran === "KepalaUnit" ? String(sw_unit_id).trim() : null,
+    sw_individu_id: peran === "Pegawai" ? String(sw_individu_id).trim() : null,
   });
   if (profileErr) {
     // Rollback auth user supaya tidak ada akun tanpa profil.

@@ -17,6 +17,8 @@ import ScPage from "./pages/sc/ScPage";
 import ScKaryawanPage from "./pages/sc/ScKaryawanPage";
 import PaPage from "./pages/pa/PaPage";
 import LwPage from "./pages/lw/LwPage";
+import SwPage from "./pages/sw/SwPage";
+import SwPegawaiPage from "./pages/sw/SwPegawaiPage";
 import SiswaPage from "./pages/siswa/SiswaPage";
 import AdminCmsPage from "./pages/admin/AdminCmsPage";
 import YptApp from "./pages/ypt/YptApp";
@@ -86,13 +88,23 @@ const CW_SUB_TABS = [
 
 function isSingleModuleShellPeran(peran) {
   return peran === "KepalaSekolah" || peran === "WakilKepalaSekolah" || peran === "WaliKelas"
-    || peran === "Yayasan" || peran === "Manajemen";
+    || peran === "Yayasan" || peran === "Manajemen" || isPeranKhususSw(peran);
 }
+
+// Kepala unit dan Human Capital hanya punya akses ke modul Screening Awal Wellbeing, walau sekolahnya
+// punya entitlement modul lain (mis. Athirah juga memakai Perilaku Anak). Pegawai punya shell
+// sendiri, lihat early-return SwPegawaiPage.
+function isPeranKhususSw(peran) {
+  return peran === "KepalaUnit" || peran === "HumanCapital";
+}
+
+/** Label tampilan untuk peran yang nilai mentahnya tidak enak dibaca di pil Header. */
+const LABEL_PERAN_TAMPIL = { KepalaUnit: "Kepala Unit", HumanCapital: "Human Capital" };
 
 // Urutan prioritas kalau session.modules punya lebih dari satu entitlement aktif -- dipakai
 // supaya modul default begitu login stabil dan cocok dengan tab paling kiri yang terlihat di
 // NavBar (lihat NAV_ITEMS di components/NavBar.jsx), bukan urutan acak dari database.
-const URUTAN_MODUL_DEFAULT = ["karakter", "screening", "mi", "cw", "sc", "pa", "lw"];
+const URUTAN_MODUL_DEFAULT = ["karakter", "screening", "mi", "cw", "sc", "pa", "lw", "sw"];
 
 /**
  * Modul default begitu login (atau kalau session.modules kosong). SEBELUMNYA hardcode
@@ -107,6 +119,7 @@ const URUTAN_MODUL_DEFAULT = ["karakter", "screening", "mi", "cw", "sc", "pa", "
  * sekali) -- jaring pengaman lama, bukan asumsi modul yang benar.
  */
 function defaultModuleForPeran(peran, modules = []) {
+  if (isPeranKhususSw(peran)) return "sw";
   const aktif = (modules || []).filter((m) => m !== "overview");
   if (peran === "Manajemen") {
     if (aktif.includes("sc")) return "sc";
@@ -212,6 +225,11 @@ export default function App() {
       : <CwKaryawanPage session={session} onLogout={handleLogout} />;
   }
 
+  // Pegawai modul Screening Awal Wellbeing: hanya profil dirinya sendiri, mobile-first.
+  if (session.peran === "Pegawai") {
+    return <SwPegawaiPage session={session} onLogout={handleLogout} />;
+  }
+
   if (session.peran === "AdminFammi") {
     return <AdminCmsPage session={session} onLogout={handleLogout} />;
   }
@@ -234,7 +252,9 @@ export default function App() {
     id: pekanId(p.periode, p.pekan),
     label: `Pekan ${p.pekan} · ${periodeLabel(p.periode)}`,
   }));
-  const shellModules = (session.modules || []).filter((m) => m !== "overview");
+  const shellModules = (session.modules || [])
+    .filter((m) => m !== "overview")
+    .filter((m) => !isPeranKhususSw(session.peran) || m === "sw");
   const modules = isKepsekShell
     ? (shellModules.length ? shellModules : [defaultModuleForPeran(session.peran, session.modules)])
     : ["overview", ...(session.modules || [])];
@@ -243,7 +263,10 @@ export default function App() {
   // yang sumbernya masih tabel modul Karakter (karakter_summary/briefing/tindak_lanjut), belum
   // ada padanan tabel CW. Menampilkan picker kosong cuma bikin bingung -- tampilkan lagi begitu
   // tabel CW dan hook periodenya ada. (Karyawan tidak pernah sampai sini, lihat early-return.)
-  const showPeriodPicker = isKepsekShell && session.peran !== "Manajemen";
+  // Screening Awal Wellbeing belum memakai daftar periode Karakter, jadi picker juga disembunyikan
+  // saat modul itu aktif dan untuk peran yang hanya melihat modul itu.
+  const showPeriodPicker = isKepsekShell && session.peran !== "Manajemen"
+    && !isPeranKhususSw(session.peran) && activeTab !== "sw";
 
   const navBar = (
     <NavBar
@@ -269,7 +292,7 @@ export default function App() {
     <div className={styles.app}>
       <Header
         userName={session.nama}
-        role={session.peran}
+        role={LABEL_PERAN_TAMPIL[session.peran] || session.peran}
         schoolLogoUrl={overview.schoolLogoUrl || null}
         onLogout={handleLogout}
         period={period}
@@ -328,6 +351,10 @@ export default function App() {
         {/* Wellbeing Guru (kerangka PROTEK): laporan pimpinan, desktop-first, empat layar
             dengan drill-down per guru -- lihat catatan LwLaporanPage.jsx. */}
         {activeTab === "lw" && <LwPage session={session} />}
+
+        {/* Screening Awal Wellbeing: yayasan, kepala unit, dan Human Capital. Tampilan dan data
+            disaring per peran di dalam modul dan oleh RLS tabel sw_*. */}
+        {activeTab === "sw" && <SwPage session={session} />}
 
         {activeTab === "screening" && (
           <div className={styles.placeholder}>

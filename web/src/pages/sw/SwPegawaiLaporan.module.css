@@ -1,0 +1,275 @@
+/* Mobile-first: satu kolom, kartu bertumpuk, bilah bawah untuk berpindah bagian. Di layar lebar
+   (pratinjau di laptop) lebarnya dibatasi seperti layar ponsel supaya tetap satu tangan. */
+.laporan {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  width: 100%;
+  max-width: 480px;
+  margin: 0 auto;
+  padding: 16px 16px calc(84px + env(safe-area-inset-bottom));
+  font-size: 15px;
+}
+
+.kepala {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 4px 4px 0;
+}
+
+.nama {
+  margin: 0;
+  font-size: 22px;
+  font-weight: 800;
+  color: var(--fm-ungu-tua);
+  line-height: 1.2;
+  text-align: left;
+}
+
+.meta {
+  margin: 0;
+  font-size: 14px;
+  color: var(--fm-teks-lembut);
+  text-align: left;
+}
+
+.kecil {
+  margin: 0;
+  font-size: 13px;
+  color: var(--fm-teks-lembut);
+}
+
+.teks {
+  margin: 0;
+  font-size: 15px;
+  line-height: 1.5;
+}
+
+.isi {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.isi > section {
+  overflow: visible;
+}
+
+.isi > section > div {
+  overflow: visible;
+}
+
+.skorIsi {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.skorTeks {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+}
+
+.skorTeks p {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.45;
+}
+
+.radar {
+  display: flex;
+  justify-content: center;
+}
+
+.radar svg {
+  width: 100%;
+  max-width: 360px;
+  height: auto;
+}
+
+.legenda {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 4px 14px;
+  font-size: 13px;
+}
+
+.legenda li {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.legenda i {
+  width: 14px;
+  height: 10px;
+  border-radius: 999px;
+}
+
+.kalimat {
+  margin: 0;
+  padding-left: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  font-size: 15px;
+  line-height: 1.5;
+}
+
+.kuadran {
+  min-height: 230px;
+  display: flex;
+}
+
+.ranah {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: var(--fm-abu-latar);
+}
+
+.ranahKekuatan {
+  background: var(--fm-ungu-muda);
+}
+
+.ranahJudul {
+  margin: 0;
+  display: flex;
+  justify-content: space-between;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--fm-ungu-tua);
+}
+
+.ranahJudul span {
+  color: var(--fm-teks-lembut);
+  font-weight: 600;
+}
+
+.ranah ul {
+  margin: 0;
+  padding-left: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 14px;
+  line-height: 1.4;
+}
+
+.tidakAda {
+  margin: 0;
+  font-size: 14px;
+  color: var(--fm-teks-lembut);
+  font-style: italic;
+}
+
+.jawaban {
+  margin: 0;
+  font-size: 15px;
+  line-height: 1.55;
+  overflow-wrap: anywhere;
+}
+
+.kebutuhan {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 14px;
+  line-height: 1.35;
+}
+
+.kebutuhan li {
+  display: grid;
+  grid-template-columns: 18px minmax(0, 1fr) 32px;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 8px;
+  border-radius: 8px;
+  color: var(--fm-teks-lembut);
+}
+
+.kebutuhan li b {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.kebutuhanDipilih {
+  background: var(--fm-ungu-muda);
+  color: var(--fm-ungu-tua);
+  font-weight: 600;
+}
+
+.kebutuhanDipilih svg {
+  color: var(--fm-ungu);
+}
+
+.titikKosong {
+  width: 14px;
+  height: 14px;
+  margin-left: 2px;
+  border-radius: 50%;
+  box-shadow: inset 0 0 0 2px var(--fm-jalur-lintasan);
+}
+
+.catatanKaki {
+  margin: 4px 4px 0;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--fm-teks-lembut);
+}
+
+/* ── Bilah bawah ── */
+.bilah {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 20;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 4px;
+  max-width: 480px;
+  margin: 0 auto;
+  padding: 8px 12px calc(8px + env(safe-area-inset-bottom));
+  background: #ffffff;
+  box-shadow: 0 -6px 24px rgb(52 32 96 / 0.08);
+  border-radius: 18px 18px 0 0;
+}
+
+.tombolBilah {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  padding: 8px 6px;
+  border: none;
+  border-radius: 12px;
+  background: transparent;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--fm-teks-lembut);
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.tombolBilah:focus-visible {
+  outline: 2px solid var(--fm-ungu);
+}
+
+.tombolBilahAktif {
+  background: var(--fm-ungu-tua);
+  color: #ffffff;
+}

@@ -1,8 +1,10 @@
 import { useRef, useState } from 'react';
 import { useCms } from '../store/CmsStore';
 import { IconX } from './icons';
+import { SwLinkFields } from './SwLinkFields';
+import { PERAN_SW } from '../data/helpers';
 
-const PERAN_OPTIONS = ['AdminFammi', 'Yayasan', 'KepalaSekolah', 'WakilKepalaSekolah', 'Manajemen', 'Karyawan', 'WaliKelas', 'OrangTua', 'Siswa'];
+const PERAN_OPTIONS = ['AdminFammi', 'Yayasan', 'KepalaSekolah', 'WakilKepalaSekolah', 'Manajemen', 'Karyawan', 'WaliKelas', 'OrangTua', 'Siswa', ...PERAN_SW];
 const labelStyle = { fontSize: 10.5, fontWeight: 800, letterSpacing: '0.06em', textTransform: 'uppercase', color: 'var(--ink-3)', marginBottom: 5, display: 'block' };
 
 export function EditUserDialog() {
@@ -13,6 +15,10 @@ export function EditUserDialog() {
   const peranRef = useRef(null);
   const cakupanRef = useRef(null);
   const schoolRef = useRef(null);
+  const [peran, setPeran] = useState(u?.peran || PERAN_OPTIONS[0]);
+  const [schoolId, setSchoolId] = useState(() => data.sekolah.find((s) => s.nama === u?.sekolah)?.id || u?.school_id || '');
+  const [swUnitId, setSwUnitId] = useState(u?.sw_unit_id || '');
+  const [swIndividuId, setSwIndividuId] = useState(u?.sw_individu_id || '');
 
   if (!u) return null;
   const close = () => setEditUserTarget(null);
@@ -27,13 +33,13 @@ export function EditUserDialog() {
         peran: peranRef.current?.value,
         schoolId: schoolRef.current?.value.trim() || null,
         cakupan: cakupanRef.current?.value.trim() || null,
+        swUnitId: peran === 'KepalaUnit' ? swUnitId.trim() : null,
+        swIndividuId: peran === 'Pegawai' ? swIndividuId.trim() : null,
       });
     } finally {
       setBusy(false);
     }
   };
-
-  const schoolIdForCode = data.sekolah.find((s) => s.nama === u.sekolah)?.id || '';
 
   return (
     <>
@@ -53,14 +59,15 @@ export function EditUserDialog() {
           </div>
           <div>
             <label style={labelStyle}>Peran / jabatan</label>
-            <select ref={peranRef} className="fld" defaultValue={u.peran}>
+            <select ref={peranRef} className="fld" value={peran} onChange={(e) => setPeran(e.target.value)}>
               {PERAN_OPTIONS.map(p => <option key={p} value={p}>{p}</option>)}
             </select>
           </div>
           <div>
             <label style={labelStyle}>Sekolah (school_id)</label>
-            <input ref={schoolRef} className="fld mono" defaultValue={schoolIdForCode} placeholder="Contoh: SDIP-ALMADANI" />
+            <input ref={schoolRef} className="fld mono" value={schoolId} onChange={(e) => setSchoolId(e.target.value)} placeholder="Contoh: SDIP-ALMADANI" />
           </div>
+          <SwLinkFields peran={peran} schoolId={schoolId.trim()} unitId={swUnitId} onUnitId={setSwUnitId} individuId={swIndividuId} onIndividuId={setSwIndividuId} />
           <div>
             <label style={labelStyle}>Cakupan</label>
             <input ref={cakupanRef} className="fld" defaultValue={u.cakupan} placeholder="Sesuai peran: nama kelas / yayasan_id, pisah koma kalau lebih dari satu" />

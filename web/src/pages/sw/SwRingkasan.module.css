@@ -1,0 +1,392 @@
+.tab {
+  display: flex;
+  flex-direction: column;
+  gap: var(--fm-jarak);
+  height: 100%;
+}
+
+/* Dua baris dengan kolom sendiri-sendiri, supaya catatan singkat bisa lebih lebar. */
+.baris1 {
+  flex: none;
+  display: grid;
+  grid-template-columns: 380px minmax(0, 1fr);
+  gap: var(--fm-jarak);
+}
+
+.baris2 {
+  flex: 1;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: 380px minmax(0, 1.01fr) minmax(0, 1.01fr) minmax(0, 0.98fr);
+  gap: var(--fm-jarak);
+}
+
+.sorot {
+  background: var(--fm-ungu-muda);
+  box-shadow: none;
+}
+
+/* ── Berapa orang ── */
+.sorotAtas {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--fm-jarak);
+}
+
+.jalur {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 13px;
+}
+
+.jalur li {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  white-space: nowrap;
+}
+
+.jalur li > span:first-child {
+  gap: 5px;
+}
+
+.jalur i {
+  width: 10px;
+  height: 10px;
+  border-radius: 3px;
+}
+
+.jalur b {
+  font-variant-numeric: tabular-nums;
+}
+
+.angkaBesar {
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--fm-ungu-tua);
+}
+
+.angkaBesar strong {
+  font-size: 46px;
+  line-height: 0.9;
+  font-weight: 800;
+  letter-spacing: -0.04em;
+  font-variant-numeric: tabular-nums;
+}
+
+.angkaBesar span {
+  font-size: 17px;
+  font-weight: 700;
+  line-height: 1.3;
+}
+
+.angkaBesar em {
+  font-style: normal;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.kalimatTetap {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.35;
+  color: var(--fm-ungu-tua);
+}
+
+/* ── Alasan ── */
+.petunjuk {
+  font-size: 13px;
+  color: var(--fm-teks-lembut);
+  white-space: nowrap;
+}
+
+.gridAlasan {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.itemAlasan {
+  width: 100%;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 10px;
+  align-items: center;
+  padding: 5px 12px;
+  border: none;
+  border-radius: 12px;
+  background: var(--fm-abu-latar);
+  font: inherit;
+  text-align: left;
+  color: var(--fm-teks);
+  cursor: pointer;
+  transition: background 150ms ease, transform 150ms ease;
+}
+
+.itemAlasan:hover {
+  background: var(--fm-ungu-muda);
+}
+
+.itemAlasan:active {
+  transform: translateY(1px);
+}
+
+.itemAlasan:focus-visible {
+  outline: 2px solid var(--fm-ungu);
+}
+
+.teksAlasan {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.teksAlasan strong svg {
+  margin-right: 5px;
+  vertical-align: -3px;
+}
+
+.teksAlasan strong {
+  font-size: 14px;
+  color: var(--fm-ungu-tua);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.teksAlasan span {
+  font-size: 13px;
+  color: var(--fm-teks-lembut);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.angkaAlasan {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  line-height: 1.1;
+}
+
+.angkaAlasan strong {
+  font-size: 22px;
+  font-weight: 800;
+  color: var(--fm-ungu-tua);
+  font-variant-numeric: tabular-nums;
+}
+
+.angkaAlasan span {
+  font-size: 13px;
+  color: var(--fm-teks-lembut);
+}
+
+.itemNol strong {
+  color: var(--fm-teks-lembut);
+}
+
+/* ── Skor ── */
+.skorIsi {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  height: 100%;
+}
+
+.skorKanan {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  min-width: 0;
+}
+
+.skorKanan p {
+  margin: 0;
+  font-size: 13px;
+  color: var(--fm-teks);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.skorKanan b {
+  color: var(--fm-ungu-tua);
+}
+
+/* ── Aspek ── */
+.barisAspek {
+  padding: 1px 8px;
+  margin: 0 -8px;
+  border-radius: 8px;
+}
+
+.aspekRendah {
+  background: var(--fm-emas-20);
+}
+
+.keteranganKecil {
+  margin: auto 0 0;
+  font-size: 13px;
+  color: var(--fm-teks-lembut);
+}
+
+/* ── Lima wajah ── */
+.wajahIsi {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 8px;
+  height: 100%;
+}
+
+.wajah {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 4px;
+}
+
+.wajahItem {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  text-align: center;
+  min-width: 0;
+}
+
+.wajahIkon {
+  display: grid;
+  place-items: center;
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  margin-bottom: 3px;
+  animation: swMekar 500ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+@keyframes swMekar {
+  from { opacity: 0; transform: scale(0.6); }
+}
+
+.wajahItem strong {
+  font-size: 15px;
+  line-height: 1.1;
+  color: var(--fm-ungu-tua);
+  font-variant-numeric: tabular-nums;
+}
+
+.wajahJumlah {
+  font-size: 13px;
+  color: var(--fm-teks-lembut);
+  white-space: nowrap;
+}
+
+.wajahLabel {
+  font-size: 13px;
+  line-height: 1.15;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+}
+
+/* ── Temuan ── */
+.temuanBaik,
+.temuanPerhatian {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  padding: 7px 12px;
+  border-radius: 12px;
+}
+
+.temuanBaik svg,
+.temuanPerhatian svg {
+  flex: none;
+  margin-top: 1px;
+}
+
+.temuanBaik > div,
+.temuanPerhatian > div {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+}
+
+.temuanBaik p,
+.temuanPerhatian p {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.35;
+}
+
+.temuanBaik p span,
+.temuanPerhatian p span {
+  font-size: 13px;
+  color: var(--fm-teks-lembut);
+}
+
+.temuanBaik {
+  background: var(--fm-ungu-muda);
+  color: var(--fm-ungu-tua);
+}
+
+.temuanBaik svg {
+  color: var(--fm-ungu);
+}
+
+.temuanPerhatian {
+  background: var(--fm-emas-20);
+  color: var(--fm-teks);
+}
+
+.temuanPerhatian svg {
+  color: var(--fm-jingga);
+}
+
+@media (min-width: 1024px) and (max-height: 720px) {
+  .barisAspek {
+    padding: 0 8px;
+  }
+
+  .isiAspek {
+    gap: 5px;
+  }
+
+  .temuanBaik,
+  .temuanPerhatian {
+    padding: 6px 10px;
+  }
+}
+
+@media (max-width: 1023px) {
+  .tab {
+    grid-template-columns: 1fr;
+    grid-template-rows: none;
+    height: auto;
+  }
+
+  .baris1,
+  .baris2 {
+    grid-template-columns: 1fr;
+  }
+
+  .gridAlasan {
+    grid-template-columns: 1fr;
+  }
+
+  .petunjuk {
+    display: none;
+  }
+}

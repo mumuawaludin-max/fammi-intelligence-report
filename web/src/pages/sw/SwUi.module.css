@@ -1,0 +1,1013 @@
+/* ── Animasi masuk: diputar ulang setiap kali komponen dipasang (buka atau pindah tab) ── */
+@keyframes swMuncul {
+  from { opacity: 0; transform: translateY(8px); }
+}
+
+@keyframes swTumbuh {
+  from { transform: scaleX(0); }
+}
+
+@keyframes swBuka {
+  from { clip-path: inset(0 100% 0 0 round 999px); }
+  to { clip-path: inset(0 0 0 0 round 999px); }
+}
+
+@keyframes swDonat {
+  from { stroke-dashoffset: var(--dash); }
+  to { stroke-dashoffset: 0; }
+}
+
+@keyframes swPudar {
+  from { opacity: 0; }
+}
+
+@keyframes swMekar {
+  from { opacity: 0; transform: scale(0.85); }
+}
+
+@keyframes swTitik {
+  from { opacity: 0; transform: scale(0.4); }
+}
+
+/* ── Kartu ── */
+.kartu {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+  padding: var(--fm-kartu-pad);
+  border-radius: var(--fm-radius);
+  background: #ffffff;
+  box-shadow: var(--fm-bayangan);
+  animation: swMuncul 420ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.kartuKepala {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: var(--fm-kepala-kartu);
+  min-height: 30px;
+  flex: none;
+}
+
+.kartuJudul {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  min-width: 0;
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--fm-ungu-tua);
+}
+
+.kartuJudul > span:last-child {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.kartuIkon {
+  display: inline-grid;
+  place-items: center;
+  flex: none;
+  width: 22px;
+  height: 22px;
+  border-radius: 7px;
+  color: var(--w);
+  background: color-mix(in srgb, var(--w) 14%, #ffffff);
+}
+
+.kartuAksi {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: none;
+}
+
+/* Pilihan di kepala kartu: label cukup selebar teksnya. */
+.kartuAksi .pilihanSebaris {
+  grid-template-columns: auto minmax(0, 1fr);
+}
+
+.kartuIsi {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  flex: 1;
+  min-height: 0;
+  /* Ruang 8px di kiri-kanan untuk latar hover baris yang memakai margin negatif. */
+  margin: 0 -8px;
+  padding: 0 8px;
+  overflow-x: hidden;
+  overflow-y: auto;
+  scrollbar-width: thin;
+}
+
+/* ── Tooltip ── */
+.petunjuk {
+  display: inline-flex;
+  align-items: center;
+  gap: inherit;
+  min-width: 0;
+  cursor: help;
+  border-radius: 6px;
+}
+
+.petunjukBlok {
+  display: block;
+  min-width: 0;
+  cursor: help;
+  border-radius: 6px;
+}
+
+.petunjuk:focus-visible,
+.petunjukBlok:focus-visible {
+  outline: 2px solid var(--fm-ungu, #6323da);
+  outline-offset: 2px;
+}
+
+/* Dirender di luar .scope, jadi warnanya ditulis langsung. */
+.petunjukIsi {
+  position: fixed;
+  z-index: 1000;
+  transform: translate(-50%, -100%);
+  max-width: 280px;
+  padding: 8px 12px;
+  border-radius: 10px;
+  background: #342060;
+  color: #ffffff;
+  font-family: var(--font-body);
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 1.45;
+  text-align: left;
+  pointer-events: none;
+  box-shadow: 0 8px 24px rgb(34 22 60 / 0.25);
+  animation: swPudar 120ms ease-out both;
+}
+
+.petunjukIsi::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  bottom: -5px;
+  width: 10px;
+  height: 10px;
+  background: #342060;
+  transform: translateX(-50%) rotate(45deg);
+  border-radius: 2px;
+}
+
+.petunjukIsiBawah {
+  transform: translate(-50%, 0);
+}
+
+.petunjukIsiBawah::after {
+  bottom: auto;
+  top: -5px;
+}
+
+/* ── Keadaan ── */
+.keadaan {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  gap: 6px;
+  height: 100%;
+  min-height: 220px;
+  padding: 32px 24px;
+  background: #ffffff;
+  border-radius: var(--fm-radius);
+  box-shadow: var(--fm-bayangan);
+  color: var(--fm-teks-lembut);
+}
+
+.keadaan_galat {
+  background: var(--fm-jingga-12);
+  color: var(--fm-teks);
+}
+
+.keadaan_galat svg {
+  color: var(--fm-jingga);
+}
+
+.keadaan_memuat svg {
+  color: var(--fm-ungu);
+  animation: berdenyut 1.4s ease-in-out infinite;
+}
+
+@keyframes berdenyut {
+  50% { opacity: 0.4; }
+}
+
+.keadaanJudul {
+  margin: 4px 0 0;
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--fm-teks);
+  text-align: center;
+}
+
+.keadaanPesan {
+  margin: 0;
+  font-size: 14px;
+  max-width: 56ch;
+  line-height: 1.5;
+  text-align: center;
+}
+
+/* ── Catatan (satu baris) ── */
+.catatan {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  min-width: 0;
+  margin: 0;
+  font-size: 13px;
+  color: var(--fm-teks-lembut);
+  flex: none;
+}
+
+.catatan svg {
+  flex: none;
+}
+
+.catatan span {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.catatan_emas {
+  background: var(--fm-emas-20);
+  color: var(--fm-teks);
+  padding: 7px 12px;
+  border-radius: var(--fm-radius-kecil);
+}
+
+.catatan_ungu {
+  background: var(--fm-ungu-muda);
+  color: var(--fm-ungu-tua);
+  padding: 7px 12px;
+  border-radius: var(--fm-radius-kecil);
+}
+
+/* ── Bar: satu tebal untuk semua ── */
+.bar {
+  position: relative;
+  display: block;
+  width: 100%;
+  height: var(--fm-bar);
+  background: var(--fm-jalur-lintasan);
+  border-radius: 999px;
+}
+
+.barIsi {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+  transform-origin: left center;
+  transition: width 600ms cubic-bezier(0.16, 1, 0.3, 1);
+  animation: swTumbuh 800ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.barPenanda {
+  position: absolute;
+  top: -3px;
+  bottom: -3px;
+  width: 3px;
+  margin-left: -1.5px;
+  background: var(--fm-ungu-tua);
+  border-radius: 2px;
+  animation: swPudar 600ms ease-out both;
+  animation-delay: 500ms;
+}
+
+.barBaris {
+  display: grid;
+  grid-template-columns: var(--lebar-label, minmax(120px, 38%)) minmax(60px, 1fr) auto;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  font-size: 14px;
+  color: var(--fm-teks);
+}
+
+.barBarisLabel {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.barBarisLabel > svg {
+  flex: none;
+}
+
+.barBarisNilai {
+  min-width: 44px;
+  text-align: right;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.barBarisKlik {
+  border: none;
+  background: none;
+  font: inherit;
+  text-align: left;
+  padding: 2px 8px;
+  margin: 0 -8px;
+  width: calc(100% + 16px);
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background 150ms ease;
+}
+
+.barBarisKlik:hover,
+.barBarisAktif {
+  background: var(--fm-ungu-muda);
+}
+
+.barBarisKlik:focus-visible {
+  outline: 2px solid var(--fm-ungu);
+}
+
+/* ── Bar bertumpuk ── */
+.barTumpuk {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.barTumpukJalur {
+  display: flex;
+  width: 100%;
+  height: var(--fm-bar);
+  border-radius: 999px;
+  overflow: hidden;
+  background: var(--fm-jalur-lintasan);
+  animation: swBuka 900ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.barTumpukBungkus {
+  display: block;
+  height: 100%;
+  min-width: 0;
+  flex: none;
+  transition: width 600ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.barTumpukSegmen {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.barTumpukBungkus + .barTumpukBungkus .barTumpukSegmen {
+  box-shadow: inset 2px 0 0 #ffffff;
+}
+
+.legenda {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 14px;
+  font-size: 13px;
+  color: var(--fm-teks);
+}
+
+.legendaKecil {
+  gap: 2px 10px;
+}
+
+.legenda li {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  white-space: nowrap;
+}
+
+.legenda li .petunjuk {
+  gap: 5px;
+}
+
+.legenda b {
+  font-variant-numeric: tabular-nums;
+}
+
+.legendaTitik {
+  width: 10px;
+  height: 10px;
+  border-radius: 3px;
+  flex: none;
+}
+
+.lembut {
+  color: var(--fm-teks-lembut);
+}
+
+/* ── Donat ── */
+.donat {
+  position: relative;
+  margin: 0;
+  flex: none;
+}
+
+.donat svg {
+  display: block;
+}
+
+.donatIsi {
+  transition: stroke-dasharray 800ms cubic-bezier(0.16, 1, 0.3, 1);
+  animation: swDonat 1100ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.donatTengah {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  animation: swMekar 500ms cubic-bezier(0.16, 1, 0.3, 1) both;
+  animation-delay: 250ms;
+}
+
+.donatTengah strong {
+  font-size: 28px;
+  line-height: 1;
+  color: var(--fm-ungu-tua);
+  font-variant-numeric: tabular-nums;
+}
+
+.donatTengah span {
+  max-width: 100%;
+  padding: 0 10px;
+  font-size: 13px;
+  color: var(--fm-teks-lembut);
+  margin-top: 2px;
+  text-align: center;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* ── Radar ── */
+.radar {
+  width: 100%;
+  height: 100%;
+  max-height: 100%;
+  font-family: var(--font-body);
+}
+
+.radarLapis {
+  transform-origin: center;
+  transform-box: view-box;
+  animation: swMekar 800ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+/* ── Wafel ── */
+.wafelBungkus {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-height: 0;
+}
+
+.wafelSebaris {
+  flex-direction: row;
+  align-items: center;
+  gap: 16px;
+}
+
+.wafelSebaris .wafel {
+  flex: none;
+  width: var(--wafel, 120px);
+  max-width: none;
+}
+
+.wafelSebaris .legenda {
+  flex-direction: column;
+  gap: 4px;
+}
+
+.wafel {
+  display: grid;
+  gap: 3px;
+  width: 100%;
+  max-width: 220px;
+  aspect-ratio: 1;
+}
+
+.wafel span {
+  display: block;
+  border-radius: 3px;
+  animation: swTitik 300ms ease-out both;
+}
+
+/* ── Kotak 2x2 ── */
+.kuadranBungkus {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  grid-template-rows: minmax(0, 1fr) auto;
+  gap: 4px 6px;
+  flex: 1;
+  min-height: 0;
+}
+
+.kuadranSumbuY {
+  grid-row: 1;
+  writing-mode: vertical-rl;
+  transform: rotate(180deg);
+  text-align: center;
+  font-size: 13px;
+  color: var(--fm-teks-lembut);
+  white-space: nowrap;
+}
+
+.kuadranSumbuX {
+  grid-column: 2;
+  text-align: center;
+  font-size: 13px;
+  color: var(--fm-teks-lembut);
+  white-space: nowrap;
+}
+
+.kuadran {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  grid-template-rows: 1fr 1fr;
+  gap: 6px;
+  min-height: 0;
+}
+
+.selKuadranBungkus {
+  display: flex;
+  min-height: 0;
+}
+
+.selKuadran {
+  position: relative;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 3px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  min-height: 64px;
+  overflow: hidden;
+  animation: swMekar 500ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.selKuadranNyala {
+  box-shadow: var(--fm-bayangan);
+}
+
+.selKuadranAtas {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--ikon);
+}
+
+.selKuadranAtas strong {
+  font-size: 22px;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+
+.selKuadranLabel {
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1.25;
+}
+
+.selKuadranPorsi {
+  font-size: 13px;
+  opacity: 0.85;
+}
+
+.kuadranRingkas .selKuadran {
+  padding: 8px 10px;
+  min-height: 52px;
+}
+
+.kuadranTitik {
+  position: absolute;
+  width: 14px;
+  height: 14px;
+  margin: -7px 0 0 -7px;
+  border-radius: 50%;
+  background: #ffffff;
+  box-shadow: 0 0 0 3px var(--fm-ungu-tua), 0 2px 6px rgb(0 0 0 / 0.25);
+  animation: swTitik 500ms cubic-bezier(0.16, 1, 0.3, 1) both;
+  animation-delay: 400ms;
+}
+
+/* ── Chip dan lencana ── */
+.chip {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 10px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 700;
+  white-space: nowrap;
+  width: fit-content;
+}
+
+.lencana {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 9px;
+  border-radius: 999px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--fm-ungu-tua);
+  background: var(--fm-ungu-muda);
+  white-space: nowrap;
+}
+
+/* ── Sakelar ── */
+.sakelarBaris {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.sakelar {
+  flex: none;
+  width: 38px;
+  height: 22px;
+  border-radius: 999px;
+  border: none;
+  background: var(--ink-4);
+  padding: 2px;
+  cursor: pointer;
+  transition: background 150ms ease;
+}
+
+.sakelar:focus-visible {
+  outline: 2px solid var(--fm-ungu);
+  outline-offset: 2px;
+}
+
+.sakelarNyala {
+  background: var(--fm-ungu);
+}
+
+.sakelarTombol {
+  display: block;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: #ffffff;
+  transition: transform 150ms ease;
+}
+
+.sakelarNyala .sakelarTombol {
+  transform: translateX(16px);
+}
+
+.sakelarLabel {
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+/* ── Pilihan (dropdown) ── */
+.pilihan {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.pilihan label {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--fm-teks-lembut);
+}
+
+.pilihanKotak {
+  position: relative;
+  display: block;
+  min-width: 0;
+}
+
+.pilihan select {
+  appearance: none;
+  -webkit-appearance: none;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  padding: 8px 32px 8px 12px;
+  border: none;
+  border-radius: var(--fm-radius-kecil);
+  background: #ffffff;
+  box-shadow: var(--fm-bayangan), inset 0 0 0 1px var(--fm-garis-halus);
+  color: var(--fm-ungu-tua);
+  width: 100%;
+  cursor: pointer;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  transition: box-shadow 150ms ease;
+}
+
+.pilihan select:hover {
+  box-shadow: var(--fm-bayangan-naik), inset 0 0 0 1px var(--fm-ungu-20);
+}
+
+.pilihan select:focus-visible {
+  outline: 2px solid var(--fm-ungu);
+  outline-offset: 1px;
+}
+
+.pilihanPanah {
+  position: absolute;
+  right: 11px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--fm-ungu);
+  pointer-events: none;
+}
+
+/* Label di kiri, pilihan di kanan: dipakai panel saringan supaya tetap pendek. */
+.pilihanSebaris {
+  display: grid;
+  grid-template-columns: 104px minmax(0, 1fr);
+  align-items: center;
+  gap: 8px;
+}
+
+/* ── Angka ── */
+.angka {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.angkaNilai {
+  font-size: 26px;
+  font-weight: 800;
+  line-height: 1.05;
+  color: var(--fm-ungu-tua);
+  font-variant-numeric: tabular-nums;
+}
+
+.angkaLabel {
+  font-size: 13px;
+  color: var(--fm-teks);
+}
+
+.angkaCatatan {
+  font-size: 13px;
+  color: var(--fm-teks-lembut);
+}
+
+/* ── Tabel ── */
+.tabel {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+  font-variant-numeric: tabular-nums;
+}
+
+.tabel th,
+.tabel td {
+  text-align: left;
+  padding: 9px 10px;
+  border-bottom: 1px solid var(--fm-garis-halus);
+  vertical-align: top;
+}
+
+.tabel thead th {
+  position: sticky;
+  top: 0;
+  background: #ffffff;
+  font-size: 13px;
+  color: var(--fm-teks-lembut);
+  font-weight: 600;
+}
+
+.tabel tbody th {
+  font-weight: 600;
+}
+
+.tombolTabel {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 10px;
+  border: none;
+  border-radius: 8px;
+  background: var(--fm-abu-latar);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--fm-ungu-tua);
+  cursor: pointer;
+}
+
+.tombolTabel:hover {
+  background: var(--fm-ungu-muda);
+}
+
+.tombolTabel:focus-visible {
+  outline: 2px solid var(--fm-ungu);
+}
+
+/* ── Dialog ── */
+/* Reset global menghapus margin bawaan <dialog>; margin auto mengembalikannya ke tengah layar. */
+.dialog {
+  position: fixed;
+  inset: 0;
+  margin: auto;
+  border: none;
+  border-radius: 18px;
+  padding: 0;
+  width: min(640px, calc(100vw - 32px));
+  max-height: min(88vh, 760px);
+  color: var(--fm-teks);
+  font-family: var(--font-body);
+  box-shadow: 0 24px 64px rgb(34 22 60 / 0.25);
+  animation: swMekar 220ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.dialogLebar {
+  width: min(1200px, calc(100vw - 48px));
+}
+
+.dialog::backdrop {
+  background: rgb(34 22 60 / 0.45);
+}
+
+.dialogBingkai {
+  display: flex;
+  flex-direction: column;
+  max-height: min(88vh, 760px);
+}
+
+.dialogKepala {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 18px 22px 12px;
+  flex: none;
+}
+
+.dialogKepala h2 {
+  margin: 0;
+  font-size: 18px;
+  color: var(--fm-ungu-tua);
+}
+
+.dialogKepala p {
+  margin: 4px 0 0;
+  font-size: 14px;
+  color: var(--fm-teks-lembut);
+}
+
+.dialogIsi {
+  padding: 0 22px 16px;
+  font-size: 14px;
+  line-height: 1.55;
+  overflow: auto;
+  min-height: 0;
+}
+
+.dialogAksi {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 22px 18px;
+  flex-wrap: wrap;
+  flex: none;
+}
+
+/* ── Tombol ── */
+.tombol {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  padding: 8px 16px;
+  border-radius: var(--fm-radius-kecil);
+  border: none;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 150ms ease, transform 150ms ease;
+}
+
+.tombol:active:not(:disabled) {
+  transform: translateY(1px);
+}
+
+.tombol:focus-visible,
+.tombolIkon:focus-visible {
+  outline: 2px solid var(--fm-ungu);
+  outline-offset: 2px;
+}
+
+.tombol:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+.tombol_utama {
+  background: var(--fm-ungu-tua);
+  color: #ffffff;
+}
+
+.tombol_utama:hover:not(:disabled) {
+  background: var(--fm-ungu);
+}
+
+.tombol_garis {
+  background: var(--fm-ungu-muda);
+  color: var(--fm-ungu-tua);
+}
+
+.tombol_garis:hover:not(:disabled) {
+  background: var(--fm-ungu-20);
+}
+
+.tombol_teks {
+  background: transparent;
+  color: var(--fm-ungu);
+  padding-inline: 4px;
+}
+
+.tombol_teks:hover:not(:disabled) {
+  text-decoration: underline;
+}
+
+.tombolIkon {
+  display: inline-grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  flex: none;
+  border-radius: 8px;
+  border: none;
+  background: var(--fm-isian);
+  cursor: pointer;
+  color: var(--fm-teks);
+}
+
+.footer {
+  font-size: 13px;
+  color: var(--fm-teks-lembut);
+  white-space: nowrap;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .kartu,
+  .barIsi,
+  .barPenanda,
+  .barTumpukJalur,
+  .donatIsi,
+  .donatTengah,
+  .radarLapis,
+  .wafel span,
+  .selKuadran,
+  .kuadranTitik,
+  .dialog,
+  .petunjukIsi {
+    animation: none;
+  }
+
+  .barIsi,
+  .barTumpukSegmen,
+  .donatIsi,
+  .sakelar,
+  .sakelarTombol {
+    transition: none;
+  }
+
+  .keadaan_memuat svg {
+    animation: none;
+  }
+}

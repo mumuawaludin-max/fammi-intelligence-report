@@ -1,0 +1,276 @@
+/* ── Human Capital ── */
+.tab {
+  display: grid;
+  grid-template-columns: 280px minmax(0, 1fr) minmax(0, 1.3fr);
+  grid-template-rows: auto minmax(0, 1fr);
+  gap: var(--fm-jarak);
+  height: 100%;
+}
+
+.saringan {
+  grid-column: 1;
+  grid-row: 1 / 3;
+}
+
+.hasil {
+  grid-column: 2 / 4;
+  grid-row: 1;
+}
+
+.menurutAlasan {
+  grid-column: 2;
+  grid-row: 2;
+}
+
+.menurutUnit {
+  grid-column: 3;
+  grid-row: 2;
+}
+
+.hasilBaris {
+  display: flex;
+  align-items: center;
+  gap: 32px;
+}
+
+.hasilBaris > button {
+  margin-left: auto;
+  padding: 11px 20px;
+  font-size: 15px;
+}
+
+.duaKolom {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  align-content: start;
+  gap: 0 24px;
+}
+
+.pemisah {
+  flex: 1;
+}
+
+/* ── Tabel nama di dialog ── */
+.tabel {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+
+.tabel thead th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background: #ffffff;
+  text-align: left;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--fm-teks-lembut);
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--fm-garis-halus);
+  white-space: nowrap;
+}
+
+.tabel tbody th,
+.tabel tbody td {
+  text-align: left;
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--fm-garis-halus);
+  vertical-align: middle;
+}
+
+.tabel tbody th {
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.angka {
+  text-align: right !important;
+  font-variant-numeric: tabular-nums;
+}
+
+.judulUrut {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  border: none;
+  background: none;
+  padding: 0;
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+}
+
+.judulUrut:focus-visible {
+  outline: 2px solid var(--fm-ungu);
+}
+
+.barisKlik {
+  cursor: pointer;
+}
+
+.barisKlik:hover,
+.barisKlik:focus-visible {
+  background: var(--fm-ungu-muda);
+  outline: none;
+}
+
+.lencanaBaris {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  min-width: 220px;
+}
+
+.statusLengkap,
+.statusDiri {
+  display: inline-block;
+  padding: 3px 9px;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.statusLengkap {
+  background: var(--fm-ungu-muda);
+  color: var(--fm-ungu-tua);
+}
+
+.statusDiri {
+  background: var(--fm-emas-20);
+  color: var(--fm-teks);
+}
+
+.ikonCatatan {
+  margin-left: 6px;
+  vertical-align: -2px;
+  color: var(--fm-jingga);
+}
+
+/* ── Yayasan dan kepala unit ── */
+.tabUnit {
+  display: grid;
+  grid-template-columns: 280px minmax(0, 1fr);
+  gap: var(--fm-jarak);
+  height: 100%;
+}
+
+.tabUnit .saringan {
+  grid-row: 1;
+}
+
+.statVertikal {
+  display: flex;
+  flex-direction: column;
+  gap: var(--fm-jarak);
+  margin-top: 8px;
+}
+
+.perUnit {
+  min-width: 0;
+}
+
+.legendaAlasan {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 14px;
+  font-size: 13px;
+  flex: none;
+}
+
+.legendaAlasan li {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.legendaAlasan li > span:first-child {
+  gap: 5px;
+}
+
+.legendaAlasan i {
+  display: block;
+  width: 10px;
+  height: 10px;
+  border-radius: 3px;
+}
+
+.gridUnit {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-auto-flow: row;
+  column-gap: 28px;
+  row-gap: 5px;
+  align-content: start;
+}
+
+.barisUnit {
+  display: grid;
+  grid-template-columns: 170px minmax(0, 1fr) 70px;
+  gap: var(--fm-jarak);
+  align-items: center;
+  font-size: 14px;
+}
+
+.namaUnit {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.nilaiUnit {
+  text-align: right;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.nilaiUnit small {
+  font-size: 13px;
+  font-weight: 400;
+  color: var(--fm-teks-lembut);
+}
+
+.barisGabungan {
+  color: var(--fm-teks-lembut);
+  font-style: italic;
+}
+
+.barisTotal {
+  grid-column: 1 / -1;
+  padding: 7px 10px;
+  border-radius: 10px;
+  background: var(--fm-ungu-muda);
+  font-weight: 700;
+  grid-template-columns: 158px minmax(0, 1fr) 70px;
+}
+
+@media (max-width: 1023px) {
+  .tab,
+  .tabUnit {
+    grid-template-columns: 1fr;
+    grid-template-rows: none;
+    height: auto;
+  }
+
+  .saringan,
+  .hasil,
+  .menurutAlasan,
+  .menurutUnit {
+    grid-column: 1;
+    grid-row: auto;
+  }
+
+  .hasilBaris {
+    flex-wrap: wrap;
+    gap: 16px;
+  }
+
+  .duaKolom,
+  .gridUnit {
+    grid-template-columns: 1fr;
+  }
+}

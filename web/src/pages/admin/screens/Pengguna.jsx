@@ -6,7 +6,7 @@ import { ErrorState } from '../components/ErrorState';
 import { peranColor } from '../data/helpers';
 import { IconMoreVertical } from '../components/icons';
 
-const PERAN_ORDER = ['AdminFammi', 'Yayasan', 'KepalaSekolah', 'WakilKepalaSekolah', 'Manajemen', 'Karyawan', 'WaliKelas', 'OrangTua', 'Siswa'];
+const PERAN_ORDER = ['AdminFammi', 'Yayasan', 'KepalaSekolah', 'WakilKepalaSekolah', 'Manajemen', 'Karyawan', 'WaliKelas', 'OrangTua', 'Siswa', 'KepalaUnit', 'HumanCapital', 'Pegawai'];
 
 export function Pengguna() {
   const { data, loading, error, setAddUserOpen, refetch, bulkResetAndExport, bulkDeleteUsers, session } = useCms();
@@ -141,7 +141,7 @@ export function Pengguna() {
       <div style={{ marginTop: 14, padding: '10px 14px', background: 'var(--info-soft)', borderRadius: 8, fontSize: 11.5, color: 'var(--info)', display: 'flex', gap: 8, alignItems: 'flex-start' }}>
         <span style={{ fontSize: 14 }}>ℹ</span>
         <div>
-          Nilai peran ditegakkan lewat <span className="mono" style={{ fontSize: 11 }}>profiles_peran_check</span> constraint. Wajib PascalCase persis: <span className="mono" style={{ fontSize: 11 }}>'AdminFammi','Yayasan','KepalaSekolah','WakilKepalaSekolah','Manajemen','Karyawan','WaliKelas','OrangTua','Siswa'</span>. Nilai lain akan ditolak Postgres.
+          Nilai peran ditegakkan lewat <span className="mono" style={{ fontSize: 11 }}>profiles_peran_check</span> constraint. Wajib PascalCase persis: <span className="mono" style={{ fontSize: 11 }}>'AdminFammi','Yayasan','KepalaSekolah','WakilKepalaSekolah','Manajemen','Karyawan','WaliKelas','OrangTua','Siswa','KepalaUnit','HumanCapital','Pegawai'</span>. Nilai lain akan ditolak Postgres. Tiga peran terakhir milik modul Screening Awal Wellbeing: KepalaUnit wajib ditautkan ke unit, Pegawai ke baris isiannya.
         </div>
       </div>
     </div>

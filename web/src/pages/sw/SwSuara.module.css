@@ -1,0 +1,302 @@
+.tab {
+  display: flex;
+  flex-direction: column;
+  gap: var(--fm-jarak);
+  min-height: 0;
+}
+
+.subBaris {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex: none;
+}
+
+.subTab {
+  display: inline-flex;
+  gap: 2px;
+  padding: 3px;
+  background: #ffffff;
+  box-shadow: var(--fm-bayangan);
+  border-radius: 10px;
+}
+
+.subTab button {
+  font: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  padding: 7px 14px;
+  border-radius: 8px;
+  border: none;
+  background: transparent;
+  color: var(--fm-teks-lembut);
+  cursor: pointer;
+}
+
+.subTab button:hover {
+  color: var(--fm-ungu-tua);
+}
+
+.subTab button:focus-visible {
+  outline: 2px solid var(--fm-ungu);
+}
+
+.subTab .subAktif,
+.subTab .subAktif:hover {
+  background: var(--fm-ungu-tua);
+  color: #ffffff;
+}
+
+.lingkup {
+  font-size: 14px;
+  color: var(--fm-teks-lembut);
+}
+
+.isiSub {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.isiSub > * {
+  flex: 1;
+  min-height: 0;
+}
+
+.kecil {
+  margin: 0;
+  font-size: 13px;
+  color: var(--fm-teks-lembut);
+}
+
+.rapat {
+  gap: 2px;
+}
+
+.rapat > p {
+  margin-bottom: 4px;
+}
+
+/* ── Kondisi kerja ── */
+.gridKondisi {
+  display: grid;
+  grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr);
+  grid-template-rows: auto minmax(0, 1fr);
+  gap: var(--fm-jarak);
+}
+
+.kartuAspek {
+  grid-column: 1;
+  grid-row: 1 / 3;
+}
+
+.kartuHarapan {
+  grid-column: 2;
+  grid-row: 1;
+}
+
+.kartuDukungan {
+  grid-column: 2;
+  grid-row: 2;
+}
+
+.legenda {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 14px;
+  font-size: 13px;
+}
+
+.legenda li {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.legenda li > span:first-child {
+  gap: 5px;
+}
+
+.legenda i {
+  display: block;
+  width: 10px;
+  height: 10px;
+  border-radius: 3px;
+}
+
+.barisAspek {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.barisAspek p {
+  margin: 0;
+  display: flex;
+  justify-content: space-between;
+  gap: var(--fm-jarak);
+  font-size: 14px;
+}
+
+.barisAspek p span {
+  font-size: 13px;
+  color: var(--fm-teks-lembut);
+  white-space: nowrap;
+}
+
+.barisAspek p b {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.barisAspek p b svg {
+  color: var(--fm-ungu);
+}
+
+.harapanIsi {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.datar {
+  margin-top: auto;
+  display: flex;
+  align-items: center;
+  gap: var(--fm-jarak);
+  padding: 8px 12px;
+  border-radius: 10px;
+  background: var(--fm-emas-20);
+}
+
+.datar strong {
+  font-size: 26px;
+  font-weight: 800;
+  color: var(--fm-teks);
+  font-variant-numeric: tabular-nums;
+}
+
+.datar span {
+  font-size: 13px;
+  line-height: 1.35;
+}
+
+/* ── Jawaban pegawai ── */
+.gridSuara {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--fm-jarak);
+}
+
+.daftarDialog {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding-top: 4px;
+}
+
+.kutipan {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.kutipan li {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  padding: 12px 14px;
+  background: var(--fm-abu-latar);
+  border-radius: var(--fm-radius-kecil);
+  font-size: 15px;
+  line-height: 1.55;
+}
+
+.kutipan svg {
+  flex: none;
+  color: var(--fm-ungu);
+  margin-top: 2px;
+}
+
+.silang {
+  border-collapse: separate;
+  border-spacing: 3px;
+  font-size: 14px;
+  min-width: 100%;
+}
+
+.silang thead th {
+  position: sticky;
+  top: 0;
+  background: #ffffff;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--fm-teks-lembut);
+  vertical-align: bottom;
+  text-align: center;
+  padding: 4px;
+  min-width: 76px;
+  max-width: 110px;
+  line-height: 1.25;
+}
+
+.silang thead th:first-child {
+  text-align: left;
+}
+
+.silang tbody th {
+  text-align: left;
+  font-weight: 600;
+  white-space: nowrap;
+  padding: 6px 8px;
+}
+
+.angkaSilang {
+  text-align: center;
+  color: var(--fm-teks-lembut);
+}
+
+.selSilang {
+  text-align: center;
+  font-weight: 700;
+  padding: 7px 4px;
+  border-radius: 6px;
+  font-variant-numeric: tabular-nums;
+}
+
+@media (min-width: 1024px) and (max-height: 720px) {
+  .rapat {
+    gap: 0;
+  }
+
+  .barisAspek {
+    gap: 3px;
+  }
+}
+
+@media (max-width: 1023px) {
+  .gridKondisi,
+  .gridSuara {
+    grid-template-columns: 1fr;
+    grid-template-rows: none;
+  }
+
+  .kartuAspek,
+  .kartuHarapan,
+  .kartuDukungan {
+    grid-column: 1;
+    grid-row: auto;
+  }
+
+  .subBaris {
+    flex-wrap: wrap;
+  }
+}

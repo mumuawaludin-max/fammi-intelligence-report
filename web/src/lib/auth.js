@@ -90,8 +90,22 @@ async function fetchProfileSession(userId) {
     modules = (modulRows || []).map((r) => r.modul);
   }
 
+  // Tautan akun ke modul Screening Awal Wellbeing. Dibaca terpisah dan hanya untuk dua peran
+  // yang memerlukannya, supaya login peran lain tetap jalan walau migration kolom ini
+  // (20260917100000) belum dijalankan di sebuah project.
+  let swTautan = { sw_unit_id: null, sw_individu_id: null };
+  if (profile.peran === "KepalaUnit" || profile.peran === "Pegawai") {
+    const { data: sw } = await supabase
+      .from("profiles")
+      .select("sw_unit_id, sw_individu_id")
+      .eq("id", userId)
+      .maybeSingle();
+    if (sw) swTautan = sw;
+  }
+
   return {
     user_id: userId,
+    ...swTautan,
     username: profile.username,
     nama: profile.nama || profile.username,
     peran: profile.peran,

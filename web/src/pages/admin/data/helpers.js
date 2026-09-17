@@ -1,11 +1,11 @@
 import * as XLSX from 'xlsx';
 
 export function moduleLabel(m) {
-  return { karakter: 'Karakter', mi: 'Multiple Intelligence', screening: 'Screening', cw: 'Culture & Wellbeing', sc: 'School Culture', pa: 'Perilaku Anak' }[m] || m;
+  return { karakter: 'Karakter', mi: 'Multiple Intelligence', screening: 'Screening', cw: 'Culture & Wellbeing', sc: 'School Culture', pa: 'Perilaku Anak', sw: 'Screening Awal Wellbeing' }[m] || m;
 }
 
 export function moduleShort(m) {
-  return { karakter: 'Karakter', mi: 'MI', screening: 'Screening', cw: 'Corporate Culture', sc: 'School Culture', pa: 'Perilaku Anak' }[m] || m;
+  return { karakter: 'Karakter', mi: 'MI', screening: 'Screening', cw: 'Corporate Culture', sc: 'School Culture', pa: 'Perilaku Anak', sw: 'Screening Wellbeing' }[m] || m;
 }
 
 /**
@@ -39,6 +39,7 @@ export function moduleColor(m) {
     cw: { bg: '#DFF7E4', ink: '#1E7A3A' },
     sc: { bg: '#FFEBCB', ink: '#8A4E00' },
     pa: { bg: '#E1F3F0', ink: '#137066' },
+    sw: { bg: '#F1EEF9', ink: '#342060' },
   }[m] || { bg: '#F0F0F4', ink: '#4A4458' };
 }
 
@@ -84,6 +85,9 @@ export function downloadXlsx(filename, rows) {
   XLSX.writeFile(wb, filename.replace(/\.csv$/i, '.xlsx'));
 }
 
+/** Peran modul Screening Awal Wellbeing; butuh tautan unit/pegawai saat akun dibuat. */
+export const PERAN_SW = ['KepalaUnit', 'HumanCapital', 'Pegawai'];
+
 export function peranColor(p) {
   const map = {
     AdminFammi: { bg: '#EDE6FB', ink: '#5418C2', label: 'Admin Fammi' },
@@ -95,6 +99,9 @@ export function peranColor(p) {
     WaliKelas: { bg: '#E7F4EE', ink: '#1E7A50', label: 'Wali Kelas' },
     OrangTua: { bg: '#FDE2FE', ink: '#843D8A', label: 'Orang Tua' },
     Siswa: { bg: '#F1ECE3', ink: '#7C6A48', label: 'Siswa' },
+    KepalaUnit: { bg: '#FAF1DC', ink: '#8A6210', label: 'Kepala Unit' },
+    HumanCapital: { bg: '#EDE6FB', ink: '#342060', label: 'Human Capital' },
+    Pegawai: { bg: '#F1ECE3', ink: '#7C6A48', label: 'Pegawai' },
   };
   return map[p] || { bg: '#F0F0F4', ink: '#4A4458', label: p };
 }

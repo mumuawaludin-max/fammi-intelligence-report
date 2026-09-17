@@ -1,0 +1,55 @@
+.shell {
+  min-height: 100vh;
+  background: var(--fm-abu-latar);
+}
+
+.bar {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 16px;
+  background: #ffffff;
+  border-bottom: 1px solid var(--fm-abu-garis);
+}
+
+.logo {
+  height: 24px;
+  width: auto;
+}
+
+.nama {
+  flex: 1;
+  min-width: 0;
+  font-size: 14px;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.keluar {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  padding: 8px 12px;
+  border-radius: 10px;
+  border: 1px solid var(--fm-abu-garis);
+  background: #ffffff;
+  color: var(--fm-ungu-tua);
+  cursor: pointer;
+}
+
+.keluar:focus-visible {
+  outline: 2px solid var(--fm-ungu);
+  outline-offset: 2px;
+}
+
+.kosong {
+  padding: 24px 16px;
+}

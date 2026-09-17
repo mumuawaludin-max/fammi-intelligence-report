@@ -12,7 +12,7 @@ import { loadAspekKandidatAction, saveAspekConfigAction, refreshYptViewsAction }
 // 'lw' sempat tertinggal di sini padahal modulnya sudah jalan (Leadership & Wellbeing,
 // migration 20260803100000) -- akibatnya entitlement-nya cuma bisa diatur lewat SQL, tidak lewat
 // CMS. 'kp' (Survey Kepuasan YPT) ditambahkan sekalian.
-const MODULES = ['karakter', 'mi', 'screening', 'cw', 'sc', 'pa', 'lw', 'kp'];
+const MODULES = ['karakter', 'mi', 'screening', 'cw', 'sc', 'pa', 'lw', 'kp', 'sw'];
 
 export function Sekolah() {
   const { data, loading, error, setAddSchoolOpen, setAddYayasanOpen, setEditSchoolTarget, showToast, isModuleOn, toggleModule, refetch } = useCms();
@@ -60,6 +60,7 @@ export function Sekolah() {
                 <th>Perilaku Anak</th>
                 <th>Leadership</th>
                 <th>Kepuasan</th>
+                <th>Screening Wellbeing</th>
                 <th>Aspek config</th>
                 <th>Aktif</th>
                 <th style={{ width: 36 }}></th>

@@ -22,3 +22,6 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Dataset Screening Awal Wellbeing hasil baca berkas asli: berisi nama pegawai.
+sw-data-lokal/

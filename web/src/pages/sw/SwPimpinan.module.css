@@ -1,0 +1,278 @@
+.tab {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 392px;
+  grid-template-rows: auto auto minmax(0, 1fr);
+  gap: var(--fm-jarak);
+  height: 100%;
+}
+
+.kotakWajib {
+  grid-column: 1 / -1;
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  padding: 10px 16px;
+  background: var(--fm-ungu-tua);
+  color: #ffffff;
+  border-radius: 12px;
+}
+
+.kotakWajib p {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.4;
+  font-weight: 500;
+}
+
+.kotakWajib svg {
+  flex: none;
+}
+
+.kartuDaftar {
+  grid-column: 1;
+  grid-row: 2 / 4;
+}
+
+.kartuCakupan {
+  grid-column: 2;
+  grid-row: 2;
+}
+
+.kartuLembaga {
+  grid-column: 2;
+  grid-row: 3;
+}
+
+.petunjuk {
+  font-size: 13px;
+  color: var(--fm-teks-lembut);
+  white-space: nowrap;
+}
+
+.gridUnit {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  column-gap: 20px;
+  row-gap: 2px;
+  align-content: start;
+}
+
+.barisUnit {
+  display: grid;
+  grid-template-columns: 180px minmax(40px, 1fr) 40px 96px;
+  align-items: center;
+  gap: 10px;
+  padding: 4px 8px;
+  border: none;
+  border-radius: 8px;
+  background: none;
+  font: inherit;
+  text-align: left;
+  color: var(--fm-teks);
+  cursor: pointer;
+}
+
+.barisUnit:hover,
+.barisUnit:focus-visible {
+  background: var(--fm-ungu-muda);
+  outline: none;
+}
+
+.namaUnit {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  line-height: 1.25;
+}
+
+.namaUnit b,
+.namaUnit small {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.namaUnit b {
+  font-size: 14px;
+}
+
+.namaUnit small {
+  font-size: 13px;
+  color: var(--fm-teks-lembut);
+}
+
+.nilai {
+  text-align: right;
+  font-weight: 700;
+  font-size: 14px;
+  font-variant-numeric: tabular-nums;
+}
+
+.chip {
+  justify-self: start;
+  padding: 3px 9px;
+  border-radius: 7px;
+  font-size: 13px;
+  font-weight: 700;
+  white-space: nowrap;
+  background: var(--fm-abu-latar);
+}
+
+.cakupanAngka {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.35;
+}
+
+.cakupanAngka strong {
+  font-size: 22px;
+  font-weight: 800;
+  color: var(--fm-ungu-tua);
+  margin-right: 4px;
+}
+
+.belum {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.45;
+  color: var(--fm-teks);
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.subJudul {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--fm-teks-lembut);
+}
+
+.cakupanIsi {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  min-height: 0;
+}
+
+.cakupanTeks {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+
+.polaPenjelasan {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 12px;
+  padding: 12px 14px;
+  border-radius: 12px;
+  background: var(--fm-abu-latar);
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.polaPenjelasan p,
+.polaPenjelasan ol {
+  margin: 0;
+}
+
+.polaPenjelasan ol {
+  padding-left: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.polaBeda {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 6px;
+  background: var(--fm-emas-20);
+  color: var(--fm-ungu-tua);
+  font-weight: 700;
+}
+
+.polaBiasa {
+  color: var(--fm-teks-lembut);
+}
+
+/* ── Dialog rincian ── */
+.rincian {
+  display: flex;
+  flex-direction: column;
+  gap: var(--fm-jarak);
+}
+
+.gridRanah {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--fm-jarak);
+}
+
+.ranah {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px 14px;
+  border-radius: 12px;
+  background: var(--fm-abu-latar);
+}
+
+.ranahKekuatan {
+  background: var(--fm-ungu-muda);
+}
+
+.ranah h3,
+.rincianBawah h3 {
+  margin: 0;
+  font-size: 15px;
+  color: var(--fm-ungu-tua);
+  width: fit-content;
+}
+
+.rincianBawah {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--fm-jarak);
+}
+
+.rincianBawah section {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 12px 14px;
+  border-radius: 12px;
+  background: var(--fm-abu-latar);
+}
+
+.kecil {
+  margin: 8px 0 0;
+  font-size: 13px;
+  color: var(--fm-teks-lembut);
+}
+
+@media (max-width: 1023px) {
+  .tab,
+  .gridUnit,
+  .gridRanah,
+  .rincianBawah {
+    grid-template-columns: 1fr;
+    grid-template-rows: none;
+    height: auto;
+  }
+
+  .kartuDaftar,
+  .kartuCakupan,
+  .kartuLembaga {
+    grid-column: 1;
+    grid-row: auto;
+  }
+
+  .petunjuk {
+    display: none;
+  }
+}

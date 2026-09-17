@@ -66,7 +66,7 @@ export function useAdminCmsData() {
         fetchAllRows((from, to) => supabase.from('briefing').select('id, sekolah_id, modul, scope, scope_id, periode_id, teks, sumber, tema_esai, status, created_at').eq('status', 'menunggu_persetujuan').order('id').range(from, to)),
         fetchAllRows((from, to) => supabase.from('tindak_lanjut').select('id, sekolah_id, modul, scope, scope_id, periode_id, action, trigger_desc, priority, status, gambaran, opsi_kandidat, catatan_internal, langkah_terpilih, regenerate_dari, created_at, term, type, fokus, jenjang, icon, title, teaser, mengapa_data, mengapa_perspektif, dasar_teori, manfaat, konkret, target_role').in('status', ['menunggu_persetujuan', 'disetujui']).order('id').range(from, to)),
         supabase.from('import_log').select('*').order('created_at', { ascending: false }).limit(50),
-        fetchAllRows((from, to) => supabase.from('profiles').select('id, username, nama, peran, school_id, cakupan, created_at').order('id').range(from, to)),
+        fetchAllRows((from, to) => supabase.from('profiles').select('id, username, nama, peran, school_id, cakupan, sw_unit_id, sw_individu_id, created_at').order('id').range(from, to)),
         // Dipakai buat hitung "kelas belum ada tindak lanjut" (Rekomendasi di layar Gemini).
         // Sengaja HANYA hitung status menunggu_persetujuan/disetujui sebagai "sudah ada" --
         // kelas yang drafnya ditolak harus muncul lagi di sini supaya gampang di-generate ulang,
@@ -270,6 +270,9 @@ export function useAdminCmsData() {
       const users = (profilesRes.data || []).map((p) => ({
         id: p.id, nama: p.nama, username: p.username, peran: p.peran,
         sekolah: p.school_id ? (schoolNameById[p.school_id] || p.school_id) : null,
+        school_id: p.school_id || null,
+        sw_unit_id: p.sw_unit_id || null,
+        sw_individu_id: p.sw_individu_id || null,
         cakupan: Array.isArray(p.cakupan) ? p.cakupan.join(', ') : (p.cakupan || ''),
         createdAt: p.created_at,
       }));
@@ -649,19 +652,19 @@ export async function updateGeminiScheduleAction(patch) {
   if (error) throw new Error(await edgeErrorDetail(error, 'Edge Function admin-actions gagal dipanggil.'));
 }
 
-export async function createUserAction({ nama, username, peran, schoolId, cakupan }) {
+export async function createUserAction({ nama, username, peran, schoolId, cakupan, swUnitId, swIndividuId }) {
   const cakupanArr = cakupan ? cakupan.split(',').map((s) => s.trim()).filter(Boolean) : [];
   const { data, error } = await supabase.functions.invoke('create-user', {
-    body: { nama, username, peran, school_id: schoolId, cakupan: cakupanArr },
+    body: { nama, username, peran, school_id: schoolId, cakupan: cakupanArr, sw_unit_id: swUnitId || null, sw_individu_id: swIndividuId || null },
   });
   if (error) throw new Error(error.message || 'Edge Function create-user gagal dipanggil.');
   return data;
 }
 
-export async function updateUserAction(userId, { nama, peran, schoolId, cakupan }) {
+export async function updateUserAction(userId, { nama, peran, schoolId, cakupan, swUnitId, swIndividuId }) {
   const cakupanArr = cakupan ? cakupan.split(',').map((s) => s.trim()).filter(Boolean) : [];
   const { error } = await supabase.functions.invoke('admin-actions', {
-    body: { action: 'update-profile', userId, nama, peran, schoolId, cakupan: cakupanArr },
+    body: { action: 'update-profile', userId, nama, peran, schoolId, cakupan: cakupanArr, swUnitId: swUnitId ?? null, swIndividuId: swIndividuId ?? null },
   });
   if (error) throw new Error(await edgeErrorDetail(error, 'Edge Function admin-actions gagal dipanggil.'));
 }

@@ -20,7 +20,7 @@
 //
 // Body: { action, ...payload }, action salah satu dari:
 //   "approve" | "reject"      { id, tipe: "tindak_lanjut"|"briefing", teks?, langkahTerpilih?, regenerateDari? }
-//   "update-profile"          { userId, nama?, peran?, schoolId?, cakupan? }
+//   "update-profile"          { userId, nama?, peran?, schoolId?, cakupan?, swUnitId?, swIndividuId? }
 //   "add-school"               { nama, jenjang?, yayasanId?, modules?, logoBase64? } -- logoBase64 data
 //                              URL PNG ("data:image/png;base64,...."), opsional. Diunggah ke
 //                              bucket Storage publik "school-logos" (migration 20260801120000)
@@ -117,7 +117,7 @@ function buildCorsHeaders(req) {
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 const ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY")!;
-const PERAN_VALID = ["AdminFammi", "Yayasan", "KepalaSekolah", "WakilKepalaSekolah", "WaliKelas", "OrangTua", "Siswa"];
+const PERAN_VALID = ["AdminFammi", "Yayasan", "KepalaSekolah", "WakilKepalaSekolah", "Manajemen", "Karyawan", "WaliKelas", "OrangTua", "Siswa", "KepalaUnit", "HumanCapital", "Pegawai"];
 
 Deno.serve(async (req) => {
   const corsHeaders = buildCorsHeaders(req);
@@ -246,7 +246,7 @@ async function handleApproval(admin, body) {
 }
 
 async function handleUpdateProfile(admin, body) {
-  const { userId, nama, peran, schoolId, cakupan } = body;
+  const { userId, nama, peran, schoolId, cakupan, swUnitId, swIndividuId } = body;
   if (!userId) return { ok: false, error: "Field wajib: userId." };
   if (peran !== undefined && !PERAN_VALID.includes(peran)) {
     return { ok: false, error: `peran harus salah satu dari: ${PERAN_VALID.join(", ")}` };
@@ -259,6 +259,9 @@ async function handleUpdateProfile(admin, body) {
   if (cakupan !== undefined) {
     patch.cakupan = Array.isArray(cakupan) && cakupan.length > 0 ? cakupan : null;
   }
+  // Tautan modul Screening Awal Wellbeing; dikosongkan kalau perannya bukan lagi KepalaUnit/Pegawai.
+  if (swUnitId !== undefined) patch.sw_unit_id = swUnitId ? String(swUnitId).trim() : null;
+  if (swIndividuId !== undefined) patch.sw_individu_id = swIndividuId ? String(swIndividuId).trim() : null;
 
   const { error } = await admin.from("profiles").update(patch).eq("id", userId);
   if (error) return { ok: false, error: error.message };

@@ -1,0 +1,71 @@
+/**
+ * Token warna modul Screening Awal Wellbeing (sw). Pengecualian yang disengaja dari token FIR
+ * biasa, sama seperti SC/CW/PA/LW: nilai diambil dari desain acuan yang dilampirkan pemilik
+ * produk (2026-09-17). Ungu utama menunjuk token global --purple-600 karena nilainya sama
+ * persis; sisanya belum punya padanan di tokens.css, jadi didefinisikan di sini dan di-scope
+ * lewat .scope supaya tidak menjalar ke modul lain. Nama berawalan --fm-* sesuai brief.
+ */
+.scope {
+  --fm-ungu-tua: #342060;
+  --fm-ungu: var(--purple-600, #6323da);
+  --fm-ungu-muda: #f1eef9;
+  --fm-emas: #ffae15;
+  --fm-jingga: #ff5b2e;
+  --fm-hijau: #16a34a;
+  --fm-abu-latar: #f5f5f7;
+  --fm-abu-garis: #ece9f5;
+  --fm-teks: #222222;
+  --fm-teks-lembut: #6b6b76;
+
+  /* Turunan dengan opasitas, dipakai lima kategori kondisi. */
+  --fm-jingga-60: rgb(255 91 46 / 0.6);
+  /* Jingga muda pekat untuk kategori "Perlu perhatian": cukup gelap untuk tulisan putih. */
+  --fm-jingga-muda: #ec7a2e;
+  --fm-ungu-70: rgb(99 35 218 / 0.7);
+  --fm-ungu-20: rgb(99 35 218 / 0.2);
+  --fm-ungu-10: rgb(99 35 218 / 0.1);
+  --fm-emas-20: rgb(255 174 21 / 0.2);
+  --fm-jingga-12: rgb(255 91 46 / 0.12);
+  --fm-jalur-lintasan: #e9e7ef;
+  /* Ungu sedang untuk kategori "Baik": cukup gelap agar teks putih tetap jelas. */
+  --fm-ungu-sedang: #7f4be0;
+  /* Satu tebal untuk SEMUA progress bar di modul ini. */
+  --fm-bar: 12px;
+
+  /* Jarak antarkartu dan ruang dalam kartu. Mengecil di layar pendek (lihat bawah). */
+  --fm-jarak: 12px;
+  --fm-kartu-pad: 12px 16px;
+  --fm-kepala-kartu: 8px;
+
+  /* Kartu dibedakan dari latar lewat warna dan bayangan tipis bernada ungu, tanpa garis tepi. */
+  --fm-bayangan: 0 1px 2px rgb(52 32 96 / 0.04), 0 6px 20px rgb(52 32 96 / 0.05);
+  --fm-bayangan-naik: 0 2px 4px rgb(52 32 96 / 0.06), 0 12px 32px rgb(52 32 96 / 0.09);
+  --fm-isian: #efeef4;
+  --fm-garis-halus: rgb(52 32 96 / 0.06);
+
+  --fm-radius: 16px;
+  --fm-radius-kecil: 10px;
+  --fm-jarak-bagian: 32px;
+  --fm-jarak-kartu: 24px;
+
+  font-family: var(--font-body);
+  color: var(--fm-teks);
+}
+
+/* Paragraf rata kiri-kanan supaya blok teks rapi; :where memberi spesifisitas nol sehingga kelas
+   apa pun (rata kanan, tengah) tetap menang. */
+.scope :where(p, li, blockquote, dd) {
+  text-align: justify;
+  text-justify: inter-word;
+}
+
+
+/* Laptop 1366x768 dengan bilah bookmark menyisakan tinggi sekitar 620px: rapatkan jarak supaya
+   setiap tab tetap muat satu layar. Ukuran huruf tidak ikut mengecil. */
+@media (min-width: 1024px) and (max-height: 720px) {
+  .scope {
+    --fm-jarak: 10px;
+    --fm-kartu-pad: 10px 14px;
+    --fm-kepala-kartu: 6px;
+  }
+}
