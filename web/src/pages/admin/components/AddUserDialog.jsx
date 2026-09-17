@@ -257,7 +257,7 @@ function BulkForm({ close }) {
         )}
         {jenis === 'kunit' && (
           <div style={{ padding: '10px 12px', background: 'var(--info-soft)', borderRadius: 8, fontSize: 11.5, color: 'var(--info)', lineHeight: 1.4 }}>
-            💡 Satu baris per unit. Kolom: <span className="mono">Unit</span> (wajib, dicocokkan ke nama unit di data screening), <span className="mono">Nama Lengkap</span> (nama kepala unit; kalau kosong dipakai "Kepala &lt;unit&gt;"), <span className="mono">Username</span> (kalau kosong dibuat dari nama). "Unduh template" memberi daftar 25 unit yang tinggal diisi.
+            💡 Satu baris per akun pimpinan. Kolom: <span className="mono">Unit</span> (wajib, dicocokkan ke nama unit di data screening), <span className="mono">Jabatan</span>, <span className="mono">Nama Lengkap</span> (kalau kosong dipakai jabatannya), <span className="mono">Username</span> (kalau kosong dibuat dari nama). Satu unit boleh punya beberapa baris: "Direktur dan Wakil Direktur" disiapkan untuk Direktur dan tiga Wakil Direktur Wilayah. "Unduh template" memberi semua baris yang tinggal diisi.
           </div>
         )}
         {jenis === 'pegawai' && (
@@ -345,6 +345,9 @@ function BulkForm({ close }) {
                             </datalist>
                           </>
                         ) : <span style={{ color: 'var(--ink-4)' }}>-</span>)}
+                        {jenis === 'kunit' && r.jabatan && (
+                          <div style={{ fontSize: 11, color: 'var(--ink-3)', marginTop: 2 }}>{r.jabatan}</div>
+                        )}
                         {jenis === 'kunit' && r.unitTeks && r.sw_unit_id && r.confidence === 'fuzzy' && (
                           <div style={{ fontSize: 11, color: '#D69219', marginTop: 2 }}>Ejaan beda dari "{r.unitTeks}", cek lagi.</div>
                         )}

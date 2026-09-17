@@ -1,5 +1,7 @@
 // Pengimpor akun modul Screening Awal Wellbeing dari CSV/Excel, dua jenis berkas:
-//   - kepala unit : satu baris per unit, dicocokkan ke sw_unit (kolom Unit).
+//   - kepala unit : satu baris per akun pimpinan, dicocokkan ke sw_unit (kolom Unit, atau kolom
+//                   Jabatan kalau Unit tidak cocok). Satu unit boleh punya beberapa akun, mis.
+//                   Direktur dan tiga Wakil Direktur yang sama-sama memimpin satu unit.
 //   - pegawai     : satu baris per orang, dicocokkan ke sw_individu (kolom Nama, plus Unit
 //                   kalau ada nama yang sama di dua unit).
 // Kolom Username/Email boleh kosong: username dibuat dari nama (dua kata pertama tanpa gelar,
@@ -34,7 +36,25 @@ const HEADER_ALIASES = {
   nama: ['namalengkap', 'nama', 'namapegawai', 'namakepalaunit'],
   unit: ['unit', 'namaunit', 'unitkerja'],
   username: ['username', 'usernameatauemail', 'email', 'alamatemail', 'emailusername'],
+  jabatan: ['jabatan', 'posisi', 'jabatanpimpinan'],
 };
+
+// Unit yang dipimpin lebih dari satu jabatan. Template menyiapkan satu baris per jabatan, dan
+// jabatan ini juga dikenali kalau admin menuliskannya di kolom Unit. Kunci = nama unit yang
+// sudah dinormalisasi. Data screening hanya mencatat "Wakil Direktur Sekolah" tanpa wilayah,
+// jadi daftar ini tidak bisa diturunkan dari data (permintaan Athirah 2026-09-17).
+const JABATAN_PIMPINAN = {
+  direkturdanwakildirektur: [
+    'Direktur',
+    'Wakil Direktur Wilayah Kajaolalido',
+    'Wakil Direktur Wilayah Baruga',
+    'Wakil Direktur Wilayah Bone',
+  ],
+};
+
+export function jabatanPimpinanUnit(unit) {
+  return JABATAN_PIMPINAN[normalize(unit?.nama)] || [];
+}
 
 function pickCol(row, aliases) {
   const keys = Object.keys(row);
@@ -82,6 +102,8 @@ function cocokkanUnit(teks, unit) {
   if (!q) return { unit: null, confidence: 'unmatched' };
   const tepat = unit.find((x) => normalize(x.nama) === q || normalize(x.id) === q);
   if (tepat) return { unit: tepat, confidence: 'exact' };
+  const lewatJabatan = unit.filter((x) => jabatanPimpinanUnit(x).some((j) => normalize(j) === q));
+  if (lewatJabatan.length === 1) return { unit: lewatJabatan[0], confidence: 'exact', jabatan: jabatanPimpinanUnit(lewatJabatan[0]).find((j) => normalize(j) === q) };
   const muat = unit.filter((x) => normalize(x.nama).includes(q) || q.includes(normalize(x.nama)));
   if (muat.length === 1) return { unit: muat[0], confidence: 'exact' };
   let best = null; let bestDist = Infinity;
@@ -90,6 +112,10 @@ function cocokkanUnit(teks, unit) {
     if (d < bestDist) { bestDist = d; best = x; }
   }
   if (best && bestDist <= 3) return { unit: best, confidence: 'fuzzy' };
+  for (const x of unit) {
+    const j = jabatanPimpinanUnit(x).find((nama) => levenshtein(normalize(nama), q) <= 3);
+    if (j) return { unit: x, confidence: 'fuzzy', jabatan: j };
+  }
   return { unit: null, confidence: 'unmatched' };
 }
 
@@ -142,14 +168,20 @@ export async function parseSwFile(file, { sekolahId, jenis, usernameAda = new Se
       const nama = String(pickCol(r, HEADER_ALIASES.nama) || '').trim();
       const unitTeks = String(pickCol(r, HEADER_ALIASES.unit) || '').trim();
       const usernameKolom = String(pickCol(r, HEADER_ALIASES.username) || '').trim().toLowerCase();
-      if (jenis === 'kunit' && !unitTeks && !nama) continue;
+      const jabatanKolom = String(pickCol(r, HEADER_ALIASES.jabatan) || '').trim();
+      if (jenis === 'kunit' && !unitTeks && !nama && !jabatanKolom) continue;
       if (jenis === 'pegawai' && !nama) continue;
 
       if (jenis === 'kunit') {
-        const { unit, confidence } = cocokkanUnit(unitTeks, sw.unit);
-        if (unit && dipakaiId.has(unit.id)) { dupCount += 1; continue; }
-        if (unit) dipakaiId.add(unit.id);
-        const namaAkun = nama || (unit ? `Kepala ${unit.nama}` : '');
+        let cocok = cocokkanUnit(unitTeks, sw.unit);
+        if (!cocok.unit && jabatanKolom) cocok = cocokkanUnit(jabatanKolom, sw.unit);
+        const { unit, confidence } = cocok;
+        const jabatan = jabatanKolom || cocok.jabatan || '';
+        // Baris ganda = unit, jabatan, dan nama yang sama. Satu unit boleh punya beberapa akun.
+        const kunciGanda = unit ? `${unit.id}|${normalize(jabatan)}|${normalize(nama)}` : null;
+        if (kunciGanda && dipakaiId.has(kunciGanda)) { dupCount += 1; continue; }
+        if (kunciGanda) dipakaiId.add(kunciGanda);
+        const namaAkun = nama || jabatan || (unit ? `Kepala ${unit.nama}` : '');
         rows.push({
           rowIndex: rows.length, sheetName,
           nama: namaAkun,
@@ -157,7 +189,8 @@ export async function parseSwFile(file, { sekolahId, jenis, usernameAda = new Se
           peran: 'KepalaUnit',
           cakupan: [],
           sw_unit_id: unit?.id || '',
-          unitTeks,
+          unitTeks: unitTeks || jabatanKolom,
+          jabatan,
           confidence,
         });
       } else {
@@ -186,7 +219,10 @@ export async function unduhTemplateSw(sekolahId, jenis) {
   const sw = await muatDataSw(sekolahId);
   if (!sw.datasetId) throw new Error(`Belum ada data Screening Awal Wellbeing untuk ${sekolahId}. Jalankan seed dulu.`);
   const rows = jenis === 'kunit'
-    ? sw.unit.map((u) => ({ 'Unit': u.nama, 'Nama Lengkap': '', 'Username': '', 'Jumlah pengisi': u.n }))
+    ? sw.unit.flatMap((u) => {
+      const jabatan = jabatanPimpinanUnit(u);
+      return (jabatan.length ? jabatan : ['Kepala Unit']).map((j) => ({ 'Unit': u.nama, 'Jabatan': j, 'Nama Lengkap': '', 'Username': '', 'Jumlah pengisi': u.n }));
+    })
     : sw.individu.map((o) => ({ 'Nama Lengkap': o.nama, 'Unit': o.unitNama, 'Jabatan': o.jabatan, 'Username': '' }));
   const ws = XLSX.utils.json_to_sheet(rows);
   const wb = XLSX.utils.book_new();
