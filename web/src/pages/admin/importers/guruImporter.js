@@ -180,6 +180,9 @@ export async function bulkCreateUsers(rows, { sekolahId, onProgress }) {
     peran: r.peran,
     school_id: sekolahId,
     cakupan: r.cakupan,
+    // Tautan modul Screening Awal Wellbeing (pengimpor sw); kosong untuk baris guru.
+    sw_unit_id: r.sw_unit_id || null,
+    sw_individu_id: r.sw_individu_id || null,
   }));
 
   const results = [];

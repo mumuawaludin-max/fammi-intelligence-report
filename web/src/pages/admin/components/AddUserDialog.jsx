@@ -2,8 +2,9 @@ import { useEffect, useRef, useState } from 'react';
 import { useCms } from '../store/CmsStore';
 import { IconX } from './icons';
 import { parseGuruFile } from '../importers/guruImporter';
+import { parseSwFile, unduhTemplateSw } from '../importers/swImporter';
+import { PERAN_SW, downloadXlsx } from '../data/helpers';
 import { SwLinkFields } from './SwLinkFields';
-import { PERAN_SW } from '../data/helpers';
 
 const PERAN_OPTIONS = ['AdminFammi', 'Yayasan', 'KepalaSekolah', 'WakilKepalaSekolah', 'Manajemen', 'Karyawan', 'WaliKelas', 'OrangTua', 'Siswa', ...PERAN_SW];
 const labelStyle = { fontSize: 10.5, fontWeight: 800, letterSpacing: '0.06em', textTransform: 'uppercase', color: 'var(--ink-3)', marginBottom: 5, display: 'block' };
@@ -118,17 +119,28 @@ function SingleForm({ close }) {
   );
 }
 
+// Jenis berkas yang bisa diunggah: database guru (Karakter) atau dua jenis akun modul Screening
+// Awal Wellbeing. Yang kedua dan ketiga mencocokkan baris ke sw_unit/sw_individu sekolah itu.
+const JENIS_BERKAS = [
+  { kunci: 'guru', label: 'Guru dan wali kelas (modul Karakter)' },
+  { kunci: 'kunit', label: 'Kepala unit (Screening Awal Wellbeing)' },
+  { kunci: 'pegawai', label: 'Pegawai (Screening Awal Wellbeing)' },
+];
+
 function BulkForm({ close }) {
   const { bulkCreateUsers, data } = useCms();
   const [sekolahId, setSekolahId] = useState(data.sekolah[0]?.id || '');
+  const [jenis, setJenis] = useState('guru');
   const [rows, setRows] = useState(null);
   const [parseInfo, setParseInfo] = useState(null);
+  const [swRef, setSwRef] = useState({ unit: [], individu: [] });
   const [results, setResults] = useState(null);
   const [busy, setBusy] = useState(false);
   const [progress, setProgress] = useState(null);
   const [err, setErr] = useState(null);
   const fileRef = useRef(null);
   const scrollRef = useRef(null);
+  const sw = jenis !== 'guru';
 
   // Sekali baris tabel punya banyak <select> (Peran/Kelas) dan salah satunya sudah difokus
   // (diklik untuk pilih kelas manual), Chrome/Firefox mengarahkan scroll wheel berikutnya untuk
@@ -152,6 +164,15 @@ function BulkForm({ close }) {
     return () => el.removeEventListener('wheel', onWheel);
   }, []);
 
+  const gantiJenis = (k) => {
+    setJenis(k);
+    setRows(null);
+    setResults(null);
+    setParseInfo(null);
+    setErr(null);
+    if (fileRef.current) fileRef.current.value = '';
+  };
+
   const onFile = async (e) => {
     const file = e.target.files?.[0];
     if (!file || !sekolahId) return;
@@ -159,12 +180,25 @@ function BulkForm({ close }) {
     setResults(null);
     setParseInfo(null);
     try {
-      const parsed = await parseGuruFile(file, { sekolahId });
-      setRows(parsed.rows);
-      setParseInfo({ sheetCount: parsed.sheetCount, dupCount: parsed.dupCount });
+      if (sw) {
+        const usernameAda = new Set((data.users || []).map((u) => u.username));
+        const parsed = await parseSwFile(file, { sekolahId, jenis, usernameAda });
+        setRows(parsed.rows);
+        setSwRef({ unit: parsed.unit, individu: parsed.individu });
+        setParseInfo({ sheetCount: parsed.sheetCount, dupCount: parsed.dupCount });
+      } else {
+        const parsed = await parseGuruFile(file, { sekolahId });
+        setRows(parsed.rows);
+        setParseInfo({ sheetCount: parsed.sheetCount, dupCount: parsed.dupCount });
+      }
     } catch (ex) {
       setErr(ex.message);
     }
+  };
+
+  const unduhTemplate = async () => {
+    setErr(null);
+    try { await unduhTemplateSw(sekolahId, jenis); } catch (ex) { setErr(ex.message); }
   };
 
   const updateRow = (idx, patch) => {
@@ -185,7 +219,12 @@ function BulkForm({ close }) {
     }
   };
 
-  const unmatchedCount = rows ? rows.filter(r => r.peran === 'WaliKelas' && r.confidence === 'unmatched').length : 0;
+  const unmatchedCount = rows
+    ? rows.filter((r) => (r.peran === 'WaliKelas' && r.confidence === 'unmatched')
+      || (r.peran === 'KepalaUnit' && !r.sw_unit_id)
+      || (r.peran === 'Pegawai' && !r.sw_individu_id)).length
+    : 0;
+  const bisaKirim = rows && rows.length > 0 && !rows.some((r) => (r.peran === 'KepalaUnit' && !r.sw_unit_id) || (r.peran === 'Pegawai' && !r.sw_individu_id));
 
   return (
     <>
@@ -198,24 +237,45 @@ function BulkForm({ close }) {
             </select>
           </div>
           <div>
+            <label style={labelStyle}>Jenis berkas</label>
+            <select className="fld" value={jenis} onChange={(e) => gantiJenis(e.target.value)}>
+              {JENIS_BERKAS.map((j) => <option key={j.kunci} value={j.kunci}>{j.label}</option>)}
+            </select>
+          </div>
+        </div>
+        <div style={{ display: 'grid', gridTemplateColumns: sw ? '1fr auto' : '1fr', gap: 12, alignItems: 'end' }}>
+          <div>
             <label style={labelStyle}>File CSV / Excel</label>
             <input ref={fileRef} type="file" accept=".csv,.xlsx,.xls" className="fld" onChange={onFile} />
           </div>
+          {sw && <button className="btn-secondary" onClick={unduhTemplate} type="button">Unduh template</button>}
         </div>
-        <div style={{ padding: '10px 12px', background: 'var(--info-soft)', borderRadius: 8, fontSize: 11.5, color: 'var(--info)', lineHeight: 1.4 }}>
-          💡 Kolom yang dibaca: <span className="mono">Nama Lengkap, Posisi, Wali Kelas, Email</span>. Baris dengan Wali Kelas = "Pimpinan Sekolah" jadi peran <span className="mono">KepalaSekolah</span>, sisanya <span className="mono">WaliKelas</span> dengan kelas dicocokkan otomatis ke data karakter_skor.
-        </div>
+        {jenis === 'guru' && (
+          <div style={{ padding: '10px 12px', background: 'var(--info-soft)', borderRadius: 8, fontSize: 11.5, color: 'var(--info)', lineHeight: 1.4 }}>
+            💡 Kolom yang dibaca: <span className="mono">Nama Lengkap, Posisi, Wali Kelas, Email</span>. Baris dengan Wali Kelas = "Pimpinan Sekolah" jadi peran <span className="mono">KepalaSekolah</span>, sisanya <span className="mono">WaliKelas</span> dengan kelas dicocokkan otomatis ke data karakter_skor.
+          </div>
+        )}
+        {jenis === 'kunit' && (
+          <div style={{ padding: '10px 12px', background: 'var(--info-soft)', borderRadius: 8, fontSize: 11.5, color: 'var(--info)', lineHeight: 1.4 }}>
+            💡 Satu baris per unit. Kolom: <span className="mono">Unit</span> (wajib, dicocokkan ke nama unit di data screening), <span className="mono">Nama Lengkap</span> (nama kepala unit; kalau kosong dipakai "Kepala &lt;unit&gt;"), <span className="mono">Username</span> (kalau kosong dibuat dari nama). "Unduh template" memberi daftar 25 unit yang tinggal diisi.
+          </div>
+        )}
+        {jenis === 'pegawai' && (
+          <div style={{ padding: '10px 12px', background: 'var(--info-soft)', borderRadius: 8, fontSize: 11.5, color: 'var(--info)', lineHeight: 1.4 }}>
+            💡 Satu baris per pegawai. Kolom: <span className="mono">Nama Lengkap</span> (wajib, dicocokkan ke nama di data screening), <span className="mono">Unit</span> (dipakai kalau ada nama yang sama di dua unit), <span className="mono">Username</span> (kalau kosong dibuat dari nama, mis. fatmawaty.syam). "Unduh template" memberi daftar semua pegawai yang tinggal diisi; hapus baris yang tidak perlu dibuatkan akun.
+          </div>
+        )}
         {err && <div style={{ padding: '10px 12px', background: 'var(--status-alert-bg,#FBE7EA)', borderRadius: 8, fontSize: 12, color: 'var(--status-alert,#D6455A)' }}>{err}</div>}
 
         {rows && !results && (
           <>
             <div style={{ padding: '10px 12px', background: 'var(--status-safe-bg,#E7F4EE)', borderRadius: 8, fontSize: 12, color: 'var(--status-safe,#2E9E6B)' }}>
               ✅ {rows.length} baris terbaca dari {parseInfo?.sheetCount || 1} sheet
-              {parseInfo?.dupCount > 0 ? `, ${parseInfo.dupCount} duplikat email dilewati` : ''}. Semua akan diproses, tidak ada batas jumlah.
+              {parseInfo?.dupCount > 0 ? `, ${parseInfo.dupCount} baris ganda dilewati` : ''}. Semua akan diproses, tidak ada batas jumlah.
             </div>
             {unmatchedCount > 0 && (
               <div style={{ padding: '10px 12px', background: '#FAF1DC', borderRadius: 8, fontSize: 12, color: '#D69219' }}>
-                ⚠️ {unmatchedCount} baris kelasnya tidak ketemu otomatis — isi manual di kolom Kelas sebelum submit (boleh ketik nama kelas sendiri kalau belum ada di saran).
+                ⚠️ {unmatchedCount} baris {sw ? 'belum cocok dengan data screening' : 'kelasnya tidak ketemu otomatis'}: pilih manual di kolom {sw ? (jenis === 'kunit' ? 'Unit' : 'Pegawai di data') : 'Kelas'} sebelum submit.
               </div>
             )}
             <div data-scroll style={{ border: '1px solid var(--line)', borderRadius: 10, overflowY: 'auto', maxHeight: '46vh', flexShrink: 0 }}>
@@ -223,24 +283,52 @@ function BulkForm({ close }) {
                 <thead style={{ position: 'sticky', top: 0, zIndex: 1 }}>
                   <tr style={{ background: 'var(--surface-soft)', textAlign: 'left' }}>
                     <th style={{ padding: '8px 10px' }}>Nama</th>
-                    <th style={{ padding: '8px 10px' }}>Email (username)</th>
-                    <th style={{ padding: '8px 10px' }}>Peran</th>
-                    <th style={{ padding: '8px 10px' }}>Kelas</th>
+                    <th style={{ padding: '8px 10px' }}>{sw ? 'Username' : 'Email (username)'}</th>
+                    {!sw && <th style={{ padding: '8px 10px' }}>Peran</th>}
+                    <th style={{ padding: '8px 10px' }}>{jenis === 'guru' ? 'Kelas' : jenis === 'kunit' ? 'Unit' : 'Pegawai di data'}</th>
                   </tr>
                 </thead>
                 <tbody>
                   {rows.map((r, idx) => (
                     <tr key={idx} style={{ borderTop: '1px solid var(--line)' }}>
-                      <td style={{ padding: '6px 10px' }}>{r.nama}</td>
-                      <td style={{ padding: '6px 10px' }} className="mono">{r.email}</td>
                       <td style={{ padding: '6px 10px' }}>
-                        <select className="fld" style={{ padding: '4px 6px', fontSize: 12 }} value={r.peran}
-                          onChange={(e) => updateRow(idx, { peran: e.target.value, cakupan: e.target.value === 'WaliKelas' ? r.cakupan : [] })}>
-                          {PERAN_OPTIONS.map(p => <option key={p} value={p}>{p}</option>)}
-                        </select>
+                        {sw ? <input className="fld" style={{ padding: '4px 6px', fontSize: 12 }} value={r.nama} onChange={(e) => updateRow(idx, { nama: e.target.value })} /> : r.nama}
                       </td>
+                      <td style={{ padding: '6px 10px' }} className="mono">
+                        {sw ? <input className="fld mono" style={{ padding: '4px 6px', fontSize: 12 }} value={r.username} onChange={(e) => updateRow(idx, { username: e.target.value.trim().toLowerCase() })} /> : r.email}
+                      </td>
+                      {!sw && (
+                        <td style={{ padding: '6px 10px' }}>
+                          <select className="fld" style={{ padding: '4px 6px', fontSize: 12 }} value={r.peran}
+                            onChange={(e) => updateRow(idx, { peran: e.target.value, cakupan: e.target.value === 'WaliKelas' ? r.cakupan : [] })}>
+                            {PERAN_OPTIONS.map(p => <option key={p} value={p}>{p}</option>)}
+                          </select>
+                        </td>
+                      )}
                       <td style={{ padding: '6px 10px' }}>
-                        {r.peran === 'WaliKelas' ? (
+                        {jenis === 'kunit' && (
+                          <select className="fld" style={{ padding: '4px 6px', fontSize: 12, borderColor: !r.sw_unit_id ? '#D69219' : undefined }} value={r.sw_unit_id}
+                            onChange={(e) => updateRow(idx, { sw_unit_id: e.target.value, confidence: e.target.value ? 'manual' : 'unmatched' })}>
+                            <option value="">{r.unitTeks ? `Tidak cocok: "${r.unitTeks}"` : 'Pilih unit…'}</option>
+                            {swRef.unit.map((u) => <option key={u.id} value={u.id}>{u.nama} ({u.n} pengisi)</option>)}
+                          </select>
+                        )}
+                        {jenis === 'pegawai' && (
+                          <>
+                            <input list={`sw-orang-${idx}`} className="fld mono" style={{ padding: '4px 6px', fontSize: 12, borderColor: !r.sw_individu_id ? '#D69219' : undefined }}
+                              placeholder={r.confidence === 'ambigu' ? `Nama ada di ${r.kandidat.length} unit, pilih satu` : 'Tidak cocok, ketik nama lalu pilih'}
+                              value={r.sw_individu_id} onChange={(e) => updateRow(idx, { sw_individu_id: e.target.value.trim(), confidence: 'manual' })} />
+                            <datalist id={`sw-orang-${idx}`}>
+                              {(r.confidence === 'ambigu' ? r.kandidat : swRef.individu).map((o) => <option key={o.id} value={o.id}>{`${o.nama} · ${o.unitNama}`}</option>)}
+                            </datalist>
+                            {r.sw_individu_id && (
+                              <div style={{ fontSize: 11, color: r.confidence === 'fuzzy' ? '#D69219' : 'var(--ink-3)', marginTop: 2 }}>
+                                {(() => { const o = swRef.individu.find((x) => x.id === r.sw_individu_id); return o ? `${o.nama} · ${o.unitNama}${r.confidence === 'fuzzy' ? ' (ejaan beda, cek lagi)' : ''}` : 'Id tidak ada di data'; })()}
+                              </div>
+                            )}
+                          </>
+                        )}
+                        {jenis === 'guru' && (r.peran === 'WaliKelas' ? (
                           <>
                             {/* Input teks + datalist, bukan <select> murni -- kelasOptions berasal dari
                                 karakter_skor yang SUDAH terimpor untuk sekolah ini. Kalau sekolah belum
@@ -256,7 +344,10 @@ function BulkForm({ close }) {
                               {r.kelasOptions.map(k => <option key={k} value={k} />)}
                             </datalist>
                           </>
-                        ) : <span style={{ color: 'var(--ink-4)' }}>—</span>}
+                        ) : <span style={{ color: 'var(--ink-4)' }}>-</span>)}
+                        {jenis === 'kunit' && r.unitTeks && r.sw_unit_id && r.confidence === 'fuzzy' && (
+                          <div style={{ fontSize: 11, color: '#D69219', marginTop: 2 }}>Ejaan beda dari "{r.unitTeks}", cek lagi.</div>
+                        )}
                       </td>
                     </tr>
                   ))}
@@ -268,8 +359,12 @@ function BulkForm({ close }) {
 
         {results && (
           <div data-scroll style={{ border: '1px solid var(--line)', borderRadius: 10, overflowY: 'auto', maxHeight: '46vh', flexShrink: 0 }}>
-            <div style={{ padding: '10px 12px', fontSize: 12, fontWeight: 700, color: 'var(--ink-2)', borderBottom: '1px solid var(--line)' }}>
-              {results.filter(r => r.ok).length} berhasil, {results.filter(r => !r.ok).length} gagal dari {results.length} baris
+            <div style={{ padding: '10px 12px', fontSize: 12, fontWeight: 700, color: 'var(--ink-2)', borderBottom: '1px solid var(--line)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>
+              <span>{results.filter(r => r.ok).length} berhasil, {results.filter(r => !r.ok).length} gagal dari {results.length} baris</span>
+              <button className="btn-secondary" type="button" style={{ padding: '4px 10px', fontSize: 12 }}
+                onClick={() => downloadXlsx(`kode-akun-${jenis}-${sekolahId}.xlsx`, results.map((r) => ({ Username: r.username, Nama: r.nama || '', Status: r.ok ? 'Berhasil' : r.error, 'Kode khusus': r.ok ? r.password : '' })))}>
+                Unduh kode (Excel)
+              </button>
             </div>
             <table style={{ width: '100%', fontSize: 12, borderCollapse: 'collapse' }}>
               <thead>
@@ -284,13 +379,13 @@ function BulkForm({ close }) {
                   <tr key={idx} style={{ borderTop: '1px solid var(--line)' }}>
                     <td style={{ padding: '6px 10px' }} className="mono">{r.username}</td>
                     <td style={{ padding: '6px 10px', color: r.ok ? '#2E9E6B' : '#D6455A' }}>{r.ok ? 'Berhasil' : r.error}</td>
-                    <td style={{ padding: '6px 10px' }} className="mono">{r.ok ? r.password : '—'}</td>
+                    <td style={{ padding: '6px 10px' }} className="mono">{r.ok ? r.password : '-'}</td>
                   </tr>
                 ))}
               </tbody>
             </table>
             <div style={{ padding: '10px 12px', fontSize: 11.5, color: 'var(--ink-3)' }}>
-              ⚠️ Kode khusus di atas cuma tampil sekali di sini — salin/screenshot sebelum menutup dialog ini.
+              ⚠️ Kode khusus di atas cuma tampil sekali di sini: unduh atau salin sebelum menutup dialog ini.
             </div>
           </div>
         )}
@@ -298,7 +393,7 @@ function BulkForm({ close }) {
       <div style={{ padding: '14px 24px', borderTop: '1px solid var(--line)', display: 'flex', justifyContent: 'flex-end', gap: 8, background: 'var(--surface-soft)', borderRadius: '0 0 20px 20px' }}>
         <button className="btn-secondary" onClick={close} disabled={busy}>{results ? 'Tutup' : 'Batal'}</button>
         {rows && !results && (
-          <button className="btn-primary" onClick={submit} disabled={busy}>
+          <button className="btn-primary" onClick={submit} disabled={busy || !bisaKirim} title={bisaKirim ? undefined : 'Masih ada baris yang belum cocok'}>
             {busy ? `Membuat ${progress?.done ?? 0}/${progress?.total ?? rows.length}…` : `Buat ${rows.length} akun`}
           </button>
         )}
