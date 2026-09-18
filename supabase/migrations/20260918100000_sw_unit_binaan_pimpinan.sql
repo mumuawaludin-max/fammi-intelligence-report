@@ -51,7 +51,7 @@ using (
   public.sw_sekolah_boleh(sekolah_id)
   and (
     (select public.my_peran()) in ('HumanCapital', 'Yayasan')
-    or ((select public.my_peran()) = 'KepalaUnit' and unit_id = any ((select public.my_sw_unit_ids())))
+    or ((select public.my_peran()) = 'KepalaUnit' and unit_id = any ((select public.my_sw_unit_ids())::text[]))
     or (
       (select public.my_peran()) = 'Pegawai'
       and unit_id = public.sw_unit_pegawai(dataset_id)
