@@ -181,11 +181,10 @@ function BulkForm({ close }) {
     setParseInfo(null);
     try {
       if (sw) {
-        const usernameAda = new Set((data.users || []).map((u) => u.username));
-        const parsed = await parseSwFile(file, { sekolahId, jenis, usernameAda });
+        const parsed = await parseSwFile(file, { sekolahId, jenis, akunAda: data.users || [] });
         setRows(parsed.rows);
         setSwRef({ unit: parsed.unit, individu: parsed.individu });
-        setParseInfo({ sheetCount: parsed.sheetCount, dupCount: parsed.dupCount });
+        setParseInfo({ sheetCount: parsed.sheetCount, dupCount: parsed.dupCount, sudahAda: parsed.sudahAda });
       } else {
         const parsed = await parseGuruFile(file, { sekolahId });
         setRows(parsed.rows);
@@ -224,7 +223,18 @@ function BulkForm({ close }) {
       || (r.peran === 'KepalaUnit' && !r.sw_unit_id)
       || (r.peran === 'Pegawai' && !r.sw_individu_id)).length
     : 0;
-  const bisaKirim = rows && rows.length > 0 && !rows.some((r) => (r.peran === 'KepalaUnit' && !r.sw_unit_id) || (r.peran === 'Pegawai' && !r.sw_individu_id));
+  // Username yang sudah dipakai akun lain, atau dipakai dua baris di berkas yang sama. Pengimpor
+  // tidak lagi menambah angka di belakang email, jadi bentrok harus diganti manual di sini.
+  const usernameTerdaftar = new Set((data.users || []).map((u) => String(u.username || '').toLowerCase()));
+  const bentrokUsername = (r) => {
+    const u = String(r.username || '').toLowerCase();
+    if (!u) return 'Username kosong';
+    if (usernameTerdaftar.has(u)) return 'Sudah dipakai akun lain, ganti username';
+    if (rows.filter((x) => String(x.username || '').toLowerCase() === u).length > 1) return 'Dipakai lebih dari satu baris';
+    return null;
+  };
+  const nBentrok = sw && rows ? rows.filter((r) => bentrokUsername(r)).length : 0;
+  const bisaKirim = rows && rows.length > 0 && nBentrok === 0 && !rows.some((r) => (r.peran === 'KepalaUnit' && !r.sw_unit_id) || (r.peran === 'Pegawai' && !r.sw_individu_id));
 
   return (
     <>
@@ -273,6 +283,16 @@ function BulkForm({ close }) {
               ✅ {rows.length} baris terbaca dari {parseInfo?.sheetCount || 1} sheet
               {parseInfo?.dupCount > 0 ? `, ${parseInfo.dupCount} baris ganda dilewati` : ''}. Semua akan diproses, tidak ada batas jumlah.
             </div>
+            {parseInfo?.sudahAda?.length > 0 && (
+              <div style={{ padding: '10px 12px', background: 'var(--info-soft)', borderRadius: 8, fontSize: 12, color: 'var(--info)', lineHeight: 1.4 }}>
+                ℹ️ {parseInfo.sudahAda.length} baris dilewati karena orangnya sudah punya akun: {parseInfo.sudahAda.map((a) => `${a.nama} (${a.username})`).join(', ')}. Pakai "Reset & Export kode" di daftar pengguna kalau kodenya perlu dikirim ulang.
+              </div>
+            )}
+            {nBentrok > 0 && (
+              <div style={{ padding: '10px 12px', background: 'var(--status-alert-bg,#FBE7EA)', borderRadius: 8, fontSize: 12, color: 'var(--status-alert,#D6455A)' }}>
+                ⚠️ {nBentrok} baris username-nya bentrok. Ganti di kolom Username sebelum submit.
+              </div>
+            )}
             {unmatchedCount > 0 && (
               <div style={{ padding: '10px 12px', background: '#FAF1DC', borderRadius: 8, fontSize: 12, color: '#D69219' }}>
                 ⚠️ {unmatchedCount} baris {sw ? 'belum cocok dengan data screening' : 'kelasnya tidak ketemu otomatis'}: pilih manual di kolom {sw ? (jenis === 'kunit' ? 'Unit' : 'Pegawai di data') : 'Kelas'} sebelum submit.
@@ -295,7 +315,12 @@ function BulkForm({ close }) {
                         {sw ? <input className="fld" style={{ padding: '4px 6px', fontSize: 12 }} value={r.nama} onChange={(e) => updateRow(idx, { nama: e.target.value })} /> : r.nama}
                       </td>
                       <td style={{ padding: '6px 10px' }} className="mono">
-                        {sw ? <input className="fld mono" style={{ padding: '4px 6px', fontSize: 12 }} value={r.username} onChange={(e) => updateRow(idx, { username: e.target.value.trim().toLowerCase() })} /> : r.email}
+                        {sw ? (
+                          <>
+                            <input className="fld mono" style={{ padding: '4px 6px', fontSize: 12, borderColor: bentrokUsername(r) ? '#D6455A' : undefined }} value={r.username} onChange={(e) => updateRow(idx, { username: e.target.value.trim().toLowerCase() })} />
+                            {bentrokUsername(r) && <div style={{ fontSize: 11, color: '#D6455A', marginTop: 2 }}>{bentrokUsername(r)}</div>}
+                          </>
+                        ) : r.email}
                       </td>
                       {!sw && (
                         <td style={{ padding: '6px 10px' }}>
@@ -401,7 +426,7 @@ function BulkForm({ close }) {
       <div style={{ padding: '14px 24px', borderTop: '1px solid var(--line)', display: 'flex', justifyContent: 'flex-end', gap: 8, background: 'var(--surface-soft)', borderRadius: '0 0 20px 20px' }}>
         <button className="btn-secondary" onClick={close} disabled={busy}>{results ? 'Tutup' : 'Batal'}</button>
         {rows && !results && (
-          <button className="btn-primary" onClick={submit} disabled={busy || !bisaKirim} title={bisaKirim ? undefined : 'Masih ada baris yang belum cocok'}>
+          <button className="btn-primary" onClick={submit} disabled={busy || !bisaKirim} title={bisaKirim ? undefined : nBentrok > 0 ? 'Masih ada username yang bentrok' : 'Masih ada baris yang belum cocok'}>
             {busy ? `Membuat ${progress?.done ?? 0}/${progress?.total ?? rows.length}…` : `Buat ${rows.length} akun`}
           </button>
         )}

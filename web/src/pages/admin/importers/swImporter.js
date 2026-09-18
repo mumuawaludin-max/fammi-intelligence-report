@@ -6,6 +6,10 @@
 //                   kalau ada nama yang sama di dua unit).
 // Kolom Username/Email boleh kosong: username dibuat dari nama (dua kata pertama tanpa gelar,
 // huruf kecil, dipisah titik) dan dijaga unik terhadap akun yang sudah ada maupun sesama baris.
+// Username yang DITULIS di berkas (biasanya email) tidak pernah diberi angka tambahan: dulu
+// "aman@sekolah.sch.id" yang sudah ada berubah jadi "aman@sekolah.sch.id2" dan unggah ulang
+// melahirkan akun ganda dengan email rusak. Sekarang orang yang sudah punya akun dilewati, dan
+// username tulisan yang dipakai akun lain ditandai supaya admin menggantinya di pratinjau.
 // Baris yang tidak cocok ditandai supaya admin memilih manual di pratinjau, bukan ditebak.
 // Template berisi seluruh unit/pegawai dari data yang sudah di-seed, jadi admin tinggal mengisi
 // kolom Username kalau ingin menentukan sendiri.
@@ -142,23 +146,37 @@ function cocokkanPegawai(nama, unitTeks, individu, unit) {
  * Parse berkas jadi baris siap create-user. `jenis` = 'kunit' | 'pegawai'.
  * `usernameAda` = username akun yang sudah ada (untuk menjaga keunikan).
  */
-export async function parseSwFile(file, { sekolahId, jenis, usernameAda = new Set() }) {
+export async function parseSwFile(file, { sekolahId, jenis, akunAda = [] }) {
   const buf = await file.arrayBuffer();
   const wb = XLSX.read(buf, { type: 'array' });
   const sw = await muatDataSw(sekolahId);
   if (!sw.datasetId) throw new Error(`Belum ada data Screening Awal Wellbeing untuk ${sekolahId}. Jalankan seed dulu.`);
 
   const rows = [];
-  const terpakai = new Set([...usernameAda].map((u) => String(u).toLowerCase()));
+  const terpakai = new Set(akunAda.map((u) => String(u.username || '').toLowerCase()));
   let sheetCount = 0;
   let dupCount = 0;
   const dipakaiId = new Set();
+  const sudahAda = [];
+  // Akun yang sudah ada untuk orang yang sama: kepala unit = nama sama di unit yang sama,
+  // pegawai = tertaut ke baris isian yang sama.
+  const akunKepalaUnit = (unitId, nama) => akunAda.find((a) => a.peran === 'KepalaUnit'
+    && a.sw_unit_id === unitId && normalize(a.nama) === normalize(nama));
+  const akunPegawai = (individuId) => akunAda.find((a) => a.peran === 'Pegawai' && a.sw_individu_id === individuId);
 
   const usernameUnik = (dasar) => {
     let u = dasar; let n = 2;
     while (terpakai.has(u)) { u = `${dasar}${n}`; n += 1; }
     terpakai.add(u);
     return u;
+  };
+  // Username tulisan dipakai apa adanya; hanya username buatan dari nama yang boleh diberi angka.
+  const usernameBaris = (kolom, dasar) => {
+    if (kolom) {
+      terpakai.add(kolom);
+      return kolom;
+    }
+    return usernameUnik(dasar);
   };
 
   for (const sheetName of wb.SheetNames) {
@@ -183,6 +201,8 @@ export async function parseSwFile(file, { sekolahId, jenis, usernameAda = new Se
         if (kunciGanda && dipakaiId.has(kunciGanda)) { dupCount += 1; continue; }
         if (kunciGanda) dipakaiId.add(kunciGanda);
         const namaAkun = nama || jabatan || (unit ? `Kepala ${unit.nama}` : '');
+        const ada = unit ? akunKepalaUnit(unit.id, namaAkun) : null;
+        if (ada) { sudahAda.push({ nama: namaAkun, username: ada.username }); continue; }
         // Direktur/Wakil Direktur: unit binaan dari pembagian penilaian di berkas screening. Hanya
         // untuk baris di unit pimpinan, supaya akun kepala sekolah milik orang yang sama (Wakil
         // Direktur Bone yang sekaligus kepala SMA Bone) tetap melihat sekolahnya saja.
@@ -192,7 +212,7 @@ export async function parseSwFile(file, { sekolahId, jenis, usernameAda = new Se
         rows.push({
           rowIndex: rows.length, sheetName,
           nama: namaAkun,
-          username: usernameUnik(usernameKolom || usernameDariNama(namaAkun || unitTeks)),
+          username: usernameBaris(usernameKolom, usernameDariNama(namaAkun || unitTeks)),
           peran: 'KepalaUnit',
           cakupan: [],
           sw_unit_id: unit?.id || '',
@@ -205,10 +225,12 @@ export async function parseSwFile(file, { sekolahId, jenis, usernameAda = new Se
         const hasil = cocokkanPegawai(nama, unitTeks, sw.individu, sw.unit);
         if (hasil.orang && dipakaiId.has(hasil.orang.id)) { dupCount += 1; continue; }
         if (hasil.orang) dipakaiId.add(hasil.orang.id);
+        const ada = hasil.orang ? akunPegawai(hasil.orang.id) : null;
+        if (ada) { sudahAda.push({ nama, username: ada.username }); continue; }
         rows.push({
           rowIndex: rows.length, sheetName,
           nama,
-          username: usernameUnik(usernameKolom || usernameDariNama(nama)),
+          username: usernameBaris(usernameKolom, usernameDariNama(nama)),
           peran: 'Pegawai',
           cakupan: [],
           sw_individu_id: hasil.orang?.id || '',
@@ -219,7 +241,7 @@ export async function parseSwFile(file, { sekolahId, jenis, usernameAda = new Se
       }
     }
   }
-  return { rows, sheetCount, dupCount, unit: sw.unit, individu: sw.individu };
+  return { rows, sheetCount, dupCount, sudahAda, unit: sw.unit, individu: sw.individu };
 }
 
 /** Unduh template berisi seluruh unit atau pegawai sekolah itu; kolom Username dibiarkan kosong. */
