@@ -99,6 +99,16 @@ function unitUntukBlok(namaBlok, daftarNamaUnit) {
  */
 export function bacaDaftarInduk(rows, daftarNamaUnit) {
   const nama = new Map();
+  for (const b of telusuriDaftarInduk(rows, daftarNamaUnit)) {
+    if (!nama.has(b.unit)) nama.set(b.unit, new Set());
+    nama.get(b.unit).add(b.nama.toLowerCase().replace(/\s+/g, " "));
+  }
+  return new Map([...nama].map(([k, v]) => [k, v.size]));
+}
+
+/** Baris bernomor daftar induk sebagai { nama, jabatan, unit }; blok yang tidak cocok ke unit dilewati. */
+function telusuriDaftarInduk(rows, daftarNamaUnit) {
+  const hasil = [];
   let aktif = null;
   let judul = null;
   for (const r of rows || []) {
@@ -120,10 +130,110 @@ export function bacaDaftarInduk(rows, daftarNamaUnit) {
     const unitSeksi = seksi ? unitUntukBlok(seksi[1], daftarNamaUnit) : null;
     if (unitSeksi) aktif = unitSeksi;
     if (!aktif) continue;
-    if (!nama.has(aktif)) nama.set(aktif, new Set());
-    nama.get(aktif).add(orang.toLowerCase().replace(/\s+/g, " "));
+    hasil.push({ nama: orang, jabatan: teks(r[judul.JABATAN ?? 3]), unit: aktif });
   }
-  return new Map([...nama].map(([k, v]) => [k, v.size]));
+  return hasil;
+}
+
+const kunciOrang = (s) => teks(s).toLowerCase().replace(/[^a-z]/g, "");
+
+/** "kajol" singkatan dari "kajaolalido": huruf pertama sama, sisanya muncul berurutan. */
+function singkatanDari(singkat, kata) {
+  if (!singkat || !kata || singkat[0] !== kata[0]) return false;
+  let i = 0;
+  for (const h of kata) if (h === singkat[i]) i += 1;
+  return i === singkat.length;
+}
+
+/**
+ * Jabatan cocok dengan kunci kolom "dinilai <kunci>": "direktur" = jabatan persis Direktur;
+ * "wadir <wilayah>" = jabatan memuat "wakil direktur" dan nama wilayahnya (boleh disingkat).
+ */
+export function jabatanCocokKunci(jabatan, kunci) {
+  const j = teks(jabatan).toLowerCase();
+  const kata = teks(kunci).toLowerCase().split(/[^a-z0-9]+/).filter(Boolean);
+  if (!j || !kata.length) return false;
+  if (kata[0] === "direktur") return j === "direktur";
+  if (kata[0] === "wadir" || kata[0] === "wakil") {
+    const wilayah = kata[kata.length - 1];
+    return j.includes("wakil direktur") && j.split(/[^a-z0-9]+/).some((t) => singkatanDari(wilayah, t));
+  }
+  return false;
+}
+
+/**
+ * Cakupan pimpinan untuk satu akun yang sedang dibuat, dicocokkan lewat nama penilai dulu,
+ * lalu lewat jabatan ("Wakil Direktur Wilayah Baruga" ke kunci "wadir baruga").
+ */
+export function cariCakupanPimpinan(cakupanPimpinan, { nama, jabatan }) {
+  const daftar = cakupanPimpinan || [];
+  const k = kunciOrang(nama);
+  return (k && daftar.find((c) => c.penilai && kunciOrang(c.penilai.nama) === k))
+    || daftar.find((c) => jabatanCocokKunci(jabatan, c.kunci))
+    || null;
+}
+
+/**
+ * Siapa menilai siapa, dari kolom "dinilai <pimpinan>" di daftar induk ("dinilai direktur",
+ * "dinilai wadir kajol", ...), diterjemahkan jadi unit binaan tiap pimpinan. Akun kepala unit
+ * milik pimpinan itu melihat seluruh unit binaannya (keputusan pemilik produk 2026-09-18).
+ *
+ * Penilai dikenali dari jabatannya di daftar induk: "direktur" = jabatan persis "Direktur";
+ * "wadir <wilayah>" = jabatan memuat "wakil direktur" dan kata yang diawali <wilayah>.
+ * Unit binaan satu orang yang dinilai:
+ *   1. Kalau ia satu kantor dengan penilainya (blok daftar induk sama) dan bukan penilai itu
+ *      sendiri, unitnya kantor itu. Para wakil direktur yang dinilai direktur masuk sini.
+ *   2. Kalau tidak, unit yang pegawainya paling banyak menyebut dia sebagai atasan langsung.
+ *   3. Kalau tidak ada, blok daftar induk pertama tempat namanya tercatat.
+ */
+export function bacaCakupanPimpinan(rows, daftarNamaUnit, individu, unitIdDariNama) {
+  const barisInduk = telusuriDaftarInduk(rows, daftarNamaUnit);
+  const blokOrang = new Map();
+  for (const b of barisInduk) {
+    const k = kunciOrang(b.nama);
+    if (!blokOrang.has(k)) blokOrang.set(k, []);
+    if (!blokOrang.get(k).includes(b.unit)) blokOrang.get(k).push(b.unit);
+  }
+  const unitAtasan = new Map();
+  for (const o of individu) {
+    const k = kunciOrang(o.atasan);
+    if (!k) continue;
+    if (!unitAtasan.has(k)) unitAtasan.set(k, {});
+    const hitungan = unitAtasan.get(k);
+    hitungan[o.unitId] = (hitungan[o.unitId] || 0) + 1;
+  }
+  const atasanDari = (k) => {
+    const h = unitAtasan.get(k);
+    return h ? Object.entries(h).sort((a, b) => b[1] - a[1])[0][0] : null;
+  };
+
+  const iJudul = (rows || []).findIndex((r) => (r || []).some((c) => /^dinilai\s+\S/i.test(teks(c))));
+  if (iJudul < 0) return [];
+  const hasil = [];
+  rows[iJudul].forEach((sel, c) => {
+    const m = /^dinilai\s+(.+)$/i.exec(teks(sel));
+    if (!m) return;
+    const kunci = m[1].trim().toLowerCase();
+    const cocok = barisInduk.filter((b) => jabatanCocokKunci(b.jabatan, kunci));
+    const penilai = new Set(cocok.map((b) => kunciOrang(b.nama))).size === 1 ? cocok[0] : null;
+    const kantorPenilai = penilai ? blokOrang.get(kunciOrang(penilai.nama))?.[0] : null;
+
+    const unitIds = [];
+    for (let i = iJudul + 1; i < rows.length; i++) {
+      const n = teks(rows[i]?.[c]);
+      if (!n) break;
+      const k = kunciOrang(n);
+      const blok = blokOrang.get(k) || [];
+      const sekantor = penilai && k !== kunciOrang(penilai.nama) && kantorPenilai && blok.includes(kantorPenilai);
+      const unitId = sekantor
+        ? unitIdDariNama(kantorPenilai)
+        : atasanDari(k) || (blok[0] ? unitIdDariNama(blok[0]) : null);
+      if (unitId && !unitIds.includes(unitId)) unitIds.push(unitId);
+    }
+    // Nama orang yang dinilai tidak disimpan: meta dataset terbaca semua peran modul, termasuk pegawai.
+    hasil.push({ kunci, penilai: penilai ? { nama: penilai.nama, jabatan: penilai.jabatan } : null, unitIds });
+  });
+  return hasil;
 }
 
 export function slug(s) {
@@ -771,6 +881,9 @@ export function bacaDatasetSw(sheets, meta) {
   };
 
   const ringkasanPimpinan = bacaRingkasanPimpinan(rowsRingkas);
+  const cakupanPimpinan = kunciInduk
+    ? bacaCakupanPimpinan(sheets[kunciInduk], unitMentah.map((u) => u.nama), individu, unitIdDariNama)
+    : [];
 
   return {
     versi: 1,
@@ -783,6 +896,7 @@ export function bacaDatasetSw(sheets, meta) {
       contoh: Boolean(meta.contoh),
       isianGanda,
       kursi,
+      cakupanPimpinan,
     },
     asumsi,
     lembaga,

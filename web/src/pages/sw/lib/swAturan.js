@@ -182,7 +182,7 @@ export function hitungAlasan(daftar, asumsi) {
 }
 
 /** Satu kalimat pendek kenapa satu alasan bernilai nol. */
-export function penjelasNol(kunci, { asumsi } = {}) {
+export function penjelasNol(kunci, { asumsi, unit = null } = {}) {
   const a = lengkapiAsumsi(asumsi);
   switch (kunci) {
     case "minta": return "Belum ada yang meminta dibantu.";
@@ -191,9 +191,26 @@ export function penjelasNol(kunci, { asumsi } = {}) {
     case "ragu": return "Belum ada yang menjawab \"mungkin\".";
     case "datar": return "Belum ada yang mengira akan tetap berat.";
     case "tekanan": return "Belum ada atau belum dinilai.";
-    case "wakil": return "Semua unit sudah terwakili.";
+    case "wakil":
+      if (!unit) return "Semua unit sudah terwakili.";
+      return unit.kuotaPeserta === 0 ? "Unit ini tidak mendapat kursi perwakilan." : "Kursi unit ini terisi lewat alasan khusus.";
     default: return "";
   }
+}
+
+/**
+ * Kalimat untuk unit tanpa satu pun peserta, supaya angka nol tidak terbaca sebagai data hilang.
+ * Peserta masuk lewat penanda (minta sendiri, disampaikan atasan, dst.) atau kursi perwakilan
+ * yang dibagi sebanding jumlah pengisi; unit kecil bisa mendapat nol kursi.
+ */
+export function kalimatTanpaPeserta(unit) {
+  if (!unit) return "";
+  const n = unit.nPengisi ?? 0;
+  const awal = `Tidak ada dari ${n} pengisi yang meminta dibantu atau memenuhi penanda lain`;
+  if (unit.kuotaPeserta === 0) {
+    return `${awal}, dan unit ini tidak mendapat kursi perwakilan karena kursi dibagi sebanding jumlah pengisi.`;
+  }
+  return `${awal}.`;
 }
 
 // ── Perbandingan tiga lapis ─────────────────────────────────────────────────────────────────
@@ -363,7 +380,7 @@ export function urutPeserta(daftar, { kunci = "unit", arah = "naik", namaUnit = 
  */
 export function siapkanDataUntukPeran(dataset, akses) {
   if (!dataset) return null;
-  const { peran, unitId, individuId } = akses || {};
+  const { peran, unitId, unitIds, individuId } = akses || {};
   const asumsi = lengkapiAsumsi(dataset.asumsi);
   const base = { ...dataset, asumsi };
 
@@ -396,7 +413,12 @@ export function siapkanDataUntukPeran(dataset, akses) {
   }
 
   if (peran === "kepalaUnit") {
-    const milik = (dataset.unit || []).filter((u) => u.id === unitId).map(tanpaQcDanPimpinan);
+    // Pimpinan (Direktur/Wakil Direktur) punya beberapa unit binaan; kepala unit biasa satu.
+    const boleh = new Set(unitIds?.length ? unitIds : [unitId]);
+    const milik = (dataset.unit || [])
+      .filter((u) => boleh.has(u.id))
+      .sort((a, b) => (a.nama || "").localeCompare(b.nama || "", "id"))
+      .map(tanpaQcDanPimpinan);
     return {
       ...tanpaNama,
       unit: milik,

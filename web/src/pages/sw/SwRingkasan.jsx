@@ -6,7 +6,7 @@
 import { ArrowRight, ChartBar, CheckCircle, Gauge, Lightbulb, Question, Smiley, UsersThree, WarningCircle } from "@phosphor-icons/react";
 import { ALASAN, JALUR, KALIMAT_JALUR, SKALA_KONDISI, SUBSKALA } from "./lib/swMeta";
 import {
-  formatAngka, formatPersen, kategoriKondisi, komposisiJalur, penjelasNol, porsi,
+  formatAngka, formatPersen, kalimatTanpaPeserta, kategoriKondisi, komposisiJalur, penjelasNol, porsi,
   subskalaTerendah, susunTemuan,
 } from "./lib/swAturan";
 import {
@@ -73,9 +73,9 @@ function BlokTemuan({ kelas, Ikon, judul, isi }) {
   );
 }
 
-export default function SwRingkasan({ data, peran, onKeDaftar }) {
+export default function SwRingkasan({ data, peran, unitFokus = null, onKeDaftar }) {
   const { lembaga, asumsi } = data;
-  const unit = peran === "kepalaUnit" ? data.unit[0] || null : null;
+  const unit = peran === "kepalaUnit" ? unitFokus || data.unit[0] || null : null;
 
   if (peran === "kepalaUnit" && !unit) {
     return (
@@ -155,6 +155,13 @@ export default function SwRingkasan({ data, peran, onKeDaftar }) {
             </>
           )}
         >
+          {unit && peserta.total === 0 ? (
+            <KeadaanLayar
+              jenis="kosong"
+              judul={`Tidak ada pegawai ${unit.nama} yang disarankan ikut asesmen lanjutan`}
+              pesan={kalimatTanpaPeserta(unit)}
+            />
+          ) : (
           <ul className={styles.gridAlasan} role="list">
             {alasanUrut.map((a) => {
               const n = perAlasan[a.kunci] || 0;
@@ -172,7 +179,7 @@ export default function SwRingkasan({ data, peran, onKeDaftar }) {
                         <Ikon size={17} weight="duotone" aria-hidden="true" style={{ color: WARNA_ALASAN[a.kunci] }} />
                         {a.label}
                       </strong>
-                      <span>{n === 0 ? penjelasNol(a.kunci, { asumsi }) : a.penjelas}</span>
+                      <span>{n === 0 ? penjelasNol(a.kunci, { asumsi, unit }) : a.penjelas}</span>
                     </span>
                     <span className={styles.angkaAlasan}>
                       <strong>{n}</strong>
@@ -184,6 +191,7 @@ export default function SwRingkasan({ data, peran, onKeDaftar }) {
               );
             })}
           </ul>
+          )}
         </Kartu>
       </div>
 

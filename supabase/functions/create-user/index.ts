@@ -15,8 +15,10 @@
 // bagian lokal email (huruf kecil saja, tanpa huruf besar biar minim salah ketik) + 6 digit
 // acak kriptografis. Contoh: "wiwifarida80@admin.sd.belajar.id" -> "wiwifarida482917".
 //
-// Mode: body `{ nama, username, peran, school_id, cakupan, password?, sw_unit_id?, sw_individu_id? }`
-// (satu akun; dua field terakhir tautan modul Screening Awal Wellbeing untuk KepalaUnit/Pegawai), atau
+// Mode: body `{ nama, username, peran, school_id, cakupan, password?, sw_unit_id?, sw_individu_id?, sw_unit_binaan? }`
+// (satu akun; tiga field terakhir tautan modul Screening Awal Wellbeing untuk KepalaUnit/Pegawai;
+// sw_unit_binaan = daftar unit binaan akun pimpinan Direktur/Wakil Direktur, ditulis ke tabel
+// sw_unit_binaan), atau
 // `{ users: [ {...sama seperti di atas}, ... ] }` (bulk, dipakai upload CSV guru/wali kelas),
 // atau `{ reset_user_id, reset_username }` (reset satu akun), atau
 // `{ reset_users: [ {user_id, username}, ... ] }` (reset banyak akun sekaligus, dipakai fitur
@@ -145,7 +147,7 @@ Deno.serve(async (req) => {
 });
 
 async function createOne(admin, row) {
-  const { nama, username, peran, school_id, cakupan, password: givenPassword, sw_unit_id, sw_individu_id } = row;
+  const { nama, username, peran, school_id, cakupan, password: givenPassword, sw_unit_id, sw_individu_id, sw_unit_binaan } = row;
   if (!nama || !username || !peran) {
     return { ok: false, username, error: "Field wajib: nama, username, peran." };
   }
@@ -187,6 +189,22 @@ async function createOne(admin, row) {
     // Rollback auth user supaya tidak ada akun tanpa profil.
     await admin.auth.admin.deleteUser(created.user.id);
     return { ok: false, username: usernameTrim, error: `Gagal buat profile: ${profileErr.message}` };
+  }
+
+  // Unit binaan akun pimpinan (Direktur/Wakil Direktur). Gagal di sini = akun dibatalkan utuh,
+  // supaya tidak ada akun pimpinan yang diam-diam cuma melihat satu unit.
+  const binaan = peran === "KepalaUnit" && Array.isArray(sw_unit_binaan)
+    ? [...new Set(sw_unit_binaan.map((u) => String(u).trim()).filter(Boolean))]
+    : [];
+  if (binaan.length) {
+    const { error: binaanErr } = await admin.from("sw_unit_binaan").insert(
+      binaan.map((unit_id) => ({ profile_id: created.user.id, unit_id, sekolah_id: school_id })),
+    );
+    if (binaanErr) {
+      await admin.from("profiles").delete().eq("id", created.user.id);
+      await admin.auth.admin.deleteUser(created.user.id);
+      return { ok: false, username: usernameTrim, error: `Gagal simpan unit binaan: ${binaanErr.message}` };
+    }
   }
 
   return { ok: true, nama, username: usernameTrim, password, user_id: created.user.id };

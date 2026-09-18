@@ -348,6 +348,11 @@ function BulkForm({ close }) {
                         {jenis === 'kunit' && r.jabatan && (
                           <div style={{ fontSize: 11, color: 'var(--ink-3)', marginTop: 2 }}>{r.jabatan}</div>
                         )}
+                        {jenis === 'kunit' && r.sw_unit_binaan?.length > 0 && (
+                          <div style={{ fontSize: 11, color: 'var(--ink-3)', marginTop: 2 }} title={r.sw_unit_binaan.map((id) => swRef.unit.find((u) => u.id === id)?.nama || id).join(', ')}>
+                            Melihat {r.sw_unit_binaan.length} unit binaan
+                          </div>
+                        )}
                         {jenis === 'kunit' && r.unitTeks && r.sw_unit_id && r.confidence === 'fuzzy' && (
                           <div style={{ fontSize: 11, color: '#D69219', marginTop: 2 }}>Ejaan beda dari "{r.unitTeks}", cek lagi.</div>
                         )}

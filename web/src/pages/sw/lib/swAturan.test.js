@@ -2,7 +2,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import {
-  bandingTigaLapis, bolehLihat, hitungAlasan, kalimatTigaLapis, kategoriKondisi, penjelasNol,
+  bandingTigaLapis, bolehLihat, hitungAlasan, kalimatTanpaPeserta, kalimatTigaLapis, kategoriKondisi, penjelasNol,
   saringPeserta, saringUnitTampil, sebaranKategori, siapkanDataUntukPeran, susunAlasan,
   jumlahUnitKecil, unitBolehTampil, urutPeserta,
 } from "./swAturan.js";
@@ -50,6 +50,11 @@ test("siapkanDataUntukPeran membuang nama untuk yayasan dan kepala unit, unit ke
   assert.equal(y.unit[0].pengamatan.qc, undefined, "kendali mutu hanya untuk Human Capital");
   assert.deepEqual(y.unit[0].pengamatan.pimpinan, ["Pak A"]);
   assert.deepEqual(y.tema.silangMenguras.baris.map((b) => b.unitId), ["besar", "kecil"]);
+
+  const pimpinan = siapkanDataUntukPeran(dataset, { peran: "kepalaUnit", unitId: "kecil", unitIds: ["besar", "kecil"] });
+  assert.deepEqual(pimpinan.unit.map((u) => u.id), ["besar", "kecil"], "pimpinan melihat semua unit binaan");
+  assert.equal(pimpinan.unit[0].pengamatan.pimpinan, undefined, "tanpa nama atasan");
+  assert.equal(pimpinan.individu.length, 0);
 
   const k = siapkanDataUntukPeran(dataset, { peran: "kepalaUnit", unitId: "kecil" });
   assert.deepEqual(k.unit.map((u) => u.id), ["kecil"], "kepala unit melihat unitnya walau kecil");
@@ -131,6 +136,15 @@ test("hitungAlasan menghitung orang per alasan, alasan nol tetap ada, total bole
 test("penjelasNol memberi kalimat untuk setiap alasan dan menyebut ambang Fungsi", () => {
   for (const a of ALASAN) assert.ok(penjelasNol(a.kunci, {}).length > 10, a.kunci);
   assert.match(penjelasNol("fungsi", { asumsi: { ambangFungsi: 25 } }), /di bawah 25/);
+});
+
+test("unit tanpa peserta dijelaskan, bukan dibiarkan nol", () => {
+  const unit = { nPengisi: 3, kuotaPeserta: 0 };
+  assert.match(kalimatTanpaPeserta(unit), /3 pengisi/);
+  assert.match(kalimatTanpaPeserta(unit), /tidak mendapat kursi perwakilan/);
+  assert.doesNotMatch(kalimatTanpaPeserta({ nPengisi: 20, kuotaPeserta: 2 }), /kursi/);
+  assert.equal(penjelasNol("wakil", { unit }), "Unit ini tidak mendapat kursi perwakilan.");
+  assert.equal(penjelasNol("wakil", {}), "Semua unit sudah terwakili.");
 });
 
 // ── Perbandingan tiga lapis ──

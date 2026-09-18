@@ -250,6 +250,14 @@
   color: var(--fm-teks-lembut);
 }
 
+/* Unit tanpa peserta: kalimat penjelas menggantikan tujuh bar bernilai nol. */
+.kosongPeserta {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--fm-teks);
+}
+
 .subJudul {
   margin: 4px 0 0;
   font-size: 13px;

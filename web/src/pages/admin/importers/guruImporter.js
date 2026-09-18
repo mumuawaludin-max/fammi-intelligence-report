@@ -183,6 +183,7 @@ export async function bulkCreateUsers(rows, { sekolahId, onProgress }) {
     // Tautan modul Screening Awal Wellbeing (pengimpor sw); kosong untuk baris guru.
     sw_unit_id: r.sw_unit_id || null,
     sw_individu_id: r.sw_individu_id || null,
+    sw_unit_binaan: r.sw_unit_binaan?.length ? r.sw_unit_binaan : null,
   }));
 
   const results = [];

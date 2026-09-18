@@ -38,15 +38,19 @@ export function useSwData(session, { muatUlang = 0 } = {}) {
       if (e1) { setState({ loading: false, error: e1.message, dataset: null }); return; }
       if (!ds) { setState({ loading: false, error: null, dataset: null }); return; }
 
-      const [unitRes, individuRes, qcRes] = await Promise.all([
+      const [unitRes, individuRes, qcRes, binaanRes] = await Promise.all([
         fetchAllRows((from, to) => supabase.from("sw_unit").select("data").eq("dataset_id", ds.id).order("unit_id").range(from, to)),
         fetchAllRows((from, to) => supabase.from("sw_individu").select("data").eq("dataset_id", ds.id).order("individu_id").range(from, to)),
         peran === "HumanCapital"
           ? fetchAllRows((from, to) => supabase.from("sw_pimpinan_qc").select("unit_id, data").eq("dataset_id", ds.id).range(from, to))
           : Promise.resolve({ data: [], error: null }),
+        // Unit binaan akun pimpinan (Direktur/Wakil Direktur); kosong untuk kepala unit biasa.
+        peran === "KepalaUnit"
+          ? supabase.from("sw_unit_binaan").select("unit_id").eq("sekolah_id", sekolahId)
+          : Promise.resolve({ data: [], error: null }),
       ]);
       if (!alive) return;
-      const galat = unitRes.error || individuRes.error || qcRes.error;
+      const galat = unitRes.error || individuRes.error || qcRes.error || binaanRes.error;
       if (galat) { setState({ loading: false, error: galat.message, dataset: null }); return; }
 
       const qcPerUnit = {};
@@ -69,6 +73,7 @@ export function useSwData(session, { muatUlang = 0 } = {}) {
           ringkasanPimpinan: ds.ringkasan_pimpinan || [],
           unit,
           individu: (individuRes.data || []).map((r) => r.data),
+          unitBinaan: (binaanRes.data || []).map((r) => r.unit_id),
         },
       });
     }

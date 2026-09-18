@@ -12,6 +12,7 @@
 
 import * as XLSX from 'xlsx';
 import { supabase } from '../../../lib/supabase';
+import { cariCakupanPimpinan } from '../../sw/lib/swPembaca';
 
 function normalize(s) {
   return String(s || '')
@@ -81,10 +82,10 @@ export function usernameDariNama(nama) {
 
 /** Data unit dan pegawai dari dataset sw yang aktif untuk satu sekolah. */
 export async function muatDataSw(sekolahId) {
-  const { data: ds, error: e1 } = await supabase.from('sw_dataset').select('id')
+  const { data: ds, error: e1 } = await supabase.from('sw_dataset').select('id, meta')
     .eq('sekolah_id', sekolahId).eq('aktif', true).order('created_at', { ascending: false }).limit(1).maybeSingle();
   if (e1) throw new Error(e1.message);
-  if (!ds) return { datasetId: null, unit: [], individu: [] };
+  if (!ds) return { datasetId: null, unit: [], individu: [], cakupanPimpinan: [] };
   const [u, o] = await Promise.all([
     supabase.from('sw_unit').select('unit_id, n_pengisi, data').eq('dataset_id', ds.id).order('unit_id'),
     supabase.from('sw_individu').select('individu_id, nama, unit_id, data').eq('dataset_id', ds.id).order('nama').range(0, 4999),
@@ -94,7 +95,7 @@ export async function muatDataSw(sekolahId) {
   const unit = (u.data || []).map((r) => ({ id: r.unit_id, nama: r.data?.nama || r.unit_id, n: r.n_pengisi }));
   const namaUnit = Object.fromEntries(unit.map((x) => [x.id, x.nama]));
   const individu = (o.data || []).map((r) => ({ id: r.individu_id, nama: r.nama, unitId: r.unit_id, unitNama: namaUnit[r.unit_id] || r.unit_id, jabatan: r.data?.jabatan || '' }));
-  return { datasetId: ds.id, unit, individu };
+  return { datasetId: ds.id, unit, individu, cakupanPimpinan: ds.meta?.cakupanPimpinan || [] };
 }
 
 function cocokkanUnit(teks, unit) {
@@ -182,6 +183,12 @@ export async function parseSwFile(file, { sekolahId, jenis, usernameAda = new Se
         if (kunciGanda && dipakaiId.has(kunciGanda)) { dupCount += 1; continue; }
         if (kunciGanda) dipakaiId.add(kunciGanda);
         const namaAkun = nama || jabatan || (unit ? `Kepala ${unit.nama}` : '');
+        // Direktur/Wakil Direktur: unit binaan dari pembagian penilaian di berkas screening. Hanya
+        // untuk baris di unit pimpinan, supaya akun kepala sekolah milik orang yang sama (Wakil
+        // Direktur Bone yang sekaligus kepala SMA Bone) tetap melihat sekolahnya saja.
+        const cakupan = unit && jabatanPimpinanUnit(unit).length
+          ? cariCakupanPimpinan(sw.cakupanPimpinan, { nama, jabatan })
+          : null;
         rows.push({
           rowIndex: rows.length, sheetName,
           nama: namaAkun,
@@ -191,6 +198,7 @@ export async function parseSwFile(file, { sekolahId, jenis, usernameAda = new Se
           sw_unit_id: unit?.id || '',
           unitTeks: unitTeks || jabatanKolom,
           jabatan,
+          sw_unit_binaan: cakupan?.unitIds || [],
           confidence,
         });
       } else {

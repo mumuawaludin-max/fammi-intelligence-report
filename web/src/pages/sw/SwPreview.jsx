@@ -44,7 +44,13 @@ export default function SwPreview() {
   // Catatan tindak lanjut di pratinjau hanya hidup di memori; dibuat ulang saat sumber berganti.
   // eslint-disable-next-line react-hooks/exhaustive-deps
   const store = useMemo(() => buatStoreMemori(), [versiStore]);
-  const akses = useMemo(() => ({ peran, unitId, individuId, nama: namaPengguna }), [peran, unitId, individuId, namaPengguna]);
+  // Nilai "binaan:<kunci>" meniru akun pimpinan (Direktur/Wakil Direktur) dengan beberapa unit binaan.
+  const akses = useMemo(() => {
+    const unitIds = unitId.startsWith("binaan:")
+      ? dataset.meta?.cakupanPimpinan?.find((c) => c.kunci === unitId.slice(7))?.unitIds || []
+      : null;
+    return { peran, unitId, unitIds, individuId, nama: namaPengguna };
+  }, [dataset, peran, unitId, individuId, namaPengguna]);
 
   function gantiSumber(nilai) {
     if (nilai === "contoh") {
@@ -80,6 +86,9 @@ export default function SwPreview() {
           <label>
             Unit
             <select value={unitId} onChange={(e) => setUnitId(e.target.value)}>
+              {(dataset.meta?.cakupanPimpinan || []).map((c) => (
+                <option key={c.kunci} value={`binaan:${c.kunci}`}>Pimpinan: {c.penilai?.nama || c.kunci} ({c.unitIds.length} unit)</option>
+              ))}
               {dataset.unit.map((u) => <option key={u.id} value={u.id}>{u.nama} ({u.nPengisi})</option>)}
             </select>
           </label>

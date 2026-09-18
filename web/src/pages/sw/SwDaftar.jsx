@@ -235,6 +235,9 @@ function DialogNama({ data, hasil, namaUnit, onTutup, onBukaProfil }) {
 
 // ── Yayasan dan kepala unit ─────────────────────────────────────────────────────────────────
 
+/** Jumlah orang di beberapa unit (hitungan, bukan rata-rata). */
+const jumlahkan = (units, ambil) => units.reduce((a, u) => a + (ambil(u) || 0), 0);
+
 function DaftarPerUnit({ data, peran, saringan, onSaringan }) {
   const { asumsi, lembaga } = data;
   const tampil = saringUnitTampil(data.unit, peran, asumsi);
@@ -270,8 +273,11 @@ function DaftarPerUnit({ data, peran, saringan, onSaringan }) {
         <div className={styles.statVertikal}>
           {peran === "kepalaUnit" ? (
             <>
-              <AngkaKecil nilai={tampil[0].peserta.total} label={`peserta dari ${tampil[0].nPengisi} pegawai unit`} />
-              <AngkaKecil nilai={tampil[0].peserta.tanpaPengamatan ?? 0} label="belum dinilai atasan" />
+              <AngkaKecil
+                nilai={jumlahkan(tampil, (u) => u.peserta.total)}
+                label={`peserta dari ${jumlahkan(tampil, (u) => u.nPengisi)} pegawai ${tampil.length > 1 ? `${tampil.length} unit binaan` : "unit"}`}
+              />
+              <AngkaKecil nilai={jumlahkan(tampil, (u) => u.peserta.tanpaPengamatan ?? 0)} label="belum dinilai atasan" />
             </>
           ) : (
             <>

@@ -6,7 +6,7 @@ import { useState } from "react";
 import { CaretDown, CaretUp, HandHeart, Sparkle } from "@phosphor-icons/react";
 import { ALASAN, BARIS_SKOR, JENJANG, KELOMPOK_UNIT, SKALA_KONDISI, SUBSKALA } from "./lib/swMeta";
 import {
-  daftarKategori, formatAngka, formatPersen, jumlahUnitKecil, kategoriKondisi, porsi,
+  daftarKategori, formatAngka, formatPersen, jumlahUnitKecil, kalimatTanpaPeserta, kategoriKondisi, porsi,
   saringUnitTampil, unitKecil,
 } from "./lib/swAturan";
 import {
@@ -45,7 +45,9 @@ export default function SwPetaUnit({ data, peran }) {
   const barisPeringkat = baris.filter((u) => !unitKecil(u, asumsi));
   const urutSkor = [...(barisPeringkat.length ? barisPeringkat : baris)].sort((a, b) => b.indeks - a.indeks);
 
-  if (kepalaUnit) {
+  // Kepala unit biasa langsung melihat rincian unitnya; pimpinan dengan beberapa unit binaan
+  // mendapat tabel yang sama dengan yayasan, terbatas pada unit binaannya.
+  if (kepalaUnit && tampil.length <= 1) {
     if (!tampil.length) {
       return (
         <KeadaanLayar
@@ -251,13 +253,19 @@ function RincianUnit({ unit, lembaga, asumsi, dalamDialog = false }) {
           />
         )}
       >
-        {ALASAN.map((a) => {
-          const n = unit.peserta.perAlasan[a.kunci] || 0;
-          return (
-            <BarBaris key={a.kunci} label={a.label} nilai={n} maks={Math.max(1, unit.peserta.total)} warna={WARNA_ALASAN[a.kunci]} teks={n} lebarLabel="150px" />
-          );
-        })}
-        <p className={styles.kecil}>Satu orang bisa punya beberapa alasan</p>
+        {unit.peserta.total === 0 ? (
+          <p className={styles.kosongPeserta}>{kalimatTanpaPeserta(unit)}</p>
+        ) : (
+          <>
+            {ALASAN.map((a) => {
+              const n = unit.peserta.perAlasan[a.kunci] || 0;
+              return (
+                <BarBaris key={a.kunci} label={a.label} nilai={n} maks={Math.max(1, unit.peserta.total)} warna={WARNA_ALASAN[a.kunci]} teks={n} lebarLabel="150px" />
+              );
+            })}
+            <p className={styles.kecil}>Satu orang bisa punya beberapa alasan</p>
+          </>
+        )}
       </Kartu>
     </div>
   );

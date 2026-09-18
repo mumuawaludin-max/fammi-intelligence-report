@@ -24,8 +24,8 @@ const SUB = [
 
 const TAMPIL_TEMA = 9;
 
-export default function SwSuara({ data, peran, sub, onSub }) {
-  const unit = peran === "kepalaUnit" ? data.unit[0] || null : null;
+export default function SwSuara({ data, peran, unitFokus = null, sub, onSub }) {
+  const unit = peran === "kepalaUnit" ? unitFokus || data.unit[0] || null : null;
   if (peran === "kepalaUnit" && !unit) {
     return (
       <KeadaanLayar

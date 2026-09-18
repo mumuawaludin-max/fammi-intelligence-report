@@ -9,7 +9,7 @@ import {
 } from "@phosphor-icons/react";
 import SampleTag from "../../components/SampleTag";
 import { SARINGAN_KOSONG, bolehLihat, siapkanDataUntukPeran } from "./lib/swAturan";
-import { KalimatFooter, KeadaanLayar } from "./SwUi";
+import { KalimatFooter, KeadaanLayar, Pilihan } from "./SwUi";
 import SwRingkasan from "./SwRingkasan";
 import SwDaftar from "./SwDaftar";
 import SwProfil from "./SwProfil";
@@ -73,6 +73,7 @@ export default function SwLaporan({ dataset, akses, store }) {
   const [saringan, setSaringan] = useState(SARINGAN_KOSONG);
   const [individuId, setIndividuId] = useState(peran === "pegawai" ? akses.individuId : null);
   const [subSuara, setSubSuara] = useState("kondisi");
+  const [unitFokusId, setUnitFokusId] = useState("");
   const ref = useRef(null);
   const tinggi = useTinggiLayar(ref);
 
@@ -101,8 +102,13 @@ export default function SwLaporan({ dataset, akses, store }) {
     );
   }
 
-  const unitMilik = peran === "kepalaUnit" ? data.unit[0] : null;
+  // Kepala unit biasa punya satu unit; pimpinan (Direktur/Wakil Direktur) punya beberapa unit
+  // binaan dan memilih satu unit untuk Ringkasan dan Suara Pegawai.
+  const unitKepala = peran === "kepalaUnit" ? data.unit : [];
+  const banyakUnit = unitKepala.length > 1;
+  const unitFokus = unitKepala.find((u) => u.id === unitFokusId) || unitKepala[0] || null;
   const tabAktif = tabTersedia.some((t) => t.id === tab) ? tab : tabTersedia[0].id;
+  const pemilihUnit = banyakUnit && (tabAktif === "ringkasan" || tabAktif === "suara");
 
   return (
     <div ref={ref} className={kelas} style={gaya}>
@@ -115,9 +121,20 @@ export default function SwLaporan({ dataset, akses, store }) {
           <p className={styles.subjudul}>
             Screening Awal Wellbeing · {labelPeriode(data.meta?.periodeId)}
             {peran && <> · {LABEL_PERAN[peran]}</>}
-            {unitMilik && <> · {unitMilik.nama}</>}
+            {unitFokus && (banyakUnit ? <> · {unitKepala.length} unit binaan</> : <> · {unitFokus.nama}</>)}
           </p>
         </div>
+        <div className={styles.aksiKepala}>
+        {pemilihUnit && (
+          <Pilihan
+            sebaris
+            label="Unit"
+            semua={null}
+            nilai={unitFokus.id}
+            onUbah={setUnitFokusId}
+            opsi={unitKepala.map((u) => ({ nilai: u.id, label: u.nama }))}
+          />
+        )}
         {tabTersedia.length > 1 && (
           <nav className={styles.barTab} aria-label="Bagian laporan">
             <ul role="list">
@@ -141,10 +158,11 @@ export default function SwLaporan({ dataset, akses, store }) {
             </ul>
           </nav>
         )}
+        </div>
       </header>
 
       <main className={styles.isi}>
-        {tabAktif === "ringkasan" && <SwRingkasan data={data} peran={peran} onKeDaftar={keDaftar} />}
+        {tabAktif === "ringkasan" && <SwRingkasan data={data} peran={peran} unitFokus={unitFokus} onKeDaftar={keDaftar} />}
         {tabAktif === "daftar" && (
           <SwDaftar data={data} peran={peran} saringan={saringan} onSaringan={setSaringan} onBukaProfil={bukaProfil} />
         )}
@@ -153,7 +171,7 @@ export default function SwLaporan({ dataset, akses, store }) {
         )}
         {tabAktif === "peta" && <SwPetaUnit data={data} peran={peran} />}
         {tabAktif === "pimpinan" && <SwPimpinan data={data} peran={peran} />}
-        {tabAktif === "suara" && <SwSuara data={data} peran={peran} sub={subSuara} onSub={setSubSuara} />}
+        {tabAktif === "suara" && <SwSuara data={data} peran={peran} unitFokus={unitFokus} sub={subSuara} onSub={setSubSuara} />}
       </main>
 
       <footer className={styles.kaki}>

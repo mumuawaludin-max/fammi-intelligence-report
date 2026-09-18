@@ -4,7 +4,7 @@ import assert from "node:assert/strict";
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { angkaDepan, bacaDaftarInduk, jenjangUnit, kunciKebutuhan, kunciPermintaan, labelTema } from "./swPembaca.js";
+import { angkaDepan, bacaCakupanPimpinan, bacaDaftarInduk, cariCakupanPimpinan, jabatanCocokKunci, jenjangUnit, kunciKebutuhan, kunciPermintaan, labelTema } from "./swPembaca.js";
 import { hitungAlasan } from "./swAturan.js";
 
 const folder = path.dirname(fileURLToPath(import.meta.url));
@@ -68,6 +68,55 @@ test("daftar induk: jumlah pegawai per blok, blok gabungan dipecah lewat Kepala 
   assert.equal(hasil.size, 5, "blok yang tidak cocok ke unit mana pun diabaikan");
 });
 
+test("jabatan dicocokkan ke kolom dinilai, nama wilayah boleh disingkat", () => {
+  assert.equal(jabatanCocokKunci("Direktur", "direktur"), true);
+  assert.equal(jabatanCocokKunci("Wakil Direktur Sekolah Wil. Kajaolalido", "direktur"), false);
+  assert.equal(jabatanCocokKunci("Wakil Direktur Sekolah Wil. Kajaolalido", "wadir kajol"), true);
+  assert.equal(jabatanCocokKunci("Wakil Direktur Wilayah Baruga", "wadir baruga"), true);
+  assert.equal(jabatanCocokKunci("Kepala Sekolah/Wakil Direktur Wil.Bone", "wadir bone"), true);
+  assert.equal(jabatanCocokKunci("Wakil Direktur Wilayah Baruga", "wadir bone"), false);
+});
+
+test("cakupan pimpinan: sekantor ikut kantor penilai, lainnya unit yang ia pimpin", () => {
+  const unit = ["Kantor Direksi", "Departemen A", "SD Utara", "SMA Utara"];
+  const rows = [
+    ["Screening 0", "Kantor Direksi"],
+    ["", "NO", "NAMA_LENGKAP", "JABATAN", "", "", "", "", "", "dinilai direktur", "", "dinilai wadir utara"],
+    ["", "1", "Pak Dir", "Direktur", "", "", "", "", "", "Bu Wadir", "", "Pak Kepsek SD"],
+    ["", "2", "Bu Wadir", "Wakil Direktur Wil. Utara", "", "", "", "", "", "Pak Kadept", "", "Bu Wadir"],
+    ["", "", "", "", "", "", "", "", "", "", "", ""],
+    ["Screening 1", "Departemen A"],
+    ["", "NO", "NAMA_LENGKAP", "JABATAN"],
+    ["", "1", "Pak Kadept", "Kadept. A"],
+    ["Screening 2", "SD UTARA"],
+    ["", "NO", "NAMA_LENGKAP", "JABATAN"],
+    ["", "1", "Pak Kepsek SD", "Kepala Sekolah"],
+    ["Screening 3", "SMA UTARA"],
+    ["", "NO", "NAMA_LENGKAP", "JABATAN"],
+    ["", "1", "Bu Wadir", "Kepala Sekolah/Wakil Direktur Wil. Utara"],
+  ];
+  const individu = [
+    { atasan: "Pak Kadept", unitId: "u-departemen-a" },
+    { atasan: "Pak Kepsek SD", unitId: "u-sd-utara" },
+    { atasan: "Bu Wadir", unitId: "u-sma-utara" },
+    { atasan: "Bu Wadir", unitId: "u-sma-utara" },
+  ];
+  const idDariNama = (n) => `u-${n.toLowerCase().replace(/[^a-z0-9]+/g, "-")}`;
+  const hasil = bacaCakupanPimpinan(rows, unit, individu, idDariNama);
+  const dir = hasil.find((c) => c.kunci === "direktur");
+  const wadir = hasil.find((c) => c.kunci === "wadir utara");
+  assert.equal(dir.penilai.nama, "Pak Dir");
+  // Wadir sekantor dengan direktur masuk kantor direksi, bukan sekolah yang ia pimpin.
+  assert.deepEqual(dir.unitIds, ["u-kantor-direksi", "u-departemen-a"]);
+  assert.equal(wadir.penilai.nama, "Bu Wadir");
+  // Wadir menilai dirinya sendiri sebagai kepala sekolah: unit yang ia pimpin.
+  assert.deepEqual(wadir.unitIds, ["u-sd-utara", "u-sma-utara"]);
+  assert.equal(JSON.stringify(hasil).includes("Pak Kepsek SD"), false, "nama yang dinilai tidak disimpan");
+  assert.equal(cariCakupanPimpinan(hasil, { nama: "Bu Wadir.", jabatan: "" }), wadir);
+  assert.equal(cariCakupanPimpinan(hasil, { nama: "Orang Lain", jabatan: "Wakil Direktur Wilayah Utara" }), wadir);
+  assert.equal(cariCakupanPimpinan(hasil, { nama: "Orang Lain", jabatan: "Kepala Unit" }), null);
+});
+
 test("data contoh: satu baris individu per pengisi dan jumlah peserta konsisten", () => {
   const { lembaga, individu, unit } = contoh;
   assert.equal(contoh.meta.contoh, true);
@@ -129,6 +178,10 @@ test("data Athirah: setiap pengisi Form A punya laporan individu", { skip: !fs.e
   assert.equal(unitNama("SMA Athirah Baruga").nPegawai, 48);
   assert.equal(unitNama("SMP Athirah Kajaolalido").nPegawai, 35);
   assert.ok(d.unit.every((u) => u.nPegawai >= u.nPengisi), "pengisi tidak pernah melebihi pegawai");
+  // Pembagian penilaian: direktur 12 unit, wadir Kajaolalido 4, Baruga 5, Bone 4.
+  const jumlahBinaan = Object.fromEntries(d.meta.cakupanPimpinan.map((c) => [c.kunci, c.unitIds.length]));
+  assert.deepEqual(jumlahBinaan, { direktur: 12, "wadir kajol": 4, "wadir baruga": 5, "wadir bone": 4 });
+  assert.ok(d.meta.cakupanPimpinan.every((c) => c.penilai), "setiap kolom dinilai punya penilai");
   // Aturan kursi sheet 06 menghasilkan daftar yang sama dengan berkas pada data mentah, lalu
   // diterapkan ulang pada data bersih supaya tetap 200 orang (tanpa nama ganda).
   assert.equal(d.meta.kursi.cocokDenganBerkas, true, JSON.stringify(d.meta.kursi.selisih.slice(0, 5)));
