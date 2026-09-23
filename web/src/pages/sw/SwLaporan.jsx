@@ -8,7 +8,7 @@ import {
   Binoculars, ChartBar, ChatCenteredText, ListChecks, SquaresFour, User,
 } from "@phosphor-icons/react";
 import SampleTag from "../../components/SampleTag";
-import { SARINGAN_KOSONG, bolehLihat, siapkanDataUntukPeran } from "./lib/swAturan";
+import { SARINGAN_KOSONG, bolehLihat, labelPeriode, siapkanDataUntukPeran } from "./lib/swAturan";
 import { KalimatFooter, KeadaanLayar, Pilihan } from "./SwUi";
 import SwRingkasan from "./SwRingkasan";
 import SwDaftar from "./SwDaftar";
@@ -34,13 +34,6 @@ const LABEL_PERAN = {
   hc: "Human Capital",
   pegawai: "Pegawai",
 };
-
-function labelPeriode(periodeId) {
-  if (!periodeId) return "";
-  const BULAN = ["Januari", "Februari", "Maret", "April", "Mei", "Juni", "Juli", "Agustus", "September", "Oktober", "November", "Desember"];
-  const [y, m] = periodeId.split("-").map(Number);
-  return `${BULAN[m - 1] || ""} ${y}`.trim();
-}
 
 /** Kunci tinggi elemen ke sisa layar di bawahnya (mode ruang kendali). */
 function useTinggiLayar(ref) {
@@ -73,12 +66,17 @@ export default function SwLaporan({ dataset, akses, store }) {
   const [saringan, setSaringan] = useState(SARINGAN_KOSONG);
   const [individuId, setIndividuId] = useState(peran === "pegawai" ? akses.individuId : null);
   const [subSuara, setSubSuara] = useState("kondisi");
+  // Sub-tampilan Daftar Peserta (Human Capital): 200 peserta atau semua pegawai, dengan saringan
+  // unitnya sendiri. Disimpan di sini supaya tetap sama saat kembali dari Profil Pegawai.
+  const [subDaftar, setSubDaftar] = useState("peserta");
+  const [unitSemua, setUnitSemua] = useState("");
   const [unitFokusId, setUnitFokusId] = useState("");
   const ref = useRef(null);
   const tinggi = useTinggiLayar(ref);
 
   const keDaftar = useCallback((awal) => {
     setSaringan({ ...SARINGAN_KOSONG, ...(awal || {}) });
+    setSubDaftar("peserta");
     setTab("daftar");
   }, []);
 
@@ -164,7 +162,17 @@ export default function SwLaporan({ dataset, akses, store }) {
       <main className={styles.isi}>
         {tabAktif === "ringkasan" && <SwRingkasan data={data} peran={peran} unitFokus={unitFokus} onKeDaftar={keDaftar} />}
         {tabAktif === "daftar" && (
-          <SwDaftar data={data} peran={peran} saringan={saringan} onSaringan={setSaringan} onBukaProfil={bukaProfil} />
+          <SwDaftar
+            data={data}
+            peran={peran}
+            saringan={saringan}
+            onSaringan={setSaringan}
+            onBukaProfil={bukaProfil}
+            sub={subDaftar}
+            onSub={setSubDaftar}
+            unitSemua={unitSemua}
+            onUnitSemua={setUnitSemua}
+          />
         )}
         {tabAktif === "profil" && (
           <SwProfil data={data} akses={akses} store={store} individuId={individuId} onPilih={setIndividuId} />

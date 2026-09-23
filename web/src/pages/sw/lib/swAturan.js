@@ -7,7 +7,7 @@
 
 import {
   ALASAN, ASUMSI_BAWAAN, BARIS_SKOR, INDEKS, JALUR, KATEGORI_BAWAAN, KEBUTUHAN, SUBSKALA, URUTAN_PROFIL,
-  labelKebutuhan,
+  labelJalur, labelKebutuhan, labelPola,
 } from "./swMeta.js";
 
 // ── Format angka ────────────────────────────────────────────────────────────────────────────
@@ -25,6 +25,14 @@ export function formatPersen(porsi, digit = 0) {
 
 export function porsi(bagian, total) {
   return total > 0 ? bagian / total : 0;
+}
+
+/** "2026-09" -> "September 2026". */
+export function labelPeriode(periodeId) {
+  if (!periodeId) return "";
+  const BULAN = ["Januari", "Februari", "Maret", "April", "Mei", "Juni", "Juli", "Agustus", "September", "Oktober", "November", "Desember"];
+  const [y, m] = String(periodeId).split("-").map(Number);
+  return `${BULAN[m - 1] || ""} ${y}`.trim();
 }
 
 // ── Asumsi ──────────────────────────────────────────────────────────────────────────────────
@@ -369,6 +377,62 @@ export function urutPeserta(daftar, { kunci = "unit", arah = "naik", namaUnit = 
     if (kunci === "nama") return kali * a.nama.localeCompare(b.nama, "id") || dasar(a, b);
     return kali * dasar(a, b);
   });
+}
+
+// ── Semua pegawai (Human Capital) ───────────────────────────────────────────────────────────
+
+/** Label kolom "Cara masuk" untuk pegawai yang tidak masuk daftar 200 peserta. */
+export const LABEL_BUKAN_PESERTA = "Bukan peserta";
+
+/** Semua pegawai, peserta maupun bukan, disaring satu unit. String kosong berarti semua unit. */
+export function saringPegawai(daftar, unitId = "") {
+  return (daftar || []).filter((o) => !unitId || o.unitId === unitId);
+}
+
+/** Opsi saringan unit berisi jumlah pegawai, diurutkan menurut nama unit. */
+export function opsiUnitPegawai(units, daftar) {
+  const jumlah = {};
+  for (const o of daftar || []) jumlah[o.unitId] = (jumlah[o.unitId] || 0) + 1;
+  return (units || [])
+    .filter((u) => jumlah[u.id])
+    .map((u) => ({ nilai: u.id, label: `${u.nama} (${jumlah[u.id]})` }))
+    .sort((a, b) => a.label.localeCompare(b.label, "id"));
+}
+
+/** Urutan kolom berkas Excel "Semua pegawai". Sama dengan kolom tabel di layar, plus nomor. */
+export const KOLOM_EKSPOR_PEGAWAI = [
+  "No", "Nama", "Unit", "Jabatan", "Jenjang", "Alasan", "Pandangan atasan", "Cara masuk", "Sumber data",
+];
+
+/**
+ * Baris berkas Excel dari daftar yang SUDAH disaring dan diurutkan di layar, jadi isi berkas
+ * persis yang sedang dilihat. Tidak ada skor prioritas: angka itu internal dan tidak ikut keluar.
+ */
+export function barisEksporPegawai(daftar, { namaUnit = {}, asumsi } = {}) {
+  return (daftar || []).map((o, i) => ({
+    No: i + 1,
+    Nama: o.nama,
+    Unit: namaUnit[o.unitId] || o.unitId || "",
+    Jabatan: o.jabatan || "",
+    Jenjang: o.jenjang || "-",
+    Alasan: susunAlasan(o, asumsi).map((k) => ALASAN.find((a) => a.kunci === k)?.label || k).join(", "),
+    "Pandangan atasan": labelPola(o.pola),
+    "Cara masuk": o.peserta ? labelJalur(o.peserta.jalur) : LABEL_BUKAN_PESERTA,
+    "Sumber data": LABEL_STATUS_DATA[statusData(o)],
+  }));
+}
+
+/** Potongan nama berkas: huruf kecil, tanpa spasi atau tanda baca. */
+function slug(teks) {
+  return String(teks || "")
+    .normalize("NFKD").replace(/[̀-ͯ]/g, "")
+    .toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
+}
+
+/** Nama berkas unduhan, mis. "daftar-pegawai_yayasan-athirah_asrama-athirah-baruga_2026-09.xlsx". */
+export function namaBerkasEkspor({ lembaga, unitNama, periodeId }) {
+  const bagian = ["daftar-pegawai", slug(lembaga), unitNama ? slug(unitNama) : "semua-unit", slug(periodeId)].filter(Boolean);
+  return `${bagian.join("_")}.xlsx`;
 }
 
 // ── Penyaring data per peran ────────────────────────────────────────────────────────────────

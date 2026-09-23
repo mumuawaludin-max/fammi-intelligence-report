@@ -1,18 +1,24 @@
 // Tab Daftar Peserta sebagai ruang kendali.
-// Human Capital: saringan dan ringkasan di layar, daftar nama dibuka di dialog.
-// Yayasan dan kepala unit: jumlah per unit tanpa satu pun nama.
-// Skor prioritas bukan kolom bawaan dan bukan urutan bawaan. Tidak ada unduh CSV: nama tidak
-// boleh keluar dari layar yang dijaga RLS.
+// Human Capital punya dua sub-tampilan:
+//   - Peserta asesmen lanjutan (200 orang): saringan dan ringkasan di layar, daftar nama di dialog.
+//   - Semua pegawai: seluruh pengisi screening dalam satu tabel, satu saringan (unit), dan
+//     ekspor Excel yang mengikuti saringan itu (permintaan pemilik produk 2026-09-23).
+// Yayasan dan kepala unit: jumlah per unit tanpa satu pun nama, tanpa ekspor.
+// Skor prioritas bukan kolom bawaan, bukan urutan bawaan, dan tidak pernah ikut diekspor.
 
 import { useMemo, useState } from "react";
-import { CaretDown, CaretUp, Funnel, ListBullets, Question, SquaresFour, Warning } from "@phosphor-icons/react";
+import {
+  CaretDown, CaretUp, Funnel, ListBullets, MicrosoftExcelLogo, Question, SquaresFour, UsersThree, Warning,
+} from "@phosphor-icons/react";
 import {
   ALASAN, JALUR, JENJANG, KELOMPOK_UNIT, POLA, labelJalur, labelKelompok, labelPola,
 } from "./lib/swMeta";
 import {
-  LABEL_STATUS_DATA, bolehLihat, formatAngka, formatPersen, hitungAlasan,
-  jumlahUnitKecil, porsi, saringPeserta, saringUnitTampil, statusData, susunAlasan, urutPeserta,
+  LABEL_BUKAN_PESERTA, LABEL_STATUS_DATA, barisEksporPegawai, bolehLihat, formatAngka, formatPersen, hitungAlasan,
+  jumlahUnitKecil, labelPeriode, opsiUnitPegawai, porsi, saringPegawai, saringPeserta, saringUnitTampil, statusData,
+  susunAlasan, urutPeserta,
 } from "./lib/swAturan";
+import { unduhDaftarPegawai } from "./lib/swEkspor";
 import {
   AngkaKecil, BarBaris, BarNilai, BarTumpuk, Catatan, CatatanUnitKecil, Dialog, Kartu, KeadaanLayar,
   Lencana, Petunjuk, Pilihan, Sakelar, TabelPadanan, Tombol,
@@ -26,9 +32,50 @@ const OPSI_JALUR = JALUR.map((j) => ({ nilai: j.kunci, label: j.label }));
 const OPSI_POLA = [...POLA.map((p) => ({ nilai: p.kunci, label: p.label })), { nilai: "tanpa", label: "Belum dinilai atasan" }];
 const OPSI_STATUS = Object.entries(LABEL_STATUS_DATA).map(([nilai, label]) => ({ nilai, label }));
 
-export default function SwDaftar({ data, peran, saringan, onSaringan, onBukaProfil }) {
+export default function SwDaftar({
+  data, peran, saringan, onSaringan, onBukaProfil, sub = "peserta", onSub, unitSemua = "", onUnitSemua,
+}) {
   if (!bolehLihat(peran, "daftar.nama")) return <DaftarPerUnit data={data} peran={peran} saringan={saringan} onSaringan={onSaringan} />;
-  return <DaftarBernama data={data} saringan={saringan} onSaringan={onSaringan} onBukaProfil={onBukaProfil} />;
+
+  const aktif = sub === "semua" ? "semua" : "peserta";
+  // Pemilih tampilan duduk di kartu ringkasan paling atas, di posisi yang sama pada kedua
+  // tampilan, supaya tidak menambah satu baris tinggi di layar laptop 1366x768.
+  const pemilih = (
+    <PemilihTampilan
+      aktif={aktif}
+      onSub={onSub}
+      nPeserta={data.individu.filter((o) => o.peserta).length}
+      nSemua={data.individu.length}
+    />
+  );
+
+  return aktif === "semua"
+    ? <DaftarSemua data={data} pemilih={pemilih} unitId={unitSemua} onUnit={onUnitSemua} onBukaProfil={onBukaProfil} />
+    : <DaftarBernama data={data} pemilih={pemilih} saringan={saringan} onSaringan={onSaringan} onBukaProfil={onBukaProfil} />;
+}
+
+function PemilihTampilan({ aktif, onSub, nPeserta, nSemua }) {
+  const SUB = [
+    { id: "peserta", label: `Peserta asesmen lanjutan (${nPeserta})`, petunjuk: "Daftar undangan asesmen lanjutan, bukan peringkat." },
+    { id: "semua", label: `Semua pegawai (${nSemua})`, petunjuk: "Seluruh pegawai yang mengisi screening, peserta maupun bukan, dengan ekspor Excel." },
+  ];
+  return (
+    <div className={styles.subTab} role="tablist" aria-label="Tampilan daftar">
+      {SUB.map((s) => (
+        <button
+          key={s.id}
+          type="button"
+          role="tab"
+          aria-selected={aktif === s.id}
+          className={aktif === s.id ? styles.subAktif : ""}
+          title={s.petunjuk}
+          onClick={() => onSub?.(s.id)}
+        >
+          {s.label}
+        </button>
+      ))}
+    </div>
+  );
 }
 
 function ubah(saringan, onSaringan, kunci) {
@@ -37,7 +84,7 @@ function ubah(saringan, onSaringan, kunci) {
 
 // ── Human Capital ───────────────────────────────────────────────────────────────────────────
 
-function DaftarBernama({ data, saringan, onSaringan, onBukaProfil }) {
+function DaftarBernama({ data, pemilih, saringan, onSaringan, onBukaProfil }) {
   const { asumsi } = data;
   const [bukaNama, setBukaNama] = useState(false);
 
@@ -76,6 +123,7 @@ function DaftarBernama({ data, saringan, onSaringan, onBukaProfil }) {
 
       <Kartu className={styles.hasil}>
         <div className={styles.hasilBaris}>
+          {pemilih}
           <AngkaKecil nilai={hasil.length} label={adaSaringan ? `dari ${peserta.length} peserta` : "peserta"} />
           <AngkaKecil nilai={perUnit.length} label="unit terwakili" />
           <AngkaKecil nilai={hasil.filter((o) => o.diskorTanpaPengamatan).length} label="belum dinilai atasan" />
@@ -143,27 +191,85 @@ function DaftarBernama({ data, saringan, onSaringan, onBukaProfil }) {
   );
 }
 
-function DialogNama({ data, hasil, namaUnit, onTutup, onBukaProfil }) {
-  const { asumsi } = data;
-  const [urutan, setUrutan] = useState({ kunci: "unit", arah: "naik" });
-  const [tampilSkor, setTampilSkor] = useState(false);
-  const daftar = useMemo(() => urutPeserta(hasil, { ...urutan, namaUnit }), [hasil, urutan, namaUnit]);
+/** Urutan tabel nama: klik judul yang sama membalik arah; skor prioritas mulai dari tertinggi. */
+function useUrutan(awal = { kunci: "unit", arah: "naik" }) {
+  const [urutan, setUrutan] = useState(awal);
+  const klik = (kunci) => setUrutan((u) => (u.kunci === kunci
+    ? { kunci, arah: u.arah === "naik" ? "turun" : "naik" }
+    : { kunci, arah: kunci === "spa" ? "turun" : "naik" }));
+  return [urutan, klik, setUrutan];
+}
 
-  function klikJudul(kunci) {
-    setUrutan((u) => (u.kunci === kunci ? { kunci, arah: u.arah === "naik" ? "turun" : "naik" } : { kunci, arah: kunci === "spa" ? "turun" : "naik" }));
-  }
-
+/**
+ * Tabel nama bersama untuk dialog 200 peserta dan tampilan Semua pegawai. Kolomnya sama:
+ * Nama, Unit, Jabatan, Jenjang, Alasan, Pandangan atasan, Cara masuk, Sumber data.
+ */
+function TabelNama({ daftar, namaUnit, asumsi, urutan, onUrut, onBukaProfil, tampilSkor = false, padat = false }) {
   const judulUrut = (kunci, isi) => {
     const aktif = urutan.kunci === kunci;
     return (
       <th scope="col" aria-sort={aktif ? (urutan.arah === "naik" ? "ascending" : "descending") : "none"}>
-        <button type="button" className={styles.judulUrut} onClick={() => klikJudul(kunci)}>
+        <button type="button" className={styles.judulUrut} onClick={() => onUrut(kunci)}>
           {isi}
           {aktif && (urutan.arah === "naik" ? <CaretUp size={12} weight="bold" /> : <CaretDown size={12} weight="bold" />)}
         </button>
       </th>
     );
   };
+
+  return (
+    <table className={`${styles.tabel} ${padat ? styles.tabelPadat : ""}`}>
+      <thead>
+        <tr>
+          {judulUrut("nama", "Nama")}
+          {judulUrut("unit", "Unit")}
+          <th scope="col">Jabatan</th>
+          <th scope="col">Jenjang</th>
+          <th scope="col">Alasan</th>
+          <th scope="col">Pandangan atasan</th>
+          <th scope="col">Cara masuk</th>
+          <th scope="col">Sumber data</th>
+          {tampilSkor && judulUrut("spa", "Skor prioritas")}
+        </tr>
+      </thead>
+      <tbody>
+        {daftar.map((o) => (
+          <tr
+            key={o.id}
+            className={styles.barisKlik}
+            tabIndex={0}
+            onClick={() => onBukaProfil(o.id)}
+            onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onBukaProfil(o.id); } }}
+            aria-label={`Buka profil ${o.nama}`}
+          >
+            <th scope="row">
+              {o.nama}
+              {o.catatanData && <Warning size={14} weight="fill" className={styles.ikonCatatan} aria-label={o.catatanData} />}
+            </th>
+            <td>{namaUnit[o.unitId]}</td>
+            <td>{o.jabatan}</td>
+            <td>{o.jenjang || "-"}</td>
+            <td><span className={styles.lencanaBaris}>{susunAlasan(o, asumsi).map((k) => <Lencana key={k} kunci={k} />)}</span></td>
+            <td>{labelPola(o.pola)}</td>
+            <td className={o.peserta ? undefined : styles.bukanPeserta}>{o.peserta ? labelJalur(o.peserta.jalur) : LABEL_BUKAN_PESERTA}</td>
+            <td>
+              <span className={statusData(o) === "lengkap" ? styles.statusLengkap : styles.statusDiri}>
+                {LABEL_STATUS_DATA[statusData(o)]}
+              </span>
+            </td>
+            {tampilSkor && <td className={styles.angka}>{formatAngka(o.spa)}</td>}
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  );
+}
+
+function DialogNama({ data, hasil, namaUnit, onTutup, onBukaProfil }) {
+  const { asumsi } = data;
+  const [urutan, klikJudul, setUrutan] = useUrutan();
+  const [tampilSkor, setTampilSkor] = useState(false);
+  const daftar = useMemo(() => urutPeserta(hasil, { ...urutan, namaUnit }), [hasil, urutan, namaUnit]);
 
   return (
     <Dialog
@@ -184,52 +290,106 @@ function DialogNama({ data, hasil, namaUnit, onTutup, onBukaProfil }) {
       )}
     >
       {data.lembaga.pesertaInfo?.catatan && <Catatan nada="emas" ikon={Warning}>{data.lembaga.pesertaInfo.catatan}</Catatan>}
-      <table className={styles.tabel}>
-        <thead>
-          <tr>
-            {judulUrut("nama", "Nama")}
-            {judulUrut("unit", "Unit")}
-            <th scope="col">Jabatan</th>
-            <th scope="col">Jenjang</th>
-            <th scope="col">Alasan</th>
-            <th scope="col">Pandangan atasan</th>
-            <th scope="col">Cara masuk</th>
-            <th scope="col">Sumber data</th>
-            {tampilSkor && judulUrut("spa", "Skor prioritas")}
-          </tr>
-        </thead>
-        <tbody>
-          {daftar.map((o) => (
-            <tr
-              key={o.id}
-              className={styles.barisKlik}
-              tabIndex={0}
-              onClick={() => onBukaProfil(o.id)}
-              onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onBukaProfil(o.id); } }}
-              aria-label={`Buka profil ${o.nama}`}
-            >
-              <th scope="row">
-                {o.nama}
-                {o.catatanData && <Warning size={14} weight="fill" className={styles.ikonCatatan} aria-label={o.catatanData} />}
-              </th>
-              <td>{namaUnit[o.unitId]}</td>
-              <td>{o.jabatan}</td>
-              <td>{o.jenjang || "-"}</td>
-              <td><span className={styles.lencanaBaris}>{susunAlasan(o, asumsi).map((k) => <Lencana key={k} kunci={k} />)}</span></td>
-              <td>{labelPola(o.pola)}</td>
-              <td>{labelJalur(o.peserta?.jalur)}</td>
-              <td>
-                <span className={statusData(o) === "lengkap" ? styles.statusLengkap : styles.statusDiri}>
-                  {LABEL_STATUS_DATA[statusData(o)]}
-                </span>
-              </td>
-              {tampilSkor && <td className={styles.angka}>{formatAngka(o.spa)}</td>}
-            </tr>
-          ))}
-        </tbody>
-      </table>
-
+      <TabelNama
+        daftar={daftar}
+        namaUnit={namaUnit}
+        asumsi={asumsi}
+        urutan={urutan}
+        onUrut={klikJudul}
+        onBukaProfil={onBukaProfil}
+        tampilSkor={tampilSkor}
+      />
     </Dialog>
+  );
+}
+
+// ── Human Capital: semua pegawai ────────────────────────────────────────────────────────────
+
+function DaftarSemua({ data, pemilih, unitId, onUnit, onBukaProfil }) {
+  const { asumsi } = data;
+  const [urutan, klikJudul] = useUrutan();
+  const [ekspor, setEkspor] = useState({ status: "siap", pesan: "" });
+
+  const namaUnit = useMemo(() => Object.fromEntries(data.unit.map((u) => [u.id, u.nama])), [data.unit]);
+  const opsiUnit = useMemo(() => opsiUnitPegawai(data.unit, data.individu), [data.unit, data.individu]);
+  // Unit tersimpan yang tidak ada lagi di data (mis. sumber data berganti) dianggap "Semua unit".
+  const unitAktif = opsiUnit.some((o) => o.nilai === unitId) ? unitId : "";
+  const daftar = useMemo(
+    () => urutPeserta(saringPegawai(data.individu, unitAktif), { ...urutan, namaUnit }),
+    [data.individu, unitAktif, urutan, namaUnit],
+  );
+  const nPeserta = daftar.filter((o) => o.peserta).length;
+  const unitNama = unitAktif ? namaUnit[unitAktif] : "";
+
+  function gantiUnit(nilai) {
+    setEkspor({ status: "siap", pesan: "" });
+    onUnit?.(nilai);
+  }
+
+  function unduh() {
+    try {
+      const nama = unduhDaftarPegawai({
+        baris: barisEksporPegawai(daftar, { namaUnit, asumsi }),
+        lembaga: data.meta?.lembaga,
+        periodeId: data.meta?.periodeId,
+        periode: labelPeriode(data.meta?.periodeId),
+        unitNama,
+      });
+      setEkspor({ status: "selesai", pesan: `${daftar.length} baris diunduh ke ${nama}` });
+    } catch (e) {
+      setEkspor({ status: "galat", pesan: `Berkas gagal dibuat: ${e?.message || e}` });
+    }
+  }
+
+  return (
+    <div className={styles.tabSemua}>
+      <Kartu className={styles.hasil}>
+        <div className={styles.hasilBaris}>
+          {pemilih}
+          <AngkaKecil nilai={daftar.length} label={unitAktif ? `dari ${data.individu.length} pegawai` : "pegawai"} />
+          <AngkaKecil nilai={nPeserta} label="peserta asesmen lanjutan" />
+          <AngkaKecil nilai={daftar.length - nPeserta} label="bukan peserta" />
+        </div>
+      </Kartu>
+      <Kartu
+        className={styles.kartuSemua}
+        judul={unitNama ? `${unitNama} (${daftar.length})` : `Semua pegawai (${daftar.length})`}
+        ikon={UsersThree}
+        aksi={(
+          <>
+            <Pilihan sebaris label="Unit" semua="Semua unit" nilai={unitAktif} onUbah={gantiUnit} opsi={opsiUnit} />
+            <Tombol
+              onClick={unduh}
+              disabled={!daftar.length}
+              title={`Unduh ${daftar.length} baris yang sedang tampil (${unitNama || "semua unit"}) sebagai berkas Excel`}
+            >
+              <MicrosoftExcelLogo size={18} weight="bold" aria-hidden="true" />
+              Ekspor Excel
+            </Tombol>
+          </>
+        )}
+        isiClassName={styles.isiSemua}
+      >
+        <p className={styles.ringkasSemua} role="status">
+          {ekspor.status === "galat" || ekspor.status === "selesai"
+            ? <span className={ekspor.status === "galat" ? styles.pesanGalat : styles.pesanSelesai}>{ekspor.pesan}</span>
+            : <>{daftar.length} pegawai, {nPeserta} di antaranya peserta asesmen lanjutan. Klik nama untuk membuka profilnya.</>}
+        </p>
+        {daftar.length === 0
+          ? <KeadaanLayar jenis="kosong" judul="Belum ada pegawai" pesan="Unit ini belum punya pengisi screening." />
+          : (
+            <TabelNama
+              daftar={daftar}
+              namaUnit={namaUnit}
+              asumsi={asumsi}
+              urutan={urutan}
+              onUrut={klikJudul}
+              onBukaProfil={onBukaProfil}
+              padat
+            />
+          )}
+      </Kartu>
+    </div>
   );
 }
 

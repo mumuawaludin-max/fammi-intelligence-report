@@ -10,7 +10,7 @@
     "typecheck": "tsc --noEmit",
     "preview": "vite preview",
     "gen:assets": "node scripts/gen-assets.mjs",
-    "test": "node --test src/pages/sw/lib/swAturan.test.js src/pages/sw/lib/swPembaca.test.js",
+    "test": "node --test src/pages/sw/lib/swAturan.test.js src/pages/sw/lib/swPembaca.test.js src/pages/sw/lib/swEkspor.test.js",
     "sw:baca": "node scripts/sw/baca-berkas-sw.mjs",
     "sw:contoh": "node scripts/sw/buat-data-contoh.mjs"
   },
