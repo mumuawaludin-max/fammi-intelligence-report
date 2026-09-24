@@ -78,6 +78,58 @@
   color: var(--fm-teks-lembut);
 }
 
+/* Penanda peserta asesmen lanjutan (masuk daftar 200) di tabel semua pegawai. Warna latarnya
+   sama dengan baris berwarna di berkas Excel (WARNA_EKSPOR.peserta di lib/swEkspor.js):
+   --fm-ungu 14% di atas putih = #E9E0FA. */
+.barisPeserta {
+  background: color-mix(in srgb, var(--fm-ungu) 14%, #ffffff);
+}
+
+.barisPeserta > th:first-child {
+  box-shadow: inset 4px 0 0 var(--fm-ungu);
+}
+
+.barisPeserta:hover,
+.barisPeserta:focus-visible {
+  background: color-mix(in srgb, var(--fm-ungu) 22%, #ffffff);
+}
+
+.tandaPeserta {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 3px;
+}
+
+.tandaPeserta small {
+  font-size: 13px;
+  color: var(--fm-teks-lembut);
+}
+
+.chipPeserta {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 9px;
+  border-radius: 999px;
+  font-size: 13px;
+  font-weight: 700;
+  color: #ffffff;
+  background: var(--fm-ungu-tua);
+  white-space: nowrap;
+}
+
+.kotakPeserta {
+  display: inline-block;
+  width: 12px;
+  height: 12px;
+  margin-right: 6px;
+  vertical-align: -1px;
+  border-radius: 3px;
+  background: color-mix(in srgb, var(--fm-ungu) 14%, #ffffff);
+  box-shadow: inset 3px 0 0 var(--fm-ungu);
+}
+
 /* Tabel semua pegawai: delapan kolom muat selebar layar laptop tanpa gulir ke samping. Nama
    boleh terlipat, Unit dan Jabatan diberi lebar minimum supaya tidak terlipat tiga baris. */
 .tabel.tabelPadat thead th,

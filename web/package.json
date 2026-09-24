@@ -18,6 +18,7 @@
     "@fontsource-variable/google-sans-flex": "^5.3.0",
     "@phosphor-icons/react": "^2.1.10",
     "@supabase/supabase-js": "^2.110.0",
+    "exceljs": "^4.4.0",
     "motion": "^12.23.24",
     "react": "^19.2.6",
     "react-dom": "^19.2.6",

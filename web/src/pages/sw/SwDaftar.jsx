@@ -8,13 +8,13 @@
 
 import { useMemo, useState } from "react";
 import {
-  CaretDown, CaretUp, Funnel, ListBullets, MicrosoftExcelLogo, Question, SquaresFour, UsersThree, Warning,
+  CaretDown, CaretUp, CheckCircle, Funnel, ListBullets, MicrosoftExcelLogo, Question, SquaresFour, UsersThree, Warning,
 } from "@phosphor-icons/react";
 import {
   ALASAN, JALUR, JENJANG, KELOMPOK_UNIT, POLA, labelJalur, labelKelompok, labelPola,
 } from "./lib/swMeta";
 import {
-  LABEL_BUKAN_PESERTA, LABEL_STATUS_DATA, barisEksporPegawai, bolehLihat, formatAngka, formatPersen, hitungAlasan,
+  LABEL_STATUS_DATA, URUTAN_SEMUA, barisEksporPegawai, bolehLihat, formatAngka, formatPersen, hitungAlasan,
   jumlahUnitKecil, labelPeriode, opsiUnitPegawai, porsi, saringPegawai, saringPeserta, saringUnitTampil, statusData,
   susunAlasan, urutPeserta,
 } from "./lib/swAturan";
@@ -191,7 +191,10 @@ function DaftarBernama({ data, pemilih, saringan, onSaringan, onBukaProfil }) {
   );
 }
 
-/** Urutan tabel nama: klik judul yang sama membalik arah; skor prioritas mulai dari tertinggi. */
+/**
+ * Urutan tabel nama: klik judul yang sama membalik arah; skor prioritas mulai dari tertinggi,
+ * prioritas mulai dari peserta.
+ */
 function useUrutan(awal = { kunci: "unit", arah: "naik" }) {
   const [urutan, setUrutan] = useState(awal);
   const klik = (kunci) => setUrutan((u) => (u.kunci === kunci
@@ -203,8 +206,12 @@ function useUrutan(awal = { kunci: "unit", arah: "naik" }) {
 /**
  * Tabel nama bersama untuk dialog 200 peserta dan tampilan Semua pegawai. Kolomnya sama:
  * Nama, Unit, Jabatan, Jenjang, Alasan, Pandangan atasan, Cara masuk, Sumber data.
+ * `tandaPeserta` (Semua pegawai): kolom Cara masuk menjadi "Asesmen lanjutan" berisi label
+ * Peserta dan bisa diurutkan menurut prioritas; baris peserta diberi latar ungu muda.
  */
-function TabelNama({ daftar, namaUnit, asumsi, urutan, onUrut, onBukaProfil, tampilSkor = false, padat = false }) {
+function TabelNama({
+  daftar, namaUnit, asumsi, urutan, onUrut, onBukaProfil, tampilSkor = false, padat = false, tandaPeserta = false,
+}) {
   const judulUrut = (kunci, isi) => {
     const aktif = urutan.kunci === kunci;
     return (
@@ -227,7 +234,7 @@ function TabelNama({ daftar, namaUnit, asumsi, urutan, onUrut, onBukaProfil, tam
           <th scope="col">Jenjang</th>
           <th scope="col">Alasan</th>
           <th scope="col">Pandangan atasan</th>
-          <th scope="col">Cara masuk</th>
+          {tandaPeserta ? judulUrut("prioritas", "Asesmen lanjutan") : <th scope="col">Cara masuk</th>}
           <th scope="col">Sumber data</th>
           {tampilSkor && judulUrut("spa", "Skor prioritas")}
         </tr>
@@ -236,7 +243,7 @@ function TabelNama({ daftar, namaUnit, asumsi, urutan, onUrut, onBukaProfil, tam
         {daftar.map((o) => (
           <tr
             key={o.id}
-            className={styles.barisKlik}
+            className={`${styles.barisKlik} ${tandaPeserta && o.peserta ? styles.barisPeserta : ""}`}
             tabIndex={0}
             onClick={() => onBukaProfil(o.id)}
             onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onBukaProfil(o.id); } }}
@@ -251,7 +258,16 @@ function TabelNama({ daftar, namaUnit, asumsi, urutan, onUrut, onBukaProfil, tam
             <td>{o.jenjang || "-"}</td>
             <td><span className={styles.lencanaBaris}>{susunAlasan(o, asumsi).map((k) => <Lencana key={k} kunci={k} />)}</span></td>
             <td>{labelPola(o.pola)}</td>
-            <td className={o.peserta ? undefined : styles.bukanPeserta}>{o.peserta ? labelJalur(o.peserta.jalur) : LABEL_BUKAN_PESERTA}</td>
+            {tandaPeserta ? (
+              <td>
+                {o.peserta ? (
+                  <span className={styles.tandaPeserta}>
+                    <span className={styles.chipPeserta}><CheckCircle size={14} weight="fill" aria-hidden="true" />Peserta</span>
+                    <small>{labelJalur(o.peserta.jalur)}</small>
+                  </span>
+                ) : <span className={styles.bukanPeserta}>-</span>}
+              </td>
+            ) : <td>{labelJalur(o.peserta?.jalur)}</td>}
             <td>
               <span className={statusData(o) === "lengkap" ? styles.statusLengkap : styles.statusDiri}>
                 {LABEL_STATUS_DATA[statusData(o)]}
@@ -305,9 +321,16 @@ function DialogNama({ data, hasil, namaUnit, onTutup, onBukaProfil }) {
 
 // ── Human Capital: semua pegawai ────────────────────────────────────────────────────────────
 
+/** Nama urutan untuk sheet Keterangan di berkas Excel. */
+function labelUrutan(urutan) {
+  const dasar = URUTAN_SEMUA.find((x) => x.nilai === urutan.kunci)?.label || urutan.kunci;
+  return urutan.arah === "turun" ? `${dasar}, dibalik` : dasar;
+}
+
 function DaftarSemua({ data, pemilih, unitId, onUnit, onBukaProfil }) {
   const { asumsi } = data;
-  const [urutan, klikJudul] = useUrutan();
+  // Bawaan prioritas: begitu satu unit dipilih, peserta asesmen lanjutan unit itu ada di atas.
+  const [urutan, klikJudul, setUrutan] = useUrutan({ kunci: "prioritas", arah: "naik" });
   const [ekspor, setEkspor] = useState({ status: "siap", pesan: "" });
 
   const namaUnit = useMemo(() => Object.fromEntries(data.unit.map((u) => [u.id, u.nama])), [data.unit]);
@@ -326,16 +349,19 @@ function DaftarSemua({ data, pemilih, unitId, onUnit, onBukaProfil }) {
     onUnit?.(nilai);
   }
 
-  function unduh() {
+  async function unduh() {
+    setEkspor({ status: "memuat", pesan: "" });
     try {
-      const nama = unduhDaftarPegawai({
+      const nama = await unduhDaftarPegawai({
         baris: barisEksporPegawai(daftar, { namaUnit, asumsi }),
         lembaga: data.meta?.lembaga,
         periodeId: data.meta?.periodeId,
         periode: labelPeriode(data.meta?.periodeId),
         unitNama,
+        urutan: labelUrutan(urutan),
       });
-      setEkspor({ status: "selesai", pesan: `${daftar.length} baris diunduh ke ${nama}` });
+      const tanda = nPeserta ? `, ${nPeserta} baris peserta berwarna ungu` : "";
+      setEkspor({ status: "selesai", pesan: `${daftar.length} baris diunduh ke ${nama}${tanda}.` });
     } catch (e) {
       setEkspor({ status: "galat", pesan: `Berkas gagal dibuat: ${e?.message || e}` });
     }
@@ -358,13 +384,22 @@ function DaftarSemua({ data, pemilih, unitId, onUnit, onBukaProfil }) {
         aksi={(
           <>
             <Pilihan sebaris label="Unit" semua="Semua unit" nilai={unitAktif} onUbah={gantiUnit} opsi={opsiUnit} />
+            <Pilihan
+              sebaris
+              label="Urutan"
+              semua={null}
+              nilai={URUTAN_SEMUA.some((x) => x.nilai === urutan.kunci) ? urutan.kunci : "prioritas"}
+              onUbah={(kunci) => setUrutan({ kunci, arah: "naik" })}
+              opsi={URUTAN_SEMUA}
+              petunjuk="Prioritas: peserta asesmen lanjutan di atas, diurutkan dari skor prioritas tertinggi, lalu pegawai lainnya."
+            />
             <Tombol
               onClick={unduh}
-              disabled={!daftar.length}
+              disabled={!daftar.length || ekspor.status === "memuat"}
               title={`Unduh ${daftar.length} baris yang sedang tampil (${unitNama || "semua unit"}) sebagai berkas Excel`}
             >
               <MicrosoftExcelLogo size={18} weight="bold" aria-hidden="true" />
-              Ekspor Excel
+              {ekspor.status === "memuat" ? "Menyiapkan…" : "Ekspor Excel"}
             </Tombol>
           </>
         )}
@@ -373,7 +408,14 @@ function DaftarSemua({ data, pemilih, unitId, onUnit, onBukaProfil }) {
         <p className={styles.ringkasSemua} role="status">
           {ekspor.status === "galat" || ekspor.status === "selesai"
             ? <span className={ekspor.status === "galat" ? styles.pesanGalat : styles.pesanSelesai}>{ekspor.pesan}</span>
-            : <>{daftar.length} pegawai, {nPeserta} di antaranya peserta asesmen lanjutan. Klik nama untuk membuka profilnya.</>}
+            : (
+              <>
+                <Petunjuk teks="Baris berlatar ungu muda masuk daftar 200 peserta asesmen lanjutan. Di berkas Excel barisnya juga berwarna dan kolom Peserta asesmen lanjutan berisi Ya.">
+                  <i className={styles.kotakPeserta} aria-hidden="true" />
+                </Petunjuk>
+                {nPeserta} dari {daftar.length} pegawai{unitNama ? " unit ini" : ""} masuk daftar 200 peserta asesmen lanjutan. Klik nama untuk membuka profilnya.
+              </>
+            )}
         </p>
         {daftar.length === 0
           ? <KeadaanLayar jenis="kosong" judul="Belum ada pegawai" pesan="Unit ini belum punya pengisi screening." />
@@ -386,6 +428,7 @@ function DaftarSemua({ data, pemilih, unitId, onUnit, onBukaProfil }) {
               onUrut={klikJudul}
               onBukaProfil={onBukaProfil}
               padat
+              tandaPeserta
             />
           )}
       </Kartu>

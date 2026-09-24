@@ -367,12 +367,17 @@ export function saringPeserta(daftar, saringan, { units = [], asumsi } = {}) {
 /**
  * Urutan daftar peserta. Bawaan: unit lalu nama. Skor prioritas hanya dipakai kalau pengguna
  * memilihnya sendiri, dan tetap diputus unit lalu nama supaya urutannya stabil.
+ * Kunci "prioritas" (tampilan Semua pegawai): peserta asesmen lanjutan lebih dulu, lalu skor
+ * prioritas final dari berkas, tertinggi dulu; arah "turun" membalik keduanya.
  */
 export function urutPeserta(daftar, { kunci = "unit", arah = "naik", namaUnit = {} } = {}) {
   const kali = arah === "turun" ? -1 : 1;
   const unitNama = (o) => namaUnit[o.unitId] || o.unitId || "";
   const dasar = (a, b) => unitNama(a).localeCompare(unitNama(b), "id") || a.nama.localeCompare(b.nama, "id");
   return [...(daftar || [])].sort((a, b) => {
+    if (kunci === "prioritas") {
+      return kali * ((b.peserta ? 1 : 0) - (a.peserta ? 1 : 0) || (b.spa ?? -1) - (a.spa ?? -1)) || dasar(a, b);
+    }
     if (kunci === "spa") return kali * ((a.spa ?? -1) - (b.spa ?? -1)) || dasar(a, b);
     if (kunci === "nama") return kali * a.nama.localeCompare(b.nama, "id") || dasar(a, b);
     return kali * dasar(a, b);
@@ -381,8 +386,12 @@ export function urutPeserta(daftar, { kunci = "unit", arah = "naik", namaUnit = 
 
 // ── Semua pegawai (Human Capital) ───────────────────────────────────────────────────────────
 
-/** Label kolom "Cara masuk" untuk pegawai yang tidak masuk daftar 200 peserta. */
-export const LABEL_BUKAN_PESERTA = "Bukan peserta";
+/** Pilihan urutan tampilan Semua pegawai. Bawaan: prioritas, supaya peserta unit itu di atas. */
+export const URUTAN_SEMUA = [
+  { nilai: "prioritas", label: "Prioritas (peserta di atas)" },
+  { nilai: "unit", label: "Unit lalu nama" },
+  { nilai: "nama", label: "Nama" },
+];
 
 /** Semua pegawai, peserta maupun bukan, disaring satu unit. String kosong berarti semua unit. */
 export function saringPegawai(daftar, unitId = "") {
@@ -399,25 +408,33 @@ export function opsiUnitPegawai(units, daftar) {
     .sort((a, b) => a.label.localeCompare(b.label, "id"));
 }
 
-/** Urutan kolom berkas Excel "Semua pegawai". Sama dengan kolom tabel di layar, plus nomor. */
+/** Kolom penanda di berkas Excel: "Ya" untuk yang masuk daftar 200 peserta. */
+export const KOLOM_PESERTA = "Peserta asesmen lanjutan";
+
+/**
+ * Urutan kolom berkas Excel "Semua pegawai": kolom tabel di layar, plus nomor dan kolom penanda
+ * peserta tepat setelah nama (barisnya juga diberi warna, lihat swEkspor.js).
+ */
 export const KOLOM_EKSPOR_PEGAWAI = [
-  "No", "Nama", "Unit", "Jabatan", "Jenjang", "Alasan", "Pandangan atasan", "Cara masuk", "Sumber data",
+  "No", "Nama", KOLOM_PESERTA, "Unit", "Jabatan", "Jenjang", "Alasan", "Pandangan atasan", "Cara masuk", "Sumber data",
 ];
 
 /**
  * Baris berkas Excel dari daftar yang SUDAH disaring dan diurutkan di layar, jadi isi berkas
- * persis yang sedang dilihat. Tidak ada skor prioritas: angka itu internal dan tidak ikut keluar.
+ * persis yang sedang dilihat. Tidak ada skor prioritas: angkanya internal dan tidak ikut keluar;
+ * prioritas hanya terbaca dari urutan baris.
  */
 export function barisEksporPegawai(daftar, { namaUnit = {}, asumsi } = {}) {
   return (daftar || []).map((o, i) => ({
     No: i + 1,
     Nama: o.nama,
+    [KOLOM_PESERTA]: o.peserta ? "Ya" : "Tidak",
     Unit: namaUnit[o.unitId] || o.unitId || "",
     Jabatan: o.jabatan || "",
     Jenjang: o.jenjang || "-",
     Alasan: susunAlasan(o, asumsi).map((k) => ALASAN.find((a) => a.kunci === k)?.label || k).join(", "),
     "Pandangan atasan": labelPola(o.pola),
-    "Cara masuk": o.peserta ? labelJalur(o.peserta.jalur) : LABEL_BUKAN_PESERTA,
+    "Cara masuk": o.peserta ? labelJalur(o.peserta.jalur) : "-",
     "Sumber data": LABEL_STATUS_DATA[statusData(o)],
   }));
 }
