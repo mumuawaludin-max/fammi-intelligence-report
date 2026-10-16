@@ -89,6 +89,8 @@ function aspekContoh(kode, i, nilai, jumlahSekolah) {
     jumlahSekolah,
     sekolahBerlabel: 2,
     kodeBeda: false,
+    kodeBernamaGanda: [],
+    ejaanLain: [],
   };
 }
 

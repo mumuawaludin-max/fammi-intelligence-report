@@ -200,33 +200,167 @@ export function useYptKarakter(session, periode) {
      */
     const normNama = (s) => s.toLowerCase().replace(/[^a-z0-9]+/g, "");
 
+    /** Nama generik bikinan kode ("Karakter 4"), bukan nama yang dideklarasikan sekolah. */
+    const namaGenerik = (s) => /^karakter\s*\d+$/i.test(s.trim());
+
+    /** Jarak Levenshtein. Daftar nama per jenjang paling banyak belasan, jadi O(n*m) aman. */
+    function jarakEjaan(a, b) {
+      const baris = Array.from({ length: b.length + 1 }, (_, i) => i);
+      for (let i = 1; i <= a.length; i += 1) {
+        let diagonal = baris[0];
+        baris[0] = i;
+        for (let j = 1; j <= b.length; j += 1) {
+          const simpan = baris[j];
+          baris[j] = Math.min(
+            baris[j] + 1,
+            baris[j - 1] + 1,
+            diagonal + (a[i - 1] === b[j - 1] ? 0 : 1),
+          );
+          diagonal = simpan;
+        }
+      }
+      return baris[b.length];
+    }
+
     /**
-     * kode -> Map(nama ternormalkan -> nama tampilan) untuk satu kelompok jenjang.
-     * Dipakai supaya baris tanpa nama bisa menumpang nama yang sudah dideklarasikan sekolah lain
-     * pada kode yang sama, selama nama itu cuma satu.
+     * Dua nama ternormalkan dianggap EJAAN BERBEDA untuk karakter yang sama.
+     *
+     * Ini satu-satunya tempat di sini yang menebak, dan ia sengaja dibuat sesempit mungkin.
+     * Yang dibereskan cuma kekacauan ejaan yang nyata ada di berkas YPT (diverifikasi pada
+     * "Summary Sekolah YPT.xlsx" Mei 2026):
+     *   TK: "7kebiasan" (3 sekolah), "7kebiasaan" (2), "7kebiasaan anak indonesia hebat" (2)
+     *       -- satu karakter yang sama, tiga penulisan
+     *   SD: "disipilin" (1 sekolah) vs "disiplin" (2) -- salah ketik
+     * Tanpa penyatuan ini, pengelompokan per nama memperbaiki SD tapi memecah 7 Kebiasaan di TK
+     * jadi tiga batang, yaitu menukar satu cacat dengan cacat yang lebih besar.
+     *
+     * Batas-batasnya, semuanya untuk mencegah dua karakter BERLAINAN tertarik jadi satu:
+     *   - nama di bawah 6 huruf tidak pernah disatukan dengan nama lain; nama pendek terlalu
+     *     mudah bertabrakan.
+     *   - nama generik "Karakter N" dikecualikan mentah-mentah. "karakter1" dan "karakter2"
+     *     cuma beda satu huruf dan akan disatukan oleh aturan jarak di bawah, padahal keduanya
+     *     justru penanda bahwa namanya belum diketahui.
+     *   - selisih maksimal dua huruf, atau yang pendek adalah awalan persis dari yang panjang.
+     * "mandiri" vs "7kebiasaanakindonesiahebat" jauh melewati semuanya, jadi Mandiri tetap
+     * berdiri sendiri -- itu justru cacat yang laporan ini berangkat dari situ.
+     *
+     * Ini TAMBALAN, bukan penyelesaian. Penyelesaiannya menyeragamkan nama di
+     * karakter_aspek_config lewat Admin CMS; sesudah itu fungsi ini tidak pernah terpakai.
+     * Setiap penyatuan dilaporkan ke tampilan lewat `ejaanLain`, jadi tidak ada yang disatukan
+     * diam-diam.
      */
-    function namaPerKode(rows) {
+    function samaEjaan(a, b) {
+      if (a === b) return true;
+      const pendek = a.length <= b.length ? a : b;
+      const panjang = a.length <= b.length ? b : a;
+      if (pendek.length < 6) return false;
+      if (panjang.startsWith(pendek)) return true;
+      return jarakEjaan(a, b) <= 2;
+    }
+
+    /**
+     * Satukan nama-nama satu jenjang jadi kelompok ejaan.
+     * Mengembalikan: norm -> { kunci, nama tampilan terpilih, semua ejaan }.
+     *
+     * Nama tampilan dipilih begini, urut:
+     *   1. Ejaan yang MEMUAT ejaan lain di kelompok ini sebagai awalannya. "7 Kebiasaan Anak
+     *      Indonesia Hebat" memuat "7 Kebiasaan", jadi ia nama lengkapnya dan yang pendek adalah
+     *      singkatan, bukan salah ketik.
+     *   2. Ejaan yang dipakai paling banyak sekolah.
+     *   3. Yang terpanjang, lalu urut abjad, supaya hasilnya tetap sama tiap render.
+     * Tanpa butir 1, kelompok 7 Kebiasaan di TK akan tampil sebagai "7kebiasan" (salah ketik,
+     * tapi dipakai 3 dari 7 sekolah sehingga menang suara terbanyak). Tanpa butir 2, kelompok
+     * Disiplin di SD akan tampil sebagai "Disipilin" karena kebetulan satu huruf lebih panjang.
+     * Ini cuma soal NAMA YANG DITAMPILKAN; pengelompokan dan angkanya tidak terpengaruh, dan
+     * ejaan lainnya tetap dibawa ke tampilan supaya admin bisa memutuskan.
+     */
+    function kelompokEjaan(rows) {
+      const hitung = new Map(); // norm -> { nama, sekolah:Set }
+      rows.forEach((r) => {
+        const label = (r.aspek_label || "").trim();
+        if (!label || namaGenerik(label)) return;
+        const n = normNama(label);
+        if (!n) return;
+        if (!hitung.has(n)) hitung.set(n, { nama: label, sekolah: new Set() });
+        hitung.get(n).sekolah.add(r.sekolah_id);
+      });
+
+      const daftar = [...hitung.keys()];
+      const indukDari = new Map(daftar.map((n) => [n, n]));
+      const akar = (n) => (indukDari.get(n) === n ? n : akar(indukDari.get(n)));
+      for (let i = 0; i < daftar.length; i += 1) {
+        for (let j = i + 1; j < daftar.length; j += 1) {
+          if (!samaEjaan(daftar[i], daftar[j])) continue;
+          const a = akar(daftar[i]);
+          const b = akar(daftar[j]);
+          if (a !== b) indukDari.set(b, a);
+        }
+      }
+
+      const perAkar = new Map();
+      daftar.forEach((n) => {
+        const a = akar(n);
+        if (!perAkar.has(a)) perAkar.set(a, []);
+        perAkar.get(a).push(n);
+      });
+
+      const peta = new Map();
+      perAkar.forEach((anggota, a) => {
+        const namaPenuh = (n) => (anggota.some((m) => m !== n && n.startsWith(m)) ? 1 : 0);
+        const urut = [...anggota].sort((x, y) => (namaPenuh(y) - namaPenuh(x))
+          || (hitung.get(y).sekolah.size - hitung.get(x).sekolah.size)
+          || (hitung.get(y).nama.length - hitung.get(x).nama.length)
+          || hitung.get(x).nama.localeCompare(hitung.get(y).nama, "id"));
+        const nama = hitung.get(urut[0]).nama;
+        const ejaanLain = urut.slice(1).map((n) => hitung.get(n).nama);
+        anggota.forEach((n) => peta.set(n, { kunci: `nama:${a}`, nama, ejaanLain }));
+      });
+      return peta;
+    }
+
+    /**
+     * kode -> Set kunci kelompok ejaan yang menempati kode itu.
+     * Dipakai supaya baris tanpa nama bisa menumpang nama yang sudah dideklarasikan sekolah lain
+     * pada kode yang sama, selama kodenya cuma berisi SATU karakter (beda ejaan tidak dihitung
+     * sebagai karakter kedua).
+     */
+    function kelompokPerKode(rows, ejaan) {
       const peta = {};
       rows.forEach((r) => {
         const kode = (r.aspek_kode || "").trim();
         const label = (r.aspek_label || "").trim();
         if (!kode || !label) return;
-        (peta[kode] ||= new Map()).set(normNama(label), label);
+        const e = ejaan.get(normNama(label));
+        if (!e) return;
+        (peta[kode] ||= new Map()).set(e.kunci, e);
       });
       return peta;
     }
 
     /** Identitas satu baris aspek di dalam kelompoknya. */
-    function identitasAspek(r, peta) {
+    function identitasAspek(r, ejaan, perKode) {
       const kode = (r.aspek_kode || "").trim();
       const label = (r.aspek_label || "").trim();
-      if (label) return { kunci: `nama:${normNama(label)}`, nama: label, namaAsli: true, kode };
-      const kandidat = peta[kode];
+      const milikSendiri = label ? ejaan.get(normNama(label)) : null;
+      if (milikSendiri) {
+        return { ...milikSendiri, namaAsli: true, kode };
+      }
+      const kandidat = perKode[kode];
       if (kandidat && kandidat.size === 1) {
         const satu = [...kandidat.values()][0];
-        return { kunci: `nama:${normNama(satu)}`, nama: satu, namaAsli: true, kode };
+        return { ...satu, namaAsli: true, kode };
       }
-      return { kunci: `kode:${kode}`, nama: aspekFallbackLabel(kode), namaAsli: false, kode };
+      return {
+        kunci: `kode:${kode}`,
+        nama: label || aspekFallbackLabel(kode),
+        ejaanLain: [],
+        // Sekolah yang benar-benar menuliskan "Karakter 3" sebagai nama karakternya tetap dihitung
+        // BELUM bernama. Rangkuman memakai namaAsli untuk memutuskan boleh atau tidak menyebut
+        // nama karakter di dalam kalimat, dan "karakter terbaik Telkom adalah Karakter 3" tidak
+        // memberi tahu apa pun.
+        namaAsli: Boolean(label) && !namaGenerik(label),
+        kode,
+      };
     }
 
     function aspekPerGrup(grupId) {
@@ -235,15 +369,16 @@ export function useYptKarakter(session, periode) {
         return meta && (grupId == null || groupJenjang(meta.jenjang) === grupId);
       });
 
-      const peta = namaPerKode(anggota);
+      const ejaan = kelompokEjaan(anggota);
+      const perKode = kelompokPerKode(anggota, ejaan);
       const byKunci = new Map();
       anggota.forEach((r) => {
         const kode = (r.aspek_kode || "").trim();
         if (!kode) return;
         // Lintas jenjang tidak ada nama yang sah, jadi kodenya sendiri yang jadi identitas.
         const id = grupId == null
-          ? { kunci: `kode:${kode}`, nama: aspekFallbackLabel(kode), namaAsli: false, kode }
-          : identitasAspek(r, peta);
+          ? { kunci: `kode:${kode}`, nama: aspekFallbackLabel(kode), ejaanLain: [], namaAsli: false, kode }
+          : identitasAspek(r, ejaan, perKode);
         let g = byKunci.get(id.kunci);
         if (!g) { g = { ...id, kodeList: new Set(), rows: [] }; byKunci.set(id.kunci, g); }
         g.kodeList.add(kode);
@@ -273,6 +408,18 @@ export function useYptKarakter(session, periode) {
           // sejak pengelompokan ikut nama, tapi tetap dilaporkan supaya admin tahu berkasnya
           // belum seragam.
           kodeBeda: g.kodeList.size > 1,
+          // Posisi kolom yang di sekolah berbeda berisi karakter BERNAMA BEDA. Kelompoknya sudah
+          // dipisah dengan benar, tapi ini tetap wajib dilaporkan: dua nama berbeda di kode yang
+          // sama bisa berarti dua karakter yang memang berlainan (SD Telkom Padang menaruh
+          // "Mandiri" di karakter5, dua SD lain menaruh "7 Kebiasaan" di situ) ATAU satu karakter
+          // yang salah ketik di salah satu berkas. Kode tidak boleh menebak yang mana; yang bisa
+          // membedakan cuma manusia yang melihat berkasnya. Beda EJAAN tidak terhitung di sini,
+          // ia sudah disatukan dan dilaporkan lewat `ejaanLain`.
+          kodeBernamaGanda: [...g.kodeList].filter((k) => (perKode[k]?.size || 0) > 1),
+          // Ejaan lain untuk karakter yang sama, yang disatukan ke batang ini. Kosong kalau semua
+          // sekolah menulis namanya sama. Tampilan WAJIB menyebutkannya: penyatuan ejaan adalah
+          // tebakan, dan admin yang harus merapikannya di karakter_aspek_config.
+          ejaanLain: g.ejaanLain || [],
         }))
         .filter((a) => a.nilai != null)
         // Urut menurut kode terkecil secara alami (karakter1, karakter2, ... karakter10), bukan

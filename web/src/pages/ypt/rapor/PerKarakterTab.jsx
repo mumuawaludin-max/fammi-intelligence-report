@@ -44,6 +44,39 @@ export default function PerKarakterTab({ data }) {
         + `${perJenjang.map((s) => s.nama).join(', ')}. Angka totalnya tetap ikut di tab lain.`;
     }
 
+    // Satu posisi kolom yang di sekolah berbeda berisi karakter bernama beda. Batangnya SUDAH
+    // dipisah dengan benar, tapi ini yang paling perlu dilihat admin: bisa jadi memang dua
+    // karakter berlainan, bisa jadi satu karakter yang salah ketik di salah satu berkas. Hanya
+    // manusia yang bisa membedakan, jadi namanya disebut semua.
+    const namaPerKode = new Map();
+    aspek.forEach((a) => {
+      (a.kodeBernamaGanda || []).forEach((kode) => {
+        if (!namaPerKode.has(kode)) namaPerKode.set(kode, new Set());
+        namaPerKode.get(kode).add(a.nama);
+      });
+    });
+    if (namaPerKode.size > 0) {
+      const rincian = [...namaPerKode.entries()]
+        .map(([kode, nama]) => `kolom ${kode.replace("karakter", "karakter ke-")} berisi `
+          + `${[...nama].join(' dan ')}`)
+        .join('; ');
+      return `Antar sekolah, ${rincian}. Grafik ini sudah memisahkannya jadi batang sendiri-`
+        + "sendiri. Kalau nama-nama itu sebenarnya karakter yang sama dan cuma beda penulisan, "
+        + "samakan namanya lewat Admin CMS supaya angkanya menyatu.";
+    }
+
+    // Satu karakter yang EJAANNYA berbeda antar sekolah. Sudah disatukan jadi satu batang supaya
+    // angkanya tidak terpecah, tapi penyatuan itu tebakan dan tidak boleh disembunyikan.
+    const ejaan = aspek.filter((a) => (a.ejaanLain || []).length > 0);
+    if (ejaan.length > 0) {
+      const rincian = ejaan
+        .map((a) => `"${a.nama}" (juga ditulis ${a.ejaanLain.map((e) => `"${e}"`).join(', ')})`)
+        .join('; ');
+      return `${ejaan.length} karakter ditulis dengan ejaan berbeda antar sekolah: ${rincian}. `
+        + "Grafik ini menyatukannya supaya angkanya tidak terpecah. Samakan penulisannya lewat "
+        + "Admin CMS supaya tidak perlu ditebak lagi.";
+    }
+
     // Satu karakter yang di sekolah berbeda duduk di posisi kolom berbeda. Batangnya sudah benar
     // (pengelompokannya ikut nama, bukan posisi kolom), tapi berkas sumbernya belum seragam dan
     // admin perlu tahu supaya bisa merapikannya.
