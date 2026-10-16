@@ -101,7 +101,7 @@ export default function PerSekolahTab({ data }) {
               <th colSpan={2}>Sekolah</th>
               <th>Total Pencapaian</th>
               {kolomAspek.map((k) => (
-                <th key={k.kode} className={styles.thTengah}>{k.nama}</th>
+                <th key={k.kunci} className={styles.thTengah}>{k.nama}</th>
               ))}
             </tr>
           </thead>
@@ -129,13 +129,21 @@ export default function PerSekolahTab({ data }) {
                       <span className={styles.totalBar}><ProgressBar value={s.rata_total} /></span>
                     </span>
                   </td>
-                  {kolomAspek.map((k) => (
-                    <td key={k.kode} className={styles.selNilai}>
-                      <span className={`${styles.selBadge} ${aspek[k.kode] == null ? styles.selKosong : ""}`}>
-                        {aspek[k.kode] == null ? "—" : `${aspek[k.kode]}%`}
-                      </span>
-                    </td>
-                  ))}
+                  {kolomAspek.map((k) => {
+                    // Satu karakter bisa duduk di posisi kolom yang berbeda antar sekolah
+                    // ("7 Kebiasaan" di karakter5 pada dua SD, karakter6 pada SD ketiga), jadi
+                    // selnya dicari dengan menelusuri seluruh kode milik kolom ini.
+                    const nilai = k.kodeList
+                      .map((kode) => aspek[kode]?.nilai)
+                      .find((v) => v != null);
+                    return (
+                      <td key={k.kunci} className={styles.selNilai}>
+                        <span className={`${styles.selBadge} ${nilai == null ? styles.selKosong : ""}`}>
+                          {nilai == null ? "—" : `${nilai}%`}
+                        </span>
+                      </td>
+                    );
+                  })}
                 </tr>
               );
             })}

@@ -44,11 +44,15 @@ export default function PerKarakterTab({ data }) {
         + `${perJenjang.map((s) => s.nama).join(', ')}. Angka totalnya tetap ikut di tab lain.`;
     }
 
-    const bentrok = aspek.filter((a) => a.labelBentrok);
-    if (bentrok.length > 0) {
-      return `Peringatan: ${bentrok.length} karakter dinamai berbeda-beda antar sekolah pada `
-        + "kode yang sama, jadi angkanya bisa saja menggabungkan karakter yang berlainan. "
-        + "Samakan penamaannya lewat Admin CMS.";
+    // Satu karakter yang di sekolah berbeda duduk di posisi kolom berbeda. Batangnya sudah benar
+    // (pengelompokannya ikut nama, bukan posisi kolom), tapi berkas sumbernya belum seragam dan
+    // admin perlu tahu supaya bisa merapikannya.
+    const kodeBeda = aspek.filter((a) => a.kodeBeda);
+    if (kodeBeda.length > 0) {
+      return `${kodeBeda.length} karakter ditulis di urutan kolom yang berbeda antar sekolah `
+        + `(${kodeBeda.map((a) => a.nama).join(', ')}). Grafik ini mengelompokkannya menurut nama, `
+        + "jadi angkanya sudah menyatu; rapikan urutan kolomnya di berkas unggahan supaya "
+        + "sama di semua sekolah.";
     }
 
     const berlabel = Math.max(...aspek.map((a) => a.sekolahBerlabel));
@@ -78,7 +82,7 @@ export default function PerKarakterTab({ data }) {
           <>
             <div className={styles.chartArea}>
               {aspek.map((a) => (
-                <div key={a.kode} className={styles.chartCol}>
+                <div key={a.kunci} className={styles.chartCol}>
                   <span className={styles.chartNilai}>{a.nilai}%</span>
                   <span className={styles.chartBarTrack}>
                     {/* Tinggi bar = persen langsung, jadi jalur abu di belakangnya mewakili 100%
@@ -90,7 +94,7 @@ export default function PerKarakterTab({ data }) {
             </div>
             <div className={styles.chartLabels}>
               {aspek.map((a) => (
-                <span key={a.kode} className={styles.chartLabel}>{a.nama}</span>
+                <span key={a.kunci} className={styles.chartLabel}>{a.nama}</span>
               ))}
             </div>
 

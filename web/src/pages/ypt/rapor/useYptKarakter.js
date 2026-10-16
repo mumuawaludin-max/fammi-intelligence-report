@@ -162,76 +162,125 @@ export function useYptKarakter(session, periode) {
     const idPerJenjang = new Set(sekolahPerJenjang.map((s) => s.id));
     const aspekAktif = aspekAktifSemua.filter((r) => !idPerJenjang.has(r.sekolah_id));
     /**
-     * Aspek dikelompokkan per `aspek_kode`, BUKAN per label.
+     * Aspek dikelompokkan per NAMA karakter yang dideklarasikan sekolah; `aspek_kode` cuma
+     * cadangan untuk baris yang belum punya nama.
      *
-     * Versi sebelumnya mengelompokkan per label, dengan fallback "karakter1" -> "Karakter 1"
-     * untuk baris yang labelnya kosong. Itu menghasilkan angka yang salah, dan besar salahnya
-     * tidak kecil. Diverifikasi terhadap data produksi (2026-08-28): dari 12 sekolah SMA/K, cuma
-     * SMK Telkom Purwokerto yang mengisi karakter_aspek_config. Akibatnya tiap karakter terbelah
-     * jadi dua batang -- "Empati 97%" ternyata nilai satu sekolah itu saja, sementara
-     * "Karakter 1 67%" adalah 11 sekolah sisanya. Grafik menampilkan delapan batang untuk empat
-     * karakter, dan tidak satu pun mewakili SMA/K.
+     * KENAPA BUKAN PER KODE (ini pernah dibalik dua kali, baca sebelum membaliknya lagi):
      *
-     * `aspek_kode` adalah satu-satunya kunci yang dimiliki SEMUA baris, jadi itu yang dipakai.
-     * Label tampilan diambil dari sekolah mana pun yang sudah mendeklarasikannya.
+     * `aspek_kode` bukan identitas, melainkan POSISI KOLOM di berkas Excel ("karakter5" = kolom
+     * karakter kelima). Sekolah menaruh karakter yang berbeda di posisi yang sama. Terbukti di
+     * data produksi jenjang SD (2026-10-16): SD Telkom Makassar dan SD Telkom Batam punya lima
+     * karakter dengan "7 Kebiasaan Anak Indonesia Hebat" di karakter5, sedangkan SD Telkom Padang
+     * punya enam dengan "Mandiri" di karakter5 dan "7 Kebiasaan" di karakter6. Pengelompokan per
+     * kode menghasilkan dua kesalahan sekaligus: satu batang merata-ratakan Mandiri bersama
+     * 7 Kebiasaan lalu menamainya salah satu dari keduanya (Mandiri hilang dari grafik), dan
+     * 7 Kebiasaan muncul DUA KALI dengan angka berbeda karena duduk di dua kode.
      *
-     * BATAS YANG HARUS DISADARI: tidak ada bukti bahwa "karakter1" berarti karakter yang sama di
-     * semua sekolah, karena 11 dari 12 sekolah tidak mendeklarasikan apa pun. Yang bisa dijamin
-     * cuma bahwa pengelompokan ini konsisten dengan cara rata_total tiap sekolah sudah dihitung.
-     * `sekolahBerlabel` dan `labelBentrok` di bawah membawa ketidakpastian itu ke tampilan alih
-     * alih menyembunyikannya. Perbaikan sesungguhnya ada di data, bukan di kode: minta sekolah
-     * mengisi karakter_aspek_config lewat Admin CMS.
+     * Versi yang lebih tua mengelompokkan per nama tanpa cadangan apa pun, dan itu juga salah:
+     * dari 12 sekolah SMA/K cuma satu yang mengisi karakter_aspek_config, jadi tiap karakter
+     * terbelah jadi "Empati" (satu sekolah) dan "Karakter 1" (sebelas sisanya).
+     *
+     * Yang dipakai sekarang menutup kedua lubang itu: baris yang punya nama dikelompokkan menurut
+     * namanya sendiri, dan baris yang belum punya nama IKUT ke nama itu asalkan kodenya cuma
+     * punya satu nama di jenjang ini. Kalau satu kode punya lebih dari satu nama, baris tanpa nama
+     * tidak bisa ditebak tempatnya dan tetap berdiri sendiri sebagai "Karakter N".
+     *
+     * BATAS YANG HARUS DISADARI, dan ini bukan hal kecil: dua sekolah yang menulis nama yang sama
+     * belum tentu memakai indikator yang sama. Aturan pemilik produk 2026-08-28 untuk kasus
+     * lintas jenjang berbunyi dua karakter baru boleh disandingkan kalau NAMA DAN INDIKATORNYA
+     * sama persis, dan penggabungannya dinyatakan manusia lewat Admin CMS. Panel itu belum ada.
+     * Sampai ada, pencocokan nama di sini adalah tebakan terbaik yang tersedia, dan ia jauh lebih
+     * dekat ke kebenaran daripada pencocokan posisi kolom yang digantikannya. `jumlahSekolah` dan
+     * `sekolahBerlabel` membawa ketidakpastian itu ke tampilan.
+     *
+     * grupId null (tabel "semua jenjang") SENGAJA tetap per kode dengan nama generik. Kerangka
+     * karakter disusun per jenjang, jadi "Empati" milik sebuah SMK tidak boleh ikut menamai
+     * karakter TK, dan menggabungkan nama yang sama lintas jenjang persis yang dilarang aturan di
+     * atas. Tampilan itu memang kasar, tapi ia tidak mengklaim nama apa pun.
      */
+    const normNama = (s) => s.toLowerCase().replace(/[^a-z0-9]+/g, "");
+
+    /**
+     * kode -> Map(nama ternormalkan -> nama tampilan) untuk satu kelompok jenjang.
+     * Dipakai supaya baris tanpa nama bisa menumpang nama yang sudah dideklarasikan sekolah lain
+     * pada kode yang sama, selama nama itu cuma satu.
+     */
+    function namaPerKode(rows) {
+      const peta = {};
+      rows.forEach((r) => {
+        const kode = (r.aspek_kode || "").trim();
+        const label = (r.aspek_label || "").trim();
+        if (!kode || !label) return;
+        (peta[kode] ||= new Map()).set(normNama(label), label);
+      });
+      return peta;
+    }
+
+    /** Identitas satu baris aspek di dalam kelompoknya. */
+    function identitasAspek(r, peta) {
+      const kode = (r.aspek_kode || "").trim();
+      const label = (r.aspek_label || "").trim();
+      if (label) return { kunci: `nama:${normNama(label)}`, nama: label, namaAsli: true, kode };
+      const kandidat = peta[kode];
+      if (kandidat && kandidat.size === 1) {
+        const satu = [...kandidat.values()][0];
+        return { kunci: `nama:${normNama(satu)}`, nama: satu, namaAsli: true, kode };
+      }
+      return { kunci: `kode:${kode}`, nama: aspekFallbackLabel(kode), namaAsli: false, kode };
+    }
+
     function aspekPerGrup(grupId) {
       const anggota = aspekAktif.filter((r) => {
         const meta = metaBySekolah[r.sekolah_id];
         return meta && (grupId == null || groupJenjang(meta.jenjang) === grupId);
       });
 
-      const byKode = {};
+      const peta = namaPerKode(anggota);
+      const byKunci = new Map();
       anggota.forEach((r) => {
         const kode = (r.aspek_kode || "").trim();
         if (!kode) return;
-        (byKode[kode] ||= []).push(r);
+        // Lintas jenjang tidak ada nama yang sah, jadi kodenya sendiri yang jadi identitas.
+        const id = grupId == null
+          ? { kunci: `kode:${kode}`, nama: aspekFallbackLabel(kode), namaAsli: false, kode }
+          : identitasAspek(r, peta);
+        let g = byKunci.get(id.kunci);
+        if (!g) { g = { ...id, kodeList: new Set(), rows: [] }; byKunci.set(id.kunci, g); }
+        g.kodeList.add(kode);
+        g.rows.push(r);
       });
 
-      return Object.entries(byKode)
-        .map(([kode, rows]) => {
-          const labelUnik = [...new Set(
-            rows.map((r) => (r.aspek_label || "").trim()).filter(Boolean),
-          )];
-
-          // Nama karakter hanya dipakai kalau kelompok ini SATU JENJANG. Kerangka karakter
-          // disusun per jenjang, jadi "Empati" yang dideklarasikan sebuah SMK tidak boleh
-          // ikut menamai kolom karakter1 milik TK dan SD. Pada tampilan campur seluruh jenjang
-          // (grupId null) tidak ada satu nama pun yang sah, jadi dipakai nama generik.
-          const namaAsli = grupId != null ? labelUnik[0] : null;
-
-          return {
-            kode,
-            nama: namaAsli || aspekFallbackLabel(kode),
-            // Nama di atas benar-benar dideklarasikan sekolah, bukan "Karakter N" bikinan kode.
-            // Pemanggil yang mau merangkai kalimat berisi nama karakter wajib memeriksa ini.
-            namaAsli: Boolean(namaAsli),
-            nilai: bulat(rataTertimbang(rows, (r) => r.rata, (r) => r.jumlah_siswa)),
-            jumlahSekolah: new Set(rows.map((r) => r.sekolah_id)).size,
-            // Berapa sekolah yang benar-benar mendeklarasikan nama itu. Kalau jauh di bawah
-            // jumlahSekolah, namanya adalah klaim dari sedikit sekolah untuk rata-rata banyak
-            // sekolah, dan pembaca berhak tahu.
-            sekolahBerlabel: new Set(
-              rows.filter((r) => (r.aspek_label || "").trim()).map((r) => r.sekolah_id),
-            ).size,
-            // Dua sekolah memberi nama berbeda untuk kode yang sama. Belum pernah terjadi di data
-            // sekarang, tapi kalau muncul artinya kodenya TIDAK bisa dipakai sebagai kunci dan
-            // angkanya menggabungkan karakter yang berlainan.
-            labelBentrok: labelUnik.length > 1,
-          };
-        })
+      return [...byKunci.values()]
+        .map((g) => ({
+          kunci: g.kunci,
+          // Kode terkecil di kelompok ini, dipakai untuk mengurutkan batang saja. Satu kelompok
+          // bisa memuat lebih dari satu kode justru karena itu inti perbaikannya.
+          kode: [...g.kodeList].sort((a, b) => a.localeCompare(b, "id", { numeric: true }))[0],
+          kodeList: [...g.kodeList],
+          nama: g.nama,
+          // Nama di atas benar-benar dideklarasikan sekolah, bukan "Karakter N" bikinan kode.
+          // Pemanggil yang mau merangkai kalimat berisi nama karakter wajib memeriksa ini.
+          namaAsli: g.namaAsli,
+          nilai: bulat(rataTertimbang(g.rows, (r) => r.rata, (r) => r.jumlah_siswa)),
+          jumlahSekolah: new Set(g.rows.map((r) => r.sekolah_id)).size,
+          // Berapa sekolah yang benar-benar mendeklarasikan nama itu. Kalau jauh di bawah
+          // jumlahSekolah, namanya adalah klaim dari sedikit sekolah untuk rata-rata banyak
+          // sekolah, dan pembaca berhak tahu.
+          sekolahBerlabel: new Set(
+            g.rows.filter((r) => (r.aspek_label || "").trim()).map((r) => r.sekolah_id),
+          ).size,
+          // Kelompok ini menempati lebih dari satu posisi kolom antar sekolah. Bukan masalah lagi
+          // sejak pengelompokan ikut nama, tapi tetap dilaporkan supaya admin tahu berkasnya
+          // belum seragam.
+          kodeBeda: g.kodeList.size > 1,
+        }))
         .filter((a) => a.nilai != null)
-        // Urut menurut kode secara alami (karakter1, karakter2, ... karakter10), bukan menurut
-        // jumlah sekolah. Urutan batang jadi tetap antar periode dan antar jenjang, sehingga
-        // pembaca bisa membandingkan posisi yang sama.
-        .sort((a, b) => a.kode.localeCompare(b.kode, "id", { numeric: true }));
+        // Urut menurut kode terkecil secara alami (karakter1, karakter2, ... karakter10), bukan
+        // menurut jumlah sekolah. Urutan batang jadi tetap antar periode dan antar jenjang,
+        // sehingga pembaca bisa membandingkan posisi yang sama. Nama jadi pemutus seri supaya
+        // dua kelompok yang kode terkecilnya sama tidak bertukar tempat antar render.
+        .sort((a, b) => a.kode.localeCompare(b.kode, "id", { numeric: true })
+          || a.nama.localeCompare(b.nama, "id"));
     }
 
     const aspekYayasan = aspekPerGrup(null);
@@ -239,26 +288,29 @@ export function useYptKarakter(session, periode) {
     // Kolom aspek di tabel per sekolah = aspek yang paling banyak dipakai sekolah, maksimal 6
     // (batas yang digambar Figma). Aspek di luar enam besar tidak ditampilkan sebagai kolom;
     // nilainya tetap ikut menghitung rata_total sekolah.
-    // Membawa {kode, nama}, bukan nama saja, karena aspekPerSekolah sekarang berkunci kode.
-    // grupId null = tabel menampilkan semua jenjang sekaligus, jadi namanya generik (lihat
-    // catatan di aspekPerGrup soal nama karakter yang tidak lintas jenjang).
+    // Membawa `kodeList`, bukan satu kode, karena satu karakter bisa duduk di posisi kolom yang
+    // berbeda antar sekolah (lihat catatan panjang di aspekPerGrup). Sel tabel dicari dengan
+    // menelusuri daftar itu.
     function kolomAspekPerGrup(grupId) {
       return [...aspekPerGrup(grupId)]
         .sort((a, b) => b.jumlahSekolah - a.jumlahSekolah
           || a.kode.localeCompare(b.kode, "id", { numeric: true }))
         .slice(0, 6)
-        .map((a) => ({ kode: a.kode, nama: a.nama }));
+        .map((a) => ({ kunci: a.kunci, kode: a.kode, kodeList: a.kodeList, nama: a.nama }));
     }
 
-    // Berkunci aspek_kode, sejalan dengan pengelompokan di aspekPerGrup. Sebelumnya berkunci nama,
-    // sehingga sekolah tanpa label menyimpan nilainya di kunci "Karakter 1" sedangkan sekolah
-    // berlabel menyimpannya di "Empati" -- dan tabel per sekolah menampilkan sel kosong untuk
-    // kolom yang sebenarnya ada datanya.
+    // Berkunci aspek_kode, dan tiap nilai membawa NAMA MILIK SEKOLAH ITU SENDIRI. Nama ikut
+    // disimpan di sini karena panel rincian satu sekolah dulu mencarinya lewat peta se-jenjang,
+    // sehingga "Mandiri" milik SD Telkom Padang di karakter5 tampil sebagai "7 Kebiasaan Anak
+    // Indonesia Hebat", nama yang didaftarkan sekolah LAIN pada kode yang sama.
     const aspekPerSekolah = {};
     aspekAktif.forEach((r) => {
       const kode = (r.aspek_kode || "").trim();
       if (!kode) return;
-      (aspekPerSekolah[r.sekolah_id] ||= {})[kode] = r.rata;
+      (aspekPerSekolah[r.sekolah_id] ||= {})[kode] = {
+        nilai: r.rata,
+        nama: (r.aspek_label || "").trim() || null,
+      };
     });
 
     /**

@@ -33,12 +33,18 @@ export default function PerJenjangTab({ data }) {
   const top5 = terfilter.filter((s) => s.rata_total != null).slice(0, 5);
   const bawah5 = terfilter.filter((s) => s.rata_total != null).slice(-5).reverse();
 
-  // aspekPerSekolah berkunci aspek_kode, jadi nama tampilannya dicari lewat aspekLabel. Panel ini
-  // menampilkan SATU sekolah, jadi jenjangnya diketahui pasti dan namanya diambil dari jenjang itu
-  // saja; nama karakter sebuah SMK tidak boleh dipakai untuk sekolah TK.
+  // Nama karakter diambil dari deklarasi SEKOLAH INI SENDIRI, bukan dari peta se-jenjang.
+  // Peta se-jenjang berkunci aspek_kode, dan aspek_kode cuma posisi kolom: "karakter5" berisi
+  // Mandiri di SD Telkom Padang tapi 7 Kebiasaan di dua SD Telkom lain, sehingga panel ini
+  // sempat menamai karakter sebuah sekolah dengan nama milik sekolah tetangganya. aspekLabel
+  // tetap dipakai sebagai cadangan untuk sekolah yang belum mengisi karakter_aspek_config.
   const aspekDetail = detail
     ? Object.entries(data.aspekPerSekolah[detail.sekolah_id] || {})
-        .map(([kode, nilai]) => ({ kode, nama: data.aspekLabel(detail.grup, kode), nilai }))
+        .map(([kode, v]) => ({
+          kode,
+          nama: v.nama || data.aspekLabel(detail.grup, kode),
+          nilai: v.nilai,
+        }))
         .sort((a, b) => b.nilai - a.nilai)
     : [];
 

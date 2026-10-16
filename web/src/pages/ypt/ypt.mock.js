@@ -61,20 +61,34 @@ SEKOLAH.forEach((s, i) => {
   if (s.rata == null) return;
   aspekPerSekolah[s.id] = {};
   KODE_ASPEK.forEach((kode, j) => {
-    aspekPerSekolah[s.id][kode] = Math.max(45, Math.min(100, s.rata + ((i + j) % 7) - 3));
+    aspekPerSekolah[s.id][kode] = {
+      nilai: Math.max(45, Math.min(100, s.rata + ((i + j) % 7) - 3)),
+      // Nama milik sekolah itu sendiri. Panel rincian satu sekolah membacanya dari sini sekarang,
+      // bukan dari peta se-jenjang yang berkunci posisi kolom. Sebagian sengaja dikosongkan
+      // supaya jalur cadangan aspekLabel ikut terlihat di pratinjau.
+      nama: i % 3 === 0 ? null : ASPEK[j],
+    };
   });
 });
+
+/** nama karakter -> kunci identitas, sama rumusnya dengan normNama di useYptKarakter. */
+const kunciNama = (nama) => `nama:${nama.toLowerCase().replace(/[^a-z0-9]+/g, "")}`;
 
 /** Nama cuma dideklarasikan dua sekolah pertama, meniru konfigurasi yang belum lengkap. */
 function aspekContoh(kode, i, nilai, jumlahSekolah) {
   return {
+    // Kontrak aspekPerGrup sekarang berkunci NAMA karakter, bukan posisi kolom. `kunci` dipakai
+    // sebagai React key (kode terkecil bisa sama di dua kelompok) dan `kodeList` dipakai tabel
+    // per sekolah untuk menelusuri posisi kolom yang berbeda antar sekolah.
+    kunci: kunciNama(ASPEK[i]),
     kode,
+    kodeList: [kode],
     nama: ASPEK[i],
     namaAsli: true,
     nilai,
     jumlahSekolah,
     sekolahBerlabel: 2,
-    labelBentrok: false,
+    kodeBeda: false,
   };
 }
 
@@ -114,7 +128,9 @@ export const MOCK_RAPOR = {
   // Meniru kontrak asli: grupId null (tabel campur semua jenjang) memakai nama generik, filter per
   // jenjang memakai nama aspek sebenarnya.
   kolomAspekPerGrup: (grupId) => KODE_ASPEK.map((kode, i) => ({
+    kunci: grupId == null ? `kode:${kode}` : kunciNama(ASPEK[i]),
     kode,
+    kodeList: [kode],
     nama: grupId == null ? `Karakter ${i + 1}` : ASPEK[i],
   })),
   aspekPerSekolah,
