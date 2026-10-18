@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { IconX } from './icons';
 import { LABEL_ISU_QC, isianTeks, qcNarasiWa } from '../../wa/lib/waAturan';
+import { labelTerkait } from '../../wa/lib/waMeta';
 
 // Laci tinjau satu narasi Wellbeing Assessment. Isi narasi ditampilkan per isian teks dengan
 // labelnya, bisa disunting selama masih menunggu (edit-wa), lalu disetujui atau ditolak.
@@ -19,7 +20,15 @@ const LABEL_KUNCI = {
   hal_kuat: 'Hal kuat', hal_tantangan: 'Tantangan', resume_kuat: 'Resume kuat', resume_lemah: 'Resume lemah',
   fokus_kekuatan: 'Fokus kekuatan', perbaikan_segera: 'Perbaikan segera', narasi: 'Narasi', judul: 'Judul', isi: 'Isi',
   bukti: 'Bukti', mengapa: 'Mengapa', langkah: 'Langkah', indikator: 'Indikator', alasan: 'Alasan', ringkasan_tema: 'Ringkasan',
+  terkait: 'Terkait dengan', jangka: 'Jangka waktu',
 };
+
+// Isian "terkait" berisi kode (huruf aspek PROTEK seperti "r", atau kunci bidang kepuasan).
+// Saat dibaca, tampilkan nama lengkapnya; saat disunting, kode aslinya yang diubah.
+function tampilNilai(jalur, nilai) {
+  if (!/(^|\.)terkait$/.test(jalur) || !nilai) return nilai;
+  return `${labelTerkait(nilai).join(', ')} (kode: ${nilai})`;
+}
 
 function labelJalur(jalur) {
   return jalur.split('.').map((k) => (/^\d+$/.test(k) ? `#${Number(k) + 1}` : (LABEL_KUNCI[k] || k.replace(/_/g, ' ')))).join(' · ');
@@ -108,7 +117,7 @@ function Isi({ row, onClose, onSave, onAct }) {
             {ubah ? (
               <textarea className="fld" rows={Math.min(8, Math.max(2, Math.ceil(nilai.length / 90)))} value={nilai} onChange={(e) => setIsi((x) => setJalur(x, jalur, e.target.value))} style={{ width: '100%', fontSize: 13, lineHeight: 1.55 }} />
             ) : (
-              <div style={{ fontSize: 13, color: 'var(--ink-2)', lineHeight: 1.6, whiteSpace: 'pre-wrap' }}>{nilai || <span style={{ color: 'var(--ink-4)' }}>(kosong)</span>}</div>
+              <div style={{ fontSize: 13, color: 'var(--ink-2)', lineHeight: 1.6, whiteSpace: 'pre-wrap' }}>{tampilNilai(jalur, nilai) || <span style={{ color: 'var(--ink-4)' }}>(kosong)</span>}</div>
             )}
           </div>
         ))}
