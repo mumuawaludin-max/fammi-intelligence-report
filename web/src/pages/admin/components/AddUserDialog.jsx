@@ -5,6 +5,7 @@ import { parseGuruFile } from '../importers/guruImporter';
 import { parseSwFile, unduhTemplateSw } from '../importers/swImporter';
 import { PERAN_SW, downloadXlsx } from '../data/helpers';
 import { SwLinkFields } from './SwLinkFields';
+import { WaLinkField } from './WaLinkField';
 
 const PERAN_OPTIONS = ['AdminFammi', 'Yayasan', 'KepalaSekolah', 'WakilKepalaSekolah', 'Manajemen', 'Karyawan', 'WaliKelas', 'OrangTua', 'Siswa', ...PERAN_SW];
 const labelStyle = { fontSize: 10.5, fontWeight: 800, letterSpacing: '0.06em', textTransform: 'uppercase', color: 'var(--ink-3)', marginBottom: 5, display: 'block' };
@@ -55,13 +56,16 @@ function SingleForm({ close }) {
   const [schoolId, setSchoolId] = useState('');
   const [swUnitId, setSwUnitId] = useState('');
   const [swIndividuId, setSwIndividuId] = useState('');
+  const [waIndividuId, setWaIndividuId] = useState('');
+  const [namaKetik, setNamaKetik] = useState('');
 
   const submit = async () => {
     const nama = namaRef.current?.value.trim();
     const username = usernameRef.current?.value.trim();
     if (!nama || !username) return;
     if (peran === 'KepalaUnit' && !swUnitId.trim()) return;
-    if (peran === 'Pegawai' && !swIndividuId.trim()) return;
+    // Pegawai cukup tertaut ke salah satu: isian Screening Awal atau isian Wellbeing Assessment.
+    if (peran === 'Pegawai' && !swIndividuId.trim() && !waIndividuId.trim()) return;
     setBusy(true);
     try {
       await createUser({
@@ -72,6 +76,7 @@ function SingleForm({ close }) {
         cakupan: cakupanRef.current?.value.trim() || null,
         swUnitId: peran === 'KepalaUnit' ? swUnitId.trim() : null,
         swIndividuId: peran === 'Pegawai' ? swIndividuId.trim() : null,
+        waIndividuId: peran === 'Pegawai' ? waIndividuId.trim() : null,
       });
       close();
     } finally {
@@ -84,7 +89,7 @@ function SingleForm({ close }) {
       <div style={{ padding: '20px 24px', display: 'flex', flexDirection: 'column', gap: 14, overflowY: 'auto', flex: 1, minHeight: 0 }}>
         <div>
           <label style={labelStyle}>Nama lengkap</label>
-          <input ref={namaRef} className="fld" placeholder="Contoh: Bu Ratna Dewi" autoFocus />
+          <input ref={namaRef} className="fld" placeholder="Contoh: Bu Ratna Dewi" autoFocus onChange={(e) => setNamaKetik(e.target.value)} />
         </div>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
           <div>
@@ -103,6 +108,7 @@ function SingleForm({ close }) {
           <input ref={schoolRef} className="fld mono" placeholder="Contoh: SDIP-ALMADANI" value={schoolId} onChange={(e) => setSchoolId(e.target.value)} />
         </div>
         <SwLinkFields peran={peran} schoolId={schoolId.trim()} unitId={swUnitId} onUnitId={setSwUnitId} individuId={swIndividuId} onIndividuId={setSwIndividuId} />
+        <WaLinkField peran={peran} schoolId={schoolId.trim()} nama={namaKetik} value={waIndividuId} onChange={setWaIndividuId} />
         <div>
           <label style={labelStyle}>Cakupan</label>
           <input ref={cakupanRef} className="fld" placeholder="Sesuai peran: nama kelas / yayasan_id, pisah koma kalau lebih dari satu" />

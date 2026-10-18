@@ -18,7 +18,8 @@
 // Mode: body `{ nama, username, peran, school_id, cakupan, password?, sw_unit_id?, sw_individu_id?, sw_unit_binaan? }`
 // (satu akun; tiga field terakhir tautan modul Screening Awal Wellbeing untuk KepalaUnit/Pegawai;
 // sw_unit_binaan = daftar unit binaan akun pimpinan Direktur/Wakil Direktur, ditulis ke tabel
-// sw_unit_binaan), atau
+// sw_unit_binaan; wa_individu_id? = tautan Wellbeing Assessment untuk Pegawai, migration
+// 20261020100000. Pegawai wajib punya minimal satu dari sw_individu_id atau wa_individu_id), atau
 // `{ users: [ {...sama seperti di atas}, ... ] }` (bulk, dipakai upload CSV guru/wali kelas),
 // atau `{ reset_user_id, reset_username }` (reset satu akun), atau
 // `{ reset_users: [ {user_id, username}, ... ] }` (reset banyak akun sekaligus, dipakai fitur
@@ -147,7 +148,7 @@ Deno.serve(async (req) => {
 });
 
 async function createOne(admin, row) {
-  const { nama, username, peran, school_id, cakupan, password: givenPassword, sw_unit_id, sw_individu_id, sw_unit_binaan } = row;
+  const { nama, username, peran, school_id, cakupan, password: givenPassword, sw_unit_id, sw_individu_id, sw_unit_binaan, wa_individu_id } = row;
   if (!nama || !username || !peran) {
     return { ok: false, username, error: "Field wajib: nama, username, peran." };
   }
@@ -157,8 +158,8 @@ async function createOne(admin, row) {
   if (peran === "KepalaUnit" && !sw_unit_id) {
     return { ok: false, username, error: "KepalaUnit wajib ditautkan ke unit (sw_unit_id)." };
   }
-  if (peran === "Pegawai" && !sw_individu_id) {
-    return { ok: false, username, error: "Pegawai wajib ditautkan ke baris isiannya (sw_individu_id)." };
+  if (peran === "Pegawai" && !sw_individu_id && !wa_individu_id) {
+    return { ok: false, username, error: "Pegawai wajib ditautkan ke baris isiannya (sw_individu_id atau wa_individu_id)." };
   }
 
   const usernameTrim = username.trim();
@@ -174,7 +175,7 @@ async function createOne(admin, row) {
     return { ok: false, username: usernameTrim, error: `Gagal buat auth user: ${createErr.message}` };
   }
 
-  const { error: profileErr } = await admin.from("profiles").insert({
+  const baris: Record<string, unknown> = {
     id: created.user.id,
     username: usernameTrim,
     nama,
@@ -183,8 +184,12 @@ async function createOne(admin, row) {
     cakupan: Array.isArray(cakupan) && cakupan.length > 0 ? cakupan : null,
     murid_id: null,
     sw_unit_id: peran === "KepalaUnit" ? String(sw_unit_id).trim() : null,
-    sw_individu_id: peran === "Pegawai" ? String(sw_individu_id).trim() : null,
-  });
+    sw_individu_id: peran === "Pegawai" && sw_individu_id ? String(sw_individu_id).trim() : null,
+  };
+  // Kolom wa_individu_id baru ada setelah migration wa; hanya disertakan kalau memang diisi,
+  // supaya pembuatan akun lain tetap jalan di project yang belum menjalankannya.
+  if (peran === "Pegawai" && wa_individu_id) baris.wa_individu_id = String(wa_individu_id).trim();
+  const { error: profileErr } = await admin.from("profiles").insert(baris);
   if (profileErr) {
     // Rollback auth user supaya tidak ada akun tanpa profil.
     await admin.auth.admin.deleteUser(created.user.id);

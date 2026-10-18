@@ -12,3 +12,6 @@ supabase/.temp/
 .agents/
 .claude/skills/
 skills-lock.json
+
+# Seed uji Wellbeing Assessment, dibuat ulang dari data contoh (lihat supabase/tests/README.md).
+supabase/tests/wa_seed_contoh.sql

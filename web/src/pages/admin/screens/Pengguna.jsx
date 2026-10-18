@@ -5,6 +5,7 @@ import { EmptyState } from '../components/EmptyState';
 import { ErrorState } from '../components/ErrorState';
 import { peranColor } from '../data/helpers';
 import { IconMoreVertical } from '../components/icons';
+import { WaAkunDialog } from '../components/WaAkunDialog';
 
 const PERAN_ORDER = ['AdminFammi', 'Yayasan', 'KepalaSekolah', 'WakilKepalaSekolah', 'Manajemen', 'Karyawan', 'WaliKelas', 'OrangTua', 'Siswa', 'KepalaUnit', 'HumanCapital', 'Pegawai'];
 
@@ -13,6 +14,7 @@ export function Pengguna() {
   const [selected, setSelected] = useState(new Set());
   const [sekolahFilter, setSekolahFilter] = useState('all');
   const [busy, setBusy] = useState(false);
+  const [waAkunOpen, setWaAkunOpen] = useState(false);
 
   if (loading) return <LoadingCards rows={3} />;
   if (error) {
@@ -107,9 +109,13 @@ export function Pengguna() {
               </button>
             </>
           )}
+          {(data.sekolah || []).some((s) => (s.modules || []).includes('wa')) && (
+            <button className="btn-secondary" onClick={() => setWaAkunOpen(true)}>Tautkan akun Wellbeing</button>
+          )}
           <button className="btn-primary" onClick={() => setAddUserOpen(true)}>+ Buat akun baru</button>
         </div>
       </div>
+      <WaAkunDialog open={waAkunOpen} onClose={() => setWaAkunOpen(false)} />
 
       <div style={{ padding: '10px 14px', background: 'var(--info-soft)', borderRadius: 8, fontSize: 11.5, color: 'var(--info)', marginBottom: 14, lineHeight: 1.4 }}>
         💡 Password lama tidak bisa diambil ulang (Supabase cuma simpan hash) — "Reset & Export" akan generate kode BARU untuk akun terpilih lalu unduh file Excel-nya. Kode lama langsung tidak berlaku.

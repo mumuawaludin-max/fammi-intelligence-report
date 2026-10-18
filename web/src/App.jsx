@@ -19,6 +19,8 @@ import PaPage from "./pages/pa/PaPage";
 import LwPage from "./pages/lw/LwPage";
 import SwPage from "./pages/sw/SwPage";
 import SwPegawaiPage from "./pages/sw/SwPegawaiPage";
+import WaPage from "./pages/wa/WaPage";
+import WaPegawaiPage from "./pages/wa/WaPegawaiPage";
 import SiswaPage from "./pages/siswa/SiswaPage";
 import AdminCmsPage from "./pages/admin/AdminCmsPage";
 import YptApp from "./pages/ypt/YptApp";
@@ -98,13 +100,19 @@ function isPeranKhususSw(peran) {
   return peran === "KepalaUnit" || peran === "HumanCapital";
 }
 
+// Modul yang boleh tampil untuk peran khusus wellbeing. Human Capital juga membaca Wellbeing
+// Assessment (wa); kepala unit tidak (belum ada laporan per unit untuk mereka, rencana bagian 12).
+function modulPeranKhususSw(peran) {
+  return peran === "HumanCapital" ? ["sw", "wa"] : ["sw"];
+}
+
 /** Label tampilan untuk peran yang nilai mentahnya tidak enak dibaca di pil Header. */
 const LABEL_PERAN_TAMPIL = { KepalaUnit: "Kepala Unit", HumanCapital: "Human Capital" };
 
 // Urutan prioritas kalau session.modules punya lebih dari satu entitlement aktif -- dipakai
 // supaya modul default begitu login stabil dan cocok dengan tab paling kiri yang terlihat di
 // NavBar (lihat NAV_ITEMS di components/NavBar.jsx), bukan urutan acak dari database.
-const URUTAN_MODUL_DEFAULT = ["karakter", "screening", "mi", "cw", "sc", "pa", "lw", "sw"];
+const URUTAN_MODUL_DEFAULT = ["karakter", "screening", "mi", "cw", "sc", "pa", "lw", "sw", "wa"];
 
 /**
  * Modul default begitu login (atau kalau session.modules kosong). SEBELUMNYA hardcode
@@ -119,7 +127,9 @@ const URUTAN_MODUL_DEFAULT = ["karakter", "screening", "mi", "cw", "sc", "pa", "
  * sekali) -- jaring pengaman lama, bukan asumsi modul yang benar.
  */
 function defaultModuleForPeran(peran, modules = []) {
-  if (isPeranKhususSw(peran)) return "sw";
+  if (isPeranKhususSw(peran)) {
+    return modulPeranKhususSw(peran).find((m) => (modules || []).includes(m)) || "sw";
+  }
   const aktif = (modules || []).filter((m) => m !== "overview");
   if (peran === "Manajemen") {
     if (aktif.includes("sc")) return "sc";
@@ -151,6 +161,9 @@ export default function App() {
   // pemilik produk untuk SC lalu diikutkan ke CW. Satu state untuk dua modul karena id
   // sub-tabnya sama; berpindah modul tidak mereset pilihan, dan itu tidak masalah.
   const [budayaTab, setBudayaTab] = useState("dashboard");
+  // Pegawai yang tertaut ke dua modul wellbeing (Screening Awal dan Wellbeing Assessment) bisa
+  // berpindah di antara keduanya dari shell ponselnya.
+  const [modulPegawai, setModulPegawai] = useState(null);
   const overview = useOverviewBriefing(session);
   const isKepsekShell = isSingleModuleShellPeran(session?.peran);
   const availablePeriods = useAvailablePeriods(session);
@@ -225,9 +238,16 @@ export default function App() {
       : <CwKaryawanPage session={session} onLogout={handleLogout} />;
   }
 
-  // Pegawai modul Screening Awal Wellbeing: hanya profil dirinya sendiri, mobile-first.
+  // Pegawai modul wellbeing: hanya laporan dirinya sendiri, mobile-first. Akun yang tertaut ke
+  // Wellbeing Assessment (dan sekolahnya punya modul wa) mendarat di laporan wa; kalau akun yang
+  // sama juga punya isian Screening Awal, keduanya bisa saling berpindah.
   if (session.peran === "Pegawai") {
-    return <SwPegawaiPage session={session} onLogout={handleLogout} />;
+    const adaWa = Boolean(session.wa_individu_id) && (session.modules || []).includes("wa");
+    const adaSw = Boolean(session.sw_individu_id);
+    if (adaWa && modulPegawai !== "sw") {
+      return <WaPegawaiPage session={session} onLogout={handleLogout} onKeScreening={adaSw ? () => setModulPegawai("sw") : undefined} />;
+    }
+    return <SwPegawaiPage session={session} onLogout={handleLogout} onKeAsesmen={adaWa ? () => setModulPegawai("wa") : undefined} />;
   }
 
   if (session.peran === "AdminFammi") {
@@ -254,7 +274,7 @@ export default function App() {
   }));
   const shellModules = (session.modules || [])
     .filter((m) => m !== "overview")
-    .filter((m) => !isPeranKhususSw(session.peran) || m === "sw");
+    .filter((m) => !isPeranKhususSw(session.peran) || modulPeranKhususSw(session.peran).includes(m));
   const modules = isKepsekShell
     ? (shellModules.length ? shellModules : [defaultModuleForPeran(session.peran, session.modules)])
     : ["overview", ...(session.modules || [])];
@@ -266,7 +286,7 @@ export default function App() {
   // Screening Awal Wellbeing belum memakai daftar periode Karakter, jadi picker juga disembunyikan
   // saat modul itu aktif dan untuk peran yang hanya melihat modul itu.
   const showPeriodPicker = isKepsekShell && session.peran !== "Manajemen"
-    && !isPeranKhususSw(session.peran) && activeTab !== "sw";
+    && !isPeranKhususSw(session.peran) && activeTab !== "sw" && activeTab !== "wa";
 
   const navBar = (
     <NavBar
@@ -355,6 +375,10 @@ export default function App() {
         {/* Screening Awal Wellbeing: yayasan, kepala unit, dan Human Capital. Tampilan dan data
             disaring per peran di dalam modul dan oleh RLS tabel sw_*. */}
         {activeTab === "sw" && <SwPage session={session} />}
+
+        {/* Wellbeing Assessment: laporan kelompok untuk Human Capital. Pegawai memakai shell
+            ponselnya sendiri (early-return di atas). Data disaring RLS tabel wa_*. */}
+        {activeTab === "wa" && <WaPage session={session} />}
 
         {activeTab === "screening" && (
           <div className={styles.placeholder}>

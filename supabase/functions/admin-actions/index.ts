@@ -87,6 +87,22 @@
 //                              lagi untuk yang belum punya. Aman diklik berkali-kali (idempoten,
 //                              pola sama ensureKaryawanScAccount sendiri).
 //
+// Wellbeing Assessment (modul wa, migration 20261020100000). Narasi masuk dari seed berstatus
+// menunggu_persetujuan; hanya baris disetujui yang terbaca lewat RLS. Kunci satu baris narasi =
+// { dataset_id, cakupan, kunci }.
+//   "list-wa-pending"          { status? } -> { rows } narasi beserta nama (pegawai/kelompok/sekolah),
+//                              perlu_ahli, dan alasan_perhatian untuk peninjau. status bawaan
+//                              'menunggu_persetujuan'.
+//   "approve-wa" | "reject-wa" { dataset_id, cakupan, kunci, tinjauan_ahli? } Respons cerita dan
+//                              baris berpenanda perlu ahli WAJIB membawa tinjauan_ahli: true
+//                              (centang "sudah ditinjau psikolog" di layar), selain itu ditolak.
+//   "approve-wa-bulk"          { baris: [{ dataset_id, cakupan, kunci }] } setujui banyak sekaligus.
+//                              Respons cerita dan baris perlu ahli SELALU dilewati di sini, supaya
+//                              tidak ada jawaban untuk cerita pribadi yang tayang tanpa ditinjau
+//                              satu per satu. -> { disetujui, dilewati }
+//   "edit-wa"                  { dataset_id, cakupan, kunci, isi } sunting isi narasi sebelum
+//                              disetujui; hanya baris yang masih menunggu.
+//
 // Deploy: supabase functions deploy admin-actions
 //
 // corsHeaders ditulis LANGSUNG di sini (bukan impor dari ../_shared/cors.ts seperti fungsi
@@ -208,6 +224,19 @@ Deno.serve(async (req) => {
       case "retry-sc-accounts":
         result = await handleRetryScAccounts(admin, body);
         break;
+      case "list-wa-pending":
+        result = await handleListWaPending(admin, body);
+        break;
+      case "approve-wa":
+      case "reject-wa":
+        result = await handleWaApproval(admin, body, userData.user.id);
+        break;
+      case "approve-wa-bulk":
+        result = await handleWaBulkApproval(admin, body, userData.user.id);
+        break;
+      case "edit-wa":
+        result = await handleEditWa(admin, body);
+        break;
       default:
         return json({ error: `action tidak dikenal: ${body.action}` }, 400);
     }
@@ -246,7 +275,7 @@ async function handleApproval(admin, body) {
 }
 
 async function handleUpdateProfile(admin, body) {
-  const { userId, nama, peran, schoolId, cakupan, swUnitId, swIndividuId } = body;
+  const { userId, nama, peran, schoolId, cakupan, swUnitId, swIndividuId, waIndividuId } = body;
   if (!userId) return { ok: false, error: "Field wajib: userId." };
   if (peran !== undefined && !PERAN_VALID.includes(peran)) {
     return { ok: false, error: `peran harus salah satu dari: ${PERAN_VALID.join(", ")}` };
@@ -262,6 +291,9 @@ async function handleUpdateProfile(admin, body) {
   // Tautan modul Screening Awal Wellbeing; dikosongkan kalau perannya bukan lagi KepalaUnit/Pegawai.
   if (swUnitId !== undefined) patch.sw_unit_id = swUnitId ? String(swUnitId).trim() : null;
   if (swIndividuId !== undefined) patch.sw_individu_id = swIndividuId ? String(swIndividuId).trim() : null;
+  // Tautan Wellbeing Assessment. Hanya disentuh kalau dikirim, supaya pemanggil lama (dan project
+  // yang belum menjalankan migration wa, kolomnya belum ada) tidak ikut terkena.
+  if (waIndividuId !== undefined) patch.wa_individu_id = waIndividuId ? String(waIndividuId).trim() : null;
 
   const { error } = await admin.from("profiles").update(patch).eq("id", userId);
   if (error) return { ok: false, error: error.message };
@@ -813,4 +845,136 @@ function randomDigits(n) {
   const arr = new Uint32Array(1);
   crypto.getRandomValues(arr);
   return String(arr[0] % 10 ** n).padStart(n, "0");
+}
+
+// ── Wellbeing Assessment (wa) ───────────────────────────────────────────────────────────────
+
+const WA_KOLOM_NARASI =
+  "dataset_id, cakupan, kunci, sekolah_id, isi, perlu_ahli, alasan_perhatian, status, draf_asal, disunting, disetujui_pada, diperbarui_pada";
+
+/** Ambil semua baris (PostgREST membatasi 1.000 baris per permintaan). */
+async function ambilSemua(buatQuery) {
+  const hasil = [];
+  for (let dari = 0; ; dari += 1000) {
+    const { data, error } = await buatQuery().range(dari, dari + 999);
+    if (error) return { data: null, error };
+    hasil.push(...(data || []));
+    if (!data || data.length < 1000) return { data: hasil, error: null };
+  }
+}
+
+/** Respons cerita dan baris berpenanda perlu ahli hanya boleh disetujui satu per satu. */
+function waButuhTinjauanAhli(row) {
+  return row.cakupan === "respons_cerita" || row.perlu_ahli === true;
+}
+
+async function handleListWaPending(admin, body) {
+  const status = body?.status || "menunggu_persetujuan";
+  if (!["menunggu_persetujuan", "disetujui", "ditolak"].includes(status)) {
+    return { ok: false, error: "status tidak dikenal." };
+  }
+  const narasi = await ambilSemua(() => admin.from("wa_narasi").select(WA_KOLOM_NARASI)
+    .eq("status", status).order("sekolah_id").order("cakupan").order("kunci"));
+  if (narasi.error) return { ok: false, error: narasi.error.message };
+  const rows = narasi.data || [];
+  const datasetIds = [...new Set(rows.map((r) => r.dataset_id))];
+  if (!datasetIds.length) return { ok: true, rows: [] };
+
+  const [individu, kelompok, sekolah] = await Promise.all([
+    ambilSemua(() => admin.from("wa_individu").select("dataset_id, individu_id, nama, unit_id, data->>unit, data->>jabatan").in("dataset_id", datasetIds)),
+    ambilSemua(() => admin.from("wa_kelompok").select("dataset_id, cakupan, kunci, nama, n_responden").in("dataset_id", datasetIds)),
+    admin.from("schools").select("id, nama").in("id", [...new Set(rows.map((r) => r.sekolah_id))]),
+  ]);
+  const galat = individu.error || kelompok.error || sekolah.error;
+  if (galat) return { ok: false, error: galat.message };
+
+  const orang = new Map((individu.data || []).map((o) => [`${o.dataset_id}|${o.individu_id}`, o]));
+  const grup = new Map((kelompok.data || []).map((k) => [`${k.dataset_id}|${k.cakupan}|${k.kunci}`, k]));
+  const namaSekolah = Object.fromEntries((sekolah.data || []).map((s) => [s.id, s.nama]));
+
+  return {
+    ok: true,
+    rows: rows.map((r) => {
+      const perorangan = r.cakupan === "individu" || r.cakupan === "respons_cerita";
+      const o = perorangan ? orang.get(`${r.dataset_id}|${r.kunci}`) : null;
+      const k = perorangan ? null : grup.get(`${r.dataset_id}|${r.cakupan}|${r.kunci}`);
+      return {
+        ...r,
+        nama: o?.nama || k?.nama || r.kunci,
+        unit: o?.unit || null,
+        jabatan: o?.jabatan || null,
+        n_responden: k?.n_responden ?? null,
+        sekolah_nama: namaSekolah[r.sekolah_id] || r.sekolah_id,
+        butuh_tinjauan_ahli: waButuhTinjauanAhli(r),
+      };
+    }),
+  };
+}
+
+async function handleWaApproval(admin, body, callerId) {
+  const { dataset_id, cakupan, kunci, action, tinjauan_ahli } = body;
+  if (!dataset_id || !cakupan || !kunci) return { ok: false, error: "Field wajib: dataset_id, cakupan, kunci." };
+  const { data: row, error: getErr } = await admin.from("wa_narasi")
+    .select("cakupan, perlu_ahli, status").eq("dataset_id", dataset_id).eq("cakupan", cakupan).eq("kunci", kunci).maybeSingle();
+  if (getErr) return { ok: false, error: getErr.message };
+  if (!row) return { ok: false, error: "Narasi tidak ditemukan." };
+
+  const setuju = action === "approve-wa";
+  if (setuju && waButuhTinjauanAhli(row) && tinjauan_ahli !== true) {
+    return { ok: false, error: "Respons cerita dan narasi berpenanda perlu ahli wajib ditinjau psikolog dan disetujui satu per satu." };
+  }
+  const sekarang = new Date().toISOString();
+  const { error } = await admin.from("wa_narasi").update({
+    status: setuju ? "disetujui" : "ditolak",
+    disetujui_oleh: setuju ? callerId : null,
+    disetujui_pada: setuju ? sekarang : null,
+    diperbarui_pada: sekarang,
+  }).eq("dataset_id", dataset_id).eq("cakupan", cakupan).eq("kunci", kunci);
+  if (error) return { ok: false, error: error.message };
+  return { ok: true };
+}
+
+async function handleWaBulkApproval(admin, body, callerId) {
+  const baris = Array.isArray(body?.baris) ? body.baris : [];
+  if (!baris.length) return { ok: false, error: "Field wajib: baris." };
+  // Kelompokkan per (dataset, cakupan) supaya satu update per kelompok, bukan satu per baris.
+  const per = new Map();
+  for (const b of baris) {
+    if (!b?.dataset_id || !b?.cakupan || !b?.kunci) continue;
+    if (b.cakupan === "respons_cerita") continue;
+    const k = `${b.dataset_id}|${b.cakupan}`;
+    if (!per.has(k)) per.set(k, { dataset_id: b.dataset_id, cakupan: b.cakupan, kunci: [] });
+    per.get(k).kunci.push(b.kunci);
+  }
+  const sekarang = new Date().toISOString();
+  let disetujui = 0;
+  for (const g of per.values()) {
+    for (let i = 0; i < g.kunci.length; i += 200) {
+      const potong = g.kunci.slice(i, i + 200);
+      const { data, error } = await admin.from("wa_narasi").update({
+        status: "disetujui", disetujui_oleh: callerId, disetujui_pada: sekarang, diperbarui_pada: sekarang,
+      })
+        .eq("dataset_id", g.dataset_id).eq("cakupan", g.cakupan).in("kunci", potong)
+        .eq("status", "menunggu_persetujuan").eq("perlu_ahli", false)
+        .select("kunci");
+      if (error) return { ok: false, error: error.message, disetujui };
+      disetujui += (data || []).length;
+    }
+  }
+  return { ok: true, disetujui, dilewati: baris.length - disetujui };
+}
+
+async function handleEditWa(admin, body) {
+  const { dataset_id, cakupan, kunci, isi } = body;
+  if (!dataset_id || !cakupan || !kunci || !isi || typeof isi !== "object") {
+    return { ok: false, error: "Field wajib: dataset_id, cakupan, kunci, isi (objek)." };
+  }
+  const { data, error } = await admin.from("wa_narasi")
+    .update({ isi, disunting: true, diperbarui_pada: new Date().toISOString() })
+    .eq("dataset_id", dataset_id).eq("cakupan", cakupan).eq("kunci", kunci)
+    .eq("status", "menunggu_persetujuan")
+    .select("kunci");
+  if (error) return { ok: false, error: error.message };
+  if (!data?.length) return { ok: false, error: "Narasi sudah disetujui atau ditolak; sunting hanya untuk yang masih menunggu." };
+  return { ok: true };
 }

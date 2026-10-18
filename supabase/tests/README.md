@@ -161,3 +161,35 @@ YPT.xlsx", 26 sekolah x 3 bulan = 78 baris): ke-78 baris dimuat ke karakter_summ
 `ypt_k_sekolah_mat.rata_total` dibandingkan dengan `nilaiGuruSekolah()` di React. 78 dari 78
 sama persis, dan tidak ada satu baris pun yang jatuh ke cadangan. Artinya dashboard YPT dan
 layar Kepala Sekolah kini menampilkan angka yang sama untuk sekolah yang sama.
+
+## Wellbeing Assessment (20261020100000)
+
+Baseline sendiri (`wa_baseline.sql`: profiles yang sudah berkolom tautan sw dan berperan
+HumanCapital/Pegawai, schools, school_modules, helper RLS, default privileges ala Supabase), lalu
+migration, lalu seed data contoh, lalu verifikasi. Seed dibuat dari data contoh modul (tanpa nama
+asli) dari folder `web/`:
+
+```bash
+node --input-type=module -e "import fs from 'node:fs'; import { datasetKeSql } from './scripts/wa/waSql.mjs'; const d = JSON.parse(fs.readFileSync('src/pages/wa/data/wa.contoh.json','utf8')); fs.writeFileSync('../supabase/tests/wa_seed_contoh.sql', datasetKeSql(d, { datasetId: 'WA-CONTOH-2026-10' }).utuh);"
+```
+
+```bash
+docker cp wa_baseline.sql fir-pgtest:/tmp/base.sql
+docker cp ../migrations/20261020100000_wa_wellbeing_assessment.sql fir-pgtest:/tmp/m.sql
+docker cp wa_seed_contoh.sql fir-pgtest:/tmp/seed.sql
+docker cp wa_verify.sql fir-pgtest:/tmp/v.sql
+docker exec fir-pgtest psql -U postgres -d fir -v ON_ERROR_STOP=1 -q -f /tmp/base.sql
+docker exec fir-pgtest psql -U postgres -d fir -v ON_ERROR_STOP=1 -f /tmp/m.sql
+docker exec fir-pgtest psql -U postgres -d fir -v ON_ERROR_STOP=1 -f /tmp/m.sql   # idempotensi
+docker exec fir-pgtest psql -U postgres -d fir -v ON_ERROR_STOP=1 -q -f /tmp/seed.sql
+docker exec fir-pgtest psql -U postgres -d fir -f /tmp/v.sql
+```
+
+Yang diperiksa: Human Capital membaca dataset, kelompok, dan individu sekolahnya tapi hanya narasi
+KELOMPOK yang disetujui; kolom peninjau (`perlu_ahli`, `alasan_perhatian`) ditolak lewat hak akses
+kolom; pegawai hanya membaca barisnya sendiri dan narasi miliknya yang sudah disetujui; draf yang
+masih menunggu tidak terbaca siapa pun selain Admin Fammi; akun tanpa tautan, peran lain, sekolah
+lain, dan anon tidak membaca apa pun; tulis langsung ditolak.
+
+Sudah dijalankan di postgres:15 dan postgres:17 (2026-10-19), keduanya 28 LULUS 0 GAGAL, migration
+idempoten. `wa_seed_contoh.sql` tidak di-commit; buat ulang dengan perintah di atas.

@@ -25,3 +25,5 @@ dist-ssr
 
 # Dataset Screening Awal Wellbeing hasil baca berkas asli: berisi nama pegawai.
 sw-data-lokal/
+# Dataset Wellbeing Assessment hasil baca berkas olahan: berisi nama pegawai dan draf respons cerita pribadi.
+wa-data-lokal/

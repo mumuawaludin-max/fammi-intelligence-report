@@ -1,0 +1,109 @@
+// Uji aturan tampilan modul Wellbeing Assessment. Jalankan: npm test (dari folder web/).
+import { test } from "node:test";
+import assert from "node:assert/strict";
+import fs from "node:fs";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
+import {
+  cariKelompok, duaKolom, formatAngka, formatPersen, individuDalam, itemKategori, kataKorelasi, kutipan, namaDepan,
+  isianTeks, narasiUntuk, opsiCakupan, pegawaiKategoriKepuasan, pegawaiKategoriProtek, peranWa, pisahPilihan, qcNarasiWa,
+  urutItem,
+} from "./waAturan.js";
+import { KATA_TERLARANG, KATEGORI_KEPUASAN_3, KATEGORI_PROTEK, labelTerkait, pilihanNetral } from "./waMeta.js";
+
+const folder = path.dirname(fileURLToPath(import.meta.url));
+const contoh = JSON.parse(fs.readFileSync(path.join(folder, "../data/wa.contoh.json"), "utf8"));
+
+test("format angka memakai koma desimal Indonesia", () => {
+  assert.equal(formatAngka(87.52, 2), "87,52");
+  assert.equal(formatPersen(77.2), "77%");
+  assert.equal(formatPersen(null), "-");
+});
+
+test("peran FIR dipetakan ke peran modul", () => {
+  assert.equal(peranWa({ peran: "HumanCapital" }), "hc");
+  assert.equal(peranWa({ peran: "Pegawai" }), "pegawai");
+  assert.equal(peranWa({ peran: "KepalaUnit" }), null);
+});
+
+test("nama depan tanpa gelar", () => {
+  assert.equal(namaDepan("Mutmainnah, S.Pd"), "Mutmainnah");
+  assert.equal(namaDepan("H. Haeruddin Marsuki"), "Haeruddin");
+});
+
+test("individu dalam cakupan cocok dengan jumlah responden kelompok", () => {
+  for (const k of contoh.kelompok) {
+    assert.equal(individuDalam(contoh, k).length, k.nResponden, `${k.cakupan} ${k.nama}`);
+  }
+});
+
+test("opsi cakupan memuat setiap kelompok non-lembaga tepat sekali", () => {
+  const opsi = opsiCakupan(contoh).flatMap((c) => c.opsi.map((o) => o.kunci));
+  assert.equal(opsi.length, contoh.kelompok.length - 1);
+  assert.equal(cariKelompok(contoh, "tidak-ada").cakupan, "lembaga");
+});
+
+test("urutan item dan pegawai", () => {
+  const item = [{ kode: "A", pct: 50, kategori: "perlu" }, { kode: "B", pct: 90, kategori: "kuat" }, { kode: "C", pct: 30, kategori: "perlu" }];
+  assert.deepEqual(urutItem(item, "turun", 2).map((x) => x.kode), ["B", "A"]);
+  assert.deepEqual(itemKategori(item, "perlu").map((x) => x.kode), ["C", "A"]);
+  const baik = pegawaiKategoriProtek(contoh.individu, "baik");
+  for (let i = 1; i < baik.length; i++) assert.ok(baik[i - 1].protek.pct >= baik[i].protek.pct);
+  const tidak = pegawaiKategoriKepuasan(contoh.individu, "tidakPuas");
+  for (let i = 1; i < tidak.length; i++) assert.ok(tidak[i - 1].kepuasan.rata <= tidak[i].kepuasan.rata);
+});
+
+test("pilihan netral dipisah dari pilihan bermakna", () => {
+  assert.equal(pilihanNetral("Saya belum bisa menjawab"), true);
+  assert.equal(pilihanNetral("Tidak ada yang saya tidak sukai"), true);
+  assert.equal(pilihanNetral("Kepemimpinan yang baik"), false);
+  const { utama, netral } = pisahPilihan([{ pilihan: "Beban kerja yang terlalu berat" }, { pilihan: "Saya belum bisa menjawab" }]);
+  assert.equal(utama.length, 1);
+  assert.equal(netral.length, 1);
+});
+
+test("kutipan hanya yang layak tampil, bisa disaring peran", () => {
+  const semua = kutipan(contoh.individu, "pimpinan_efektif");
+  assert.ok(semua.length > 0);
+  const guru = kutipan(contoh.individu, "pimpinan_efektif", { peran: "Guru" });
+  assert.ok(guru.every((k) => k.peran === "Guru"));
+  const individu = [{ id: "X", nama: "N", testimoni: [{ pertanyaan: "pimpinan_efektif", jawaban: "rahasia", layakTampil: false }] }];
+  assert.equal(kutipan(individu, "pimpinan_efektif").length, 0);
+});
+
+test("narasi dan label terkait", () => {
+  assert.ok(narasiUntuk(contoh, "lembaga", "lembaga").ringkasan);
+  assert.equal(narasiUntuk(contoh, "lembaga", "tidak-ada"), null);
+  assert.deepEqual(labelTerkait("sulit; kebijakan_diubah; e"), ["Hal yang paling sulit dilakukan", "Kebijakan yang ingin diubah", "Eksplorasi Tempat Kerja"]);
+  assert.equal(kataKorelasi(0.63), "erat");
+});
+
+test("dua kolom seimbang", () => {
+  const [a, b] = duaKolom([1, 2, 3, 4, 5]);
+  assert.deepEqual(a, [1, 3, 5]);
+  assert.deepEqual(b, [2, 4]);
+});
+
+test("setiap kategori punya label, warna, dan penjelasan", () => {
+  for (const k of [...KATEGORI_PROTEK, ...KATEGORI_KEPUASAN_3]) {
+    assert.ok(k.label && k.warna && k.arti);
+  }
+});
+
+test("label dan penjelasan yang tampil tidak memakai kata terlarang", () => {
+  const semua = [...KATEGORI_PROTEK, ...KATEGORI_KEPUASAN_3].map((k) => `${k.label} ${k.arti}`).join(" ");
+  assert.doesNotMatch(semua, KATA_TERLARANG);
+  assert.ok(KATEGORI_PROTEK.some((k) => k.label === "Perlu Pendampingan"));
+});
+
+test("kendali mutu narasi menandai pelanggaran yang lazim", () => {
+  const isu = (row) => qcNarasiWa(row).map((x) => x.isu);
+  assert.deepEqual(isu({ cakupan: "individu", isi: { ringkasan: { wellbeing: "Skor Anda 85 persen." } } }), ["angka"]);
+  assert.deepEqual(isu({ cakupan: "individu", isi: { langkah_kecil: [{ terkait: "p", jangka: "3 bulan" }] } }), []);
+  assert.deepEqual(isu({ cakupan: "lembaga", isi: { insight: [{ bukti: "r = 0,63" }], ringkasan: { a: "Ada 12 orang." } } }), []);
+  assert.ok(isu({ cakupan: "lembaga", isi: { a: "Kondisi ini gangguan serius" } }).includes("diagnosis"));
+  assert.ok(isu({ cakupan: "lembaga", isi: { a: "Aman -- lanjut" } }).includes("tanda_hubung"));
+  assert.ok(isu({ cakupan: "individu", isi: { a: "Satu. Dua. Tiga. Empat." } }).includes("kalimat_banyak"));
+  for (const n of contoh.narasi) assert.equal(qcNarasiWa(n).some((x) => x.isu === "kata_terlarang"), false);
+  assert.deepEqual(isianTeks({ a: ["x", { b: "y" }] }).map((x) => x.jalur), ["a.0", "a.1.b"]);
+});

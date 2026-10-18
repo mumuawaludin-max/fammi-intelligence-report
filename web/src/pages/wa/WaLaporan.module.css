@@ -1,0 +1,247 @@
+.halaman {
+  min-height: 100vh;
+  background: var(--fm-abu-latar);
+  padding-bottom: 40px;
+}
+
+/* ── Bilah tab ── */
+.tabBar {
+  position: sticky;
+  top: var(--wa-tab-atas, 0px);
+  z-index: 30;
+  padding: 12px clamp(12px, 3vw, 40px) 0;
+  background: linear-gradient(var(--fm-abu-latar) 70%, transparent);
+}
+
+.tabBarDalam {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  max-width: 1180px;
+  margin: 0 auto;
+  padding: 0 16px;
+  border-radius: 0 0 14px 14px;
+  background: #ffffff;
+  box-shadow: var(--fm-bayangan);
+}
+
+.merek {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  flex: none;
+  font-size: 13.5px;
+  font-weight: 800;
+  color: var(--fm-ungu);
+}
+
+.merekTitik {
+  width: 22px;
+  height: 22px;
+  border-radius: 7px;
+  background: linear-gradient(135deg, var(--fm-ungu), var(--wa-ungu-lembut));
+}
+
+.tabDaftar {
+  display: flex;
+  flex: 1;
+  justify-content: center;
+  min-width: 0;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.tab {
+  position: relative;
+  flex: none;
+  padding: 0;
+  border: none;
+  background: none;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--fm-ungu-tua);
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.tab + .tab::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 14px;
+  bottom: 14px;
+  width: 1px;
+  background: var(--fm-abu-garis);
+}
+
+.tab:focus-visible {
+  outline: 3px solid color-mix(in srgb, var(--fm-ungu) 40%, transparent);
+  outline-offset: -3px;
+}
+
+.tabIsi {
+  position: relative;
+  z-index: 1;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 16px 13px 15px;
+  white-space: nowrap;
+}
+
+.tabAktif { color: #ffffff; }
+
+.tabLatar {
+  position: absolute;
+  inset: 0;
+  background: var(--fm-ungu-tua);
+}
+
+.tabAktif::before,
+.tabAktif + .tab::before { display: none; }
+
+.panduan {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  flex: none;
+  padding: 7px 14px;
+  border: none;
+  border-radius: 999px;
+  background: var(--wa-ungu-pucat);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--fm-ungu);
+  cursor: pointer;
+}
+
+.panduan:focus-visible {
+  outline: 3px solid rgb(99 35 218 / 0.4);
+  outline-offset: 2px;
+}
+
+.pengguna {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  flex: none;
+  max-width: 180px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--fm-ungu-tua);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* ── Isi ── */
+.isi {
+  position: relative;
+  max-width: 1180px;
+  margin: 0 auto;
+  padding: 0 clamp(12px, 3vw, 40px);
+  box-sizing: content-box;
+}
+
+.kepala {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin: 28px 0 24px;
+}
+
+.kepalaKiri { min-width: 0; }
+
+.kecil {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0 0 6px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--fm-teks-lembut);
+}
+
+.judul {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin: 0;
+  font-size: 26px;
+  font-weight: 800;
+  color: var(--fm-ungu-tua);
+}
+
+.judulN {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--fm-teks-lembut);
+}
+
+.cakupan {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.pilih {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  overflow: hidden;
+  border-radius: 999px;
+  background: #ffffff;
+  box-shadow: var(--fm-bayangan);
+}
+
+.pilih select {
+  appearance: none;
+  max-width: 260px;
+  padding: 9px 36px 9px 16px;
+  border: none;
+  background: none;
+  font: inherit;
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--fm-ungu-tua);
+  cursor: pointer;
+}
+
+.pilih svg {
+  position: absolute;
+  right: 14px;
+  pointer-events: none;
+  color: var(--fm-ungu);
+}
+
+.panel { min-width: 0; }
+
+.kaki {
+  margin: 36px 0 0;
+  font-size: 12.5px;
+  color: var(--fm-teks-lembut);
+  text-align: center;
+}
+
+@media (max-width: 1320px) {
+  .pengguna { display: none; }
+}
+
+@media (max-width: 1440px) {
+  .merekTeks { display: none; }
+}
+
+@media (max-width: 900px) {
+  .merek { display: none; }
+  .panduan span { display: none; }
+  .panduan { padding: 8px; }
+  .tabDaftar { justify-content: flex-start; }
+  .tabIsi { padding: 14px 14px 13px; }
+  .judul { font-size: 22px; }
+}

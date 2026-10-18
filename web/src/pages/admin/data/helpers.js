@@ -1,11 +1,11 @@
 import * as XLSX from 'xlsx';
 
 export function moduleLabel(m) {
-  return { karakter: 'Karakter', mi: 'Multiple Intelligence', screening: 'Screening', cw: 'Culture & Wellbeing', sc: 'School Culture', pa: 'Perilaku Anak', sw: 'Screening Awal Wellbeing' }[m] || m;
+  return { karakter: 'Karakter', mi: 'Multiple Intelligence', screening: 'Screening', cw: 'Culture & Wellbeing', sc: 'School Culture', pa: 'Perilaku Anak', sw: 'Screening Awal Wellbeing', wa: 'Wellbeing Assessment' }[m] || m;
 }
 
 export function moduleShort(m) {
-  return { karakter: 'Karakter', mi: 'MI', screening: 'Screening', cw: 'Corporate Culture', sc: 'School Culture', pa: 'Perilaku Anak', sw: 'Screening Wellbeing' }[m] || m;
+  return { karakter: 'Karakter', mi: 'MI', screening: 'Screening', cw: 'Corporate Culture', sc: 'School Culture', pa: 'Perilaku Anak', sw: 'Screening Wellbeing', wa: 'Wellbeing Assessment' }[m] || m;
 }
 
 /**
@@ -40,6 +40,7 @@ export function moduleColor(m) {
     sc: { bg: '#FFEBCB', ink: '#8A4E00' },
     pa: { bg: '#E1F3F0', ink: '#137066' },
     sw: { bg: '#F1EEF9', ink: '#342060' },
+    wa: { bg: '#F3EEFE', ink: '#6323DA' },
   }[m] || { bg: '#F0F0F4', ink: '#4A4458' };
 }
 

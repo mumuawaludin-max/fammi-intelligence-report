@@ -14,6 +14,7 @@ import { Dashboard } from './screens/Dashboard';
 import { Antrian } from './screens/Antrian';
 import { PersetujuanMi } from './screens/PersetujuanMi';
 import { PersetujuanSc } from './screens/PersetujuanSc';
+import { PersetujuanWa } from './screens/PersetujuanWa';
 import { Upload } from './screens/Upload';
 import { Gemini } from './screens/Gemini';
 import { Sekolah } from './screens/Sekolah';
@@ -26,6 +27,7 @@ function Screen({ name }) {
     case 'antrian': return <Antrian />;
     case 'persetujuan-mi': return <PersetujuanMi />;
     case 'persetujuan-sc': return <PersetujuanSc />;
+    case 'persetujuan-wa': return <PersetujuanWa />;
     case 'upload': return <Upload />;
     case 'gemini': return <Gemini />;
     case 'sekolah': return <Sekolah />;

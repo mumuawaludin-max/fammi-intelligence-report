@@ -1,0 +1,35 @@
+/**
+ * Token tambahan modul Wellbeing Assessment (wa). Dipakai BERSAMA token modul sw
+ * (../sw/swTokens.module.css, custom property --fm-*) karena desain acuan pemilik produk
+ * (2026-10-13) memakai palet yang sama. Di sini hanya warna yang belum ada di --fm-*: kuning
+ * kartu narasi kepuasan, ungu lembut kartu narasi wellbeing, dan dua tingkat tengah skala
+ * kepuasan lima tingkat. Di-scope lewat .scope supaya tidak menjalar ke modul lain.
+ */
+.scope {
+  /* Kategori PROTEK. */
+  --wa-baik: var(--fm-ungu);
+  --wa-perhatian: #ffc327;
+  --wa-pendampingan: var(--fm-jingga);
+
+  --wa-kuning: #ffc327;
+  --wa-kuning-muda: #fff5d6;
+  --wa-ungu-lembut: #c6aff6;
+  --wa-ungu-pucat: #f3eefe;
+  --wa-hijau-muda: #6fcf97;
+  --wa-hijau-pucat: #e8f7ee;
+  --wa-jingga-muda: #ffa387;
+  --wa-jingga-pucat: #fff0eb;
+  --wa-netral: #e4e2ea;
+  --wa-netral-gelap: #3a3542;
+  --wa-garis-ilustrasi: #241a35;
+
+  --wa-bayangan-tekan: 0 1px 2px rgb(52 32 96 / 0.08);
+  --wa-radius-besar: 22px;
+  --wa-transisi: cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* Token sw meratakan paragraf kiri-kanan; desain wa rata kiri. Berkas ini dimuat setelah token
+   sw, jadi aturan dengan spesifisitas sama ini menang tanpa menimpa kelas yang rata tengah. */
+.scope :where(p, li, blockquote, dd) {
+  text-align: start;
+}

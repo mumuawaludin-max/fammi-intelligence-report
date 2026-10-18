@@ -2,6 +2,7 @@ import { useRef, useState } from 'react';
 import { useCms } from '../store/CmsStore';
 import { IconX } from './icons';
 import { SwLinkFields } from './SwLinkFields';
+import { WaLinkField } from './WaLinkField';
 import { PERAN_SW } from '../data/helpers';
 
 const PERAN_OPTIONS = ['AdminFammi', 'Yayasan', 'KepalaSekolah', 'WakilKepalaSekolah', 'Manajemen', 'Karyawan', 'WaliKelas', 'OrangTua', 'Siswa', ...PERAN_SW];
@@ -19,6 +20,7 @@ export function EditUserDialog() {
   const [schoolId, setSchoolId] = useState(() => data.sekolah.find((s) => s.nama === u?.sekolah)?.id || u?.school_id || '');
   const [swUnitId, setSwUnitId] = useState(u?.sw_unit_id || '');
   const [swIndividuId, setSwIndividuId] = useState(u?.sw_individu_id || '');
+  const [waIndividuId, setWaIndividuId] = useState(u?.wa_individu_id || '');
 
   if (!u) return null;
   const close = () => setEditUserTarget(null);
@@ -35,6 +37,8 @@ export function EditUserDialog() {
         cakupan: cakupanRef.current?.value.trim() || null,
         swUnitId: peran === 'KepalaUnit' ? swUnitId.trim() : null,
         swIndividuId: peran === 'Pegawai' ? swIndividuId.trim() : null,
+        // Hanya dikirim kalau relevan: undefined = kolom tidak disentuh (aman sebelum migration wa).
+        waIndividuId: peran === 'Pegawai' ? (waIndividuId.trim() || null) : (u.wa_individu_id ? null : undefined),
       });
     } finally {
       setBusy(false);
@@ -68,6 +72,7 @@ export function EditUserDialog() {
             <input ref={schoolRef} className="fld mono" value={schoolId} onChange={(e) => setSchoolId(e.target.value)} placeholder="Contoh: SDIP-ALMADANI" />
           </div>
           <SwLinkFields peran={peran} schoolId={schoolId.trim()} unitId={swUnitId} onUnitId={setSwUnitId} individuId={swIndividuId} onIndividuId={setSwIndividuId} />
+          <WaLinkField peran={peran} schoolId={schoolId.trim()} nama={u.nama} value={waIndividuId} onChange={setWaIndividuId} />
           <div>
             <label style={labelStyle}>Cakupan</label>
             <input ref={cakupanRef} className="fld" defaultValue={u.cakupan} placeholder="Sesuai peran: nama kelas / yayasan_id, pisah koma kalau lebih dari satu" />

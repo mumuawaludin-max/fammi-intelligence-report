@@ -10,6 +10,7 @@ const NAV_ITEMS = [
   { id: "pa", label: "Perilaku Anak" },
   { id: "lw", label: "Wellbeing Guru" },
   { id: "sw", label: "Screening Awal Wellbeing" },
+  { id: "wa", label: "Wellbeing Assessment" },
 ];
 
 /**

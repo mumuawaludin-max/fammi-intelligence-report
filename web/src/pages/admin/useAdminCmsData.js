@@ -267,7 +267,15 @@ export function useAdminCmsData() {
         rows: r.rows, status: r.status, by: r.oleh, pesan: r.pesan,
       }));
 
+      // Tautan Wellbeing Assessment dibaca terpisah dan galatnya diabaikan: kolom wa_individu_id
+      // baru ada setelah migration 20261020100000, dan daftar pengguna tidak boleh gagal dimuat
+      // hanya karena migration itu belum dijalankan.
+      const waTautan = {};
+      const waRes = await fetchAllRows((from, to) => supabase.from('profiles').select('id, wa_individu_id').not('wa_individu_id', 'is', null).order('id').range(from, to));
+      if (!waRes.error) (waRes.data || []).forEach((p) => { waTautan[p.id] = p.wa_individu_id; });
+
       const users = (profilesRes.data || []).map((p) => ({
+        wa_individu_id: waTautan[p.id] || null,
         id: p.id, nama: p.nama, username: p.username, peran: p.peran,
         sekolah: p.school_id ? (schoolNameById[p.school_id] || p.school_id) : null,
         school_id: p.school_id || null,
@@ -546,6 +554,53 @@ export async function runScIndividuGenerateAction(personalRows, onProgress) {
   return results;
 }
 
+// ── Wellbeing Assessment ────────────────────────────────────────────────────────────────────
+
+/** Narasi Wellbeing Assessment per status (bawaan: menunggu persetujuan), lengkap dengan nama. */
+export async function loadWaNarasiAction(status = 'menunggu_persetujuan') {
+  const { data, error } = await supabase.functions.invoke('admin-actions', { body: { action: 'list-wa-pending', status } });
+  if (error) throw new Error(await edgeErrorDetail(error, 'Gagal memuat antrian Wellbeing Assessment.'));
+  if (data?.error) throw new Error(data.error);
+  return data?.rows || [];
+}
+
+/** Setuju/tolak satu narasi. tinjauanAhli wajib true untuk respons cerita dan baris perlu ahli. */
+export async function actWaApprovalAction(row, aksi, tinjauanAhli = false) {
+  const { data, error } = await supabase.functions.invoke('admin-actions', {
+    body: { action: aksi === 'setuju' ? 'approve-wa' : 'reject-wa', dataset_id: row.dataset_id, cakupan: row.cakupan, kunci: row.kunci, tinjauan_ahli: tinjauanAhli },
+  });
+  if (error) throw new Error(await edgeErrorDetail(error, 'Edge Function admin-actions gagal dipanggil.'));
+  if (data?.error) throw new Error(data.error);
+}
+
+/** Setujui banyak narasi sekaligus. Respons cerita dan baris perlu ahli selalu dilewati server. */
+export async function actWaBulkApprovalAction(rows) {
+  const { data, error } = await supabase.functions.invoke('admin-actions', {
+    body: { action: 'approve-wa-bulk', baris: rows.map((r) => ({ dataset_id: r.dataset_id, cakupan: r.cakupan, kunci: r.kunci })) },
+  });
+  if (error) throw new Error(await edgeErrorDetail(error, 'Edge Function admin-actions gagal dipanggil.'));
+  if (data?.error) throw new Error(data.error);
+  return { disetujui: data?.disetujui || 0, dilewati: data?.dilewati || 0 };
+}
+
+/** Pasang (atau lepas, kalau null) tautan Wellbeing Assessment ke satu akun tanpa menyentuh field lain. */
+export async function linkWaAction(userId, waIndividuId) {
+  const { data, error } = await supabase.functions.invoke('admin-actions', {
+    body: { action: 'update-profile', userId, waIndividuId: waIndividuId || null },
+  });
+  if (error) throw new Error(await edgeErrorDetail(error, 'Edge Function admin-actions gagal dipanggil.'));
+  if (data?.error) throw new Error(data.error);
+}
+
+/** Simpan sunting isi narasi yang masih menunggu. */
+export async function editWaNarasiAction(row, isi) {
+  const { data, error } = await supabase.functions.invoke('admin-actions', {
+    body: { action: 'edit-wa', dataset_id: row.dataset_id, cakupan: row.cakupan, kunci: row.kunci, isi },
+  });
+  if (error) throw new Error(await edgeErrorDetail(error, 'Edge Function admin-actions gagal dipanggil.'));
+  if (data?.error) throw new Error(data.error);
+}
+
 /** Daftar laporan individu School Culture yang menunggu persetujuan -- padanan loadMiPendingAction. */
 export async function loadScPendingAction() {
   const { data, error } = await supabase.functions.invoke('admin-actions', { body: { action: 'list-sc-pending' } });
@@ -652,19 +707,20 @@ export async function updateGeminiScheduleAction(patch) {
   if (error) throw new Error(await edgeErrorDetail(error, 'Edge Function admin-actions gagal dipanggil.'));
 }
 
-export async function createUserAction({ nama, username, peran, schoolId, cakupan, swUnitId, swIndividuId }) {
+export async function createUserAction({ nama, username, peran, schoolId, cakupan, swUnitId, swIndividuId, waIndividuId }) {
   const cakupanArr = cakupan ? cakupan.split(',').map((s) => s.trim()).filter(Boolean) : [];
   const { data, error } = await supabase.functions.invoke('create-user', {
-    body: { nama, username, peran, school_id: schoolId, cakupan: cakupanArr, sw_unit_id: swUnitId || null, sw_individu_id: swIndividuId || null },
+    body: { nama, username, peran, school_id: schoolId, cakupan: cakupanArr, sw_unit_id: swUnitId || null, sw_individu_id: swIndividuId || null, wa_individu_id: waIndividuId || null },
   });
   if (error) throw new Error(error.message || 'Edge Function create-user gagal dipanggil.');
   return data;
 }
 
-export async function updateUserAction(userId, { nama, peran, schoolId, cakupan, swUnitId, swIndividuId }) {
+export async function updateUserAction(userId, { nama, peran, schoolId, cakupan, swUnitId, swIndividuId, waIndividuId }) {
   const cakupanArr = cakupan ? cakupan.split(',').map((s) => s.trim()).filter(Boolean) : [];
   const { error } = await supabase.functions.invoke('admin-actions', {
-    body: { action: 'update-profile', userId, nama, peran, schoolId, cakupan: cakupanArr, swUnitId: swUnitId ?? null, swIndividuId: swIndividuId ?? null },
+    // waIndividuId sengaja dikirim apa adanya (undefined = tidak disentuh), lihat handleUpdateProfile.
+    body: { action: 'update-profile', userId, nama, peran, schoolId, cakupan: cakupanArr, swUnitId: swUnitId ?? null, swIndividuId: swIndividuId ?? null, waIndividuId },
   });
   if (error) throw new Error(await edgeErrorDetail(error, 'Edge Function admin-actions gagal dipanggil.'));
 }

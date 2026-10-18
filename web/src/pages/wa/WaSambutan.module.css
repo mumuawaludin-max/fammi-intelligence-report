@@ -1,0 +1,258 @@
+.bingkai {
+  max-width: 460px !important;
+  border-radius: 28px !important;
+}
+
+/* Isi dialog tidak bergulir sebagai satu kesatuan: hanya panggung yang bergulir, tombol aksi
+   selalu terlihat di bawah. */
+.bingkai > div {
+  padding: 0 !important;
+  overflow: hidden !important;
+}
+
+.isi {
+  display: flex;
+  flex-direction: column;
+  max-height: calc(100vh - 32px);
+  max-height: calc(100dvh - 32px);
+  padding: 22px 22px 18px;
+}
+
+.kemajuan {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 6px;
+  margin-bottom: 18px;
+}
+
+.kemajuanJalur {
+  position: relative;
+  height: 5px;
+  border-radius: 999px;
+  background: var(--fm-jalur-lintasan, #e9e7ef);
+  overflow: hidden;
+}
+
+.kemajuanIsi {
+  position: absolute;
+  inset: 0;
+  border-radius: 999px;
+  background: var(--fm-ungu, #6323da);
+  transform-origin: left;
+  transform: scaleX(0);
+}
+
+.panggung {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  scrollbar-width: thin;
+}
+
+.slide { padding: 2px 2px 8px; }
+
+.gambar {
+  display: grid;
+  place-items: center;
+  margin: 0 0 8px;
+}
+
+.kecil {
+  margin: 0 0 6px;
+  font-size: 12.5px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  color: var(--fm-ungu, #6323da);
+  text-align: left;
+}
+
+.judul {
+  margin: 0 0 10px;
+  font-size: 23px;
+  font-weight: 800;
+  line-height: 1.25;
+  color: var(--fm-ungu-tua, #342060);
+}
+
+.narasi {
+  margin: 0 0 14px;
+  font-size: 15px;
+  line-height: 1.6;
+  color: #4a4458;
+  text-align: left;
+}
+
+.sorot {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 14px 16px;
+  border-radius: 18px;
+  background: linear-gradient(120deg, var(--wa-ungu-pucat, #f3eefe), #ffffff);
+  font-size: 14px;
+  line-height: 1.45;
+  color: var(--fm-ungu-tua, #342060);
+}
+
+.sorotAngka {
+  flex: none;
+  font-size: 34px;
+  font-weight: 800;
+  line-height: 1;
+  color: var(--fm-ungu, #6323da);
+}
+
+.poin {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin: 4px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.poin li {
+  display: flex;
+  gap: 12px;
+  padding: 12px 14px;
+  border-radius: 16px;
+  background: #faf9fc;
+  font-size: 13.5px;
+  line-height: 1.5;
+  color: #4a4458;
+}
+
+.poin b {
+  display: block;
+  margin-bottom: 2px;
+  font-size: 14.5px;
+  color: var(--fm-ungu-tua, #342060);
+}
+
+.poinIkon {
+  display: inline-grid;
+  place-items: center;
+  flex: none;
+  width: 38px;
+  height: 38px;
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--w) 15%, #ffffff);
+  color: var(--w);
+}
+
+.ubin {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.ubinSatu {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 14px;
+  border-radius: 18px;
+  background: #faf9fc;
+  font-size: 12.5px;
+  line-height: 1.45;
+  color: #4a4458;
+}
+
+.ubinSatu svg { color: var(--fm-ungu, #6323da); }
+
+.ubinSatu b { font-size: 14px; color: var(--fm-ungu-tua, #342060); }
+
+.catatan {
+  margin: 14px 0 0;
+  padding: 10px 14px;
+  border-radius: 12px;
+  background: var(--wa-kuning-muda, #fff5d6);
+  font-size: 13px;
+  line-height: 1.5;
+  color: #4a4458;
+  text-align: left;
+}
+
+.paham {
+  position: relative;
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  margin-top: 16px;
+  padding: 14px 16px;
+  border-radius: 16px;
+  background: #f4f2f8;
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--fm-ungu-tua, #342060);
+  cursor: pointer;
+  transition: box-shadow 200ms ease, background-color 200ms ease;
+}
+
+.pahamAktif {
+  background: var(--wa-ungu-pucat, #f3eefe);
+}
+
+.paham input {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.paham:focus-within { outline: 3px solid rgb(99 35 218 / 0.35); outline-offset: 2px; }
+
+.pahamKotak {
+  display: inline-grid;
+  place-items: center;
+  flex: none;
+  width: 24px;
+  height: 24px;
+  border-radius: 7px;
+  background: #dcd7e6;
+  color: #ffffff;
+}
+
+.pahamAktif .pahamKotak {
+  background: var(--fm-ungu, #6323da);
+  box-shadow: none;
+}
+
+.aksi {
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding-top: 16px;
+}
+
+.aksiAkhir {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 10px;
+  width: 100%;
+}
+
+.tombolSiap {
+  white-space: normal !important;
+  text-align: center;
+  line-height: 1.35;
+}
+
+.kembali {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 4px;
+  border: none;
+  background: none;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--fm-teks-lembut, #6b6b76);
+  cursor: pointer;
+}

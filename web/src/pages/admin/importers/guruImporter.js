@@ -184,6 +184,8 @@ export async function bulkCreateUsers(rows, { sekolahId, onProgress }) {
     sw_unit_id: r.sw_unit_id || null,
     sw_individu_id: r.sw_individu_id || null,
     sw_unit_binaan: r.sw_unit_binaan?.length ? r.sw_unit_binaan : null,
+    // Tautan Wellbeing Assessment (alat Tautkan akun wa); kosong untuk baris lain.
+    wa_individu_id: r.wa_individu_id || null,
   }));
 
   const results = [];

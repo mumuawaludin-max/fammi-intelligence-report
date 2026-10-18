@@ -103,9 +103,23 @@ async function fetchProfileSession(userId) {
     if (sw) swTautan = sw;
   }
 
+  // Tautan modul Wellbeing Assessment (migration 20261020100000). Query sendiri, bukan digabung ke
+  // query sw di atas: kalau migration wa belum dijalankan, kolomnya belum ada dan query gabungan
+  // akan gagal sehingga tautan sw ikut hilang.
+  let waTautan = { wa_individu_id: null };
+  if (profile.peran === "Pegawai") {
+    const { data: wa, error: waErr } = await supabase
+      .from("profiles")
+      .select("wa_individu_id")
+      .eq("id", userId)
+      .maybeSingle();
+    if (!waErr && wa) waTautan = wa;
+  }
+
   return {
     user_id: userId,
     ...swTautan,
+    ...waTautan,
     username: profile.username,
     nama: profile.nama || profile.username,
     peran: profile.peran,

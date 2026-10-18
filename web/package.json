@@ -10,9 +10,11 @@
     "typecheck": "tsc --noEmit",
     "preview": "vite preview",
     "gen:assets": "node scripts/gen-assets.mjs",
-    "test": "node --test src/pages/sw/lib/swAturan.test.js src/pages/sw/lib/swPembaca.test.js src/pages/sw/lib/swEkspor.test.js",
+    "test": "node --test src/pages/sw/lib/swAturan.test.js src/pages/sw/lib/swPembaca.test.js src/pages/sw/lib/swEkspor.test.js src/pages/wa/lib/waPembaca.test.js src/pages/wa/lib/waAturan.test.js src/pages/wa/lib/waTur.test.js src/pages/admin/importers/waAkun.test.js",
     "sw:baca": "node scripts/sw/baca-berkas-sw.mjs",
-    "sw:contoh": "node scripts/sw/buat-data-contoh.mjs"
+    "sw:contoh": "node scripts/sw/buat-data-contoh.mjs",
+    "wa:baca": "node scripts/wa/baca-berkas-wa.mjs",
+    "wa:contoh": "node scripts/wa/buat-data-contoh.mjs"
   },
   "dependencies": {
     "@fontsource-variable/google-sans-flex": "^5.3.0",

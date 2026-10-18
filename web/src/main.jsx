@@ -18,6 +18,7 @@ import PaPreview from "./pages/pa/PaPreview.jsx";
 import PaAgregatPreview from "./pages/pa/PaAgregatPreview.jsx";
 import LwPreview from "./pages/lw/LwPreview.jsx";
 import SwPreview from "./pages/sw/SwPreview.jsx";
+import WaPreview from "./pages/wa/WaPreview.jsx";
 import MuridDetailPreview from "./pages/karakter/MuridDetailPreview.jsx";
 import YptPreview from "./pages/ypt/YptPreview.jsx";
 import YptPreviewData from "./pages/ypt/YptPreviewData.jsx";
@@ -42,6 +43,7 @@ const PREVIEWS = {
   "pa-agregat": PaAgregatPreview,
   "lw": LwPreview,
   "sw": SwPreview,
+  "wa": WaPreview,
   "karakter-anak": MuridDetailPreview,
   "ypt": YptPreview,
   "ypt-data": YptPreviewData,

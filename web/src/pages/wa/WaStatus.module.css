@@ -1,0 +1,15 @@
+.halaman {
+  display: grid;
+  place-items: center;
+  min-height: 60vh;
+  padding: 40px 16px;
+  background: var(--fm-abu-latar);
+}
+
+.kartu {
+  width: 100%;
+  max-width: 520px;
+  border-radius: var(--fm-radius);
+  background: #ffffff;
+  box-shadow: var(--fm-bayangan);
+}
