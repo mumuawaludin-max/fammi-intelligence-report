@@ -1,6 +1,6 @@
 # Rencana Development: Modul Wellbeing Assessment (`wa`)
 
-Status: milestone 1 sampai 5 selesai di kode, belum terpasang di produksi; milestone 6 belum. Lihat "Status eksekusi".
+Status: milestone 1 sampai 6 selesai; terpasang di produksi untuk Athirah (2026-10-19). Keadaan modul sekarang ada di `docs/wa-wellbeing-assessment.md`; dokumen ini menyimpan rencana awal dan riwayat keputusan.
 Tanggal: 2026-10-19.
 
 Dokumen ini ditulis supaya agen/model lain bisa mengeksekusi tanpa konteks percakapan.
@@ -57,7 +57,7 @@ npm run wa:baca -- "C:/path/Athirah - Master - Olahan.xlsx" --sekolah <school_id
 6. Pengguna & Peran, Tautkan akun Wellbeing: pilih sekolah, periksa rencana, jalankan, unduh Excel kode akun baru.
 7. Uji dengan satu akun Human Capital dan satu akun Pegawai sebelum mengumumkan.
 
-Yang tersisa: milestone 6 (dokumen modul `docs/wa-wellbeing-assessment.md`) dan uji ujung ke ujung di Supabase sungguhan, yang belum bisa dilakukan dari sini.
+Milestone 6 selesai (2026-10-19): dokumen modul `docs/wa-wellbeing-assessment.md`. Uji ujung ke ujung dengan akun asli dikerjakan tim setelah narasi disetujui dan akun ditautkan.
 
 ## 1. Ringkasan
 
