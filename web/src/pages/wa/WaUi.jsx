@@ -399,7 +399,7 @@ export function Dialog({ buka, onTutup, judul, keterangan, children, aksi, lebar
 
 /**
  * Buka <dialog> sebagai modal dan jaga keadaannya tetap sejalan dengan React. Chrome mengabaikan
- * preventDefault pada Escape kalau belum ada interaksi pengguna, jadi dialog bisa tertutup sendiri:
+ * preventDefault pada Escape jika belum ada interaksi pengguna, jadi dialog bisa tertutup sendiri:
  * dialog terkunci dibuka ulang, dialog biasa memberi tahu induknya lewat onTutup.
  */
 function useModal(ref, terkunci, onTutup) {

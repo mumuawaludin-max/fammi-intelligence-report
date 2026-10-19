@@ -1,5 +1,5 @@
 // Penanda "panduan sudah pernah dilihat" per perangkat. Ini kenyamanan tampilan, bukan data
-// penting: kalau penyimpanan browser tidak tersedia (mode privat, diblokir), panduan cukup
+// penting: jika penyimpanan browser tidak tersedia (mode privat, diblokir), panduan cukup
 // muncul lagi. Tidak pernah menyimpan isi laporan.
 
 export function sudahDilihat(kunci) {

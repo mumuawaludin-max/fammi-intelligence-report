@@ -436,12 +436,12 @@
   gap: 22px;
 }
 
+/* Label kalimat penuh (keputusan pemilik produk 2026-10-19), jadi tanpa huruf kapital semua. */
 .tindakDua h4 {
   margin: 0 0 10px;
-  font-size: 12.5px;
+  font-size: 14px;
   font-weight: 800;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
+  line-height: 1.35;
   color: var(--fm-ungu);
 }
 

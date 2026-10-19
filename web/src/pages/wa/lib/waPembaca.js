@@ -118,7 +118,7 @@ export function kunciKelompok(cakupan, nama) {
   return `${awalan}-${slug(nama)}`;
 }
 
-/** Bintang dari berkas; kalau kosong, null (tampilan memakai rata-rata untuk lebar isian). */
+/** Bintang dari berkas; jika kosong, null (tampilan memakai rata-rata untuk lebar isian). */
 function bintang(v) {
   return angka(v);
 }
@@ -314,7 +314,7 @@ function kelompokkanPilihan(rows) {
   return hasil;
 }
 
-// Jawaban terbuka yang tidak layak tampil tetap disimpan untuk pemiliknya kalau alasannya sekadar
+// Jawaban terbuka yang tidak layak tampil tetap disimpan untuk pemiliknya jika alasannya sekadar
 // pendek atau "tidak ada". Yang mengarah ke orang tertentu, minta dirahasiakan, atau kosong dibuang.
 const ALASAN_TETAP_DISIMPAN = /kurang dari|tidak ada jawaban/i;
 

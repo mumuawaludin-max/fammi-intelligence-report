@@ -1,6 +1,6 @@
 // Isian tautan akun Pegawai ke isian Wellbeing Assessment (profiles.wa_individu_id). Pilihannya
 // dibaca dari wa_individu dataset aktif sekolah itu (Admin Fammi membacanya lewat policy
-// *_admin_baca). Kalau nama akun cocok persis dengan satu nama di dataset, ditawarkan sebagai saran
+// *_admin_baca). Jika nama akun cocok persis dengan satu nama di dataset, ditawarkan sebagai saran
 // sekali klik; kecocokan tidak pernah dipasang diam-diam.
 
 import { useEffect, useState } from 'react';

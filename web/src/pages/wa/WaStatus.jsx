@@ -1,5 +1,5 @@
 // Keadaan peran tidak berhak, memuat, galat, dan kosong untuk titik masuk produksi modul
-// Wellbeing Assessment. Isi aslinya (children) baru dirender kalau datanya siap.
+// Wellbeing Assessment. Isi aslinya (children) baru dirender jika datanya siap.
 
 import { MotionConfig } from "motion/react";
 import { HourglassMedium, Info, WarningCircle } from "@phosphor-icons/react";

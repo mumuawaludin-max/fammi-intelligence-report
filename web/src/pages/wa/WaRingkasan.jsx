@@ -8,7 +8,7 @@ import { formatAngka, formatPersen, itemKategori, lengkapiItem, urutItem } from 
 import { ambangDariTeks } from "./lib/waPembaca";
 
 // Batas kategori dibaca dari sheet PARAMETER berkas olahan (bisa berbeda antar-dataset), bukan
-// ditulis mati. Kosong kalau berkas tidak memuatnya; keterangan batas lalu tidak ditampilkan.
+// ditulis mati. Kosong jika berkas tidak memuatnya; keterangan batas lalu tidak ditampilkan.
 function batasBaik(parameter) {
   const a = ambangDariTeks(parameter?.kategori_total).find((x) => x.kunci === "baik");
   return a ? ` (skor ${a.min} ke atas dari ${a.max})` : "";

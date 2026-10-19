@@ -54,13 +54,15 @@ Pratinjau `?preview=wa` bisa berganti peran (Human Capital, Pegawai), sumber (da
 
 Status Athirah per 19 Oktober 2026: langkah 1 sampai 5 selesai, SQL koreksi narasi 2026-10-19 sudah dijalankan, frontend sudah terpasang. Langkah 6 sampai 8 dikerjakan tim.
 
+**Koreksi unit (2026-10-19).** 26 pegawai yang di olahan pertama ber-unit "Tidak teridentifikasi" dikonfirmasi Human Capital lewat Excel konfirmasi (usulan unit diambil dari nama yang sama di data Screening Awal). Unit dan jenjang mereka dipasang di berkas olahan, angka dan narasi kelompok dihitung ulang di Claude chat dengan `docs/Prompt_Wellbeing_Assessment_Koreksi_Unit.md` (berkas Olahan (4)), lalu dipasang lewat `web/wa-data-lokal/athirah.koreksi-unit-2026-10-19.bagian-1..2.sql`. Kelompok "Tidak teridentifikasi" untuk unit dan jenjang hilang; Departemen HC (5 orang) mendapat narasi. Kelompok jabatan "Tidak teridentifikasi" (31 orang) belum dikoreksi.
+
 **Mengoreksi narasi setelah seed tertanam.** Jangan menanam ulang seed: `delete` dataset ikut menghapus persetujuan, suntingan admin, dan umpan balik pegawai (cascade). Ubah data lokal, lalu susun SQL koreksi:
 
 ```bash
 npm run wa:koreksi -- --lama wa-data-lokal/athirah.lama.json --baru wa-data-lokal/athirah.json --dataset WA-ATHIRAH-2026-10 --keluar wa-data-lokal/athirah.koreksi-<tanggal>
 ```
 
-Narasi yang isinya berubah diganti dan kembali menunggu persetujuan. Baris yang sudah disunting admin tidak ditimpa. Isian tambahan (`aspek`, `cerita`) dipasang lewat `jsonb_set`; menambah `cerita` tidak mengubah status. Hasilnya dipecah sekitar 550 KB per bagian, urutan menjalankannya bebas, dan bagian terakhir memuat kueri pemeriksa yang seharusnya bernilai nol.
+Alat ini juga mengganti angka kelompok (`wa_kelompok`) dan data pegawai (`wa_individu`) yang berubah, menambah narasi untuk cakupan baru, dan menghapus kelompok atau narasi yang cakupannya hilang; daftar pegawai harus sama, kalau tidak alat menolak dan seed ulang yang dipakai. Narasi yang isinya berubah diganti dan kembali menunggu persetujuan. Baris yang sudah disunting admin tidak ditimpa. Isian tambahan (`aspek`, `cerita`) dipasang lewat `jsonb_set`; menambah `cerita` tidak mengubah status. Hasilnya dipecah sekitar 550 KB per bagian, urutan menjalankannya bebas, dan bagian terakhir memuat kueri pemeriksa yang seharusnya bernilai nol.
 
 ## Peran dan siapa melihat apa
 
@@ -130,7 +132,7 @@ Klik nama pegawai membuka profil singkat (`WaProfilDialog`): angka dan pilihan g
 
 `WaPegawaiPage` → `WaPegawaiLaporan`, satu kolom, Menu di bilah atas.
 
-1. **Sambutan wajib** (`WaSambutan`). Empat langkah: kenapa diminta mengisi, isi laporan, siapa melihat apa, lalu centang pemahaman. Dialog tidak bisa ditutup sebelum dicentang. Nadanya lugas, bukan penanda masalah, dan bisa dibuka lagi dari Menu.
+1. **Sambutan wajib** (`WaSambutan`). Tiga langkah: sapaan, kenapa diminta mengisi, lalu isi laporan beserta centang pemahaman. Halaman "siapa yang bisa melihat apa" dihapus (2026-10-19); kerahasiaan cerita dijelaskan di bagian Cerita dan tanggapan. Dialog tidak bisa ditutup sebelum dicentang. Nadanya lugas, bukan penanda masalah, dan bisa dibuka lagi dari Menu.
 2. **Panduan** (`WaTur`, isi di `lib/waTur.js`) terbuka sendiri setelah sambutan pada kunjungan pertama di perangkat itu. Ada 15 langkah, termasuk arti PROTEK huruf demi huruf, dan bisa dibuka lagi dari tombol kompas atau Menu.
 3. **Lima bagian:**
    - *Ringkasan:* skor, enam aspek, kepuasan, pernyataan kuat dan lemah, ajakan ke tanggapan cerita dan umpan balik.
@@ -219,6 +221,9 @@ Sudah diputuskan (semua 2026-10-19):
 12. Human Capital tidak melihat umpan balik per orang, hanya rekap tanpa identitas.
 13. Rekap umpan balik terbuka setelah minimal tiga isian.
 14. Tab Dampak Asesmen selalu untuk seluruh lembaga, tidak ikut pemilih cakupan.
+15. Sambutan pegawai tiga langkah tanpa halaman "siapa yang bisa melihat apa"; kerahasiaan cerita dijelaskan di bagian Cerita dan tanggapan ("Cerita ini hanya Anda yang tahu").
+16. Label tindak lanjut kelompok: "Langkah yang dapat dipertimbangkan untuk dilakukan" dan "Usulan indikator keberhasilan yang dapat diukur".
+17. Teks buatan Fammi memakai "jika", bukan "kalau"; tulisan asli pegawai tidak diubah. Untuk 180 narasi Athirah yang sudah ada, penggantian kata ini dipasang TANPA mengulang persetujuan (`athirah.kalau-jika.B-pertahankan-persetujuan`), karena hanya satu kata yang berubah dan maknanya sama. Ini pengecualian sekali pakai dari aturan persetujuan narasi, bukan pola untuk perubahan isi.
 
 Masih terbuka:
 
@@ -228,7 +233,7 @@ Masih terbuka:
 4. **Dua pasang isian ganda** dengan nomor WhatsApp berbeda (R162/R189, R040/R199): satu orang (sekarang) atau dua.
 5. **Kolom tambahan di olahan** (`protek_kategori_rata`, `kep_<dimensi>_pct`, `kep_<dimensi>_bintang`) supaya pembaca tidak perlu menurunkan kategori kelompok.
 6. **Pengiriman laporan lewat WhatsApp** yang dijanjikan formulir: alur operasional di luar FIR.
-7. **Unit tidak teridentifikasi** (26 orang) dan kelompok jabatan tidak jelas (31 orang) di `CATATAN_QC`: dilengkapi Human Capital lalu olah ulang, atau dibiarkan.
+7. **Kelompok jabatan tidak jelas** (31 orang) di `CATATAN_QC`: dikonfirmasi Human Capital seperti koreksi unit, atau dibiarkan. Unit 26 orang yang tidak teridentifikasi sudah dikoreksi 2026-10-19.
 
 ## Di luar cakupan
 

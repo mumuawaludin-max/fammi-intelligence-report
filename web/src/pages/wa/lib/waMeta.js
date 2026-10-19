@@ -223,11 +223,11 @@ export const KALIMAT_BUKAN_DIAGNOSIS =
 // Satu daftar untuk formulir pegawai dan tab "Dampak Asesmen" Human Capital. Jenis:
 //   nilai   skala bintang 1 sampai 10 (wajib)
 //   pilihan satu jawaban (wajib); `banyak: true` boleh lebih dari satu; `lainnya: true` menambah
-//           opsi "Lainnya" dengan isian teks sendiri (wajib diisi kalau opsi itu dipilih),
+//           opsi "Lainnya" dengan isian teks sendiri (wajib diisi jika opsi itu dipilih),
 //           tersimpan di jawaban.lainnya[kode]
 //   esai    teks bebas (tidak wajib), paling banyak dua pertanyaan esai
 // Kode pertanyaan menjadi kunci di kolom jawaban, jadi JANGAN mengganti kode yang sudah dipakai;
-// tambahkan kode baru kalau maksud pertanyaannya berubah.
+// tambahkan kode baru jika maksud pertanyaannya berubah.
 export const ESAI_MAKS_KARAKTER = 1000;
 export const LAINNYA_MAKS_KARAKTER = 200;
 export const OPSI_LAINNYA = "Lainnya";
@@ -297,7 +297,7 @@ export function umpanBalikBelumLengkap(jawaban) {
   });
 }
 
-/** Daftar opsi yang tampil, termasuk "Lainnya" kalau pertanyaannya mengizinkan. */
+/** Daftar opsi yang tampil, termasuk "Lainnya" jika pertanyaannya mengizinkan. */
 export function opsiUmpanBalik(p) {
   return p.lainnya ? [...p.opsi.filter((o) => o !== OPSI_LAINNYA && o !== "Belum tahu"), OPSI_LAINNYA, ...p.opsi.filter((o) => o === "Belum tahu")] : p.opsi;
 }

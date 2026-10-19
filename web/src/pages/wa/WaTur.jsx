@@ -32,7 +32,7 @@ const GESER = {
 
 // Posisi kartu. Ponsel: menempel di bawah. Tanpa sorotan: di tengah. Selebihnya di sisi sorotan
 // yang ruangnya paling lega (bawah, atas, kanan, kiri), dengan tinggi maksimum sebesar ruang itu
-// supaya kartu tidak pernah keluar layar; isi kartu bergulir kalau tidak muat. Kalau sorotan
+// supaya kartu tidak pernah keluar layar; isi kartu bergulir jika tidak muat. Jika sorotan
 // memenuhi layar, kartu menumpang di pojok kanan bawah.
 function posisiKartu(ponsel, kotak, layar) {
   const TEPI = 16;
@@ -74,8 +74,8 @@ function batasAtas() {
 }
 
 // Posisi atas tujuan gulir untuk sebuah bagian. Bagian ditaruh tepat di bawah bilah supaya kartu
-// muat di bawahnya. Kalau bagiannya terlalu tinggi untuk itu, bagian ditaruh di tengah ruang yang
-// tersisa, atau di atas kalau lebih tinggi dari layar; kartu lalu pindah ke samping atau pojok.
+// muat di bawahnya. Jika bagiannya terlalu tinggi untuk itu, bagian ditaruh di tengah ruang yang
+// tersisa, atau di atas jika lebih tinggi dari layar; kartu lalu pindah ke samping atau pojok.
 function tujuanGulir(r) {
   const atas = batasAtas();
   const tinggiLayar = window.innerHeight;
@@ -116,8 +116,8 @@ export default function WaTur({ langkah, onTutup, onBagian, judul = "Panduan" })
     setPos({ i: ke, arah: ke >= i ? 1 : -1 });
   }, [i, total, onTutup]);
 
-  // Cari target langkah ini: buka bagiannya dulu kalau perlu, tunggu elemennya muncul, gulir ke
-  // sana, lalu ukur. Kalau tidak muncul, lewati ke arah yang sama.
+  // Cari target langkah ini: buka bagiannya dulu jika perlu, tunggu elemennya muncul, gulir ke
+  // sana, lalu ukur. Jika tidak muncul, lewati ke arah yang sama.
   useEffect(() => {
     let hidup = true;
     let timer;

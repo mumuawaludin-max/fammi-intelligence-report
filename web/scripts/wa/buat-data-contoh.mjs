@@ -197,7 +197,7 @@ function laporanIndividu(o) {
         arti: `Contoh narasi. ${LABEL_ASPEK[a]} lebih rendah dibanding aspek lain; ada beberapa pernyataan yang belum terasa.`,
         langkah: "Pilih satu pernyataan dengan bar jingga, lalu coba satu tindakan kecil yang mendekatkan Anda ke sana pekan ini.",
       }])),
-    refleksi: "Kalau satu hal kecil di pekan ini bisa membuat Anda lebih ringan, kira-kira apa yang paling ingin Anda mulai?",
+    refleksi: "Jika satu hal kecil di pekan ini bisa membuat Anda lebih ringan, kira-kira apa yang paling ingin Anda mulai?",
     langkah_kecil: [
       { judul: "Tulis tiga hal yang berjalan baik setiap Jumat sore", alasan: "Cocok untuk menguatkan penerimaan diri lewat kebiasaan kecil yang konsisten.", terkait: o.urutAspek[5], jangka: "Minggu ini" },
       { judul: "Sampaikan satu usulan kecil di rapat berikutnya", alasan: "Melatih kemandirian bersuara dalam situasi yang aman.", terkait: "k", jangka: "Bulan ini" },
@@ -207,12 +207,12 @@ function laporanIndividu(o) {
       ? {
         ada: true,
         draf: o.perluAhli
-          ? "Terima kasih sudah bercerita dengan jujur. Rasa berat yang Anda tulis wajar dirasakan, dan tidak perlu ditanggung sendiri. Kalau terasa makin berat, sampaikan ke Human Capital bahwa Anda ingin dihubungkan dengan psikolog."
+          ? "Terima kasih sudah bercerita dengan jujur. Rasa berat yang Anda tulis wajar dirasakan, dan tidak perlu ditanggung sendiri. Jika terasa makin berat, sampaikan ke Human Capital bahwa Anda ingin dihubungkan dengan psikolog."
           : "Terima kasih sudah berbagi cerita. Lelah setelah pekan yang padat itu wajar, dan Anda sudah menemukan cara untuk tetap bertahan. Coba sisihkan satu waktu kecil setiap hari yang benar-benar untuk diri sendiri.",
         perlu_perhatian_ahli: o.perluAhli,
         alasan_perhatian: o.perluAhli ? "contoh: cerita berat, perlu rujukan ahli" : "",
       }
-      : { ada: false, draf: "Anda memilih tidak menuliskan cerita, dan itu boleh. Kalau suatu saat ada yang mengganjal, orang yang paling Anda percaya bisa jadi tempat bercerita.", perlu_perhatian_ahli: false, alasan_perhatian: "" },
+      : { ada: false, draf: "Anda memilih tidak menuliskan cerita, dan itu boleh. Jika suatu saat ada yang mengganjal, orang yang paling Anda percaya bisa jadi tempat bercerita.", perlu_perhatian_ahli: false, alasan_perhatian: "" },
   };
 }
 

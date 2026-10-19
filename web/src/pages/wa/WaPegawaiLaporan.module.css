@@ -774,3 +774,45 @@
 
 /* Menu lima bagian: ubin kelima selebar dua kolom. */
 .menuUbin > :last-child:nth-child(odd) { grid-column: 1 / -1; }
+
+/* Catatan kerahasiaan di atas cerita dan tanggapannya. */
+.rahasia {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: start;
+  gap: 12px;
+  padding: 14px 16px;
+  border-radius: 18px;
+  background: linear-gradient(135deg, var(--fm-ungu-tua), var(--fm-ungu));
+  color: #ffffff;
+}
+
+.rahasia b {
+  display: block;
+  font-size: 15px;
+  line-height: 1.35;
+}
+
+.rahasia ul {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 8px 0 0;
+  padding-left: 18px;
+}
+
+.rahasia li {
+  font-size: 13.5px;
+  line-height: 1.5;
+  text-align: left;
+  color: rgb(255 255 255 / 0.92);
+}
+
+.rahasiaIkon {
+  display: inline-grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  background: rgb(255 255 255 / 0.16);
+}

@@ -1,6 +1,9 @@
-// Susun SQL koreksi wa_narasi dari dua dataset lokal: yang sudah tertanam di Supabase (--lama) dan
-// yang sudah dikoreksi (--baru). Dipakai saat narasi diperbaiki setelah seed ditempel, supaya tidak
-// perlu menghapus dan menanam ulang dataset (yang akan membuang persetujuan dan suntingan admin).
+// Susun SQL koreksi dari dua dataset lokal: yang sudah tertanam di Supabase (--lama) dan yang sudah
+// dikoreksi (--baru). Dipakai saat narasi atau angka kelompok diperbaiki setelah seed ditempel, supaya
+// tidak perlu menghapus dan menanam ulang dataset (yang akan membuang persetujuan, suntingan admin,
+// dan umpan balik pegawai). Yang ditangani: wa_kelompok (diganti per baris, yang hilang dihapus),
+// wa_individu (baris yang berubah; daftar pegawai harus sama), dan wa_narasi (aturan di bawah;
+// narasi baru masuk menunggu persetujuan, narasi yang cakupannya hilang dihapus).
 //
 // Aturan per baris narasi yang berubah:
 // - Isi utama berubah: seluruh `isi` diganti dan status kembali ke menunggu_persetujuan, KECUALI
@@ -39,12 +42,70 @@ export function susunKoreksi(lama, baru, datasetId) {
     return `$${tanda}$${s}$${tanda}$::jsonb`;
   };
   const ulang = "status = 'menunggu_persetujuan', disetujui_oleh = null, disetujui_pada = null";
-  const peta = new Map(lama.narasi.map((n) => [`${n.cakupan}|${n.kunci}`, n.isi]));
+  const id = teksSql(datasetId);
+  const sekolahId = baru.meta?.sekolahId || lama.meta?.sekolahId;
+  const sekolah = () => {
+    if (!sekolahId) throw new Error("meta.sekolahId tidak ada; dibutuhkan untuk baris baru.");
+    return teksSql(sekolahId);
+  };
   const baris = [];
   const ringkas = {};
+  const hitung = (k) => { ringkas[k] = (ringkas[k] || 0) + 1; };
+
+  // ── Angka kelompok (wa_kelompok): diganti utuh per baris; kelompok yang hilang dihapus ──
+  // Dipakai saat berkas olahan dihitung ulang (mis. koreksi unit). Tidak ada persetujuan di tabel
+  // ini, jadi aman diganti langsung.
+  const kelLama = new Map((lama.kelompok || []).map((k) => [`${k.cakupan}|${k.kunci}`, k]));
+  const kelBaru = new Map((baru.kelompok || []).map((k) => [`${k.cakupan}|${k.kunci}`, k]));
+  for (const [kunci, k] of kelBaru) {
+    if (sama(kelLama.get(kunci), k)) continue;
+    baris.push(
+      "insert into public.wa_kelompok (dataset_id, cakupan, kunci, sekolah_id, nama, n_responden, data) values ("
+        + [id, teksSql(k.cakupan), teksSql(k.kunci), sekolah(), teksSql(k.nama), Number(k.nResponden) || 0, jsonb(k)].join(", ")
+        + ") on conflict (dataset_id, cakupan, kunci) do update set nama = excluded.nama, n_responden = excluded.n_responden, data = excluded.data;",
+    );
+    hitung("kelompok");
+  }
+  for (const [kunci, k] of kelLama) {
+    if (kelBaru.has(kunci)) continue;
+    baris.push(`delete from public.wa_kelompok where dataset_id = ${id} and cakupan = ${teksSql(k.cakupan)} and kunci = ${teksSql(k.kunci)};`);
+    hitung("kelompok_dihapus");
+  }
+
+  // ── Data pegawai (wa_individu): hanya yang berubah. Pegawai bertambah atau berkurang berarti
+  // dataset lain, dan itu wajib lewat seed ulang, bukan koreksi.
+  const indLama = new Map((lama.individu || []).map((o) => [o.id, o]));
+  const indBaru = baru.individu || [];
+  if (indLama.size && (indLama.size !== indBaru.length || indBaru.some((o) => !indLama.has(o.id)))) {
+    throw new Error("Daftar pegawai berbeda antara dataset lama dan baru; pakai seed ulang, bukan koreksi.");
+  }
+  for (const o of indBaru) {
+    if (!indLama.size || sama(indLama.get(o.id), o)) continue;
+    baris.push(`update public.wa_individu set unit_id = ${teksSql(o.unitId)}, nama = ${teksSql(o.nama)}, data = ${jsonb(o)} where dataset_id = ${id} and individu_id = ${teksSql(o.id)};`);
+    hitung("individu");
+  }
+
+  // ── Narasi ──
+  const peta = new Map(lama.narasi.map((n) => [`${n.cakupan}|${n.kunci}`, n.isi]));
+  const kunciBaru = new Set(baru.narasi.map((n) => `${n.cakupan}|${n.kunci}`));
+  for (const n of lama.narasi) {
+    if (kunciBaru.has(`${n.cakupan}|${n.kunci}`)) continue;
+    baris.push(`delete from public.wa_narasi where dataset_id = ${id} and cakupan = ${teksSql(n.cakupan)} and kunci = ${teksSql(n.kunci)};`);
+    hitung(`${n.cakupan}_dihapus`);
+  }
   for (const n of baru.narasi) {
     const sebelum = peta.get(`${n.cakupan}|${n.kunci}`);
-    if (sebelum === undefined || sama(sebelum, n.isi)) continue;
+    if (sebelum === undefined) {
+      // Narasi baru (mis. unit yang kini mencapai ambang narasi): masuk menunggu persetujuan.
+      baris.push(
+        "insert into public.wa_narasi (dataset_id, cakupan, kunci, sekolah_id, isi, perlu_ahli, alasan_perhatian, status, draf_asal) values ("
+          + [id, teksSql(n.cakupan), teksSql(n.kunci), sekolah(), jsonb(n.isi), n.perluAhli ? "true" : "false", n.alasanPerhatian ? teksSql(n.alasanPerhatian) : "null", "'menunggu_persetujuan'", "'excel'"].join(", ")
+          + ") on conflict (dataset_id, cakupan, kunci) do nothing;",
+      );
+      hitung(`${n.cakupan}_baru`);
+      continue;
+    }
+    if (sama(sebelum, n.isi)) continue;
     const kunci = `dataset_id = ${teksSql(datasetId)} and cakupan = ${teksSql(n.cakupan)} and kunci = ${teksSql(n.kunci)}`;
     const utamaBerubah = !sama(tanpaTambahan(sebelum), tanpaTambahan(n.isi));
     const tambahan = Object.keys(TAMBAHAN).filter((k) => k in n.isi && !sama(sebelum[k], n.isi[k]));
@@ -110,7 +171,7 @@ function main() {
     ].join("\n");
     fs.writeFileSync(path.join(folder, `${awalan}.bagian-${i + 1}.sql`), teks);
   });
-  console.log("Narasi berubah:", ringkas);
+  console.log("Perubahan per jenis:", ringkas);
   console.log(`${baris.length} pernyataan, ${bagian.length} bagian: ${arg.keluar}.bagian-1..${bagian.length}.sql`);
 }
 

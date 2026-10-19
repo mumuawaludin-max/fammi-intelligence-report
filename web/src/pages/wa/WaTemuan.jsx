@@ -23,7 +23,7 @@ export default function WaTemuan({ dataset, kelompok, individu, narasi, bukaProf
   return (
     <Bertahap className={t.halaman}>
       <section data-tur="insight">
-        <JudulBagian keterangan="Pola yang baru terlihat kalau beberapa sumber data dibaca bersamaan.">Temuan utama</JudulBagian>
+        <JudulBagian keterangan="Pola yang baru terlihat jika beberapa sumber data dibaca bersamaan.">Temuan utama</JudulBagian>
         {insight.length ? (
           <Grid kolom={insight.length > 2 ? 3 : 2}>
             {insight.map((x, i) => <KartuInsight key={x.judul} nomor={i + 1} insight={x} />)}
@@ -116,7 +116,7 @@ function TindakLanjut({ daftar }) {
                       <p className={t.tindakMengapa}>{x.mengapa}</p>
                       <div className={t.tindakDua}>
                         <div>
-                          <h4>Langkah</h4>
+                          <h4>Langkah yang dapat dipertimbangkan untuk dilakukan</h4>
                           <ol className={t.langkah}>
                             {(x.langkah || []).map((l, j) => (
                               <motion.li key={j} initial={{ opacity: 0, x: -8 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.1 + j * 0.08 }}>
@@ -126,7 +126,7 @@ function TindakLanjut({ daftar }) {
                           </ol>
                         </div>
                         <div>
-                          <h4>Tanda berhasil</h4>
+                          <h4>Usulan indikator keberhasilan yang dapat diukur</h4>
                           <ul className={t.indikator}>
                             {(x.indikator || []).map((l, j) => (
                               <motion.li key={j} initial={{ opacity: 0, x: -8 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.2 + j * 0.08 }}>

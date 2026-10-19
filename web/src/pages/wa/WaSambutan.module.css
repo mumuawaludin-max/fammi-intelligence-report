@@ -164,16 +164,6 @@
 
 .ubinSatu b { font-size: 14px; color: var(--fm-ungu-tua, #342060); }
 
-.catatan {
-  margin: 14px 0 0;
-  padding: 10px 14px;
-  border-radius: 12px;
-  background: var(--wa-kuning-muda, #fff5d6);
-  font-size: 13px;
-  line-height: 1.5;
-  color: #4a4458;
-  text-align: left;
-}
 
 .paham {
   position: relative;

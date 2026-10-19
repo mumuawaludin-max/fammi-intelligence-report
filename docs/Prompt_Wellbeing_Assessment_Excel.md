@@ -276,6 +276,7 @@ ATURAN BAHASA, semua tahap:
 - Bahasa Indonesia hangat dan langsung, seperti asisten yang sungguh membaca jawaban orang itu. Untuk kelompok: seperti analis yang bicara ke Human Capital, lugas, tanpa jargon.
 - Maksimal 3 kalimat per field naratif kecuali respons_cerita (maksimal 5).
 - DILARANG em-dash dan "--". Pakai koma atau pecah kalimat.
+- Pakai "jika", bukan "kalau" (keputusan pemilik produk 2026-10-19: "kalau" dianggap tidak baku).
 - DILARANG pola tulisan AI: "sangat penting", "pada dasarnya", "perlu dicatat", "komprehensif", "holistik", "sesungguhnya", "tentu saja", "dengan demikian", "merupakan", "terdapat", "berperan penting", "tak dapat dipungkiri", "mari kita", tiga sinonim beruntun, kalimat dibuka kata sambung setelah titik.
 - DILARANG istilah akademik di teks tampilan: Ryff, psychological well-being, PWB, autonomy, environmental mastery, Likert, Pearson (boleh di bukti insight).
 - JSON valid: kutip ganda di-escape, tanpa baris baru mentah di dalam string, satu baris per sel, tanpa pagar markdown.

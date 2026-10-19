@@ -2,7 +2,7 @@
 // Empat bagian lewat lembar menu bawah: Ringkasan, Aspek Kuat, Perlu Penguatan, Refleksi Saya.
 // Sebelum apa pun tampil, pegawai melewati dialog sambutan wajib (WaSambutan).
 //
-// Narasi pribadi dan respons cerita hanya tampil kalau barisnya ada di dataset; di Supabase, RLS
+// Narasi pribadi dan respons cerita hanya tampil jika barisnya ada di dataset; di Supabase, RLS
 // hanya mengembalikan baris yang sudah disetujui. Respons cerita yang belum disetujui tampil sebagai
 // kartu "sedang disiapkan", tidak pernah sebagai draf.
 //
@@ -13,7 +13,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { AnimatePresence, MotionConfig, motion } from "motion/react";
 import {
   ArrowRight, CaretRight, ChartBar, ChatCircleText, CheckCircle, Circle, ClipboardText, ClockCounterClockwise, Compass, Footprints, Heart, HourglassMedium, Info, Plant,
-  Lightbulb, Question, Quotes, SignOut, SquaresFour, Star, ThumbsDown,
+  Lightbulb, LockKey, Question, Quotes, SignOut, SquaresFour, Star, ThumbsDown,
 } from "@phosphor-icons/react";
 import SampleTag from "../../components/SampleTag";
 import {
@@ -49,7 +49,7 @@ const BAGIAN = [
 
 /**
  * @param onLogout       keluar dari akun (produksi); tidak ada di pratinjau
- * @param onKeScreening  pindah ke laporan Screening Awal Wellbeing kalau akun ini juga tertaut ke sana
+ * @param onKeScreening  pindah ke laporan Screening Awal Wellbeing jika akun ini juga tertaut ke sana
  */
 export default function WaPegawaiLaporan({ dataset, akses, onLogout, onKeScreening, umpanBalik }) {
   const orang = useMemo(() => dataset?.individu?.find((o) => o.id === akses?.individuId) || null, [dataset, akses]);
@@ -623,6 +623,22 @@ function TanggapanCerita({ respons }) {
   }
   return (
     <div className={styles.tanggapanTumpuk} data-tur="tanggapan-cerita">
+      {/* Kerahasiaan cerita (permintaan pemilik produk 2026-10-19). Sesuai RLS migration
+          20261020100000: baris respons_cerita hanya terbaca pemiliknya dan Admin Fammi. */}
+      {respons.ada && (
+        <motion.div className={styles.rahasia} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4, ease: EASE }}>
+          <motion.span className={styles.rahasiaIkon} animate={{ scale: [1, 1.08, 1] }} transition={{ duration: 2.6, repeat: Infinity, repeatDelay: 1 }}>
+            <LockKey size={22} weight="fill" aria-hidden="true" />
+          </motion.span>
+          <div>
+            <b>Cerita ini hanya Anda yang tahu</b>
+            <ul>
+              <li>Lembaga, termasuk Human Capital dan atasan Anda, tidak diberi akses untuk membaca cerita ini.</li>
+              <li>Tim Fammi meninjau cerita Anda dan menyusun tanggapan di bawah ini sebagai bentuk dukungan.</li>
+            </ul>
+          </div>
+        </motion.div>
+      )}
       {/* Cerita asli ditampilkan lagi supaya jelas tanggapan ini menjawab tulisan yang mana. */}
       {respons.ada && respons.cerita && (
         <Kartu className={styles.ceritaAnda}>

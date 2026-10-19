@@ -35,6 +35,7 @@ test("teks panduan bebas kata terlarang, tanda hubung panjang, dan kata klise", 
       assert.doesNotMatch(teks, KATA_TERLARANG, `${nama} ${l.judul}`);
       assert.doesNotMatch(teks, /—|--/, `${nama} ${l.judul}`);
       assert.doesNotMatch(teks, KATA_KLISE, `${nama} ${l.judul}`);
+      assert.doesNotMatch(teks, /\bkalau\b/i, `${nama} ${l.judul}: pakai "jika"`);
       assert.doesNotMatch(teks, /\b(gangguan|tidak sehat|diagnosis klinis)\b/i, `${nama} ${l.judul}`);
     }
   }

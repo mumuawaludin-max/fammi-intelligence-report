@@ -5,17 +5,17 @@
 //
 // Nada: lugas dan jujur, tanpa hiperbola (revisi pemilik produk 2026-10-19). Alasan diundang
 // disebut apa adanya sesuai jalur peserta Screening Awal (minta didampingi, jawaban perlu
-// didalami, perwakilan unit) tanpa menyebut alasan orang itu. Bagian "siapa yang bisa melihat
-// apa" mengikuti RLS migration 20261020100000: Human Capital melihat angka, tidak melihat narasi
-// pribadi; isi cerita hanya dibaca tim Fammi untuk menyusun tanggapan. Jangan menjanjikan lebih
-// dari itu, dan jangan menawarkan percakapan atau pendampingan dari Fammi (keputusan pemilik produk).
+// didalami, perwakilan unit) tanpa menyebut alasan orang itu. Jangan menawarkan percakapan atau
+// pendampingan dari Fammi (keputusan pemilik produk). Tiga langkah: halo, kenapa diminta mengisi,
+// isi laporan beserta centang pemahaman. Halaman "siapa yang bisa melihat apa" dihapus atas
+// permintaan pemilik produk (2026-10-19); kerahasiaan cerita dijelaskan di bagian Cerita dan
+// tanggapan pada laporan.
 // Mode `terkunci = false` dipakai saat pegawai membuka ulang lewat menu "Tentang asesmen ini".
 
 import { useState } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import {
-  ArrowLeft, ArrowRight, ChatCircleText, Check, Compass, Footprints, HandHeart, Heart, LockKey, Plant, ShieldCheck,
-  Stethoscope, ThumbsUp, UsersThree,
+  ArrowLeft, ArrowRight, Check, Compass, Footprints, HandHeart, Heart, Plant, ShieldCheck, Stethoscope, ThumbsUp,
 } from "@phosphor-icons/react";
 import { namaDepan } from "./lib/waAturan";
 import { IlustrasiSambutan } from "./WaIlustrasi";
@@ -53,13 +53,7 @@ const TEMUAN = [
   { ikon: Footprints, judul: "Langkah kecil", isi: "Beberapa hal yang bisa dicoba, sesuai hasil Anda." },
 ];
 
-const JANJI = [
-  { ikon: LockKey, judul: "Penjelasan pribadi", isi: "Penjelasan, langkah kecil, dan pesan di laporan ini hanya tampil di akun Anda." },
-  { ikon: UsersThree, judul: "Human Capital", isi: "Tim Human Capital lembaga melihat angka skor tiap pegawai untuk merencanakan dukungan. Penjelasan pribadi di laporan ini tidak bisa mereka buka." },
-  { ikon: ChatCircleText, judul: "Cerita yang Anda tulis", isi: "Isinya hanya dibaca tim Fammi untuk menyusun tanggapan bagi Anda. Lembaga hanya menerima rangkuman tema dari banyak orang, tanpa nama dan tanpa kutipan." },
-];
-
-const LANGKAH = 4;
+const LANGKAH = 3;
 
 const geser = {
   masuk: (arah) => ({ opacity: 0, x: arah * 48 }),
@@ -113,7 +107,7 @@ export default function WaSambutan({ buka, onSelesai, nama, lembaga, nPeserta, t
                     Halo, {namaDepan(nama) || "Anda"}.
                   </motion.h2>
                   <motion.p className={styles.narasi} variants={anak} initial="masuk" animate="tampil" custom={2}>
-                    Beberapa waktu lalu Anda mengisi Screening Awal Wellbeing, lalu asesmen lanjutan ini. Tiga halaman berikut menjelaskan kenapa Anda diminta mengisi, apa isi laporan, dan siapa yang bisa melihatnya.
+                    Beberapa waktu lalu Anda mengisi Screening Awal Wellbeing, lalu asesmen lanjutan ini. Dua halaman berikut menjelaskan kenapa Anda diminta mengisi dan apa isi laporan ini.
                   </motion.p>
                   {typeof nPeserta === "number" && nPeserta > 0 && (
                     <motion.div className={styles.sorot} variants={anak} initial="masuk" animate="tampil" custom={3}>
@@ -161,27 +155,7 @@ export default function WaSambutan({ buka, onSelesai, nama, lembaga, nPeserta, t
                       </motion.div>
                     ))}
                   </div>
-                  <motion.p className={styles.catatan} variants={anak} initial="masuk" animate="tampil" custom={6}>
-                    Kalau Anda menulis cerita saat mengisi, ada juga tanggapan untuk cerita itu. Setelah ini, panduan singkat menjelaskan tiap bagian laporan.
-                  </motion.p>
-                </>
-              )}
-
-              {langkah === 3 && (
-                <>
-                  <motion.h2 className={styles.judul} variants={anak} initial="masuk" animate="tampil" custom={0}>Siapa yang bisa melihat apa</motion.h2>
-                  <ul className={styles.poin}>
-                    {JANJI.map((a, i) => (
-                      <motion.li key={a.judul} variants={anak} initial="masuk" animate="tampil" custom={i + 1} style={{ "--w": "var(--fm-ungu)" }}>
-                        <span className={styles.poinIkon}><a.ikon size={20} weight="fill" aria-hidden="true" /></span>
-                        <span>
-                          <b>{a.judul}</b>
-                          {a.isi}
-                        </span>
-                      </motion.li>
-                    ))}
-                  </ul>
-                  <motion.label className={`${styles.paham} ${paham ? styles.pahamAktif : ""}`} variants={anak} initial="masuk" animate="tampil" custom={4} whileTap={{ scale: 0.98 }}>
+                  <motion.label className={`${styles.paham} ${paham ? styles.pahamAktif : ""}`} variants={anak} initial="masuk" animate="tampil" custom={6} whileTap={{ scale: 0.98 }}>
                     <input type="checkbox" checked={paham} onChange={(e) => setPaham(e.target.checked)} />
                     <span className={styles.pahamKotak} aria-hidden="true">
                       <AnimatePresence>

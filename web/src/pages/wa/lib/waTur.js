@@ -26,7 +26,7 @@ export function langkahPegawai() {
       judul: "Panduan membaca laporan Anda",
       isi: [
         "Panduan ini menunjukkan isi laporan satu per satu, kira-kira dua menit.",
-        "Tekan Lanjut untuk pindah. Tekan Lewati kalau ingin membaca sendiri. Panduan ini bisa dibuka lagi dari tombol Menu.",
+        "Tekan Lanjut untuk pindah. Tekan Lewati jika ingin membaca sendiri. Panduan ini bisa dibuka lagi dari tombol Menu.",
       ],
       bagian: "ringkasan",
     },
@@ -94,7 +94,7 @@ export function langkahPegawai() {
       judul: "Pernyataan yang bisa dikuatkan",
       isi: [
         "Tiga pernyataan dengan skor terendah Anda. Skor 1 sampai 3 dihitung perlu penguatan dan barnya jingga.",
-        "Kalau semua skor Anda 4 ke atas, barnya ungu muda.",
+        "Jika semua skor Anda 4 ke atas, barnya ungu muda.",
       ],
     },
     {
@@ -102,7 +102,7 @@ export function langkahPegawai() {
       bagian: "ringkasan",
       judul: "Tanggapan untuk cerita Anda",
       isi: [
-        "Kalau Anda menulis cerita saat mengisi, ada tanggapan untuk cerita itu. Tanggapannya ada di bagian Refleksi Saya.",
+        "Jika Anda menulis cerita saat mengisi, ada tanggapan untuk cerita itu. Tanggapannya ada di bagian Refleksi Saya.",
       ],
     },
     {
@@ -144,8 +144,8 @@ export function langkahPegawai() {
       bagian: "refleksi",
       judul: "Cerita dan tanggapan",
       isi: [
-        "Di atas ada cerita yang Anda tulis saat mengisi, supaya Anda ingat tanggapan ini untuk cerita yang mana. Di bawahnya tanggapan untuk cerita itu.",
-        "Kalau tanggapannya belum ada, artinya masih ditinjau.",
+        "Cerita ini hanya Anda yang tahu. Lembaga, termasuk Human Capital dan atasan Anda, tidak diberi akses untuk membacanya.",
+        "Di bawahnya ada cerita yang Anda tulis saat mengisi, lalu tanggapan yang disusun tim Fammi setelah meninjau cerita itu. Jika tanggapannya belum ada, artinya masih ditinjau.",
       ],
     },
     {
@@ -186,7 +186,7 @@ const LANGKAH_HC = {
         "Rata-rata skor kesejahteraan diri pegawai di cakupan ini. Tiap pegawai menjawab 42 pernyataan bernilai 1 sampai 6; totalnya diubah menjadi persen.",
         KATEGORI_PROTEK_TEKS,
         "Baris kecil di bawahnya menghitung orang, bukan skor: berapa pegawai yang kategorinya Baik. Karena itu angkanya bisa jauh lebih tinggi dari rata-rata skor, misalnya rata-rata 77% sementara 95% pegawai berkategori Baik.",
-        "Kotak ungu berisi ringkasan yang sudah ditinjau tim Fammi. Kalau kosong, narasinya belum disetujui.",
+        "Kotak ungu berisi ringkasan yang sudah ditinjau tim Fammi. Jika kosong, narasinya belum disetujui.",
       ],
     },
     {
@@ -380,7 +380,7 @@ const LANGKAH_HC = {
     {
       target: "tindak",
       judul: "Langkah tindak lanjut",
-      isi: ["Usulan langkah per pihak: Human Capital, pimpinan unit, atau direksi. Klik kartu untuk melihat langkahnya dan cara mengukur keberhasilannya."],
+      isi: ["Usulan langkah per pihak: Human Capital, pimpinan unit, atau direksi. Klik kartu untuk melihat langkah yang dapat dipertimbangkan dan usulan indikator keberhasilannya."],
     },
     {
       target: "tema-cerita",
@@ -390,7 +390,7 @@ const LANGKAH_HC = {
     {
       target: "sebaran",
       judul: "Wellbeing dan kepuasan",
-      isi: ["Satu titik satu pegawai. Kalau titik-titik membentuk garis naik ke kanan, pegawai yang lebih puas cenderung juga lebih baik kesejahteraannya. Klik titik untuk profil singkat."],
+      isi: ["Satu titik satu pegawai. Jika titik-titik membentuk garis naik ke kanan, pegawai yang lebih puas cenderung juga lebih baik kesejahteraannya. Klik titik untuk profil singkat."],
     },
     {
       target: "banding",
