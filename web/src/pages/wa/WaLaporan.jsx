@@ -90,10 +90,6 @@ export default function WaLaporan({ dataset, akses, tabAtas = 0 }) {
       <div className={`${swTokens.scope} ${tokens.scope} ${styles.halaman}`} style={{ "--wa-tab-atas": `${tabAtas}px` }}>
         <nav className={styles.tabBar} aria-label="Bagian laporan" data-tur-lekat>
           <div className={styles.tabBarDalam}>
-            <span className={styles.merek}>
-              <span className={styles.merekTitik} aria-hidden="true" />
-              <span className={styles.merekTeks}>Wellbeing Assessment</span>
-            </span>
             <div className={styles.tabDaftar} role="tablist" data-tur="tab-bar">
               {TAB.map((t) => {
                 const Ikon = IKON_TAB[t.id];

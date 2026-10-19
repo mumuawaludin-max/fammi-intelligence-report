@@ -197,12 +197,12 @@ function laporanIndividu(o) {
       ? {
         ada: true,
         draf: o.perluAhli
-          ? "Terima kasih sudah bercerita dengan jujur. Apa yang Anda rasakan layak didengar dengan sungguh-sungguh. Tim pendamping ingin menawarkan percakapan lanjutan, kapan pun Anda siap."
+          ? "Terima kasih sudah bercerita dengan jujur. Rasa berat yang Anda tulis wajar dirasakan, dan tidak perlu ditanggung sendiri. Kalau terasa makin berat, sampaikan ke Human Capital bahwa Anda ingin dihubungkan dengan psikolog."
           : "Terima kasih sudah berbagi cerita. Lelah setelah pekan yang padat itu wajar, dan Anda sudah menemukan cara untuk tetap bertahan. Coba sisihkan satu waktu kecil setiap hari yang benar-benar untuk diri sendiri.",
         perlu_perhatian_ahli: o.perluAhli,
-        alasan_perhatian: o.perluAhli ? "contoh: perlu percakapan lanjutan" : "",
+        alasan_perhatian: o.perluAhli ? "contoh: cerita berat, perlu rujukan ahli" : "",
       }
-      : { ada: false, draf: "Anda memilih tidak menuliskan cerita, dan itu sepenuhnya boleh. Kalau suatu saat ingin berbagi, tim pendamping siap mendengar.", perlu_perhatian_ahli: false, alasan_perhatian: "" },
+      : { ada: false, draf: "Anda memilih tidak menuliskan cerita, dan itu boleh. Kalau suatu saat ada yang mengganjal, orang yang paling Anda percaya bisa jadi tempat bercerita.", perlu_perhatian_ahli: false, alasan_perhatian: "" },
   };
 }
 

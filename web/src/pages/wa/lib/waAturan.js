@@ -226,6 +226,10 @@ const KATA_DIAGNOSIS = /\b(depresi|gangguan|burnout|sakit mental|tidak sehat)\b/
 // Daftar larangan tulisan di CLAUDE.md ditambah hiperbola yang lazim di narasi buatan model.
 export const KATA_KLISE = /\b(sangat penting|perlu dicatat|pada dasarnya|sesungguhnya|tentu saja|dengan demikian|merupakan|terdapat|komprehensif|holistik|luar biasa|tak dapat dipungkiri|mari kita|berperan penting|sinergi|transformatif)\b/i;
 const JALUR_BOLEH_ANGKA = /(^|\.)(terkait|jangka|bukti|jumlah)$/;
+// Fammi tidak pernah menawarkan percakapan, sesi, atau pendampingan kepada pegawai (keputusan
+// pemilik produk 2026-10-19). Kebutuhan bantuan ahli diarahkan lewat Human Capital. Hanya
+// diperiksa di narasi pribadi; narasi kelompok untuk Human Capital boleh mengusulkan sesi.
+export const KATA_TAWARAN = /(tim pendamping\b|pendamping fammi|tim fammi|\bkami\b|menawarkan|percakapan lanjutan|ruang aman|siap mendengar|konsultasi (dengan|ke) (tim|fammi)|psikolog yang disediakan)/i;
 
 /**
  * Lencana peringatan untuk peninjau, bukan penegak. Aturan mengikuti prompt pengolahan
@@ -242,6 +246,7 @@ export function qcNarasiWa(row) {
     if (/—|--/.test(nilai)) isu.push({ isu: "tanda_hubung", jalur });
     if (KATA_DIAGNOSIS.test(nilai)) isu.push({ isu: "diagnosis", jalur });
     if (KATA_KLISE.test(nilai)) isu.push({ isu: "klise", jalur });
+    if (pribadi && KATA_TAWARAN.test(nilai)) isu.push({ isu: "tawaran", jalur });
     if (pribadi && /\d/.test(nilai) && !JALUR_BOLEH_ANGKA.test(jalur)) isu.push({ isu: "angka", jalur });
     const kalimat = nilai.split(/[.!?]+(?:\s|$)/).filter((s) => s.trim().length > 2).length;
     if (kalimat > batas && !/(^|\.)(mengapa|bukti)$/.test(jalur)) isu.push({ isu: "kalimat_banyak", jalur });
@@ -254,6 +259,7 @@ export const LABEL_ISU_QC = {
   tanda_hubung: "Memuat tanda hubung panjang",
   diagnosis: "Memuat istilah diagnosis",
   klise: "Memuat kata klise atau hiperbola",
+  tawaran: "Menawarkan percakapan atau pendampingan dari Fammi",
   angka: "Memuat angka di narasi pribadi",
   kalimat_banyak: "Terlalu banyak kalimat",
 };

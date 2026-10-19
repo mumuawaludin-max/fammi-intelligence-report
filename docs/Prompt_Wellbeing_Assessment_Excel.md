@@ -252,7 +252,7 @@ Skema laporan_json INDIVIDU (semua kunci wajib):
   ],
   "respons_cerita": {
     "ada": true,
-    "draf": "3-5 kalimat respons untuk cerita di kolom BB: akui apa yang dirasakan dengan kata-kata orang itu sendiri secara ringkas, beri satu sudut pandang yang menenangkan, satu langkah kecil yang bisa dicoba, dan kalau ceritanya berat, ajakan bicara dengan orang yang ia sebut paling dipercaya (kolom BC) atau dengan tim pendamping. Kalau BB kosong: 1-2 kalimat pembuka pintu yang hangat tanpa pura-pura membaca cerita",
+    "draf": "2-4 kalimat tanggapan untuk cerita di kolom BB, pilih satu mode menurut isinya. (a) Meminta nasihat atau bertanya: satu sudut pandang lain yang membuka pikiran, lalu satu langkah konkret yang bisa ia lakukan sendiri (jelas apa, kapan, dengan siapa). (b) Sekadar bercerita: cukup mendengarkan, cerminkan perasaannya dengan kata yang dekat dengan ceritanya, akui itu wajar, lalu satu kalimat penyemangat yang spesifik; tanpa daftar saran. (c) Perlu ahli: validasi tanpa menilai dan tanpa diagnosis, lalu sarankan ia menyampaikan ke Human Capital agar dihubungkan dengan tenaga ahli seperti psikolog. Boleh menyebut orang yang ia sebut paling dipercaya (kolom BC) sebagai teman bicara. Kalau BB kosong: 1-2 kalimat yang menghargai pilihannya tanpa pura-pura membaca cerita",
     "perlu_perhatian_ahli": false,
     "alasan_perhatian": "kosong, atau satu frasa umum tanpa kutipan"
   }
@@ -260,8 +260,9 @@ Skema laporan_json INDIVIDU (semua kunci wajib):
 
 Aturan Tahap C:
 - langkah_kecil: 2-3 item, item pertama kemenangan cepat, sesuaikan dengan kelompok_jabatan (keseharian guru beda dari pembina asrama beda dari staf kantor beda dari pendukung layanan).
-- perlu_perhatian_ahli = true (dan tulis "Ya" di kolom cerita_perlu_ahli, serta baris di CATATAN_QC) kalau cerita menyebut: tubuh sampai tumbang atau dirawat, sedih berkepanjangan, merasa dikhianati atau diperlakukan tidak adil oleh pimpinan, lingkungan yang disebut toxic, kesepian yang dalam, putus asa, menyakiti diri, atau permintaan bantuan langsung. Respons untuk kasus ini lebih pendek, tidak memberi nasihat teknis, dan selalu menawarkan percakapan lanjutan. Draf ini akan ditinjau psikolog sebelum dikirim.
-- Dilarang menjanjikan tindakan lembaga ("pimpinan akan...", "kami akan mengubah..."). Dilarang membocorkan bahwa Human Capital membaca skor.
+- perlu_perhatian_ahli = true (dan tulis "Ya" di kolom cerita_perlu_ahli, serta baris di CATATAN_QC) kalau cerita menyebut: tubuh sampai tumbang atau dirawat, sedih berkepanjangan, merasa dikhianati atau diperlakukan tidak adil oleh pimpinan, lingkungan yang disebut toxic, kesepian yang dalam, putus asa, menyakiti diri, atau permintaan bantuan langsung. Respons untuk kasus ini lebih pendek, tidak memberi nasihat teknis, dan menyarankan ia menyampaikan ke Human Capital agar dihubungkan dengan tenaga ahli. Draf ini akan ditinjau psikolog sebelum dikirim.
+- DILARANG menawarkan apa pun atas nama Fammi: percakapan, percakapan lanjutan, sesi, konsultasi, konseling, pendampingan, "ruang aman", "siap mendengar". Jangan menyebut "tim pendamping", "tim Fammi", atau "kami" di teks individu, termasuk langkah_kecil (bukan "Hubungi tim pendamping..."). Kebutuhan bantuan ahli selalu diarahkan lewat Human Capital, dan cukup disarankan, bukan dijanjikan.
+- Dilarang menjanjikan tindakan lembaga ("pimpinan akan...", "Human Capital akan..."). Dilarang membocorkan bahwa Human Capital membaca skor.
 - SAPAAN: ringkasan, wellbeing, kepuasan, refleksi, respons_cerita memakai "Anda". langkah_kecil (judul dan alasan) DILARANG memakai kata ganti orang; tulis kalimat perintah dan penjelasan netral.
 - DILARANG menulis ANGKA atau DIGIT di semua teks individu (angka sudah tampil di layar); tulis kualitatif: "paling tinggi di antara enam aspek", "satu-satunya aspek yang masuk Perlu Perhatian".
 - Dua orang dengan data berbeda harus menghasilkan teks yang benar-benar berbeda, bukan template ganti nama. Jangan menyebut nama orang di dalam JSON.

@@ -7,7 +7,8 @@
 // disebut apa adanya sesuai jalur peserta Screening Awal (minta didampingi, jawaban perlu
 // didalami, perwakilan unit) tanpa menyebut alasan orang itu. Bagian "siapa yang bisa melihat
 // apa" mengikuti RLS migration 20261020100000: Human Capital melihat angka, tidak melihat narasi
-// pribadi; isi cerita hanya untuk tim pendamping. Jangan menjanjikan lebih dari itu.
+// pribadi; isi cerita hanya dibaca tim Fammi untuk menyusun tanggapan. Jangan menjanjikan lebih
+// dari itu, dan jangan menawarkan percakapan atau pendampingan dari Fammi (keputusan pemilik produk).
 // Mode `terkunci = false` dipakai saat pegawai membuka ulang lewat menu "Tentang asesmen ini".
 
 import { useState } from "react";
@@ -55,7 +56,7 @@ const TEMUAN = [
 const JANJI = [
   { ikon: LockKey, judul: "Penjelasan pribadi", isi: "Penjelasan, langkah kecil, dan pesan di laporan ini hanya tampil di akun Anda." },
   { ikon: UsersThree, judul: "Human Capital", isi: "Tim Human Capital lembaga melihat angka skor tiap pegawai untuk merencanakan dukungan. Penjelasan pribadi di laporan ini tidak bisa mereka buka." },
-  { ikon: ChatCircleText, judul: "Cerita yang Anda tulis", isi: "Isinya hanya dibaca tim pendamping Fammi. Lembaga hanya menerima rangkuman tema dari banyak orang, tanpa nama dan tanpa kutipan." },
+  { ikon: ChatCircleText, judul: "Cerita yang Anda tulis", isi: "Isinya hanya dibaca tim Fammi untuk menyusun tanggapan bagi Anda. Lembaga hanya menerima rangkuman tema dari banyak orang, tanpa nama dan tanpa kutipan." },
 ];
 
 const LANGKAH = 4;
@@ -161,7 +162,7 @@ export default function WaSambutan({ buka, onSelesai, nama, lembaga, nPeserta, t
                     ))}
                   </div>
                   <motion.p className={styles.catatan} variants={anak} initial="masuk" animate="tampil" custom={6}>
-                    Kalau Anda menulis cerita saat mengisi, ada juga pesan dari tim pendamping Fammi. Setelah ini, panduan singkat menjelaskan tiap bagian laporan.
+                    Kalau Anda menulis cerita saat mengisi, ada juga tanggapan untuk cerita itu. Setelah ini, panduan singkat menjelaskan tiap bagian laporan.
                   </motion.p>
                 </>
               )}

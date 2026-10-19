@@ -160,7 +160,7 @@ function TemaCerita({ daftar, n }) {
   const maks = Math.max(...daftar.map((x) => x.jumlah), 1);
   return (
     <section data-tur="tema-cerita">
-      <JudulBagian keterangan={`Dirangkum dari ${n ?? "sejumlah"} cerita yang ditulis pegawai. Tanpa kutipan dan tanpa nama; isi cerita hanya dibaca tim pendamping.`}>
+      <JudulBagian keterangan={`Dirangkum dari ${n ?? "sejumlah"} cerita yang ditulis pegawai. Tanpa kutipan dan tanpa nama; isi cerita hanya dibaca tim Fammi.`}>
         Yang sering diceritakan pegawai
       </JudulBagian>
       <Kartu className={t.temaCerita}>

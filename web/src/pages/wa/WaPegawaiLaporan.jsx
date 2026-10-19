@@ -338,13 +338,13 @@ function DaftarItem({ items, jenis }) {
 function KartuPesan({ respons, onBuka }) {
   if (respons && !respons.ada) return null;
   return (
-    <Kartu className={styles.pesanTeaser} data-tur="pesan" onClick={onBuka} label="Buka pesan dari tim pendamping">
+    <Kartu className={styles.pesanTeaser} data-tur="pesan" onClick={onBuka} label="Buka tanggapan untuk cerita Anda">
       <motion.span className={styles.pesanIkon} animate={{ scale: [1, 1.08, 1] }} transition={{ duration: 2.2, repeat: Infinity }}>
         <ChatCircleText size={24} weight="fill" aria-hidden="true" />
       </motion.span>
       <span>
-        <b>{respons ? "Ada pesan untuk cerita Anda" : "Pesan untuk Anda sedang disiapkan"}</b>
-        <small>{respons ? "Tim pendamping membaca cerita Anda dan menuliskan jawabannya." : "Tim pendamping sedang membaca cerita yang Anda tulis."}</small>
+        <b>{respons ? "Ada tanggapan untuk cerita Anda" : "Tanggapan untuk cerita Anda sedang disiapkan"}</b>
+        <small>{respons ? "Ditulis setelah membaca cerita yang Anda tulis saat mengisi." : "Tanggapannya masih ditinjau sebelum ditampilkan."}</small>
       </span>
       <ArrowRight size={18} weight="bold" aria-hidden="true" />
     </Kartu>
@@ -478,8 +478,8 @@ function BagianRefleksi({ orang, narasi, respons }) {
         </div>
       )}
 
-      <JudulKecil>Dari tim pendamping</JudulKecil>
-      <PesanPendamping respons={respons} />
+      <JudulKecil>{respons && !respons.ada ? "Untuk Anda" : "Tanggapan untuk cerita Anda"}</JudulKecil>
+      <TanggapanCerita respons={respons} />
 
       {jawaban.length > 0 && (
         <>
@@ -496,19 +496,19 @@ function BagianRefleksi({ orang, narasi, respons }) {
   );
 }
 
-function PesanPendamping({ respons }) {
+function TanggapanCerita({ respons }) {
   if (!respons) {
     return (
-      <Kartu className={styles.pesanTunggu} data-tur="pesan-pendamping">
+      <Kartu className={styles.pesanTunggu} data-tur="tanggapan-cerita">
         <motion.span animate={{ rotate: [0, 180, 360] }} transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }} style={{ display: "inline-flex" }}>
           <HourglassMedium size={24} weight="fill" aria-hidden="true" />
         </motion.span>
-        <span>Pesan dari tim pendamping sedang disiapkan. Begitu selesai ditinjau, pesannya muncul di sini.</span>
+        <span>Tanggapan untuk cerita Anda sedang ditinjau. Begitu selesai, tanggapannya muncul di sini.</span>
       </Kartu>
     );
   }
   return (
-    <Kartu className={styles.pesan} data-tur="pesan-pendamping">
+    <Kartu className={styles.pesan} data-tur="tanggapan-cerita">
       <span className={styles.pesanLabel}><ChatCircleText size={18} weight="fill" aria-hidden="true" /> {respons.ada ? "Untuk cerita Anda" : "Untuk Anda"}</span>
       <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.2, duration: 0.6 }}>{respons.draf}</motion.p>
     </Kartu>

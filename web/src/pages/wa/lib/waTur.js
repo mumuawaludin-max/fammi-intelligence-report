@@ -6,7 +6,7 @@
 // Bentuk langkah: { target?, judul, isi: string[], daftar?: [{ tanda, label, teks }], bagian? }
 //   target  nilai data-tur yang disorot; kosong = kartu di tengah layar tanpa sorotan
 //   bagian  (laporan pegawai) bagian yang harus dibuka dulu: ringkasan | kuat | perlu | refleksi
-// Langkah yang targetnya tidak ada di layar (mis. belum ada pesan pendamping) dilewati otomatis.
+// Langkah yang targetnya tidak ada di layar (mis. pegawai tidak menulis cerita) dilewati otomatis.
 
 import { ASPEK, DIMENSI_KEPUASAN, JUDUL_TAB_WELLBEING } from "./waMeta.js";
 
@@ -99,9 +99,9 @@ export function langkahPegawai() {
     {
       target: "pesan",
       bagian: "ringkasan",
-      judul: "Pesan dari tim pendamping",
+      judul: "Tanggapan untuk cerita Anda",
       isi: [
-        "Kalau Anda menulis cerita saat mengisi, tim pendamping Fammi menuliskan jawabannya. Pesan itu ada di bagian Refleksi Saya.",
+        "Kalau Anda menulis cerita saat mengisi, ada tanggapan untuk cerita itu. Tanggapannya ada di bagian Refleksi Saya.",
       ],
     },
     {
@@ -130,11 +130,11 @@ export function langkahPegawai() {
       ],
     },
     {
-      target: "pesan-pendamping",
+      target: "tanggapan-cerita",
       bagian: "refleksi",
-      judul: "Pesan untuk Anda",
+      judul: "Isi tanggapan",
       isi: [
-        "Jawaban tim pendamping Fammi untuk cerita Anda. Kalau belum ada, artinya pesannya masih ditinjau.",
+        "Tanggapan untuk cerita yang Anda tulis. Kalau belum ada, artinya tanggapannya masih ditinjau.",
       ],
     },
     {
@@ -341,7 +341,7 @@ const LANGKAH_HC = {
     {
       target: "tema-cerita",
       judul: "Yang sering diceritakan",
-      isi: ["Tema dari cerita yang ditulis pegawai. Hanya tema yang dialami lima orang atau lebih yang ditampilkan, tanpa kutipan dan tanpa nama. Isi cerita hanya dibaca tim pendamping Fammi."],
+      isi: ["Tema dari cerita yang ditulis pegawai. Hanya tema yang dialami lima orang atau lebih yang ditampilkan, tanpa kutipan dan tanpa nama. Isi cerita hanya dibaca tim Fammi."],
     },
     {
       target: "sebaran",

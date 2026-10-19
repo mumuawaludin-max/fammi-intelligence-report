@@ -107,3 +107,18 @@ test("kendali mutu narasi menandai pelanggaran yang lazim", () => {
   for (const n of contoh.narasi) assert.equal(qcNarasiWa(n).some((x) => x.isu === "kata_terlarang"), false);
   assert.deepEqual(isianTeks({ a: ["x", { b: "y" }] }).map((x) => x.jalur), ["a.0", "a.1.b"]);
 });
+
+test("narasi pribadi yang menawarkan percakapan dari Fammi ditandai, saran lewat Human Capital tidak", () => {
+  const tawar = { cakupan: "respons_cerita", isi: { ada: true, draf: "Kami ingin menawarkan percakapan lanjutan dengan tim pendamping." } };
+  const rujuk = { cakupan: "respons_cerita", isi: { ada: true, draf: "Sampaikan ke Human Capital bahwa Anda ingin dihubungkan dengan psikolog." } };
+  const lomba = { cakupan: "individu", isi: { langkah_kecil: [{ judul: "Minta pembagian tim pendampingan lomba" }] } };
+  assert.ok(qcNarasiWa(tawar).some((x) => x.isu === "tawaran"));
+  assert.ok(!qcNarasiWa(rujuk).some((x) => x.isu === "tawaran"));
+  assert.ok(!qcNarasiWa(lomba).some((x) => x.isu === "tawaran"));
+});
+
+test("data contoh tidak menawarkan percakapan atau pendampingan dari Fammi", () => {
+  for (const n of contoh.narasi) {
+    assert.ok(!qcNarasiWa({ cakupan: n.cakupan, isi: n.isi }).some((x) => x.isu === "tawaran"), `${n.cakupan} ${n.kunci}`);
+  }
+});
