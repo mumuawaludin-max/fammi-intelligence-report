@@ -1,7 +1,7 @@
 // Cangkang laporan kelompok Wellbeing Assessment untuk Human Capital (desktop, tetap rapi di
 // tablet dan ponsel). Enam tab: lima dari desain acuan ditambah "Temuan & Langkah" untuk insight,
 // tindak lanjut, tema cerita, dan perbandingan kelompok yang ada di berkas olahan tapi belum punya
-// layar di desain. Semua tab membaca satu cakupan (lembaga, jenjang, unit, atau kelompok jabatan)
+// layar di desain, serta "Dampak Asesmen" (rekap umpan balik pegawai, selalu seluruh lembaga). Semua tab membaca satu cakupan (lembaga, jenjang, unit, atau kelompok jabatan)
 // yang dipilih di bilah atas.
 
 import { useCallback, useMemo, useState } from "react";
@@ -22,6 +22,7 @@ import WaKepuasan from "./WaKepuasan";
 import WaSurvey from "./WaSurvey";
 import WaTestimoni from "./WaTestimoni";
 import WaTemuan from "./WaTemuan";
+import WaDampak from "./WaDampak";
 import WaProfilDialog from "./WaProfilDialog";
 import WaTur from "./WaTur";
 import { sudahDilihat, tandaiDilihat } from "./waSimpanan";
@@ -36,14 +37,16 @@ const TAB = [
   { id: "survey", label: "Survey", Isi: WaSurvey },
   { id: "testimoni", label: "Testimoni", Isi: WaTestimoni },
   { id: "temuan", label: "Temuan & Langkah", Isi: WaTemuan },
+  { id: "dampak", label: "Dampak Asesmen", Isi: WaDampak },
 ];
 
 /**
  * @param dataset dataset lengkap (pembaca berkas, data contoh, atau Supabase)
  * @param akses   { peran: 'hc', nama }
  * @param tabAtas tinggi header aplikasi di atasnya (px); bilah tab menempel tepat di bawahnya
+ * @param umpanBalik rekap umpan balik pegawai untuk tab Dampak Asesmen (useRingkasanUmpanBalik)
  */
-export default function WaLaporan({ dataset, akses, tabAtas = 0 }) {
+export default function WaLaporan({ dataset, akses, tabAtas = 0, umpanBalik }) {
   const [tab, setTab] = useState("ringkasan");
   const [jenis, setJenis] = useState("lembaga");
   const [kunci, setKunci] = useState("lembaga");
@@ -86,7 +89,7 @@ export default function WaLaporan({ dataset, akses, tabAtas = 0 }) {
     .map((c) => ({ nilai: c.kunci, label: c.kunci === "kelompok_jabatan" ? "Jabatan" : c.label }));
   const pilihanJenis = opsi.find((c) => c.kunci === jenis)?.opsi || [];
   const TabAktif = TAB.find((t) => t.id === tab) || TAB[0];
-  const ctx = { dataset, kelompok, individu, narasi, keTab, bukaProfil: setProfilId, pilihCakupan };
+  const ctx = { dataset, kelompok, individu, narasi, keTab, bukaProfil: setProfilId, pilihCakupan, ringkasan: umpanBalik };
 
   return (
     <MotionConfig reducedMotion="user">

@@ -193,3 +193,23 @@ lain, dan anon tidak membaca apa pun; tulis langsung ditolak.
 
 Sudah dijalankan di postgres:15 dan postgres:17 (2026-10-19), keduanya 28 LULUS 0 GAGAL, migration
 idempoten. `wa_seed_contoh.sql` tidak di-commit; buat ulang dengan perintah di atas.
+
+### Umpan balik Wellbeing Assessment (migration 20261021100000)
+
+Di database bersih yang sama urutannya: `wa_baseline.sql`, migration `20261020100000`, migration
+`20261021100000`, `wa_seed_contoh.sql`, lalu `wa_umpan_balik_verify.sql` (sekali saja per database;
+berkas ini mengubah data).
+
+```bash
+docker cp ../migrations/20261021100000_wa_umpan_balik.sql fir-pgtest:/tmp/m2.sql
+docker cp wa_umpan_balik_verify.sql fir-pgtest:/tmp/v2.sql
+docker exec fir-pgtest psql -U postgres -d fir -v ON_ERROR_STOP=1 -f /tmp/m2.sql
+docker exec fir-pgtest psql -U postgres -d fir -f /tmp/v2.sql
+```
+
+Yang diperiksa: pegawai hanya menulis, membaca, dan mengubah isiannya sendiri, dan tidak bisa
+mengubah kolom kunci; akun tanpa tautan tidak bisa mengisi; Human Capital tidak membaca baris per
+orang, rekapnya tertutup di bawah tiga isian lalu terbuka dengan rata-rata, sebaran, hitungan
+pilihan, dan esai tanpa identitas; Human Capital sekolah lain dan Kepala Sekolah ditolak; Admin
+Fammi membaca semua; waktu kirim pertama tetap saat jawaban diubah. Sudah dijalankan di postgres:15
+dan postgres:17 (2026-10-19): 23 LULUS 0 GAGAL, migration idempoten.

@@ -742,3 +742,35 @@
   font-weight: 600;
   color: var(--fm-teks-lembut);
 }
+
+/* ── Ajakan umpan balik ── */
+.ajakUmpan {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 14px;
+  padding: 16px;
+  background: linear-gradient(120deg, var(--wa-kuning-muda), var(--wa-ungu-pucat));
+  color: var(--fm-ungu-tua);
+}
+
+.ajakUmpan b { display: block; font-size: 15px; }
+
+.ajakUmpan small { display: block; margin-top: 2px; font-size: 13px; line-height: 1.4; color: var(--fm-teks-lembut); }
+
+.ajakUmpanIkon {
+  display: inline-grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 14px;
+  background: #ffffff;
+  color: var(--fm-emas);
+}
+
+.ajakUmpanSudah { background: var(--wa-hijau-pucat); }
+
+.ajakUmpanSudah .ajakUmpanIkon { color: var(--fm-hijau); }
+
+/* Menu lima bagian: ubin kelima selebar dua kolom. */
+.menuUbin > :last-child:nth-child(odd) { grid-column: 1 / -1; }

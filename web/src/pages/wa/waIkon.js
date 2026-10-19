@@ -3,7 +3,7 @@
 
 import {
   ArrowsClockwise, Briefcase, ChartBar, ChatCenteredText, ChatTeardropText, CheckSquare, ClipboardText, HandHeart, Heart,
-  Lightbulb, ListChecks, ThumbsDown, ThumbsUp, UserSound, Users, XCircle,
+  Lightbulb, ListChecks, Star, ThumbsDown, ThumbsUp, UserSound, Users, XCircle,
 } from "@phosphor-icons/react";
 
 export const IKON_TAB = {
@@ -13,6 +13,7 @@ export const IKON_TAB = {
   survey: ListChecks,
   testimoni: ChatCenteredText,
   temuan: Lightbulb,
+  dampak: Star,
 };
 
 export const IKON_DIMENSI = {

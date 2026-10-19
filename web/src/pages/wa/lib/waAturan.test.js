@@ -157,3 +157,37 @@ test("format hari dalam bahasa Indonesia, tanggal tanpa jam tidak mundur sehari"
   assert.equal(formatHari("bukan tanggal"), "");
   assert.equal(formatHari(null), "");
 });
+
+test("survei umpan balik: paling banyak dua esai, kode unik, teks bersih", async () => {
+  const { PERTANYAAN_UMPAN_BALIK, umpanBalikBelumLengkap } = await import("./waMeta.js");
+  assert.ok(PERTANYAAN_UMPAN_BALIK.filter((p) => p.jenis === "esai").length <= 2);
+  assert.equal(new Set(PERTANYAAN_UMPAN_BALIK.map((p) => p.kode)).size, PERTANYAAN_UMPAN_BALIK.length);
+  const teks = JSON.stringify(PERTANYAAN_UMPAN_BALIK);
+  assert.doesNotMatch(teks, KATA_TERLARANG);
+  assert.doesNotMatch(teks, /—|--/);
+  // Esai tidak wajib; nilai 1-10 dan pilihan wajib.
+  const wajib = PERTANYAAN_UMPAN_BALIK.filter((p) => p.jenis !== "esai").length;
+  assert.equal(umpanBalikBelumLengkap({}).length, wajib);
+  const lengkap = { nilai: {}, pilihan: {}, esai: {} };
+  for (const p of PERTANYAAN_UMPAN_BALIK) {
+    if (p.jenis === "nilai") lengkap.nilai[p.kode] = 8;
+    if (p.jenis === "pilihan") lengkap.pilihan[p.kode] = p.banyak ? [p.opsi[0]] : p.opsi[0];
+  }
+  assert.equal(umpanBalikBelumLengkap(lengkap).length, 0);
+  assert.equal(umpanBalikBelumLengkap({ ...lengkap, nilai: { ...lengkap.nilai, puas_keseluruhan: 11 } }).length, 1);
+});
+
+test("opsi Lainnya: teks wajib kalau dipilih, opsi Belum tahu tetap di akhir", async () => {
+  const { PERTANYAAN_UMPAN_BALIK, OPSI_LAINNYA, opsiUmpanBalik, umpanBalikBelumLengkap } = await import("./waMeta.js");
+  const rencana = PERTANYAAN_UMPAN_BALIK.find((p) => p.kode === "rencana");
+  const opsi = opsiUmpanBalik(rencana);
+  assert.deepEqual(opsi.slice(-2), [OPSI_LAINNYA, "Belum tahu"]);
+  const dasar = { nilai: {}, pilihan: {} };
+  for (const p of PERTANYAAN_UMPAN_BALIK) {
+    if (p.jenis === "nilai") dasar.nilai[p.kode] = 7;
+    if (p.jenis === "pilihan") dasar.pilihan[p.kode] = p.banyak ? [p.opsi[0]] : p.opsi[0];
+  }
+  const tanpaTeks = { ...dasar, pilihan: { ...dasar.pilihan, rencana: [OPSI_LAINNYA] } };
+  assert.deepEqual(umpanBalikBelumLengkap(tanpaTeks).map((p) => p.kode), ["rencana"]);
+  assert.equal(umpanBalikBelumLengkap({ ...tanpaTeks, lainnya: { rencana: "Ikut kajian" } }).length, 0);
+});

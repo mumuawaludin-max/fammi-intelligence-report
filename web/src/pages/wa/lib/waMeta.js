@@ -218,3 +218,86 @@ export function labelTerkait(teks) {
 /** Kalimat penutup laporan, dipakai di kaki halaman kedua laporan. */
 export const KALIMAT_BUKAN_DIAGNOSIS =
   "Laporan ini menggambarkan jawaban saat asesmen diisi. Laporan ini bukan diagnosis dan bukan penilaian kinerja.";
+
+// ── Umpan balik pegawai (survei pengalaman, migration 20261021100000) ─────────────────────
+// Satu daftar untuk formulir pegawai dan tab "Dampak Asesmen" Human Capital. Jenis:
+//   nilai   skala bintang 1 sampai 10 (wajib)
+//   pilihan satu jawaban (wajib); `banyak: true` boleh lebih dari satu; `lainnya: true` menambah
+//           opsi "Lainnya" dengan isian teks sendiri (wajib diisi kalau opsi itu dipilih),
+//           tersimpan di jawaban.lainnya[kode]
+//   esai    teks bebas (tidak wajib), paling banyak dua pertanyaan esai
+// Kode pertanyaan menjadi kunci di kolom jawaban, jadi JANGAN mengganti kode yang sudah dipakai;
+// tambahkan kode baru kalau maksud pertanyaannya berubah.
+export const ESAI_MAKS_KARAKTER = 1000;
+export const LAINNYA_MAKS_KARAKTER = 200;
+export const OPSI_LAINNYA = "Lainnya";
+
+export const PERTANYAAN_UMPAN_BALIK = [
+  {
+    kode: "puas_keseluruhan", jenis: "nilai", ringkas: "Kepuasan keseluruhan",
+    tanya: "Secara keseluruhan, seberapa puas Anda dengan laporan Wellbeing Assessment ini?",
+  },
+  {
+    kode: "alasan_puas", jenis: "esai", ringkas: "Alasan nilai kepuasan",
+    tanya: "Apa alasan Anda memberi nilai itu?",
+    contoh: "Misalnya: bagian mana yang paling membantu, atau yang masih membingungkan.",
+  },
+  {
+    kode: "kualitas_laporan", jenis: "nilai", ringkas: "Kualitas laporan",
+    tanya: "Bagaimana kualitas laporan ini: jelas, rapi, dan mudah dipahami?",
+  },
+  {
+    kode: "paham_diri", jenis: "nilai", ringkas: "Membantu memahami diri",
+    tanya: "Seberapa membantu laporan ini untuk memahami kondisi diri Anda saat ini?",
+  },
+  {
+    kode: "sesuai", jenis: "pilihan", ringkas: "Penjelasan sesuai yang dirasakan",
+    tanya: "Apakah penjelasan di laporan ini sesuai dengan yang Anda rasakan?",
+    opsi: ["Sangat sesuai", "Cukup sesuai", "Kurang sesuai", "Tidak sesuai"],
+  },
+  {
+    kode: "rencana", jenis: "pilihan", banyak: true, lainnya: true, ringkas: "Yang ingin dilakukan setelah membaca",
+    tanya: "Setelah membaca laporan ini, apa yang ingin Anda lakukan? Boleh pilih lebih dari satu.",
+    opsi: [
+      "Mencoba satu langkah kecil dari laporan",
+      "Lebih menjaga waktu istirahat",
+      "Bercerita ke orang yang dipercaya",
+      "Menyampaikan kebutuhan ke Human Capital",
+      "Membicarakan beban kerja dengan atasan",
+      "Belum tahu",
+    ],
+  },
+  {
+    kode: "diperhatikan", jenis: "pilihan", ringkas: "Merasa diperhatikan lembaga",
+    tanya: "Apakah asesmen ini membuat Anda merasa diperhatikan oleh lembaga?",
+    opsi: ["Ya", "Sedikit", "Belum"],
+  },
+  {
+    kode: "rekomendasi", jenis: "nilai", ringkas: "Menyarankan ke rekan",
+    tanya: "Seberapa besar kemungkinan Anda menyarankan rekan kerja ikut asesmen seperti ini?",
+  },
+  {
+    kode: "perubahan", jenis: "esai", ringkas: "Yang berubah setelah membaca",
+    tanya: "Apa satu hal yang berubah, atau ingin Anda ubah, setelah membaca laporan ini?",
+    contoh: "Misalnya: cara Anda melihat diri sendiri, kebiasaan kecil, atau cara bekerja.",
+  },
+];
+
+/** Pertanyaan wajib yang belum dijawab; kosong berarti boleh dikirim. */
+export function umpanBalikBelumLengkap(jawaban) {
+  return PERTANYAAN_UMPAN_BALIK.filter((p) => {
+    if (p.jenis === "nilai") return !(jawaban?.nilai?.[p.kode] >= 1 && jawaban.nilai[p.kode] <= 10);
+    if (p.jenis === "pilihan") {
+      const v = jawaban?.pilihan?.[p.kode];
+      const kosong = p.banyak ? !(Array.isArray(v) && v.length) : !v;
+      const pilihLainnya = p.lainnya && (p.banyak ? Array.isArray(v) && v.includes(OPSI_LAINNYA) : v === OPSI_LAINNYA);
+      return kosong || (pilihLainnya && !String(jawaban?.lainnya?.[p.kode] || "").trim());
+    }
+    return false;
+  });
+}
+
+/** Daftar opsi yang tampil, termasuk "Lainnya" kalau pertanyaannya mengizinkan. */
+export function opsiUmpanBalik(p) {
+  return p.lainnya ? [...p.opsi.filter((o) => o !== OPSI_LAINNYA && o !== "Belum tahu"), OPSI_LAINNYA, ...p.opsi.filter((o) => o === "Belum tahu")] : p.opsi;
+}

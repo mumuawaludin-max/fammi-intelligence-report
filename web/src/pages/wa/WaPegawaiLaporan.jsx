@@ -13,7 +13,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { AnimatePresence, MotionConfig, motion } from "motion/react";
 import {
   ArrowRight, CaretRight, ChartBar, ChatCircleText, CheckCircle, Circle, ClipboardText, ClockCounterClockwise, Compass, Footprints, Heart, HourglassMedium, Info, Plant,
-  Lightbulb, Question, Quotes, SignOut, SquaresFour, ThumbsDown,
+  Lightbulb, Question, Quotes, SignOut, SquaresFour, Star, ThumbsDown,
 } from "@phosphor-icons/react";
 import SampleTag from "../../components/SampleTag";
 import {
@@ -27,6 +27,7 @@ import { IKON_DIMENSI, IKON_PILIHAN } from "./waIkon";
 import { KartuSkorKepuasan, KartuSkorWellbeing } from "./WaBagian";
 import { IlustrasiHati } from "./WaIlustrasi";
 import WaSambutan from "./WaSambutan";
+import WaUmpanBalik from "./WaUmpanBalik";
 import WaTur from "./WaTur";
 import { langkahPegawai } from "./lib/waTur";
 import { sudahDilihat, tandaiDilihat } from "./waSimpanan";
@@ -43,13 +44,14 @@ const BAGIAN = [
   { id: "kuat", label: "Aspek Kuat", ikon: Heart },
   { id: "perlu", label: "Perlu Penguatan", ikon: ThumbsDown },
   { id: "refleksi", label: "Refleksi Saya", ikon: ChatCircleText },
+  { id: "umpan", label: "Umpan Balik", ikon: Star },
 ];
 
 /**
  * @param onLogout       keluar dari akun (produksi); tidak ada di pratinjau
  * @param onKeScreening  pindah ke laporan Screening Awal Wellbeing kalau akun ini juga tertaut ke sana
  */
-export default function WaPegawaiLaporan({ dataset, akses, onLogout, onKeScreening }) {
+export default function WaPegawaiLaporan({ dataset, akses, onLogout, onKeScreening, umpanBalik }) {
   const orang = useMemo(() => dataset?.individu?.find((o) => o.id === akses?.individuId) || null, [dataset, akses]);
   const [sambutan, setSambutan] = useState("wajib");
   const [bagian, setBagian] = useState("ringkasan");
@@ -87,7 +89,7 @@ export default function WaPegawaiLaporan({ dataset, akses, onLogout, onKeScreeni
   const narasi = narasiUntuk(dataset, "individu", orang.id);
   const respons = narasiUntuk(dataset, "respons_cerita", orang.id);
   const items = lengkapiItem(orang.protek.item, dataset.item);
-  const ctx = { orang, narasi, respons, items, keBagian: setBagian, bukaSemua: setSemua, bukaAspek: setAspekBuka };
+  const ctx = { orang, narasi, respons, items, umpanBalik, keBagian: setBagian, bukaSemua: setSemua, bukaAspek: setAspekBuka };
   const pindah = (id) => { setBagian(id); setMenu(false); };
 
   return (
@@ -136,6 +138,7 @@ export default function WaPegawaiLaporan({ dataset, akses, onLogout, onKeScreeni
             {bagian === "kuat" && <BagianKuat {...ctx} />}
             {bagian === "perlu" && <BagianPerlu {...ctx} />}
             {bagian === "refleksi" && <BagianRefleksi {...ctx} />}
+            {bagian === "umpan" && <WaUmpanBalik umpan={umpanBalik} />}
           </motion.main>
         </AnimatePresence>
 
@@ -223,7 +226,7 @@ function lemahAtauCukup(items) {
 
 // ── Ringkasan ───────────────────────────────────────────────────────────────────────────────
 
-function BagianRingkasan({ orang, narasi, respons, items, keBagian, bukaSemua, bukaAspek }) {
+function BagianRingkasan({ orang, narasi, respons, items, umpanBalik, keBagian, bukaSemua, bukaAspek }) {
   const { protek, kepuasan } = orang;
   const kuat = itemKategori(items, "kuat");
   const perlu = itemKategori(items, "perlu");
@@ -288,6 +291,7 @@ function BagianRingkasan({ orang, narasi, respons, items, keBagian, bukaSemua, b
       />
 
       <KartuPesan respons={respons} onBuka={() => keBagian("refleksi")} />
+      <KartuAjakUmpan umpan={umpanBalik} onBuka={() => keBagian("umpan")} />
     </Bertahap>
   );
 }
@@ -426,6 +430,24 @@ function KartuPesan({ respons, onBuka }) {
       <span>
         <b>{respons ? "Ada tanggapan untuk cerita Anda" : "Tanggapan untuk cerita Anda sedang disiapkan"}</b>
         <small>{respons ? "Ditulis setelah membaca cerita yang Anda tulis saat mengisi." : "Tanggapannya masih ditinjau sebelum ditampilkan."}</small>
+      </span>
+      <ArrowRight size={18} weight="bold" aria-hidden="true" />
+    </Kartu>
+  );
+}
+
+// Ajakan mengisi umpan balik di akhir Ringkasan; setelah terkirim berubah jadi ucapan terima kasih.
+function KartuAjakUmpan({ umpan, onBuka }) {
+  if (!umpan?.tersedia) return null;
+  const sudah = Boolean(umpan.dikirimPada);
+  return (
+    <Kartu className={`${styles.ajakUmpan} ${sudah ? styles.ajakUmpanSudah : ""}`} data-tur="umpan-ajak" onClick={onBuka} label={sudah ? "Lihat umpan balik Anda" : "Isi umpan balik"}>
+      <motion.span className={styles.ajakUmpanIkon} animate={sudah ? {} : { rotate: [0, -10, 10, 0] }} transition={{ duration: 2.2, repeat: Infinity, repeatDelay: 2 }}>
+        {sudah ? <CheckCircle size={24} weight="fill" aria-hidden="true" /> : <Star size={24} weight="fill" aria-hidden="true" />}
+      </motion.span>
+      <span>
+        <b>{sudah ? "Terima kasih atas umpan balik Anda" : "Bagaimana pengalaman Anda?"}</b>
+        <small>{sudah ? "Jawaban bisa diubah kapan saja." : "Beri nilai laporan ini, sekitar dua menit."}</small>
       </span>
       <ArrowRight size={18} weight="bold" aria-hidden="true" />
     </Kartu>

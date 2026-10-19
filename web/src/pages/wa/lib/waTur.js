@@ -106,6 +106,15 @@ export function langkahPegawai() {
       ],
     },
     {
+      target: "umpan-ajak",
+      bagian: "ringkasan",
+      judul: "Umpan balik untuk asesmen ini",
+      isi: [
+        "Setelah membaca, beri nilai pengalaman Anda: sembilan pertanyaan singkat, sekitar dua menit.",
+        "Jawaban bisa diubah kapan saja.",
+      ],
+    },
+    {
       target: "refleksi-tanya",
       bagian: "refleksi",
       judul: "Pertanyaan untuk direnungkan",
@@ -144,7 +153,7 @@ export function langkahPegawai() {
       bagian: "ringkasan",
       judul: "Pindah bagian lewat Menu",
       isi: [
-        "Tombol Menu membuka empat bagian: Ringkasan, Aspek Kuat, Perlu Penguatan, dan Refleksi Saya.",
+        "Tombol Menu membuka lima bagian: Ringkasan, Aspek Kuat, Perlu Penguatan, Refleksi Saya, dan Umpan Balik.",
         "Dari Menu juga Anda bisa membuka panduan ini lagi.",
       ],
     },
@@ -217,13 +226,14 @@ const LANGKAH_HC = {
     {
       target: "tab-bar",
       judul: "Tab lainnya",
-      isi: ["Lima tab lain membahas tiap bagian lebih rinci."],
+      isi: ["Enam tab lain membahas tiap bagian lebih rinci."],
       daftar: [
         { tanda: null, label: JUDUL_TAB_WELLBEING, teks: "Sebaran kategori per aspek dan daftar pegawai per kategori." },
         { tanda: null, label: "Kepuasan Kerja", teks: "Sebaran lima tingkat kepuasan per bidang." },
         { tanda: null, label: "Survey", teks: "Jawaban pilihan ganda: yang disukai, yang sulit, dan keputusan pimpinan." },
         { tanda: null, label: "Testimoni", teks: "Jawaban terbuka pegawai beserta temanya." },
         { tanda: null, label: "Temuan & Langkah", teks: "Temuan lintas data dan usulan tindak lanjut." },
+        { tanda: null, label: "Dampak Asesmen", teks: "Rekap umpan balik pegawai setelah membaca laporannya, diperbarui otomatis." },
       ],
     },
   ],
@@ -326,6 +336,37 @@ const LANGKAH_HC = {
       isi: [
         "Jawaban ditampilkan apa adanya beserta nama penulisnya.",
         "Jawaban yang menyebut orang lain, berisi keluhan ke orang tertentu, atau diminta dirahasiakan tidak ditampilkan.",
+      ],
+    },
+  ],
+  dampak: () => [
+    {
+      target: "dampak-angka",
+      judul: "Dampak asesmen bagi pegawai",
+      isi: [
+        "Tab ini merangkum umpan balik yang diisi pegawai setelah membaca laporan pribadinya. Isinya diperbarui otomatis tiap 20 detik, jadi isian baru langsung terlihat.",
+        "Kartu pertama menunjukkan berapa pegawai yang sudah mengisi. Tiga kartu lain adalah rata-rata nilai 1 sampai 10.",
+      ],
+    },
+    {
+      target: "dampak-rencana",
+      judul: "Yang ingin dilakukan setelah membaca",
+      isi: [
+        "Ini dampak yang paling langsung: tindakan yang ingin diambil pegawai setelah membaca laporannya. Satu orang boleh memilih lebih dari satu.",
+        "Pilihan \"Menyampaikan kebutuhan ke Human Capital\" layak diperhatikan: artinya ada pegawai yang akan datang membawa kebutuhan.",
+      ],
+    },
+    {
+      target: "dampak-diperhatikan",
+      judul: "Merasa diperhatikan",
+      isi: ["Apakah asesmen ini membuat pegawai merasa diperhatikan lembaga, dan apakah penjelasannya sesuai dengan yang mereka rasakan."],
+    },
+    {
+      target: "dampak-esai",
+      judul: "Kata pegawai",
+      isi: [
+        "Jawaban terbuka apa adanya, tanpa nama, terbaru di atas.",
+        "Rekap baru terbuka setelah minimal tiga pegawai mengisi, supaya jawaban tidak bisa ditebak pemiliknya.",
       ],
     },
   ],

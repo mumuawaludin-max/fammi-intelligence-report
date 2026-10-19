@@ -5,7 +5,7 @@
 // Sakelar "Narasi" meniru keadaan sebelum narasi disetujui admin: semua narasi disembunyikan,
 // sehingga setiap kartu narasi harus menampilkan keadaan kosong, bukan kartu kosong.
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import contoh from "./data/wa.contoh.json";
 import { PERAN_WA } from "./lib/waAturan";
 import WaLaporan from "./WaLaporan";
@@ -19,6 +19,16 @@ const BERKAS_LOKAL = import.meta.env.DEV ? import.meta.glob("../../../wa-data-lo
 
 const LABEL = { hc: "Human Capital", pegawai: "Pegawai" };
 
+// Umpan balik di pratinjau hanya tersimpan di memori halaman, tidak ke mana pun.
+function usePratinjauUmpanBalik() {
+  const [isian, setIsian] = useState(null);
+  const kirim = useCallback(async (jawaban) => {
+    const kini = new Date().toISOString();
+    setIsian((lama) => ({ jawaban, dikirimPada: lama?.dikirimPada || kini, diperbaruiPada: kini }));
+  }, []);
+  return { tersedia: true, memuat: false, galat: null, jawaban: isian?.jawaban || null, dikirimPada: isian?.dikirimPada || null, diperbaruiPada: isian?.diperbaruiPada || null, kirim };
+}
+
 export default function WaPreview() {
   const [sumber, setSumber] = useState("contoh");
   const [dataset, setDataset] = useState(contoh);
@@ -27,6 +37,7 @@ export default function WaPreview() {
   const [individuId, setIndividuId] = useState(contoh.individu[0]?.id || "");
   const [narasiTampil, setNarasiTampil] = useState(true);
   const [ulang, setUlang] = useState(0);
+  const umpanPegawai = usePratinjauUmpanBalik();
 
   useEffect(() => {
     if (sumber === "contoh") return undefined;
@@ -44,6 +55,7 @@ export default function WaPreview() {
 
   const datasetTampil = useMemo(() => (narasiTampil ? dataset : { ...dataset, narasi: [] }), [dataset, narasiTampil]);
   const akses = useMemo(() => ({ peran, individuId, nama: `${LABEL[peran]} (pratinjau)` }), [peran, individuId]);
+  const rekapUmpan = useMemo(() => ({ memuat: false, galat: null, data: dataset.umpanBalikContoh || { n: 0, peserta: dataset.individu.length, ambang: 3, terbuka: false }, muatUlang: () => {} }), [dataset]);
 
   function gantiSumber(nilai) {
     if (nilai === "contoh") {
@@ -93,11 +105,11 @@ export default function WaPreview() {
       </div>
 
       {muat.status === "siap" && peran === "hc" && (
-        <WaLaporan key={`${sumber}-${ulang}-${narasiTampil}`} dataset={datasetTampil} akses={akses} />
+        <WaLaporan key={`${sumber}-${ulang}-${narasiTampil}`} dataset={datasetTampil} akses={akses} umpanBalik={rekapUmpan} />
       )}
       {muat.status === "siap" && peran === "pegawai" && (
         <div className={styles.ponsel}>
-          <WaPegawaiLaporan key={`${sumber}-${individuId}-${ulang}-${narasiTampil}`} dataset={datasetTampil} akses={akses} />
+          <WaPegawaiLaporan key={`${sumber}-${individuId}-${ulang}-${narasiTampil}`} dataset={datasetTampil} akses={akses} umpanBalik={umpanPegawai} />
         </div>
       )}
     </div>

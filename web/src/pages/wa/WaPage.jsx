@@ -3,6 +3,7 @@
 
 import { useLayoutEffect, useState } from "react";
 import { useWaData } from "./data/useWaData";
+import { useRingkasanUmpanBalik } from "./data/useWaUmpanBalik";
 import WaLaporan from "./WaLaporan";
 import { WaStatus } from "./WaStatus";
 
@@ -24,10 +25,11 @@ function useTinggiHeader() {
 export default function WaPage({ session }) {
   const { peran, loading, error, dataset } = useWaData(session);
   const tinggiHeader = useTinggiHeader();
+  const umpanBalik = useRingkasanUmpanBalik(peran === "hc" ? dataset?.datasetId : null);
   const akses = { peran, nama: session?.nama || "" };
   return (
     <WaStatus peran={peran === "hc" ? peran : null} loading={loading} error={error} dataset={dataset} kosong={dataset && !dataset.kelompok.length}>
-      <WaLaporan dataset={dataset} akses={akses} tabAtas={tinggiHeader} />
+      <WaLaporan dataset={dataset} akses={akses} tabAtas={tinggiHeader} umpanBalik={umpanBalik} />
     </WaStatus>
   );
 }

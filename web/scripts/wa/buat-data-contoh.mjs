@@ -423,6 +423,50 @@ const dataset = bacaDatasetWa(sheets, {
   lembaga: "Lembaga Contoh", sekolahId: "CONTOH", periodeId: "2026-10", sumber: "buat-data-contoh.mjs", dibuat: "2026-10-19T00:00:00.000Z", contoh: true,
 });
 
+// Rekap umpan balik tiruan untuk tab "Dampak Asesmen" di pratinjau. Bentuknya sama dengan keluaran
+// fungsi Postgres wa_umpan_balik_ringkasan (migration 20261021100000); di produksi rekap selalu
+// dihitung di database, bukan di sini.
+const OPSI_UB = {
+  sesuai: ["Sangat sesuai", "Cukup sesuai", "Kurang sesuai", "Tidak sesuai"],
+  rencana: ["Mencoba satu langkah kecil dari laporan", "Lebih menjaga waktu istirahat", "Bercerita ke orang yang dipercaya", "Menyampaikan kebutuhan ke Human Capital", "Membicarakan beban kerja dengan atasan", "Lainnya", "Belum tahu"],
+  diperhatikan: ["Ya", "Sedikit", "Belum"],
+};
+const ESAI_UB = {
+  alasan_puas: [
+    "Contoh esai. Penjelasannya sesuai dengan yang saya rasakan beberapa bulan ini.",
+    "Contoh esai. Bagian langkah kecil paling membantu karena jelas harus mulai dari mana.",
+    "Contoh esai. Bahasanya mudah dipahami, tapi saya ingin penjelasan yang lebih panjang untuk aspek terendah.",
+    "Contoh esai. Saya baru sadar selama ini jarang meluangkan waktu untuk diri sendiri.",
+  ],
+  perubahan: [
+    "Contoh esai. Saya mulai pulang tepat waktu dua kali sepekan.",
+    "Contoh esai. Saya jadi lebih berani menyampaikan pendapat di rapat.",
+    "Contoh esai. Saya ingin lebih sering mengobrol dengan rekan satu unit.",
+  ],
+};
+function umpanBalikContoh() {
+  const isi = dataset.individu.filter(() => acak() < 0.7);
+  const jam = (i) => new Date(Date.UTC(2026, 9, 19, 2, 0) + i * 17 * 60_000).toISOString();
+  const nilai = {};
+  for (const kode of ["puas_keseluruhan", "kualitas_laporan", "paham_diri", "rekomendasi"]) {
+    const v = isi.map(() => Math.min(10, Math.max(3, Math.round(6 + acak() * 5))));
+    nilai[kode] = { rata: bulat2(rata(v)), n: v.length, sebaran: Array.from({ length: 10 }, (_, i) => v.filter((x) => x === i + 1).length) };
+  }
+  const pilihan = {};
+  for (const [kode, opsi] of Object.entries(OPSI_UB)) {
+    const hitung = Object.fromEntries(opsi.map((o) => [o, 0]));
+    for (let i = 0; i < isi.length; i++) {
+      if (kode === "rencana") opsi.forEach((o, j) => { if (acak() < [0.7, 0.45, 0.35, 0.15, 0.2, 0.08, 0.06][j]) hitung[o] += 1; });
+      else hitung[opsi[Math.min(opsi.length - 1, Math.floor(acak() * acak() * opsi.length))]] += 1;
+    }
+    pilihan[kode] = { n: isi.length, opsi: hitung };
+  }
+  const esai = Object.fromEntries(Object.entries(ESAI_UB).map(([kode, daftar]) => [kode, daftar.map((teks, i) => ({ teks, pada: jam(isi.length - i) }))]));
+  const lainnya = { rencana: ["Contoh lainnya. Ikut kajian pekanan bersama rekan", "Contoh lainnya. Olahraga pagi dua kali sepekan"].map((teks, i) => ({ teks, pada: jam(isi.length - i) })) };
+  return { n: isi.length, peserta: dataset.individu.length, terakhir: jam(isi.length), ambang: 3, terbuka: true, nilai, pilihan, esai, lainnya };
+}
+dataset.umpanBalikContoh = umpanBalikContoh();
+
 const tujuan = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../../src/pages/wa/data/wa.contoh.json");
 fs.mkdirSync(path.dirname(tujuan), { recursive: true });
 fs.writeFileSync(tujuan, `${JSON.stringify(dataset)}\n`);

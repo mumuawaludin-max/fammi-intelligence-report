@@ -1,0 +1,289 @@
+/* Tab "Dampak Asesmen". Tanpa garis tepi: pembeda lewat latar dan bayangan. */
+
+.langsung {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px;
+  border-radius: 14px;
+  background: var(--wa-hijau-pucat);
+  font-size: 13.5px;
+  color: #2b4a37;
+}
+
+.langsung b { color: var(--fm-hijau); }
+
+.langsungTitik {
+  position: relative;
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--fm-hijau);
+}
+
+.langsungTitik span {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background: var(--fm-hijau);
+}
+
+.muatUlang {
+  display: inline-grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  margin-left: auto;
+  border: none;
+  border-radius: 50%;
+  background: #ffffff;
+  color: var(--fm-hijau);
+  cursor: pointer;
+}
+
+.angka {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 18px;
+}
+
+.angkaLabel {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13.5px;
+  font-weight: 700;
+  color: var(--fm-teks-lembut);
+}
+
+.angkaBaris {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.angkaBesar {
+  font-size: 34px;
+  font-weight: 800;
+  line-height: 1;
+  color: var(--fm-ungu-tua);
+}
+
+.angkaKet {
+  display: block;
+  font-size: 13px;
+  color: var(--fm-teks-lembut);
+}
+
+.donatTeks {
+  font-size: 13px;
+  font-weight: 800;
+  color: var(--fm-ungu-tua);
+}
+
+.terkunci {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 22px;
+  background: var(--wa-ungu-pucat);
+  color: var(--fm-ungu-tua);
+}
+
+.terkunci h3 { margin: 0 0 4px; font-size: 17px; }
+
+.terkunci p { margin: 0; font-size: 14px; line-height: 1.55; color: #3f3a4a; }
+
+.duaKolom {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+
+@media (max-width: 900px) {
+  .duaKolom { grid-template-columns: minmax(0, 1fr); }
+}
+
+/* ── Rencana setelah membaca ── */
+.rencana {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 20px;
+}
+
+.rencanaSorot {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 14px 16px;
+  border-radius: 16px;
+  background: var(--wa-ungu-pucat);
+  color: var(--fm-ungu);
+}
+
+.rencanaSorot p {
+  margin: 0;
+  font-size: 16px;
+  line-height: 1.5;
+  color: var(--fm-ungu-tua);
+}
+
+.rencanaSorot b { color: var(--fm-ungu); }
+
+.rencanaDaftar {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.rencanaBaris {
+  display: grid;
+  grid-template-columns: minmax(180px, 2fr) minmax(0, 3fr) auto;
+  align-items: center;
+  gap: 14px;
+}
+
+.rencanaTeks {
+  font-size: 14px;
+  font-weight: 600;
+  color: #2b2537;
+}
+
+.rencanaAngka {
+  min-width: 110px;
+  font-size: 13px;
+  color: var(--fm-teks-lembut);
+  text-align: right;
+}
+
+.rencanaAngka b { font-size: 14px; color: var(--fm-ungu-tua); }
+
+@media (max-width: 700px) {
+  .rencanaBaris { grid-template-columns: minmax(0, 1fr) auto; }
+  .rencanaBaris > :nth-child(2) { grid-column: 1 / -1; grid-row: 2; }
+}
+
+/* ── Pilihan tunggal ── */
+.tunggal {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 18px;
+}
+
+.tunggalSorot {
+  margin: 0;
+  font-size: 15px;
+  color: #2b2537;
+}
+
+.tunggalSorot b { font-size: 22px; color: var(--fm-ungu-tua); }
+
+/* ── Sebaran nilai ── */
+.sebaran {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 18px;
+}
+
+.histogram {
+  display: grid;
+  grid-template-columns: repeat(10, minmax(0, 1fr));
+  align-items: end;
+  gap: 4px;
+  height: 110px;
+}
+
+.histKolom {
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 4px;
+  height: 100%;
+}
+
+.histBatang {
+  width: 100%;
+  min-height: 2px;
+  border-radius: 6px 6px 2px 2px;
+}
+
+.histLabel {
+  font-size: 13px;
+  color: var(--fm-teks-lembut);
+}
+
+/* ── Esai ── */
+.esai {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 18px;
+}
+
+.esaiJudul {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 15px;
+  font-weight: 800;
+  color: var(--fm-ungu-tua);
+}
+
+.esaiJudul small {
+  padding: 1px 9px;
+  border-radius: 999px;
+  background: var(--wa-ungu-pucat);
+  font-size: 13px;
+  color: var(--fm-ungu);
+}
+
+.esaiDaftar {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.esaiSatu {
+  margin: 0;
+  padding: 12px 14px;
+  border-radius: 14px;
+  background: var(--fm-abu-latar);
+  font-size: 14px;
+  line-height: 1.6;
+  color: #2b2537;
+}
+
+.esaiSatu > span {
+  display: block;
+  margin-top: 6px;
+  font-size: 13px;
+  color: var(--fm-teks-lembut);
+}
+
+/* Isian bebas opsi "Lainnya". */
+.lainnya {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.lainnyaDaftar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.lainnyaSatu {
+  padding: 7px 12px;
+  border-radius: 999px;
+  background: var(--wa-ungu-pucat);
+  font-size: 13.5px;
+  color: var(--fm-ungu-tua);
+}
