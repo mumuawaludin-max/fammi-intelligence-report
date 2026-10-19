@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { classifyPencapaian } from "./karakterMeta";
+import { classifyPencapaian, classifyPencapaianSiswa } from "./karakterMeta";
 import styles from "./KarakterViews.module.css";
 
 /**
@@ -77,10 +77,12 @@ export function AllGoodBanner({ subject }) {
 }
 
 /** Partisi array item (kelas/aspek/murid/sekolah) jadi baik vs perlu_perhatian berdasar classifyPencapaian(getValue(item)). */
-export function splitByClassify(items, getValue) {
-  const withData = items.filter((it) => classifyPencapaian(getValue(it)) !== null);
-  const baik = withData.filter((it) => classifyPencapaian(getValue(it)) === "baik");
-  const perhatian = withData.filter((it) => classifyPencapaian(getValue(it)) === "perlu_perhatian");
+// `classify` dipakai untuk daftar siswa, yang ambangnya 85 (classifyPencapaianSiswa); kelas,
+// aspek, dan sekolah tetap memakai bawaan classifyPencapaian (80).
+export function splitByClassify(items, getValue, classify = classifyPencapaian) {
+  const withData = items.filter((it) => classify(getValue(it)) !== null);
+  const baik = withData.filter((it) => classify(getValue(it)) === "baik");
+  const perhatian = withData.filter((it) => classify(getValue(it)) === "perlu_perhatian");
   const allGood = withData.length > 0 && perhatian.length === 0;
   return { withData, baik, perhatian, allGood };
 }
@@ -101,7 +103,7 @@ export function scrollToId(id) {
  */
 export function SiswaKelasList({ state, onSelect }) {
   const [tab, setTab] = useState("semua");
-  const split = splitByClassify(state.muridList, (m) => m.rata);
+  const split = splitByClassify(state.muridList, (m) => m.rata, classifyPencapaianSiswa);
   const rows = tab === "baik" ? split.baik : tab === "perhatian" ? split.perhatian : state.muridList;
 
   if (state.loading) return <p className={styles.emptyNote}>Memuat siswa kelas ini…</p>;
@@ -125,7 +127,7 @@ export function SiswaKelasList({ state, onSelect }) {
         {rows.length === 0 ? (
           <p className={styles.emptyNote}>Tidak ada siswa di kategori ini.</p>
         ) : rows.map((m) => {
-          const tone = classifyPencapaian(m.rata);
+          const tone = classifyPencapaianSiswa(m.rata);
           return (
             <button
               type="button" key={m.murid_id}

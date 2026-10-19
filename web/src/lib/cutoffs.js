@@ -24,7 +24,9 @@ export const KARAKTER_BAR_TONE_CUTOFF = { aman: 80, perhatian: 60 };
 // Ambang "Top 5 siswa perlu penguatan" dan "Top 5 indikator perlu penguatan" di panel Detail
 // Kelas (KepsekView), dinaikkan dari 80 ke 85 oleh pemilik produk 2026-10-19 mengikuti batas hijau
 // laporan per anak. Bar di panel itu ikut memakai palet KARAKTER_BAR_INDIVIDU_CUTOFF supaya baris
-// yang masuk daftar penguatan tidak berwarna hijau.
+// yang masuk daftar penguatan tidak berwarna hijau. Sejak hari yang sama juga ambang status SATU
+// SISWA (classifyPencapaianSiswa): kartu Perlu Perhatian Wali Kelas, tab siswa, Ringkasan Satu
+// Kelas. Status kelas, aspek, dan sekolah tetap KARAKTER_PENCAPAIAN_BAIK (80).
 export const KARAKTER_PENGUATAN_CUTOFF = 85;
 
 // Cutoff warna bar di LAPORAN PER ANAK modul Karakter (panel "Perkembangan tiap karakter" milik
@@ -35,9 +37,9 @@ export const KARAKTER_PENGUATAN_CUTOFF = 85;
 // Pita hijau naik dari 80 ke 85 pada 2026-09-14 mengikuti ambang bintang yang baru, supaya tidak
 // ada baris hijau yang tidak berbintang di sebelah baris hijau yang berbintang.
 //
-// Menyeragamkan dengan halaman lain BUKAN perbaikan: ambang "perlu perhatian" untuk daftar siswa
-// dan tindak lanjut tetap KARAKTER_PENCAPAIAN_BAIK (80), jadi anak dengan 65% tetap masuk daftar
-// perlu perhatian walau barnya biru, dan anak 82% tetap terhitung "sudah baik" walau barnya biru.
+// Menyeragamkan dengan halaman lain BUKAN perbaikan. Status siswa sekarang ikut 85
+// (KARAKTER_PENGUATAN_CUTOFF, 2026-10-19), jadi anak 82% terhitung "perlu perhatian" dan barnya
+// biru; status kelas/sekolah dan tindak lanjut tetap KARAKTER_PENCAPAIAN_BAIK (80).
 export const KARAKTER_BAR_INDIVIDU_CUTOFF = { hijau: 85, biru: 50 };
 
 // Ambang satu bintang di laporan per anak dan ringkasan satu kelas, dinaikkan dari 80 ke 85 oleh

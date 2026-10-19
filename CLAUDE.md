@@ -72,7 +72,10 @@ Warna status, dipakai hemat sebagai penanda kecil:
   menyaring "Top 5 siswa perlu penguatan" dan "Top 5 indikator perlu penguatan" di bawah 85
   (`KARAKTER_PENGUATAN_CUTOFF`), dan seluruh bar di panel itu memakai palet per anak 85/50
   (`ScoreBarList palet="individu"`), supaya baris yang masuk daftar penguatan tidak berwarna hijau.
-  Kartu "Perlu Perhatian", status kelas, dan halaman lain tetap 80.
+  Di hari yang sama status SATU SISWA ("Sudah Baik"/"Perlu Perhatian") ikut naik ke 85 lewat
+  `classifyPencapaianSiswa`: kartu Perlu Perhatian dan tab siswa Wali Kelas, daftar siswa kelas di
+  Kepala Sekolah, Ringkasan Satu Kelas, dan indikator perlu penguatan per anak. Status kelas, aspek,
+  dan sekolah tetap `classifyPencapaian` (80), begitu pula warna bar halaman kelas/jenjang/sekolah.
 
 Radius: 12, 16, 22, 28. Bayangan kartu lembut, bayangan hero kebiruan ungu tipis. Jangan menambah warna di luar token ini.
 

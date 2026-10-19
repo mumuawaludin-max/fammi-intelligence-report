@@ -1,6 +1,6 @@
 import {
   KARAKTER_PENCAPAIAN_BAIK, KARAKTER_BAR_TONE_CUTOFF, KARAKTER_BAR_INDIVIDU_CUTOFF,
-  KARAKTER_BINTANG_CUTOFF,
+  KARAKTER_BINTANG_CUTOFF, KARAKTER_PENGUATAN_CUTOFF,
 } from "../../lib/cutoffs";
 
 // Warna spoke aspek karakter, dipetakan dari token --dv-1..--dv-6 (tokens.css).
@@ -366,6 +366,16 @@ export function classifyPencapaian(value) {
 }
 
 /**
+ * Sama dengan classifyPencapaian, tapi untuk SATU SISWA: ambangnya KARAKTER_PENGUATAN_CUTOFF (85),
+ * keputusan pemilik produk 2026-10-19. Kelas dan sekolah tetap memakai classifyPencapaian (80).
+ */
+export function classifyPencapaianSiswa(value) {
+  const v = pct(value);
+  if (v === null) return null;
+  return v >= KARAKTER_PENGUATAN_CUTOFF ? "baik" : "perlu_perhatian";
+}
+
+/**
  * Tiga tingkat warna untuk bar skor, sesuai palet status Fammi: hijau (bagus),
  * kuning (perlu perhatian), merah (waspada, hanya untuk skor sungguh rendah supaya
  * merah tetap berarti peringatan, bukan hiasan). Cutoff-nya masih sementara, lihat cutoffs.js.
@@ -482,7 +492,7 @@ export function bangunItemsKarakter({ murid, aspek = [], skorIndikatorRows = [],
 export function indikatorPerluPenguatan(items, maks = 5) {
   return items
     .flatMap((it) => it.indikator.map((r) => ({ ...r, aspekLabel: it.label })))
-    .filter((r) => classifyBarIndividu(r.value) && r.value < KARAKTER_BAR_TONE_CUTOFF.aman)
+    .filter((r) => classifyBarIndividu(r.value) && r.value < KARAKTER_PENGUATAN_CUTOFF)
     .sort((a, b) => a.value - b.value)
     .slice(0, maks);
 }

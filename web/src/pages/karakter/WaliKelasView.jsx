@@ -12,10 +12,11 @@ import MuridDetailPanel from "./MuridDetailPanel";
 import RingkasanKelasDialog from "./RingkasanKelasDialog";
 import { useKarakterWaliKelas, bangunMuridList } from "./useKarakterData";
 import {
-  pct, deltaVsPrevious, classifyPencapaian, periodeLabel,
+  pct, deltaVsPrevious, classifyPencapaianSiswa, periodeLabel,
   isKebijakanReady, SECTION_ICON,
   indikatorFallbackLabel, judulSectionSuara, titikSetahunAjaran,
 } from "./karakterMeta";
+import { KARAKTER_PENGUATAN_CUTOFF } from "../../lib/cutoffs";
 import styles from "./KarakterViews.module.css";
 
 const WHO_WALIKELAS = { short: "untuk Wali Kelas", long: "untuk Wali Kelas & Kepala Sekolah" };
@@ -130,13 +131,13 @@ export default function WaliKelasView({ session, periodeId, pekan = null }) {
   // kenaikan/penurunan yang tidak pernah terjadi.
   const heroDelta = pekanAktif ? null : deltaVsPrevious(trendPoints);
 
-  const muridSplitAll = splitByClassify(muridList, (m) => m.rata);
+  const muridSplitAll = splitByClassify(muridList, (m) => m.rata, classifyPencapaianSiswa);
   const muridTerbaik = muridList[0] || null;
   const muridPerhatianCount = muridSplitAll.perhatian.length;
 
   // Filter kelas hanya relevan kalau wali kelas memegang lebih dari satu kelas.
   const muridFiltered = filterKelas ? muridList.filter((m) => m.kelas_id === filterKelas) : muridList;
-  const muridSplit = splitByClassify(muridFiltered, (m) => m.rata);
+  const muridSplit = splitByClassify(muridFiltered, (m) => m.rata, classifyPencapaianSiswa);
   const muridTabRows =
     muridTab === "baik" ? muridSplit.baik :
     muridTab === "perhatian" ? muridSplit.perhatian :
@@ -221,7 +222,7 @@ export default function WaliKelasView({ session, periodeId, pekan = null }) {
               <StatCardLandscape
                 icon="🌱" tone="perhatian" label="Perlu Perhatian"
                 value={muridPerhatianCount > 0 ? `${muridPerhatianCount} siswa` : "—"}
-                sub={muridPerhatianCount > 0 ? "Di bawah 80%, butuh dukungan sekarang" : "Semua siswa sudah baik"}
+                sub={muridPerhatianCount > 0 ? `Di bawah ${KARAKTER_PENGUATAN_CUTOFF}%, butuh dukungan sekarang` : "Semua siswa sudah baik"}
                 subTone="perhatian"
                 onClick={muridPerhatianCount > 0 ? () => {
                   setMuridTab("perhatian");
@@ -290,7 +291,7 @@ export default function WaliKelasView({ session, periodeId, pekan = null }) {
                   {muridTabRows.length === 0 ? (
                     <p className={styles.emptyNote}>Tidak ada siswa di kategori ini.</p>
                   ) : muridTabRows.map((m) => {
-                    const tone = classifyPencapaian(m.rata);
+                    const tone = classifyPencapaianSiswa(m.rata);
                     const active = activeMurid?.murid_id === m.murid_id;
                     return (
                       <button

@@ -3,9 +3,10 @@ import DetailDialog from "./DetailDialog";
 import { useKelasSkorPeriode } from "./KarakterShared";
 import { Bintang, BintangSummary, KarakterBreakdown } from "./MuridDetailPanel";
 import {
-  bangunItemsKarakter, berbintang, classifyBarIndividu, classifyPencapaian,
+  bangunItemsKarakter, berbintang, classifyBarIndividu, classifyPencapaianSiswa,
   hitungBintang, periodeLabel,
 } from "./karakterMeta";
+import { KARAKTER_PENGUATAN_CUTOFF } from "../../lib/cutoffs";
 import styles from "./RingkasanKelasDialog.module.css";
 
 /**
@@ -97,12 +98,12 @@ export default function RingkasanKelasDialog({
   }), [muridList, aspekUntukMurid, indikatorByMurid, labelIndikator, rowsByMurid, pekanAktif, pekan]);
 
   const perhatian = useMemo(() => anak
-    .filter((a) => classifyPencapaian(a.murid.rata) === "perlu_perhatian")
+    .filter((a) => classifyPencapaianSiswa(a.murid.rata) === "perlu_perhatian")
     .sort((a, b) => a.murid.rata - b.murid.rata)
     .slice(0, 5), [anak]);
 
-  const adaNilai = anak.filter((a) => classifyPencapaian(a.murid.rata) !== null).length;
-  const jumlahBaik = anak.filter((a) => classifyPencapaian(a.murid.rata) === "baik").length;
+  const adaNilai = anak.filter((a) => classifyPencapaianSiswa(a.murid.rata) !== null).length;
+  const jumlahBaik = anak.filter((a) => classifyPencapaianSiswa(a.murid.rata) === "baik").length;
   const totalBintang = anak.reduce((s, a) => s + a.ringkasanBintang.bintang, 0);
   const semuaTertutup = anak.length > 0 && tertutup.size === anak.length;
 
@@ -161,7 +162,7 @@ export default function RingkasanKelasDialog({
             <section>
               <p className={styles.sectionTitle}>🌱 Top 5 siswa perlu perhatian</p>
               <p className={styles.sectionNote}>
-                Di bawah 80% periode ini. Bukan berarti lemah, butuh dukungan tambahan sekarang.
+                Di bawah {KARAKTER_PENGUATAN_CUTOFF}% periode ini. Bukan berarti lemah, butuh dukungan tambahan sekarang.
               </p>
               <PerhatianList rows={perhatian} onJump={lompatKe} />
             </section>
@@ -172,7 +173,7 @@ export default function RingkasanKelasDialog({
             <div className={styles.kartuList}>
               {anak.map((a) => {
                 const buka = !tertutup.has(a.murid.murid_id);
-                const tone = classifyPencapaian(a.murid.rata);
+                const tone = classifyPencapaianSiswa(a.murid.rata);
                 return (
                   <article className={styles.kartu} key={a.murid.murid_id} id={anchorId(a.index)}>
                     <button
