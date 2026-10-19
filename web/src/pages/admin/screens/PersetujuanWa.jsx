@@ -12,8 +12,9 @@ import { LABEL_ISU_QC, isianTeks, qcNarasiWa } from '../../wa/lib/waAturan';
 // Data ditarik lewat admin-actions (service role) karena kolom peninjau (perlu_ahli,
 // alasan_perhatian) tidak diberikan ke peran authenticated.
 //
-// Respons untuk cerita pribadi pegawai dan narasi berpenanda perlu ahli tidak pernah ikut
-// "Setujui semua": harus dibuka satu per satu dan dicentang "sudah ditinjau psikolog". Server
+// Respons untuk cerita pribadi pegawai dan narasi berpenanda perlu ahli tidak ikut "Setujui yang
+// tampil". Keduanya disetujui satu per satu, atau sekaligus lewat "Setujui semua respons cerita"
+// (keputusan pemilik produk 2026-10-19) yang mewajibkan centang "sudah ditinjau psikolog". Server
 // menegakkan aturan yang sama, tombol di sini hanya mengikutinya.
 
 const CAKUPAN = [
@@ -78,6 +79,12 @@ export function PersetujuanWa() {
 
   const bisaMassal = tersaring.filter((r) => !r.butuh_tinjauan_ahli);
   const nAhli = state.rows.filter((r) => r.butuh_tinjauan_ahli).length;
+  // Respons cerita yang tampil (ikut saringan cari dan "hanya perlu ahli"), untuk persetujuan massal
+  // bertanda tinjauan psikolog.
+  const responsTampil = tersaring.filter((r) => r.cakupan === 'respons_cerita');
+  const responsAhli = responsTampil.filter((r) => r.perlu_ahli).length;
+  const [konfirmasiRespons, setKonfirmasiRespons] = useState(false);
+  const [sudahDitinjau, setSudahDitinjau] = useState(false);
 
   const kunciBaris = (r) => `${r.dataset_id}|${r.cakupan}|${r.kunci}`;
   const buang = (rows) => {
@@ -127,13 +134,34 @@ export function PersetujuanWa() {
     }
   }
 
+  async function setujuiSemuaRespons() {
+    if (!responsTampil.length || !sudahDitinjau) return;
+    setSibukMassal(true);
+    try {
+      const hasil = await actWaBulkApprovalAction(responsTampil, { tinjauanAhli: true });
+      if (hasil.disetujui === 0) {
+        // Edge Function versi lama mengabaikan tinjauan_ahli dan melewati semua respons cerita.
+        showToast('Tidak ada respons yang disetujui. Pastikan Edge Function admin-actions sudah versi terbaru.', 'alert', 8000);
+      } else {
+        showToast(`${hasil.disetujui} respons cerita disetujui dan tayang.${hasil.dilewati ? ` ${hasil.dilewati} dilewati.` : ''}`, 'safe', 6000);
+      }
+      setKonfirmasiRespons(false);
+      setSudahDitinjau(false);
+      load(status);
+    } catch (e) {
+      showToast('Gagal: ' + e.message, 'alert', 6000);
+    } finally {
+      setSibukMassal(false);
+    }
+  }
+
   return (
     <div style={{ padding: '22px 26px 40px' }}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14, gap: 12, flexWrap: 'wrap' }}>
         <div style={{ maxWidth: 720 }}>
           <div className="disp" style={{ fontSize: 18, fontWeight: 700, color: 'var(--ink)' }}>Persetujuan Wellbeing</div>
           <div style={{ fontSize: 12.5, color: 'var(--ink-3)', marginTop: 2, lineHeight: 1.5 }}>
-            Narasi Wellbeing Assessment dari berkas olahan. Narasi kelompok tayang ke Human Capital, laporan pribadi dan respons cerita hanya ke pegawai yang bersangkutan. Respons cerita dan narasi perlu ahli wajib ditinjau psikolog satu per satu.
+            Narasi Wellbeing Assessment dari berkas olahan. Narasi kelompok tayang ke Human Capital, laporan pribadi dan respons cerita hanya ke pegawai yang bersangkutan. Respons cerita dan narasi perlu ahli wajib ditinjau psikolog sebelum disetujui; respons cerita bisa disetujui sekaligus setelah dinyatakan sudah ditinjau.
           </div>
         </div>
         <div style={{ display: 'flex', gap: 8 }}>
@@ -143,8 +171,37 @@ export function PersetujuanWa() {
               {sibukMassal ? 'Menyetujui…' : `✓ Setujui yang tampil (${bisaMassal.length})`}
             </button>
           )}
+          {status === 'menunggu_persetujuan' && responsTampil.length > 0 && (
+            <button className="btn-secondary" style={{ fontSize: 12.5 }} onClick={() => { setSudahDitinjau(false); setKonfirmasiRespons(true); }} disabled={sibukMassal}>
+              ✓ Setujui semua respons cerita ({responsTampil.length})
+            </button>
+          )}
         </div>
       </div>
+
+      {konfirmasiRespons && (
+        <>
+          <div style={{ position: 'fixed', inset: 0, background: 'rgba(33,27,46,.42)', zIndex: 60 }} onClick={sibukMassal ? undefined : () => setKonfirmasiRespons(false)} />
+          <div className="dialog-enter" role="dialog" aria-modal="true" style={{ position: 'fixed', top: '50%', left: '50%', transform: 'translate(-50%,-50%)', background: 'var(--surface)', borderRadius: 20, width: 'min(520px,92vw)', padding: '22px 24px', boxShadow: '0 24px 60px rgba(33,27,46,.28)', zIndex: 70, display: 'flex', flexDirection: 'column', gap: 12 }}>
+            <div className="disp" style={{ fontSize: 17, fontWeight: 700, color: 'var(--ink)' }}>Setujui {responsTampil.length} respons cerita?</div>
+            <div style={{ fontSize: 13, color: 'var(--ink-2)', lineHeight: 1.55 }}>
+              Semua respons yang tampil langsung terbaca oleh pegawai pemiliknya.
+              {responsAhli > 0 && <> <b style={{ color: 'var(--status-warn)' }}>{responsAhli} di antaranya bertanda wajib ditinjau psikolog.</b></>}
+              {(cari.trim() || hanyaAhli) && ' Saringan yang aktif ikut berlaku; respons di luar saringan tidak ikut.'}
+            </div>
+            <label style={{ display: 'flex', gap: 10, alignItems: 'flex-start', padding: '12px 14px', borderRadius: 12, background: 'var(--status-warn-bg)', fontSize: 13, color: 'var(--ink)', lineHeight: 1.5, cursor: 'pointer' }}>
+              <input type="checkbox" checked={sudahDitinjau} onChange={(e) => setSudahDitinjau(e.target.checked)} disabled={sibukMassal} style={{ marginTop: 3 }} />
+              <span>Saya menyatakan seluruh {responsTampil.length} respons ini sudah ditinjau psikolog dan layak tayang.</span>
+            </label>
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
+              <button className="btn-ghost" onClick={() => setKonfirmasiRespons(false)} disabled={sibukMassal}>Batal</button>
+              <button className="btn-primary" style={{ background: 'var(--status-safe)' }} onClick={setujuiSemuaRespons} disabled={!sudahDitinjau || sibukMassal}>
+                {sibukMassal ? 'Menyetujui…' : `Setujui ${responsTampil.length} respons`}
+              </button>
+            </div>
+          </div>
+        </>
+      )}
 
       <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 10 }}>
         {STATUS.map((s) => (

@@ -96,10 +96,11 @@
 //   "approve-wa" | "reject-wa" { dataset_id, cakupan, kunci, tinjauan_ahli? } Respons cerita dan
 //                              baris berpenanda perlu ahli WAJIB membawa tinjauan_ahli: true
 //                              (centang "sudah ditinjau psikolog" di layar), selain itu ditolak.
-//   "approve-wa-bulk"          { baris: [{ dataset_id, cakupan, kunci }] } setujui banyak sekaligus.
-//                              Respons cerita dan baris perlu ahli SELALU dilewati di sini, supaya
-//                              tidak ada jawaban untuk cerita pribadi yang tayang tanpa ditinjau
-//                              satu per satu. -> { disetujui, dilewati }
+//   "approve-wa-bulk"          { baris: [{ dataset_id, cakupan, kunci }], tinjauan_ahli? } setujui
+//                              banyak sekaligus. Tanpa tinjauan_ahli: true, respons cerita dan baris
+//                              perlu ahli dilewati. Dengan tinjauan_ahli: true (centang "sudah
+//                              ditinjau psikolog" di layar, keputusan pemilik produk 2026-10-19),
+//                              keduanya ikut disetujui. -> { disetujui, dilewati }
 //   "edit-wa"                  { dataset_id, cakupan, kunci, isi } sunting isi narasi sebelum
 //                              disetujui; hanya baris yang masih menunggu.
 //
@@ -937,11 +938,14 @@ async function handleWaApproval(admin, body, callerId) {
 async function handleWaBulkApproval(admin, body, callerId) {
   const baris = Array.isArray(body?.baris) ? body.baris : [];
   if (!baris.length) return { ok: false, error: "Field wajib: baris." };
+  // Pernyataan peninjau bahwa psikolog sudah meninjau; tanpa ini respons cerita dan baris perlu
+  // ahli tetap dilewati.
+  const tinjauanAhli = body?.tinjauan_ahli === true;
   // Kelompokkan per (dataset, cakupan) supaya satu update per kelompok, bukan satu per baris.
   const per = new Map();
   for (const b of baris) {
     if (!b?.dataset_id || !b?.cakupan || !b?.kunci) continue;
-    if (b.cakupan === "respons_cerita") continue;
+    if (b.cakupan === "respons_cerita" && !tinjauanAhli) continue;
     const k = `${b.dataset_id}|${b.cakupan}`;
     if (!per.has(k)) per.set(k, { dataset_id: b.dataset_id, cakupan: b.cakupan, kunci: [] });
     per.get(k).kunci.push(b.kunci);
@@ -951,12 +955,13 @@ async function handleWaBulkApproval(admin, body, callerId) {
   for (const g of per.values()) {
     for (let i = 0; i < g.kunci.length; i += 200) {
       const potong = g.kunci.slice(i, i + 200);
-      const { data, error } = await admin.from("wa_narasi").update({
+      let q = admin.from("wa_narasi").update({
         status: "disetujui", disetujui_oleh: callerId, disetujui_pada: sekarang, diperbarui_pada: sekarang,
       })
         .eq("dataset_id", g.dataset_id).eq("cakupan", g.cakupan).in("kunci", potong)
-        .eq("status", "menunggu_persetujuan").eq("perlu_ahli", false)
-        .select("kunci");
+        .eq("status", "menunggu_persetujuan");
+      if (!tinjauanAhli) q = q.eq("perlu_ahli", false);
+      const { data, error } = await q.select("kunci");
       if (error) return { ok: false, error: error.message, disetujui };
       disetujui += (data || []).length;
     }

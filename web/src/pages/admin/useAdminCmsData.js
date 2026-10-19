@@ -573,10 +573,17 @@ export async function actWaApprovalAction(row, aksi, tinjauanAhli = false) {
   if (data?.error) throw new Error(data.error);
 }
 
-/** Setujui banyak narasi sekaligus. Respons cerita dan baris perlu ahli selalu dilewati server. */
-export async function actWaBulkApprovalAction(rows) {
+/**
+ * Setujui banyak narasi sekaligus. Respons cerita dan baris perlu ahli dilewati server, kecuali
+ * tinjauanAhli = true (peninjau menyatakan psikolog sudah meninjau semuanya).
+ */
+export async function actWaBulkApprovalAction(rows, { tinjauanAhli = false } = {}) {
   const { data, error } = await supabase.functions.invoke('admin-actions', {
-    body: { action: 'approve-wa-bulk', baris: rows.map((r) => ({ dataset_id: r.dataset_id, cakupan: r.cakupan, kunci: r.kunci })) },
+    body: {
+      action: 'approve-wa-bulk',
+      baris: rows.map((r) => ({ dataset_id: r.dataset_id, cakupan: r.cakupan, kunci: r.kunci })),
+      ...(tinjauanAhli ? { tinjauan_ahli: true } : {}),
+    },
   });
   if (error) throw new Error(await edgeErrorDetail(error, 'Edge Function admin-actions gagal dipanggil.'));
   if (data?.error) throw new Error(data.error);

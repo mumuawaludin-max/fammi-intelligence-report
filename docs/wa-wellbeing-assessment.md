@@ -87,7 +87,8 @@ Peran tidak bertambah. `HumanCapital` dan `Pegawai` berasal dari modul `sw`. Aku
 Layar Admin Fammi **Persetujuan Wellbeing** (`screens/PersetujuanWa.jsx`, laci `components/WaNarasiDrawer.jsx`) memakai action `admin-actions`: `list-wa-pending`, `approve-wa`, `reject-wa`, `approve-wa-bulk`, `edit-wa`.
 
 - Narasi kelompok dan laporan pribadi boleh disetujui massal ("Setujui yang tampil").
-- Tanggapan cerita dan narasi bertanda perlu ahli tidak pernah ikut persetujuan massal. Server menolaknya tanpa centang "sudah ditinjau psikolog".
+- Tanggapan cerita dan narasi bertanda perlu ahli tidak ikut "Setujui yang tampil". Server menolaknya tanpa centang "sudah ditinjau psikolog".
+- Tombol "Setujui semua respons cerita" menyetujui semua tanggapan cerita yang tampil sekaligus, termasuk yang wajib ditinjau psikolog, setelah peninjau mencentang pernyataan bahwa psikolog sudah meninjau semuanya (`approve-wa-bulk` dengan `tinjauan_ahli: true`, keputusan pemilik produk 2026-10-19). Butuh Edge Function `admin-actions` versi 2026-10-19 atau lebih baru.
 - Sunting hanya selama status masih menunggu. Cerita asli pegawai tampil di laci sebagai teks baca saja.
 - Kode "terkait" di langkah kecil (huruf PROTEK atau kunci bidang kepuasan) tampil sebagai nama lengkapnya di laci.
 - Pemeriksa `qcNarasiWa` memberi lencana peringatan, bukan penegak. Isunya:
