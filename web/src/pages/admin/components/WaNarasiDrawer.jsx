@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { IconX } from './icons';
 import { LABEL_ISU_QC, isianTeks, qcNarasiWa } from '../../wa/lib/waAturan';
-import { labelTerkait } from '../../wa/lib/waMeta';
+import { infoAspek, labelTerkait } from '../../wa/lib/waMeta';
 
 // Laci tinjau satu narasi Wellbeing Assessment. Isi narasi ditampilkan per isian teks dengan
 // labelnya, bisa disunting selama masih menunggu (edit-wa), lalu disetujui atau ditolak.
@@ -20,7 +20,7 @@ const LABEL_KUNCI = {
   hal_kuat: 'Hal kuat', hal_tantangan: 'Tantangan', resume_kuat: 'Resume kuat', resume_lemah: 'Resume lemah',
   fokus_kekuatan: 'Fokus kekuatan', perbaikan_segera: 'Perbaikan segera', narasi: 'Narasi', judul: 'Judul', isi: 'Isi',
   bukti: 'Bukti', mengapa: 'Mengapa', langkah: 'Langkah', indikator: 'Indikator', alasan: 'Alasan', ringkasan_tema: 'Ringkasan',
-  terkait: 'Terkait dengan', jangka: 'Jangka waktu',
+  terkait: 'Terkait dengan', jangka: 'Jangka waktu', aspek: 'Penjelasan aspek', arti: 'Artinya untuk Anda',
 };
 
 // Isian "terkait" berisi kode (huruf aspek PROTEK seperti "r", atau kunci bidang kepuasan).
@@ -30,8 +30,16 @@ function tampilNilai(jalur, nilai) {
   return `${labelTerkait(nilai).join(', ')} (kode: ${nilai})`;
 }
 
+// Di bawah "aspek", kunci satu huruf adalah aspek PROTEK (p, r, o, ...) dan "langkah" berarti
+// saran untuk aspek itu, jadi labelnya diturunkan dari posisi, bukan dari kamus umum.
 function labelJalur(jalur) {
-  return jalur.split('.').map((k) => (/^\d+$/.test(k) ? `#${Number(k) + 1}` : (LABEL_KUNCI[k] || k.replace(/_/g, ' ')))).join(' · ');
+  const bagian = jalur.split('.');
+  return bagian.map((k, i) => {
+    if (/^\d+$/.test(k)) return `#${Number(k) + 1}`;
+    if (bagian[i - 1] === 'aspek' && infoAspek(k)) return infoAspek(k).label;
+    if (k === 'langkah' && bagian[i - 2] === 'aspek') return 'Yang bisa dilakukan';
+    return LABEL_KUNCI[k] || k.replace(/_/g, ' ');
+  }).join(' · ');
 }
 
 function setJalur(obj, jalur, nilai) {
@@ -107,6 +115,19 @@ function Isi({ row, onClose, onSave, onAct }) {
           </div>
         )}
         {row.disunting && <span className="pill" style={{ alignSelf: 'flex-start', background: 'var(--purple-050)', color: 'var(--purple-700)' }}>Sudah disunting admin</span>}
+
+        {/* Cerita asli pegawai, hanya dibaca: dasar untuk menilai apakah tanggapannya pas. */}
+        {isi.cerita && (
+          <div style={{ padding: '12px 14px', background: 'var(--purple-050)', borderRadius: 12 }}>
+            <div style={{ fontSize: 10.5, fontWeight: 800, letterSpacing: '0.05em', textTransform: 'uppercase', color: 'var(--purple-700)', marginBottom: 6 }}>
+              Cerita yang ditulis pegawai · tidak bisa disunting
+            </div>
+            <div style={{ maxHeight: 240, overflowY: 'auto', fontSize: 13, color: 'var(--ink-2)', lineHeight: 1.6, whiteSpace: 'pre-wrap' }}>{isi.cerita}</div>
+          </div>
+        )}
+        {row.cakupan === 'respons_cerita' && isi.ada && !isi.cerita && (
+          <div style={{ fontSize: 12.5, color: 'var(--ink-3)' }}>Cerita asli belum termuat di baris ini; jalankan SQL koreksi 2026-10-19.</div>
+        )}
 
         {isian.map(({ jalur, nilai }) => (
           <div key={jalur} style={{ padding: '11px 13px', background: 'var(--surface)', borderRadius: 12, boxShadow: '0 2px 8px rgba(33,27,46,.05)' }}>

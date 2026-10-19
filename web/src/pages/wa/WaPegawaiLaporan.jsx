@@ -12,15 +12,17 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { AnimatePresence, MotionConfig, motion } from "motion/react";
 import {
-  ArrowRight, ChartBar, ChatCircleText, CheckCircle, Circle, ClipboardText, Compass, Footprints, Heart, HourglassMedium, Info, Plant,
-  Question, SignOut, SquaresFour, ThumbsDown,
+  ArrowRight, CaretRight, ChartBar, ChatCircleText, CheckCircle, Circle, ClipboardText, ClockCounterClockwise, Compass, Footprints, Heart, HourglassMedium, Info, Plant,
+  Lightbulb, Question, Quotes, SignOut, SquaresFour, ThumbsDown,
 } from "@phosphor-icons/react";
 import SampleTag from "../../components/SampleTag";
 import {
   ASPEK, DIMENSI_KEPUASAN, JUDUL_TAB_WELLBEING, KALIMAT_BUKAN_DIAGNOSIS, PERTANYAAN_PILIHAN, PERTANYAAN_TERBUKA,
-  infoAspek, infoDimensi,
+  infoAspek, infoDimensi, infoKategoriProtek,
 } from "./lib/waMeta";
-import { formatPersen, itemKategori, lengkapiItem, namaDepan, narasiUntuk, pisahPilihan, urutItem } from "./lib/waAturan";
+import {
+  formatHari, formatPersen, itemKategori, keteranganPembaruan, lengkapiItem, namaDepan, narasiUntuk, pisahPilihan, tanggalPembaruan, urutItem,
+} from "./lib/waAturan";
 import { IKON_DIMENSI, IKON_PILIHAN } from "./waIkon";
 import { KartuSkorKepuasan, KartuSkorWellbeing } from "./WaBagian";
 import { IlustrasiHati } from "./WaIlustrasi";
@@ -29,7 +31,7 @@ import WaTur from "./WaTur";
 import { langkahPegawai } from "./lib/waTur";
 import { sudahDilihat, tandaiDilihat } from "./waSimpanan";
 import {
-  AngkaHitung, Bar, Bertahap, Donat, Kartu, KeadaanKosong, LembarBawah, Lencana, Muncul, Petunjuk, TombolTeks,
+  AngkaHitung, Bar, Bertahap, Donat, Kartu, KeadaanKosong, LembarBawah, Lencana, Muncul, Petunjuk, TeksLipat, TombolTeks,
 } from "./WaUi";
 import { EASE } from "./waGerak";
 import swTokens from "../sw/swTokens.module.css";
@@ -53,9 +55,11 @@ export default function WaPegawaiLaporan({ dataset, akses, onLogout, onKeScreeni
   const [bagian, setBagian] = useState("ringkasan");
   const [menu, setMenu] = useState(false);
   const [semua, setSemua] = useState(null);
+  const [aspekBuka, setAspekBuka] = useState(null);
   const [tur, setTur] = useState(false);
   const kunciTur = `panduan-pegawai-${akses?.individuId || ""}`;
   const langkahTur = useMemo(() => langkahPegawai(), []);
+  const pembaruan = useMemo(() => tanggalPembaruan(dataset), [dataset]);
 
   useEffect(() => { window.scrollTo({ top: 0 }); }, [bagian]);
 
@@ -83,7 +87,7 @@ export default function WaPegawaiLaporan({ dataset, akses, onLogout, onKeScreeni
   const narasi = narasiUntuk(dataset, "individu", orang.id);
   const respons = narasiUntuk(dataset, "respons_cerita", orang.id);
   const items = lengkapiItem(orang.protek.item, dataset.item);
-  const ctx = { orang, narasi, respons, items, keBagian: setBagian, bukaSemua: setSemua };
+  const ctx = { orang, narasi, respons, items, keBagian: setBagian, bukaSemua: setSemua, bukaAspek: setAspekBuka };
   const pindah = (id) => { setBagian(id); setMenu(false); };
 
   return (
@@ -108,6 +112,16 @@ export default function WaPegawaiLaporan({ dataset, akses, onLogout, onKeScreeni
           <p>Halo, <b>{namaDepan(orang.nama)}</b></p>
           <span>{BAGIAN.find((b) => b.id === bagian)?.label}</span>
         </motion.div>
+        {pembaruan.terakhir && (
+          <motion.div className={styles.diperbarui} initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.2 }}>
+            <Petunjuk teks={keteranganPembaruan(pembaruan)}>
+              <span className={styles.diperbaruiIsi}>
+                <ClockCounterClockwise size={14} weight="bold" aria-hidden="true" />
+                Diperbarui {formatHari(pembaruan.terakhir)}
+              </span>
+            </Petunjuk>
+          </motion.div>
+        )}
 
         <AnimatePresence mode="popLayout" initial={false}>
           <motion.main
@@ -174,6 +188,15 @@ export default function WaPegawaiLaporan({ dataset, akses, onLogout, onKeScreeni
           {semua && <DaftarItem items={semua === "kuat" ? itemKategori(items, "kuat") : lemahAtauCukup(items)} jenis={semua} />}
         </LembarBawah>
 
+        <LembarBawah
+          buka={Boolean(aspekBuka)}
+          onTutup={() => setAspekBuka(null)}
+          judul={infoAspek(aspekBuka)?.label || "Penjelasan aspek"}
+          kepala={aspekBuka && <KepalaAspek kunci={aspekBuka} nilai={orang.protek.aspek[aspekBuka]} />}
+        >
+          {aspekBuka && <IsiAspek kunci={aspekBuka} items={items} narasi={narasi?.aspek?.[aspekBuka]} />}
+        </LembarBawah>
+
         <WaSambutan
           buka={sambutan !== "selesai"}
           terkunci={sambutan === "wajib"}
@@ -200,7 +223,7 @@ function lemahAtauCukup(items) {
 
 // ── Ringkasan ───────────────────────────────────────────────────────────────────────────────
 
-function BagianRingkasan({ orang, narasi, respons, items, keBagian, bukaSemua }) {
+function BagianRingkasan({ orang, narasi, respons, items, keBagian, bukaSemua, bukaAspek }) {
   const { protek, kepuasan } = orang;
   const kuat = itemKategori(items, "kuat");
   const perlu = itemKategori(items, "perlu");
@@ -215,20 +238,19 @@ function BagianRingkasan({ orang, narasi, respons, items, keBagian, bukaSemua })
           const v = protek.aspek[a.kunci];
           const rendah = v.kategori !== "baik";
           return (
-            <Petunjuk key={a.kunci} teks={a.arti} blok>
-              <div className={styles.barisAspek}>
-                <Lencana ukuran={34}>{a.huruf}</Lencana>
-                <div className={styles.barisAspekIsi}>
-                  <span className={styles.barisAspekAtas}>
-                    <span>{a.label}</span>
-                    <b style={{ color: rendah ? "var(--fm-jingga)" : "var(--fm-ungu-tua)" }}><AngkaHitung nilai={v.pct} akhiran="%" /></b>
-                  </span>
-                  <Bar pct={v.pct} warna={rendah ? "var(--fm-jingga)" : "var(--fm-ungu-sedang)"} tunda={0.1 + i * 0.07} />
-                </div>
+            <BarisAspekKlik key={a.kunci} aspek={a} onClick={() => bukaAspek(a.kunci)}>
+              <Lencana ukuran={34}>{a.huruf}</Lencana>
+              <div className={styles.barisAspekIsi}>
+                <span className={styles.barisAspekAtas}>
+                  <span>{a.label}</span>
+                  <b style={{ color: rendah ? "var(--fm-jingga)" : "var(--fm-ungu-tua)" }}><AngkaHitung nilai={v.pct} akhiran="%" /></b>
+                </span>
+                <Bar pct={v.pct} warna={rendah ? "var(--fm-jingga)" : "var(--fm-ungu-sedang)"} tunda={0.1 + i * 0.07} />
               </div>
-            </Petunjuk>
+            </BarisAspekKlik>
           );
         })}
+        <p className={styles.ketukAspek}>Ketuk satu aspek untuk membaca artinya bagi Anda dan yang bisa dilakukan.</p>
         <PlusMinusKecil tur="aspek-catatan" plus={narasi?.wellbeing?.hal_kuat} minus={narasi?.wellbeing?.hal_tantangan} />
       </Kartu>
 
@@ -266,6 +288,64 @@ function BagianRingkasan({ orang, narasi, respons, items, keBagian, bukaSemua })
       />
 
       <KartuPesan respons={respons} onBuka={() => keBagian("refleksi")} />
+    </Bertahap>
+  );
+}
+
+// ── Penjelasan per aspek ────────────────────────────────────────────────────────────────────
+// Tiap aspek PROTEK bisa diketuk dan membuka lembar: arti aspek secara umum, "Artinya untuk Anda"
+// dan "Yang bisa dilakukan" (narasi.aspek[kunci], ditulis per orang dan disetujui seperti narasi
+// lain), lalu tujuh pernyataan aspek itu. Narasi berlaku untuk keenam aspek, kuat maupun lemah
+// (keputusan pemilik produk 2026-10-19: setiap orang butuh penjelasan atas hasilnya sendiri).
+
+function BarisAspekKlik({ aspek, onClick, children }) {
+  return (
+    <motion.button
+      type="button"
+      className={`${styles.barisAspek} ${styles.barisAspekKlik}`}
+      onClick={onClick}
+      whileTap={{ scale: 0.98 }}
+      aria-label={`${aspek.label}, buka penjelasan`}
+    >
+      {children}
+      <CaretRight size={16} weight="bold" className={styles.barisAspekPanah} aria-hidden="true" />
+    </motion.button>
+  );
+}
+
+function KepalaAspek({ kunci, nilai }) {
+  const a = infoAspek(kunci);
+  const kat = infoKategoriProtek(nilai?.kategori);
+  return (
+    <span className={styles.aspekKepala}>
+      <Lencana ukuran={40}>{a.huruf}</Lencana>
+      <span>
+        <span className={styles.aspekKepalaJudul}>{a.label}</span>
+        <span className={styles.aspekKepalaNilai}>
+          <b>{formatPersen(nilai?.pct)}</b>
+          {kat && <span className={styles.aspekKategori} style={{ "--w": kat.warnaTeks || kat.warna }}>{kat.label}</span>}
+        </span>
+      </span>
+    </span>
+  );
+}
+
+function IsiAspek({ kunci, items, narasi }) {
+  const a = infoAspek(kunci);
+  const daftar = urutItem(items.filter((x) => x.aspek === kunci), "turun");
+  return (
+    <Bertahap className={styles.aspekIsi} jeda={0.07}>
+      <Muncul as="p" className={styles.aspekUmum}>{a.arti}</Muncul>
+      <Muncul className={`${styles.aspekBlok} ${styles.aspekBlokArti}`}>
+        <span className={styles.aspekLabel}><Lightbulb size={16} weight="fill" aria-hidden="true" /> Artinya untuk Anda</span>
+        <p className={narasi?.arti ? "" : styles.redup}>{narasi?.arti || "Penjelasan untuk aspek ini sedang disiapkan."}</p>
+      </Muncul>
+      <Muncul className={`${styles.aspekBlok} ${styles.aspekBlokLangkah}`}>
+        <span className={styles.aspekLabel}><Footprints size={16} weight="fill" aria-hidden="true" /> Yang bisa dilakukan</span>
+        <p className={narasi?.langkah ? "" : styles.redup}>{narasi?.langkah || "Saran untuk aspek ini sedang disiapkan."}</p>
+      </Muncul>
+      <Muncul as="h3" className={styles.aspekSubjudul}>Tujuh pernyataan di aspek ini</Muncul>
+      <DaftarItem items={daftar} jenis="aspek" />
     </Bertahap>
   );
 }
@@ -313,6 +393,7 @@ function KartuTop({ jenis, items, total, onSemua }) {
 // peringatan.
 function warnaItem(it, jenis) {
   if (jenis === "kuat") return "var(--fm-ungu-sedang)";
+  if (jenis === "aspek" && it.kategori === "kuat") return "var(--fm-ungu-sedang)";
   return it.kategori === "perlu" ? "var(--fm-jingga)" : "var(--wa-ungu-lembut)";
 }
 
@@ -353,7 +434,7 @@ function KartuPesan({ respons, onBuka }) {
 
 // ── Aspek kuat dan perlu penguatan ──────────────────────────────────────────────────────────
 
-function BagianKuat({ orang, items }) {
+function BagianKuat({ orang, items, bukaAspek }) {
   const urut = [...ASPEK].sort((a, b) => orang.protek.aspek[b.kunci].pct - orang.protek.aspek[a.kunci].pct);
   const kuat = itemKategori(items, "kuat");
   const teratas = infoAspek(orang.protek.aspekTertinggi);
@@ -371,15 +452,16 @@ function BagianKuat({ orang, items }) {
         {urut.map((a, i) => {
           const v = orang.protek.aspek[a.kunci];
           return (
-            <div key={a.kunci} className={styles.barisAspek}>
+            <BarisAspekKlik key={a.kunci} aspek={a} onClick={() => bukaAspek(a.kunci)}>
               <Lencana ukuran={34} warna={i < 3 ? "var(--fm-ungu)" : "var(--fm-ungu-tua)"}>{a.huruf}</Lencana>
               <div className={styles.barisAspekIsi}>
                 <span className={styles.barisAspekAtas}><span>{a.label}</span><b>{formatPersen(v.pct)}</b></span>
                 <Bar pct={v.pct} warna={i < 3 ? "var(--fm-ungu)" : "var(--wa-ungu-lembut)"} tunda={0.1 + i * 0.07} />
               </div>
-            </div>
+            </BarisAspekKlik>
           );
         })}
+        <p className={styles.ketukAspek}>Ketuk satu aspek untuk membaca artinya bagi Anda dan yang bisa dilakukan.</p>
       </Kartu>
       <JudulKecil>{kuat.length} pernyataan yang sudah kuat</JudulKecil>
       <Kartu className={styles.top}><DaftarItem items={kuat} jenis="kuat" /></Kartu>
@@ -387,7 +469,7 @@ function BagianKuat({ orang, items }) {
   );
 }
 
-function BagianPerlu({ orang, narasi, items }) {
+function BagianPerlu({ orang, narasi, items, bukaAspek }) {
   const perlu = itemKategori(items, "perlu");
   const tampil = perlu.length ? perlu : urutItem(items, "naik", 3);
   const terendah = infoAspek(orang.protek.aspekTerendah);
@@ -405,6 +487,16 @@ function BagianPerlu({ orang, narasi, items }) {
       {narasi?.wellbeing?.hal_tantangan && (
         <Kartu className={styles.kutipBesar}>
           <p>{narasi.wellbeing.hal_tantangan}</p>
+        </Kartu>
+      )}
+      {terendah && (
+        <Kartu className={styles.bukaAspek} onClick={() => bukaAspek(terendah.kunci)} label={`Buka penjelasan ${terendah.label}`}>
+          <Lencana ukuran={36}>{terendah.huruf}</Lencana>
+          <span>
+            <b>Apa artinya untuk Anda?</b>
+            <small>Baca penjelasan {terendah.label} dan yang bisa dilakukan.</small>
+          </span>
+          <CaretRight size={18} weight="bold" aria-hidden="true" />
         </Kartu>
       )}
       <JudulKecil>{perlu.length ? `${perlu.length} pernyataan yang bisa dikuatkan` : "Tiga pernyataan dengan skor paling rendah"}</JudulKecil>
@@ -478,7 +570,7 @@ function BagianRefleksi({ orang, narasi, respons }) {
         </div>
       )}
 
-      <JudulKecil>{respons && !respons.ada ? "Untuk Anda" : "Tanggapan untuk cerita Anda"}</JudulKecil>
+      <JudulKecil>{respons && !respons.ada ? "Untuk Anda" : "Cerita dan tanggapan"}</JudulKecil>
       <TanggapanCerita respons={respons} />
 
       {jawaban.length > 0 && (
@@ -508,9 +600,18 @@ function TanggapanCerita({ respons }) {
     );
   }
   return (
-    <Kartu className={styles.pesan} data-tur="tanggapan-cerita">
-      <span className={styles.pesanLabel}><ChatCircleText size={18} weight="fill" aria-hidden="true" /> {respons.ada ? "Untuk cerita Anda" : "Untuk Anda"}</span>
-      <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.2, duration: 0.6 }}>{respons.draf}</motion.p>
-    </Kartu>
+    <div className={styles.tanggapanTumpuk} data-tur="tanggapan-cerita">
+      {/* Cerita asli ditampilkan lagi supaya jelas tanggapan ini menjawab tulisan yang mana. */}
+      {respons.ada && respons.cerita && (
+        <Kartu className={styles.ceritaAnda}>
+          <span className={styles.ceritaLabel}><Quotes size={18} weight="fill" aria-hidden="true" /> Cerita yang Anda tulis</span>
+          <div className={styles.ceritaTeks}><TeksLipat baris={4} panjangMin={220}>{respons.cerita}</TeksLipat></div>
+        </Kartu>
+      )}
+      <Kartu className={styles.pesan}>
+        <span className={styles.pesanLabel}><ChatCircleText size={18} weight="fill" aria-hidden="true" /> {respons.ada ? "Tanggapan untuk cerita Anda" : "Untuk Anda"}</span>
+        <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.2, duration: 0.6 }}>{respons.draf}</motion.p>
+      </Kartu>
+    </div>
   );
 }

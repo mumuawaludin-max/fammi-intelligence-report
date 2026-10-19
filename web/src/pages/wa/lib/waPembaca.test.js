@@ -75,9 +75,20 @@ function workbook({ nDipakai = 2, jsonRusak = false } = {}) {
   };
 }
 
+test("cerita hanya ikut di tanggapan cerita milik orang itu sendiri", () => {
+  const d = bacaDatasetWa(workbook());
+  const ani = d.narasi.find((n) => n.cakupan === "respons_cerita" && n.kunci === "R001");
+  assert.match(ani.isi.cerita, /CERITA-RAHASIA-ANI/);
+  const selainItu = JSON.stringify({ ...d, narasi: d.narasi.filter((n) => n !== ani) });
+  assert.doesNotMatch(selainItu, /CERITA-RAHASIA-ANI/);
+  // Orang yang tidak bercerita tidak membawa kolom cerita sama sekali.
+  const budi = d.narasi.find((n) => n.cakupan === "respons_cerita" && n.kunci === "R002");
+  assert.equal("cerita" in budi.isi, false);
+});
+
 test("kolom rahasia tidak pernah ikut ke dataset", () => {
   const d = bacaDatasetWa(workbook());
-  const teks = JSON.stringify(d);
+  const teks = JSON.stringify({ ...d, narasi: d.narasi.filter((n) => n.cakupan !== "respons_cerita") });
   assert.doesNotMatch(teks, /CERITA-RAHASIA-ANI/);
   assert.doesNotMatch(teks, /Pak Budi/);
   assert.doesNotMatch(teks, /0812999|0813000/);

@@ -7,7 +7,7 @@ import { fileURLToPath } from "node:url";
 import {
   cariKelompok, duaKolom, formatAngka, formatPersen, individuDalam, itemKategori, kataKorelasi, kutipan, namaDepan,
   isianTeks, narasiUntuk, opsiCakupan, pegawaiKategoriKepuasan, pegawaiKategoriProtek, peranWa, pisahPilihan, qcNarasiWa,
-  urutItem,
+  urutItem, formatHari, keteranganPembaruan, tanggalPembaruan,
 } from "./waAturan.js";
 import { KATA_TERLARANG, KATEGORI_KEPUASAN_3, KATEGORI_PROTEK, labelTerkait, pilihanNetral } from "./waMeta.js";
 
@@ -121,4 +121,39 @@ test("data contoh tidak menawarkan percakapan atau pendampingan dari Fammi", () 
   for (const n of contoh.narasi) {
     assert.ok(!qcNarasiWa({ cakupan: n.cakupan, isi: n.isi }).some((x) => x.isu === "tawaran"), `${n.cakupan} ${n.kunci}`);
   }
+});
+
+test("narasi individu contoh punya penjelasan untuk keenam aspek PROTEK", () => {
+  for (const n of contoh.narasi.filter((x) => x.cakupan === "individu")) {
+    for (const a of ["p", "r", "o", "t", "e", "k"]) {
+      assert.ok(n.isi.aspek?.[a]?.arti && n.isi.aspek[a].langkah, `${n.kunci} ${a}`);
+    }
+  }
+});
+
+test("tanggal pembaruan memakai yang terbaru di antara unggah data dan rilis narasi", () => {
+  const ds = {
+    diunggahPada: "2026-10-18T22:36:00Z",
+    meta: { tanggalPengolahan: "2026-10-14", dibuat: "2026-10-01T00:00:00Z" },
+    narasi: [{ disetujuiPada: "2026-10-19T03:00:00Z" }, { disetujuiPada: null }, {}],
+  };
+  const t = tanggalPembaruan(ds);
+  assert.equal(t.terakhir, "2026-10-19T03:00:00.000Z");
+  assert.equal(t.diunggah, "2026-10-18T22:36:00.000Z");
+  assert.equal(t.diolah, "2026-10-14");
+  assert.match(keteranganPembaruan(t), /Selesai diolah tim ahli Fammi: Rabu, 14 Oktober 2026/);
+});
+
+test("tanpa narasi yang dirilis, tanggal unggah yang dipakai; tanpa created_at, meta.dibuat", () => {
+  const t = tanggalPembaruan({ meta: { dibuat: "2026-10-18T22:36:00Z" }, narasi: [] });
+  assert.equal(t.terakhir, "2026-10-18T22:36:00.000Z");
+  assert.equal(t.dirilis, null);
+  assert.match(keteranganPembaruan(t), /belum dirilis/);
+  assert.equal(tanggalPembaruan({}).terakhir, null);
+});
+
+test("format hari dalam bahasa Indonesia, tanggal tanpa jam tidak mundur sehari", () => {
+  assert.equal(formatHari("2026-10-19"), "Senin, 19 Oktober 2026");
+  assert.equal(formatHari("bukan tanggal"), "");
+  assert.equal(formatHari(null), "");
 });

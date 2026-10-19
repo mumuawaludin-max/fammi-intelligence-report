@@ -575,3 +575,170 @@
   color: var(--fm-ungu-tua);
   cursor: pointer;
 }
+
+/* ── Penjelasan per aspek ── */
+.barisAspekKlik {
+  width: 100%;
+  border: none;
+  border-bottom: 1px solid var(--fm-abu-garis);
+  background: none;
+  font: inherit;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.barisAspekKlik:focus-visible {
+  outline: 3px solid rgb(99 35 218 / 0.35);
+  outline-offset: 2px;
+  border-radius: 10px;
+}
+
+.barisAspekPanah {
+  flex: none;
+  color: var(--fm-ungu);
+}
+
+.ketukAspek {
+  margin: 10px 0 0;
+  font-size: 13px;
+  color: var(--fm-teks-lembut);
+}
+
+.bukaAspek {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 14px;
+  padding: 14px 16px;
+  background: var(--wa-ungu-pucat);
+  color: var(--fm-ungu-tua);
+}
+
+.bukaAspek b { display: block; font-size: 15px; }
+
+.bukaAspek small { display: block; margin-top: 2px; font-size: 13px; line-height: 1.4; color: var(--fm-teks-lembut); }
+
+.aspekKepala {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+
+.aspekKepalaJudul {
+  display: block;
+  font-size: 17px;
+  font-weight: 800;
+  color: var(--fm-ungu-tua);
+}
+
+.aspekKepalaNilai {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 2px;
+  font-size: 14px;
+  color: var(--fm-ungu-tua);
+}
+
+.aspekKategori {
+  padding: 2px 10px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--w) 12%, #ffffff);
+  color: var(--w);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.aspekIsi {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding-bottom: 8px;
+}
+
+.aspekUmum {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.55;
+  color: var(--fm-teks-lembut);
+}
+
+.aspekBlok {
+  padding: 14px 16px;
+  border-radius: 16px;
+}
+
+.aspekBlok p {
+  margin: 6px 0 0;
+  font-size: 15px;
+  line-height: 1.6;
+  color: #2b2537;
+}
+
+.aspekBlokArti { background: var(--wa-ungu-pucat); }
+
+.aspekBlokLangkah { background: var(--wa-hijau-pucat); }
+
+.aspekLabel {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 800;
+  color: var(--fm-ungu-tua);
+}
+
+.aspekBlokLangkah .aspekLabel { color: var(--fm-hijau); }
+
+.aspekSubjudul {
+  margin: 6px 0 0;
+  font-size: 15px;
+  font-weight: 800;
+  color: var(--fm-ungu-tua);
+}
+
+/* ── Cerita asli di atas tanggapannya ── */
+.tanggapanTumpuk {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.ceritaAnda {
+  gap: 8px;
+  padding: 16px 18px;
+  background: #ffffff;
+}
+
+.ceritaLabel {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 800;
+  color: var(--fm-teks-lembut);
+}
+
+.ceritaTeks {
+  font-size: 14.5px;
+  line-height: 1.6;
+  font-style: italic;
+  color: #3f3a4a;
+  white-space: pre-wrap;
+}
+
+/* Tanggal data terakhir diunggah atau penjelasan terakhir dirilis. */
+.diperbarui {
+  padding: 4px 16px 0;
+}
+
+.diperbaruiIsi {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--fm-teks-lembut);
+}

@@ -247,6 +247,10 @@ Skema laporan_json INDIVIDU (semua kunci wajib):
     "hal_tantangan": "1 kalimat"
   },
   "refleksi": "1 kalimat pertanyaan terbuka yang mengaitkan pilihan ganda orang ini (hal disukai, sulit, keputusan) dengan aspek terendahnya",
+  "aspek": {
+    "p": {"arti": "1-2 kalimat: apa yang terlihat dari tujuh pernyataan aspek ini (yang sudah terasa dan yang belum) dan artinya dalam keseharian orang ini", "langkah": "1-2 kalimat: yang bisa ia lakukan sendiri, konkret (apa, kapan, dengan siapa); aspek kuat = cara menjaga dan memakainya, aspek lemah = satu latihan kecil yang menyasar pernyataan terendahnya"},
+    "r": {"arti": "...", "langkah": "..."}, "o": {"arti": "...", "langkah": "..."}, "t": {"arti": "...", "langkah": "..."}, "e": {"arti": "...", "langkah": "..."}, "k": {"arti": "...", "langkah": "..."}
+  },
   "langkah_kecil": [
     {"judul": "kalimat perintah tanpa kata ganti orang, maks 10 kata", "alasan": "1 kalimat netral kenapa cocok untuk pola datanya", "terkait": "kunci aspek atau dimensi", "jangka": "Minggu ini | Bulan ini | 3 bulan"}
   ],
@@ -259,6 +263,7 @@ Skema laporan_json INDIVIDU (semua kunci wajib):
 }
 
 Aturan Tahap C:
+- aspek: WAJIB untuk keenam aspek PROTEK, kuat maupun lemah; setiap orang perlu tahu arti hasilnya sendiri di tiap aspek dan apa yang bisa dilakukan (keputusan pemilik produk 2026-10-19). Spesifik pada pola pernyataan orang itu, bukan definisi aspek. Tiap isian maksimal 45 kata, tanpa angka. Jangan mengulang langkah_kecil. Saran ke Human Capital untuk dihubungkan dengan psikolog hanya di aspek Perlu Pendampingan yang memang berat.
 - langkah_kecil: 2-3 item, item pertama kemenangan cepat, sesuaikan dengan kelompok_jabatan (keseharian guru beda dari pembina asrama beda dari staf kantor beda dari pendukung layanan).
 - perlu_perhatian_ahli = true (dan tulis "Ya" di kolom cerita_perlu_ahli, serta baris di CATATAN_QC) kalau cerita menyebut: tubuh sampai tumbang atau dirawat, sedih berkepanjangan, merasa dikhianati atau diperlakukan tidak adil oleh pimpinan, lingkungan yang disebut toxic, kesepian yang dalam, putus asa, menyakiti diri, atau permintaan bantuan langsung. Respons untuk kasus ini lebih pendek, tidak memberi nasihat teknis, dan menyarankan ia menyampaikan ke Human Capital agar dihubungkan dengan tenaga ahli. Draf ini akan ditinjau psikolog sebelum dikirim.
 - DILARANG menawarkan apa pun atas nama Fammi: percakapan, percakapan lanjutan, sesi, konsultasi, konseling, pendampingan, "ruang aman", "siap mendengar". Jangan menyebut "tim pendamping", "tim Fammi", atau "kami" di teks individu, termasuk langkah_kecil (bukan "Hubungi tim pendamping..."). Kebutuhan bantuan ahli selalu diarahkan lewat Human Capital, dan cukup disarankan, bukan dijanjikan.

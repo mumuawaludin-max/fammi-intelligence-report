@@ -33,6 +33,48 @@ export function labelPeriode(periodeId) {
   return `${bulan[Number(m[2]) - 1]} ${m[1]}`;
 }
 
+const FORMAT_HARI = new Intl.DateTimeFormat("id-ID", { weekday: "long", day: "numeric", month: "long", year: "numeric" });
+
+/** "Senin, 19 Oktober 2026". Menerima ISO timestamp atau tanggal "YYYY-MM-DD"; kosong kalau tidak sah. */
+export function formatHari(nilai) {
+  if (!nilai) return "";
+  const teks = String(nilai);
+  // Tanggal tanpa jam dibaca sebagai tanggal lokal, bukan tengah malam UTC (yang bisa mundur sehari).
+  const t = /^\d{4}-\d{2}-\d{2}$/.test(teks) ? new Date(`${teks}T12:00:00`) : new Date(teks);
+  return Number.isNaN(t.getTime()) ? "" : FORMAT_HARI.format(t);
+}
+
+/**
+ * Kapan laporan ini terakhir berubah bagi pembacanya (keputusan pemilik produk 2026-10-19).
+ * Pemicunya dua kejadian: data diunggah ke sistem (wa_dataset.created_at, cadangan meta.dibuat)
+ * dan narasi dirilis setelah disetujui (disetujui_pada narasi yang memang bisa ia baca, jadi
+ * pegawai melihat tanggal laporannya sendiri, Human Capital tanggal laporan kelompok).
+ * `diolah` adalah tanggal tim ahli Fammi selesai mengolah berkas (meta.tanggalPengolahan).
+ */
+export function tanggalPembaruan(dataset) {
+  const waktu = (v) => { const t = v ? new Date(v).getTime() : NaN; return Number.isNaN(t) ? null : t; };
+  const diunggah = waktu(dataset?.diunggahPada) ?? waktu(dataset?.meta?.dibuat);
+  const rilis = (dataset?.narasi || []).map((n) => waktu(n.disetujuiPada)).filter((t) => t !== null);
+  const dirilis = rilis.length ? Math.max(...rilis) : null;
+  const terakhir = [diunggah, dirilis].filter((t) => t !== null);
+  const iso = (t) => (t === null ? null : new Date(t).toISOString());
+  return {
+    terakhir: terakhir.length ? iso(Math.max(...terakhir)) : null,
+    diunggah: iso(diunggah),
+    dirilis: iso(dirilis),
+    diolah: dataset?.meta?.tanggalPengolahan || null,
+  };
+}
+
+/** Kalimat keterangan untuk tooltip tanggal pembaruan. */
+export function keteranganPembaruan(t) {
+  return [
+    t.diolah && `Selesai diolah tim ahli Fammi: ${formatHari(t.diolah)}.`,
+    t.diunggah && `Diunggah ke sistem: ${formatHari(t.diunggah)}.`,
+    t.dirilis ? `Penjelasan terakhir dirilis setelah ditinjau: ${formatHari(t.dirilis)}.` : "Penjelasan belum dirilis.",
+  ].filter(Boolean).join(" ");
+}
+
 export function namaDepan(nama) {
   const bersih = String(nama || "").replace(/,.*$/, "").trim();
   const kata = bersih.split(/\s+/).filter((k) => !/^(h|hj|dr|drs|ir|ust|ustadz|ustadzah)\.?$/i.test(k));
@@ -214,11 +256,19 @@ export function kataKorelasi(r) {
 
 // ── Kendali mutu narasi (layar persetujuan Admin Fammi) ─────────────────────────────────────
 
+// Isian yang bukan narasi tulisan kita: "cerita" adalah tulisan asli pegawai di baris
+// respons_cerita. Tidak diperiksa kendali mutu dan tidak bisa disunting admin.
+const BUKAN_NARASI = new Set(["cerita"]);
+
 /** Semua isian teks di dalam narasi, beserta jalurnya ("ringkasan.wellbeing", "langkah_kecil.0.judul"). */
 export function isianTeks(isi, awalan = "") {
   if (typeof isi === "string") return [{ jalur: awalan, nilai: isi }];
   if (Array.isArray(isi)) return isi.flatMap((x, i) => isianTeks(x, awalan ? `${awalan}.${i}` : String(i)));
-  if (isi && typeof isi === "object") return Object.entries(isi).flatMap(([k, v]) => isianTeks(v, awalan ? `${awalan}.${k}` : k));
+  if (isi && typeof isi === "object") {
+    return Object.entries(isi)
+      .filter(([k]) => awalan || !BUKAN_NARASI.has(k))
+      .flatMap(([k, v]) => isianTeks(v, awalan ? `${awalan}.${k}` : k));
+  }
   return [];
 }
 

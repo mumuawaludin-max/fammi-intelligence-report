@@ -6,13 +6,15 @@
 
 import { useCallback, useMemo, useState } from "react";
 import { AnimatePresence, MotionConfig, motion } from "motion/react";
-import { Buildings, CaretDown, Compass, UsersThree } from "@phosphor-icons/react";
+import { Buildings, CaretDown, ClockCounterClockwise, Compass, UsersThree } from "@phosphor-icons/react";
 import SampleTag from "../../components/SampleTag";
 import { CAKUPAN, JUDUL_TAB_WELLBEING } from "./lib/waMeta";
-import { cariKelompok, individuDalam, labelPeriode, narasiKelompok, opsiCakupan } from "./lib/waAturan";
+import {
+  cariKelompok, formatHari, individuDalam, keteranganPembaruan, labelPeriode, narasiKelompok, opsiCakupan, tanggalPembaruan,
+} from "./lib/waAturan";
 import { langkahHc } from "./lib/waTur";
 import { IKON_TAB } from "./waIkon";
-import { Segmen } from "./WaUi";
+import { Petunjuk, Segmen } from "./WaUi";
 import { EASE } from "./waGerak";
 import WaRingkasan from "./WaRingkasan";
 import WaWellbeing from "./WaWellbeing";
@@ -54,6 +56,7 @@ export default function WaLaporan({ dataset, akses, tabAtas = 0 }) {
   const individu = useMemo(() => individuDalam(dataset, kelompok), [dataset, kelompok]);
   const narasi = useMemo(() => narasiKelompok(dataset, kelompok), [dataset, kelompok]);
   const profil = useMemo(() => dataset.individu.find((o) => o.id === profilId) || null, [dataset, profilId]);
+  const pembaruan = useMemo(() => tanggalPembaruan(dataset), [dataset]);
 
   const gantiJenis = useCallback((j) => {
     setJenis(j);
@@ -138,6 +141,14 @@ export default function WaLaporan({ dataset, akses, tabAtas = 0 }) {
                 <Buildings size={15} weight="fill" aria-hidden="true" />
                 {dataset.meta.lembaga}
                 {dataset.meta.periodeId && <> · {labelPeriode(dataset.meta.periodeId)}</>}
+                {pembaruan.terakhir && (
+                  <Petunjuk teks={keteranganPembaruan(pembaruan)}>
+                    <span className={styles.diperbarui}>
+                      <ClockCounterClockwise size={14} weight="bold" aria-hidden="true" />
+                      Diperbarui {formatHari(pembaruan.terakhir)}
+                    </span>
+                  </Petunjuk>
+                )}
                 {dataset.meta.contoh && <SampleTag />}
               </p>
               <AnimatePresence mode="wait">

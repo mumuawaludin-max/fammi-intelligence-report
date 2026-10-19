@@ -36,7 +36,7 @@ export function useWaData(session) {
       }
       const { data: ds, error: e1 } = await supabase
         .from("wa_dataset")
-        .select("id, periode_id, meta, parameter, item")
+        .select("id, periode_id, meta, parameter, item, created_at")
         .eq("sekolah_id", sekolahId)
         .eq("aktif", true)
         .order("created_at", { ascending: false })
@@ -51,7 +51,7 @@ export function useWaData(session) {
           ? fetchAllRows((from, to) => supabase.from("wa_kelompok").select("data").eq("dataset_id", ds.id).order("cakupan").order("kunci").range(from, to))
           : Promise.resolve({ data: [], error: null }),
         fetchAllRows((from, to) => supabase.from("wa_individu").select("data").eq("dataset_id", ds.id).order("individu_id").range(from, to)),
-        fetchAllRows((from, to) => supabase.from("wa_narasi").select("cakupan, kunci, isi").eq("dataset_id", ds.id).order("cakupan").order("kunci").range(from, to)),
+        fetchAllRows((from, to) => supabase.from("wa_narasi").select("cakupan, kunci, isi, disetujui_pada").eq("dataset_id", ds.id).order("cakupan").order("kunci").range(from, to)),
       ]);
       if (!alive) return;
       const galat = kelompokRes.error || individuRes.error || narasiRes.error;
@@ -68,12 +68,14 @@ export function useWaData(session) {
         dataset: {
           versi: 1,
           datasetId: ds.id,
+          // Kapan data diunggah ke sistem; dipakai untuk keterangan "Diperbarui" di laporan.
+          diunggahPada: ds.created_at,
           meta: { ...ds.meta, periodeId: ds.meta?.periodeId || ds.periode_id },
           parameter: ds.parameter || {},
           item: ds.item || [],
           kelompok,
           individu: (individuRes.data || []).map((r) => r.data),
-          narasi: (narasiRes.data || []).map((r) => ({ cakupan: r.cakupan, kunci: r.kunci, isi: r.isi })),
+          narasi: (narasiRes.data || []).map((r) => ({ cakupan: r.cakupan, kunci: r.kunci, isi: r.isi, disetujuiPada: r.disetujui_pada })),
         },
       });
     }

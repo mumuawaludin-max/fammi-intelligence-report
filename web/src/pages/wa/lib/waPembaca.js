@@ -7,8 +7,10 @@
 // - Angka dipindahkan apa adanya. Tidak ada rata-rata, persen, korelasi, atau frekuensi yang
 //   dihitung di sini. Satu-satunya turunan: kategori PROTEK dari RATA-RATA kelompok, dengan
 //   ambang yang dibaca dari sheet PARAMETER (berkas belum punya kolomnya, lihat butir 11.7).
-// - Kolom rahasia TIDAK pernah disalin: cerita kelelahan (BB), orang yang dipercaya (BC, BD),
-//   nomor WhatsApp (CB), dan teks unit asli. Pembaca mengambil kolom yang dibutuhkan saja.
+// - Kolom rahasia TIDAK pernah disalin ke data individu atau kelompok: cerita kelelahan (BB),
+//   orang yang dipercaya (BC, BD), nomor WhatsApp (CB), dan teks unit asli. Satu-satunya
+//   pengecualian: cerita (BB) ikut di baris respons_cerita milik orang itu sendiri, supaya ia bisa
+//   membaca lagi cerita yang ditanggapi (keputusan pemilik produk 2026-10-19).
 // - Penanda "perlu perhatian ahli" dan ada-tidaknya cerita hanya disimpan di baris narasi
 //   respons_cerita (yang tidak terbaca Human Capital), tidak di data individu.
 
@@ -30,6 +32,8 @@ const KOLOM_WAJIB_INDIVIDU = [
   "id_responden", "dipakai", "unit_normal", "jenjang", "kelompok_jabatan", "protek_total", "protek_pct",
   "protek_kategori", "item_json", "kepuasan_rata", "kepuasan_kategori5", "kepuasan_kategori3", "laporan_json",
 ];
+// Judul kolom BB di berkas olahan; teks lengkapnya panjang dan bisa berubah di ujung kalimat.
+const KOLOM_CERITA = /^adakah yang ingin anda ceritakan/i;
 const KOLOM_WAJIB_KELOMPOK = ["cakupan", "nama", "n_responden", "protek_rata", "protek_pct", "item_json", "kepuasan_rata", "laporan_json"];
 
 // ── Utilitas ────────────────────────────────────────────────────────────────────────────────
@@ -374,6 +378,7 @@ export function bacaDatasetWa(sheets, meta = {}) {
   }
 
   const narasi = [];
+  const kolomCerita = Object.keys(dipakai[0] || {}).find((k) => KOLOM_CERITA.test(k));
   const individu = dipakai.map((r) => {
     const o = bacaIndividu(r, testimoniPerId[teks(r.id_responden)] || [], galat);
     const laporan = jsonSel(r.laporan_json, null, galat, `INDIVIDU ${o.id} laporan_json`);
@@ -382,10 +387,15 @@ export function bacaDatasetWa(sheets, meta = {}) {
       narasi.push({ cakupan: "individu", kunci: o.id, isi, perluAhli: false, alasanPerhatian: null });
       if (respons) {
         const perluAhli = Boolean(respons.perlu_perhatian_ahli) || ya(r.cerita_perlu_ahli);
+        const ada = Boolean(respons.ada) || ya(r.cerita_ada);
+        // Cerita asli ikut HANYA di baris respons_cerita (RLS: pemiliknya dan Admin Fammi), supaya
+        // pegawai bisa membaca lagi cerita yang ditanggapi. Tidak pernah masuk data individu,
+        // kelompok, atau apa pun yang terbaca Human Capital. Disimpan apa adanya.
+        const cerita = ada ? teks(r[kolomCerita]) : "";
         narasi.push({
           cakupan: "respons_cerita",
           kunci: o.id,
-          isi: { ada: Boolean(respons.ada) || ya(r.cerita_ada), draf: teks(respons.draf) },
+          isi: { ada, ...(cerita ? { cerita } : {}), draf: teks(respons.draf) },
           perluAhli,
           // Catatan untuk peninjau, bukan untuk pegawai: disimpan di kolom terpisah yang tidak
           // diberikan ke peran authenticated (lihat migration wa).

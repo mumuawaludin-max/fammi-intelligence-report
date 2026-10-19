@@ -187,6 +187,16 @@ function laporanIndividu(o) {
       hal_kuat: `Anda merasa cukup puas pada ${dimKuat.toLowerCase()}.`,
       hal_tantangan: `${dimLemah} masih terasa kurang dan layak disampaikan lewat jalur yang ada.`,
     },
+    // Penjelasan per aspek untuk keenam aspek (lihat prompt pengolah Excel, isian "aspek").
+    aspek: Object.fromEntries(o.urutAspek.map((a, i) => [a, i < 3
+      ? {
+        arti: `Contoh narasi. ${LABEL_ASPEK[a]} termasuk aspek terkuat Anda; sebagian besar pernyataannya sudah terasa dalam keseharian.`,
+        langkah: "Jadikan ini pegangan: saat pekan terasa berat, ingat satu hal di aspek ini yang selama ini membantu Anda bertahan.",
+      }
+      : {
+        arti: `Contoh narasi. ${LABEL_ASPEK[a]} lebih rendah dibanding aspek lain; ada beberapa pernyataan yang belum terasa.`,
+        langkah: "Pilih satu pernyataan dengan bar jingga, lalu coba satu tindakan kecil yang mendekatkan Anda ke sana pekan ini.",
+      }])),
     refleksi: "Kalau satu hal kecil di pekan ini bisa membuat Anda lebih ringan, kira-kira apa yang paling ingin Anda mulai?",
     langkah_kecil: [
       { judul: "Tulis tiga hal yang berjalan baik setiap Jumat sore", alasan: "Cocok untuk menguatkan penerimaan diri lewat kebiasaan kecil yang konsisten.", terkait: o.urutAspek[5], jangka: "Minggu ini" },
@@ -207,6 +217,12 @@ function laporanIndividu(o) {
 }
 
 const KOLOM_NAMA = "TUlis Nama Lengkap Anda Disini";
+// Kolom BB berkas olahan: cerita pegawai. Pembaca hanya menyalinnya ke baris respons_cerita.
+const KOLOM_CERITA = "Adakah yang ingin anda ceritakan dan tanyakan tentang kelelahan atau stress anda saat ini?";
+const ceritaContoh = (o) => (!o.cerita ? "Tidak ada"
+  : o.perluAhli
+    ? "Contoh cerita. Beberapa pekan ini tidur saya sering terputus dan pekerjaan terasa makin berat. Saya bingung harus cerita ke siapa."
+    : "Contoh cerita. Pekan ini padat karena persiapan ujian, jadi pulang selalu lelah. Untungnya akhir pekan masih bisa santai bersama keluarga.");
 const kolomIndividu = [
   KOLOM_NAMA, "id_responden", "dipakai", "isian_ganda", "jenis_kelamin_bersih", "usia", "unit_asli", "unit_normal", "jenjang",
   "kelompok_jabatan", "jabatan_bersih", "peran_testimoni", "protek_total", "protek_pct", "protek_kategori",
@@ -216,7 +232,7 @@ const kolomIndividu = [
   ...DIMENSI.flatMap((d) => [`kep_${d}`, `kep_${d}_kategori`]),
   "kep_dimensi_tertinggi", "kep_dimensi_terendah",
   ...Object.keys(PILIHAN).map((k) => `pilihan_${k}_json`),
-  "cerita_ada", "cerita_perlu_ahli", "laporan_json",
+  KOLOM_CERITA, "cerita_ada", "cerita_perlu_ahli", "laporan_json",
 ];
 const barisIndividu = orang.map((o) => {
   const itemJson = o.skorItem.map((x) => ({ kode: x.kode, aspek: x.aspek, skor: x.skor, pct: bulat1((x.skor / 6) * 100), kategori: katItem(x.skor) }));
@@ -233,7 +249,7 @@ const barisIndividu = orang.map((o) => {
     ...Object.fromEntries(DIMENSI.flatMap((d) => [[`kep_${d}`, o.dim[d].rata], [`kep_${d}_kategori`, o.dim[d].kategori]])),
     kep_dimensi_tertinggi: o.urutDim[0], kep_dimensi_terendah: o.urutDim[5],
     ...Object.fromEntries(Object.keys(PILIHAN).map((k) => [`pilihan_${k}_json`, JSON.stringify(o.pilihan[k])])),
-    cerita_ada: o.cerita ? "Ya" : "Tidak", cerita_perlu_ahli: o.perluAhli ? "Ya" : "", laporan_json: JSON.stringify(laporanIndividu(o)),
+    [KOLOM_CERITA]: ceritaContoh(o), cerita_ada: o.cerita ? "Ya" : "Tidak", cerita_perlu_ahli: o.perluAhli ? "Ya" : "", laporan_json: JSON.stringify(laporanIndividu(o)),
   };
   return kolomIndividu.map((k) => nilai[k] ?? null);
 });

@@ -48,6 +48,7 @@ export function langkahPegawai() {
       isi: [
         "PROTEK adalah singkatan enam aspek kesejahteraan diri. Tiap aspek diukur dengan 7 pernyataan.",
         "Bar jingga menandai aspek yang skornya masuk Perlu Perhatian atau Perlu Pendampingan.",
+        "Ketuk satu aspek untuk membaca artinya bagi Anda, hal yang bisa dilakukan, dan tujuh pernyataannya.",
       ],
       daftar: DAFTAR_PROTEK,
     },
@@ -132,9 +133,10 @@ export function langkahPegawai() {
     {
       target: "tanggapan-cerita",
       bagian: "refleksi",
-      judul: "Isi tanggapan",
+      judul: "Cerita dan tanggapan",
       isi: [
-        "Tanggapan untuk cerita yang Anda tulis. Kalau belum ada, artinya tanggapannya masih ditinjau.",
+        "Di atas ada cerita yang Anda tulis saat mengisi, supaya Anda ingat tanggapan ini untuk cerita yang mana. Di bawahnya tanggapan untuk cerita itu.",
+        "Kalau tanggapannya belum ada, artinya masih ditinjau.",
       ],
     },
     {
