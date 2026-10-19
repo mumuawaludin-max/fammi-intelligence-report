@@ -4,7 +4,7 @@
 
 import { useMemo, useState } from "react";
 import { ASPEK, DIMENSI_KEPUASAN, JUDUL_TAB_WELLBEING } from "./lib/waMeta";
-import { formatAngka, formatPersen, itemKategori, lengkapiItem, urutItem } from "./lib/waAturan";
+import { formatAngka, formatPersen, itemKategori, kunciTerendahTampil, lengkapiItem, urutItem } from "./lib/waAturan";
 import { ambangDariTeks } from "./lib/waPembaca";
 
 // Batas kategori dibaca dari sheet PARAMETER berkas olahan (bisa berbeda antar-dataset), bukan
@@ -31,6 +31,9 @@ export default function WaRingkasan({ dataset, kelompok, narasi, keTab }) {
   const lemah = perlu.length ? perlu : itemKategori(items, "cukup");
   const tinggi = kuat.length ? kuat : itemKategori(items, "cukup");
   const { nItem } = kelompok.protek;
+  // Sorotan jingga menurut angka yang tampil: persen aspek tanpa desimal, kepuasan satu desimal.
+  const aspekRendah = kunciTerendahTampil(Object.fromEntries(Object.entries(kelompok.protek.aspek).map(([k, v]) => [k, v.pct])), 0);
+  const dimensiRendah = kunciTerendahTampil(Object.fromEntries(Object.entries(kelompok.kepuasan.dimensi).map(([k, v]) => [k, v.rata])), 1);
   // Rata-rata skor dan sebaran kategori adalah dua ukuran berbeda (77% rata-rata bisa berarti 95%
   // pegawai berkategori Baik). Keduanya disebut di kartu supaya tidak terbaca bertentangan dengan narasi.
   const n = kelompok.nResponden;
@@ -69,7 +72,7 @@ export default function WaRingkasan({ dataset, kelompok, narasi, keTab }) {
               key={a.kunci}
               kunci={a.kunci}
               pct={kelompok.protek.aspek[a.kunci].pct}
-              sorot={a.kunci === kelompok.protek.aspekTerendah}
+              sorot={aspekRendah.has(a.kunci)}
               tunda={0.15 + i * 0.06}
               onClick={() => keTab("wellbeing")}
             />
@@ -88,7 +91,7 @@ export default function WaRingkasan({ dataset, kelompok, narasi, keTab }) {
               key={d.kunci}
               kunci={d.kunci}
               rata={kelompok.kepuasan.dimensi[d.kunci].rata}
-              sorot={d.kunci === kelompok.kepuasan.dimensiTerendah}
+              sorot={dimensiRendah.has(d.kunci)}
               tunda={0.15 + i * 0.06}
               onClick={() => keTab("kepuasan")}
             />

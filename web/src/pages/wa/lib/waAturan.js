@@ -21,6 +21,22 @@ export function formatAngka(n, digit = 1) {
   return typeof n === "number" && Number.isFinite(n) ? fmt(digit).format(n) : "-";
 }
 
+/**
+ * Kunci yang disorot jingga sebagai "terendah", dibandingkan menurut angka yang TAMPIL di layar
+ * (dibulatkan `digit` desimal, sama dengan AngkaHitung). Semua kunci yang tampil sama dengan nilai
+ * terendah ikut disorot, supaya dua angka yang terlihat sama tidak berbeda warna (3,79 dan 3,75
+ * sama-sama tampil 3,8). Jika semua tampil sama, tidak ada yang disorot karena tidak ada yang lebih
+ * rendah. Kolom "terendah" di berkas olahan tidak dipakai untuk warna karena ia memilih satu kunci
+ * walau nilainya seri.
+ */
+export function kunciTerendahTampil(nilaiPerKunci, digit = 1) {
+  const isi = Object.entries(nilaiPerKunci || {}).filter(([, v]) => typeof v === "number" && Number.isFinite(v));
+  if (isi.length < 2) return new Set();
+  const tMin = formatAngka(Math.min(...isi.map(([, v]) => v)), digit);
+  const sama = isi.filter(([, v]) => formatAngka(v, digit) === tMin).map(([k]) => k);
+  return sama.length === isi.length ? new Set() : new Set(sama);
+}
+
 /** Persen dari nilai 0-100 yang sudah final di berkas. */
 export function formatPersen(n, digit = 0) {
   return typeof n === "number" && Number.isFinite(n) ? `${fmt(digit).format(n)}%` : "-";

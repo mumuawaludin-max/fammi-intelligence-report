@@ -6,7 +6,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import {
   cariKelompok, duaKolom, formatAngka, formatPersen, individuDalam, itemKategori, kataKorelasi, kutipan, namaDepan,
-  isianTeks, narasiUntuk, opsiCakupan, pegawaiKategoriKepuasan, pegawaiKategoriProtek, peranWa, pisahPilihan, qcNarasiWa,
+  isianTeks, kunciTerendahTampil, narasiUntuk, opsiCakupan, pegawaiKategoriKepuasan, pegawaiKategoriProtek, peranWa, pisahPilihan, qcNarasiWa,
   urutItem, formatHari, keteranganPembaruan, tanggalPembaruan,
 } from "./waAturan.js";
 import { KATA_TERLARANG, KATEGORI_KEPUASAN_3, KATEGORI_PROTEK, labelTerkait, pilihanNetral } from "./waMeta.js";
@@ -210,4 +210,15 @@ test("opsi Lainnya: teks wajib kalau dipilih, opsi Belum tahu tetap di akhir", a
   const tanpaTeks = { ...dasar, pilihan: { ...dasar.pilihan, rencana: [OPSI_LAINNYA] } };
   assert.deepEqual(umpanBalikBelumLengkap(tanpaTeks).map((p) => p.kode), ["rencana"]);
   assert.equal(umpanBalikBelumLengkap({ ...tanpaTeks, lainnya: { rencana: "Ikut kajian" } }).length, 0);
+});
+
+test("sorotan terendah mengikuti angka yang tampil", () => {
+  const set = (o, d) => [...kunciTerendahTampil(o, d)].sort();
+  // Semua tampil 4,0: tidak ada yang lebih rendah, tidak ada yang jingga.
+  assert.deepEqual(set({ a: 4, b: 4, c: 4 }, 1), []);
+  // 3,79 dan 3,75 sama-sama tampil 3,8: keduanya jingga.
+  assert.deepEqual(set({ a: 4, b: 3.79, c: 4.11, d: 3.75 }, 1), ["b", "d"]);
+  // Persen tanpa desimal: 77,5 dan 78 sama-sama tampil 78%, 70,6 satu-satunya terendah.
+  assert.deepEqual(set({ p: 76.8, t: 77.5, e: 78, k: 70.6 }, 0), ["k"]);
+  assert.deepEqual(set({ a: 5 }, 1), []);
 });

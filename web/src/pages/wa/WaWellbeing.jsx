@@ -53,7 +53,7 @@ export default function WaWellbeing({ kelompok, individu, narasi, bukaProfil }) 
       <DuaPlusMinus tur="resume-catatan" plus={narasi?.wellbeing?.resume_kuat} minus={narasi?.wellbeing?.resume_lemah} />
 
       <section data-tur="rincian">
-        <JudulBagian keterangan="Sebaran kategori per aspek. Arahkan kursor ke bar untuk melihat jumlah pegawainya.">Detail {JUDUL_TAB_WELLBEING} Pegawai</JudulBagian>
+        <JudulBagian keterangan={`Tiap baris berisi ${kelompok.nResponden} pegawai yang sama, dilihat dari satu aspek. Arahkan kursor ke bar untuk jumlahnya.`}>Detail {JUDUL_TAB_WELLBEING} Pegawai</JudulBagian>
         <Bertahap className={t.daftarRincian} jeda={0.07}>
           {ASPEK.map((a) => {
             const seg = segmenProtek(kelompok.protek.aspek[a.kunci].n);

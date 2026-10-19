@@ -21,7 +21,7 @@ import {
   infoAspek, infoDimensi, infoKategoriProtek,
 } from "./lib/waMeta";
 import {
-  formatHari, formatPersen, itemKategori, keteranganPembaruan, lengkapiItem, namaDepan, narasiUntuk, pisahPilihan, tanggalPembaruan, urutItem,
+  formatHari, formatPersen, itemKategori, keteranganPembaruan, kunciTerendahTampil, lengkapiItem, namaDepan, narasiUntuk, pisahPilihan, tanggalPembaruan, urutItem,
 } from "./lib/waAturan";
 import { IKON_DIMENSI, IKON_PILIHAN } from "./waIkon";
 import { KartuSkorKepuasan, KartuSkorWellbeing } from "./WaBagian";
@@ -228,6 +228,7 @@ function lemahAtauCukup(items) {
 
 function BagianRingkasan({ orang, narasi, respons, items, umpanBalik, keBagian, bukaSemua, bukaAspek }) {
   const { protek, kepuasan } = orang;
+  const dimensiRendah = kunciTerendahTampil(Object.fromEntries(Object.entries(kepuasan.dimensi).map(([k, v]) => [k, v.rata])), 1);
   const kuat = itemKategori(items, "kuat");
   const perlu = itemKategori(items, "perlu");
   return (
@@ -258,11 +259,12 @@ function BagianRingkasan({ orang, narasi, respons, items, umpanBalik, keBagian, 
       </Kartu>
 
       <JudulKecil>Detail Kepuasan Kerja Anda</JudulKecil>
+      {/* Jingga hanya untuk bidang yang angkanya memang paling rendah di layar; jika semua sama, tidak ada. */}
       <div className={styles.gridDua} data-tur="dimensi">
         {DIMENSI_KEPUASAN.map((d, i) => {
           const v = kepuasan.dimensi[d.kunci];
           const Ikon = IKON_DIMENSI[d.kunci];
-          const rendah = d.kunci === kepuasan.dimensiTerendah;
+          const rendah = dimensiRendah.has(d.kunci);
           const warna = rendah ? "var(--fm-jingga)" : "var(--fm-ungu-sedang)";
           return (
             <Kartu key={d.kunci} className={styles.dimensi}>
@@ -494,7 +496,9 @@ function BagianKuat({ orang, items, bukaAspek }) {
 function BagianPerlu({ orang, narasi, items, bukaAspek }) {
   const perlu = itemKategori(items, "perlu");
   const tampil = perlu.length ? perlu : urutItem(items, "naik", 3);
-  const terendah = infoAspek(orang.protek.aspekTerendah);
+  // Aspek terendah menurut persen yang tampil; bisa lebih dari satu jika seri, kosong jika semua sama.
+  const rendah = kunciTerendahTampil(Object.fromEntries(Object.entries(orang.protek.aspek).map(([k, v]) => [k, v.pct])), 0);
+  const terendah = ASPEK.filter((a) => rendah.has(a.kunci));
   return (
     <Bertahap className={styles.tumpuk}>
       <Kartu className={styles.pembuka} style={{ "--w": "var(--fm-jingga)" }}>
@@ -503,7 +507,7 @@ function BagianPerlu({ orang, narasi, items, bukaAspek }) {
         </motion.span>
         <div>
           <h2>Yang bisa dikuatkan</h2>
-          <p>Daftar ini berisi pernyataan dengan skor terendah Anda.{terendah ? ` Aspek dengan skor paling rendah saat ini: ${terendah.label}.` : ""}</p>
+          <p>Daftar ini berisi pernyataan dengan skor terendah Anda.{terendah.length ? ` Aspek dengan skor paling rendah saat ini: ${terendah.map((a) => a.label).join(" dan ")}.` : ""}</p>
         </div>
       </Kartu>
       {narasi?.wellbeing?.hal_tantangan && (
@@ -511,16 +515,16 @@ function BagianPerlu({ orang, narasi, items, bukaAspek }) {
           <p>{narasi.wellbeing.hal_tantangan}</p>
         </Kartu>
       )}
-      {terendah && (
-        <Kartu className={styles.bukaAspek} onClick={() => bukaAspek(terendah.kunci)} label={`Buka penjelasan ${terendah.label}`}>
-          <Lencana ukuran={36}>{terendah.huruf}</Lencana>
+      {terendah.map((a) => (
+        <Kartu key={a.kunci} className={styles.bukaAspek} onClick={() => bukaAspek(a.kunci)} label={`Buka penjelasan ${a.label}`}>
+          <Lencana ukuran={36}>{a.huruf}</Lencana>
           <span>
             <b>Apa artinya untuk Anda?</b>
-            <small>Baca penjelasan {terendah.label} dan yang bisa dilakukan.</small>
+            <small>Baca penjelasan {a.label} dan yang bisa dilakukan.</small>
           </span>
           <CaretRight size={18} weight="bold" aria-hidden="true" />
         </Kartu>
-      )}
+      ))}
       <JudulKecil>{perlu.length ? `${perlu.length} pernyataan yang bisa dikuatkan` : "Tiga pernyataan dengan skor paling rendah"}</JudulKecil>
       {!perlu.length && (
         <Kartu className={styles.kabarBaik}>

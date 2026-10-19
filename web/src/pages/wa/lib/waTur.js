@@ -258,6 +258,7 @@ const LANGKAH_HC = {
       judul: "Sebaran per aspek",
       isi: [
         "Tiap baris satu aspek PROTEK. Panjang warna menunjukkan berapa pegawai di tiap kategori untuk aspek itu.",
+        "Keenam baris berisi pegawai yang sama. Satu orang muncul sekali di tiap baris, jadi jumlah per baris selalu sama dengan jumlah pegawai, bukan dijumlahkan antarbaris.",
         "Arahkan kursor ke bar untuk melihat jumlah pegawainya.",
       ],
     },

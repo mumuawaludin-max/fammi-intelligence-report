@@ -3,7 +3,7 @@
 
 import { useMemo, useState } from "react";
 import { DIMENSI_KEPUASAN, KATEGORI_KEPUASAN_3, infoKepuasan5 } from "./lib/waMeta";
-import { formatAngka, pegawaiKategoriKepuasan, segmenKepuasan3, segmenKepuasan5 } from "./lib/waAturan";
+import { formatAngka, kunciTerendahTampil, pegawaiKategoriKepuasan, segmenKepuasan3, segmenKepuasan5 } from "./lib/waAturan";
 import { IKON_DIMENSI } from "./waIkon";
 import { BarisRincian, DialogDaftarPegawai, DuaPlusMinus, KartuKategori, KolomTopPegawai } from "./WaBagian";
 import { IlustrasiPapan } from "./WaIlustrasi";
@@ -19,6 +19,8 @@ const KOSONG = {
 export default function WaKepuasan({ kelompok, individu, narasi, bukaProfil }) {
   const [daftar, setDaftar] = useState(null);
   const segmen = segmenKepuasan3(kelompok.kepuasan.n);
+  // Ikon jingga untuk bidang yang angkanya paling rendah di layar (bisa lebih dari satu, atau tidak ada).
+  const dimensiRendah = kunciTerendahTampil(Object.fromEntries(Object.entries(kelompok.kepuasan.dimensi).map(([k, v]) => [k, v.rata])), 1);
   const perKategori = useMemo(
     () => Object.fromEntries(KATEGORI_KEPUASAN_3.map((k) => [k.kunci, pegawaiKategoriKepuasan(individu, k.kunci)])),
     [individu],
@@ -54,7 +56,7 @@ export default function WaKepuasan({ kelompok, individu, narasi, bukaProfil }) {
           const Ikon = IKON_DIMENSI[d.kunci];
           const v = kelompok.kepuasan.dimensi[d.kunci];
           const kat = infoKepuasan5(v.kategori);
-          const rendah = d.kunci === kelompok.kepuasan.dimensiTerendah;
+          const rendah = dimensiRendah.has(d.kunci);
           return (
             <Kartu key={d.kunci} className={t.dimensiBintang} naik>
               <Ikon size={34} weight="fill" className={t.dimensiIkon} style={rendah ? { color: "var(--fm-jingga)" } : undefined} aria-hidden="true" />
@@ -71,7 +73,7 @@ export default function WaKepuasan({ kelompok, individu, narasi, bukaProfil }) {
       <DuaPlusMinus tur="catatan-kepuasan" plus={narasi?.kepuasan?.hal_baik} minus={narasi?.kepuasan?.hal_ditingkatkan} />
 
       <section data-tur="rincian">
-        <JudulBagian keterangan="Sebaran lima tingkat kepuasan per dimensi. Arahkan kursor ke bar untuk jumlahnya.">Detail Kepuasan Pegawai</JudulBagian>
+        <JudulBagian keterangan={`Tiap baris berisi ${kelompok.nResponden} pegawai yang sama, dilihat dari satu dimensi. Arahkan kursor ke bar untuk jumlahnya.`}>Detail Kepuasan Pegawai</JudulBagian>
         <Bertahap className={t.daftarRincian} jeda={0.07}>
           {DIMENSI_KEPUASAN.map((d) => {
             const Ikon = IKON_DIMENSI[d.kunci];
