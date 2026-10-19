@@ -55,6 +55,27 @@ export function Pengguna() {
     }
   };
 
+  // Peserta Wellbeing Assessment = akun yang sudah memegang wa_individu_id (hasil Tautkan akun
+  // Wellbeing). Mengikuti saringan sekolah, tidak peduli centang, supaya Human Capital, Kepala Unit,
+  // dan pegawai yang hanya ikut Screening Awal tidak ikut ter-reset.
+  const pesertaWa = filtered.filter((u) => u.wa_individu_id);
+  const doExportWa = async () => {
+    if (pesertaWa.length === 0) return;
+    const lingkup = sekolahFilter === 'all' ? 'semua sekolah' : sekolahFilter;
+    if (!window.confirm(
+      `Reset kode khusus untuk ${pesertaWa.length} peserta Wellbeing Assessment (${lingkup}) dan unduh file Excel berisi kode barunya?\n\n` +
+      `Hanya akun yang sudah tertaut ke isian Wellbeing Assessment. Kode lama mereka langsung tidak berlaku, termasuk untuk melihat laporan Screening Awal.`
+    )) return;
+    setBusy(true);
+    try {
+      const sekolahBerkas = sekolahFilter === 'all' ? 'semua' : sekolahFilter.toLowerCase().replace(/[^a-z0-9]+/g, '-');
+      await bulkResetAndExport(pesertaWa, { namaBerkas: `kode-wellbeing-assessment-${sekolahBerkas}.xlsx` });
+      setSelected(new Set());
+    } finally {
+      setBusy(false);
+    }
+  };
+
   const doDelete = async () => {
     const targets = selectedUsers.filter(u => u.id !== session?.user_id);
     if (targets.length === 0) return;
@@ -108,6 +129,11 @@ export function Pengguna() {
                 {busy ? 'Memproses…' : `🗑 Hapus akun (${selected.size})`}
               </button>
             </>
+          )}
+          {pesertaWa.length > 0 && (
+            <button className="btn-secondary" onClick={doExportWa} disabled={busy} title="Reset kode hanya untuk akun yang tertaut ke isian Wellbeing Assessment">
+              {busy ? 'Memproses…' : `⬇ Reset & Export kode Wellbeing (${pesertaWa.length})`}
+            </button>
           )}
           {(data.sekolah || []).some((s) => (s.modules || []).includes('wa')) && (
             <button className="btn-secondary" onClick={() => setWaAkunOpen(true)}>Tautkan akun Wellbeing</button>

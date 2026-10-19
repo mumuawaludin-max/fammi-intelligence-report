@@ -648,7 +648,10 @@ function TanggapanCerita({ respons }) {
       )}
       <Kartu className={styles.pesan}>
         <span className={styles.pesanLabel}><ChatCircleText size={18} weight="fill" aria-hidden="true" /> {respons.ada ? "Tanggapan untuk cerita Anda" : "Untuk Anda"}</span>
-        <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.2, duration: 0.6 }}>{respons.draf}</motion.p>
+        {/* Tanggapan bisa terdiri dari beberapa paragraf pendek, dipisah baris kosong. */}
+        <motion.div className={styles.pesanIsi} initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.2, duration: 0.6 }}>
+          {String(respons.draf || "").split(/\n\s*\n/).map((p) => p.trim()).filter(Boolean).map((p, i) => <p key={i}>{p}</p>)}
+        </motion.div>
       </Kartu>
     </div>
   );

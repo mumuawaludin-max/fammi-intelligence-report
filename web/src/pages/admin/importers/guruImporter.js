@@ -1,5 +1,5 @@
 import * as XLSX from 'xlsx';
-import { supabase, fetchAllRows } from '../../../lib/supabase';
+import { supabase, edgeErrorDetail, fetchAllRows } from '../../../lib/supabase';
 
 function normalize(s) {
   return String(s || '')
@@ -193,7 +193,9 @@ export async function bulkCreateUsers(rows, { sekolahId, onProgress }) {
     const chunk = users.slice(i, i + BULK_CHUNK_SIZE);
     try {
       const { data, error } = await supabase.functions.invoke('create-user', { body: { users: chunk } });
-      if (error) throw new Error(error.message || 'Edge Function create-user gagal dipanggil.');
+      // Isi galat dari badan respons, bukan cuma "non-2xx status code", supaya alasan gagal
+      // terbaca di panel hasil dialog.
+      if (error) throw new Error(await edgeErrorDetail(error, 'Edge Function create-user gagal dipanggil.'));
       results.push(...(data?.results || []));
     } catch (ex) {
       // Satu chunk gagal (jaringan/timeout) tidak boleh menghentikan sisanya: baris chunk ini

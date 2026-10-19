@@ -272,13 +272,13 @@ export function CmsProvider({ session, children }) {
     }
   }, [showToast, refetch]);
 
-  const bulkResetAndExport = useCallback(async (users) => {
+  const bulkResetAndExport = useCallback(async (users, { namaBerkas = 'kode-khusus-fammi.xlsx' } = {}) => {
     try {
       const results = await bulkResetPasswordAction(users);
       const ok = results.filter((r) => r.ok);
       const failed = results.filter((r) => !r.ok);
       const byUsername = Object.fromEntries(ok.map((r) => [r.username, r.password]));
-      downloadXlsx('kode-khusus-fammi.xlsx', users.map((u) => ({
+      downloadXlsx(namaBerkas, users.map((u) => ({
         nama: u.nama, username: u.username, peran: u.peran, sekolah: u.sekolah || '',
         kode_khusus: byUsername[u.username] || 'GAGAL',
       })));

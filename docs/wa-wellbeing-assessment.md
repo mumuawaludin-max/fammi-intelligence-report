@@ -100,17 +100,15 @@ Layar Admin Fammi **Persetujuan Wellbeing** (`screens/PersetujuanWa.jsx`, laci `
 | `klise` | kata klise atau hiperbola (`KATA_KLISE`) |
 | `tawaran` | narasi pribadi yang menawarkan percakapan atau pendampingan dari Fammi (`KATA_TAWARAN`) |
 | `angka` | digit di narasi pribadi |
-| `kalimat_banyak` | kalimat terlalu banyak |
+| `kalimat_banyak` | kalimat terlalu banyak (bukan untuk tanggapan cerita) |
+| `tidak_baku` | memakai "kalau" |
+| `pola_tanggapan` | tanggapan cerita memakai "wajar", "valid", "bekal berharga", atau "bukan ..., melainkan ..." |
+| `jalur_dijanjikan` | tanggapan cerita menjanjikan pegawai dihubungkan ke psikolog |
+| `terlalu_panjang` | tanggapan cerita lebih dari 180 kata |
 
 **Isi narasi pribadi** per pegawai: ringkasan (PROTEK dan kepuasan), hal kuat dan tantangan, refleksi, dua sampai tiga langkah kecil, dan `aspek` (penjelasan `arti` dan `langkah` untuk keenam aspek PROTEK, kuat maupun lemah).
 
-**Tanggapan cerita** memilih satu dari tiga cara, sesuai isi ceritanya:
-
-- *Minta nasihat:* satu sudut pandang lain dan satu langkah konkret.
-- *Sekadar bercerita:* didengarkan dan disemangati, tanpa daftar saran.
-- *Perlu ahli:* disarankan menyampaikan ke Human Capital agar dihubungkan dengan psikolog.
-
-Tanggapan tidak pernah menawarkan apa pun atas nama Fammi dan tidak memakai kata "kami" atau "tim pendamping". Untuk orang yang tidak bercerita, cukup satu sampai dua kalimat.
+**Tanggapan cerita** mengikuti panduan INNER di `docs/Panduan_Tanggapan_Cerita_Wellbeing.md` (keputusan pemilik produk 2026-10-19, menggantikan tiga mode lama). Intinya: 90-150 kata dalam satu sampai tiga paragraf; mulai dari keprihatinan atau jawaban langsung; pertanyaan tentang gejala dijawab dulu tanpa diagnosis; paling banyak satu pertanyaan refleksi; agama hanya bila pegawai memberi isyarat; orang yang dipercaya hanya dari isian pegawai sendiri, lewat perannya; konsultasi psikolog ditulis sebagai pertanyaan ke Human Capital dengan psikolog luar sekolah sebagai pilihan. Tanggapan tidak pernah menawarkan apa pun atas nama Fammi. Untuk orang yang tidak bercerita, teks 25-45 kata di kotak "Untuk Anda". Laporan pegawai memecah tanggapan menjadi paragraf pada baris kosong.
 
 ## Laporan Human Capital
 
@@ -224,6 +222,7 @@ Sudah diputuskan (semua 2026-10-19):
 15. Sambutan pegawai tiga langkah tanpa halaman "siapa yang bisa melihat apa"; kerahasiaan cerita dijelaskan di bagian Cerita dan tanggapan ("Cerita ini hanya Anda yang tahu").
 16. Label tindak lanjut kelompok: "Langkah yang dapat dipertimbangkan untuk dilakukan" dan "Usulan indikator keberhasilan yang dapat diukur".
 17. Teks buatan Fammi memakai "jika", bukan "kalau"; tulisan asli pegawai tidak diubah. Untuk 180 narasi Athirah yang sudah ada, penggantian kata ini dipasang TANPA mengulang persetujuan (`athirah.kalau-jika.B-pertahankan-persetujuan`), karena hanya satu kata yang berubah dan maknanya sama. Ini pengecualian sekali pakai dari aturan persetujuan narasi, bukan pola untuk perubahan isi.
+18. Tanggapan cerita mengikuti panduan INNER (`docs/Panduan_Tanggapan_Cerita_Wellbeing.md`). Seluruh 195 tanggapan Athirah ditulis ulang 2026-10-19 (`athirah.tanggapan-inner-2026-10-19`) dan kembali menunggu persetujuan; yang wajib ditinjau psikolog tetap ditinjau satu per satu.
 
 Masih terbuka:
 

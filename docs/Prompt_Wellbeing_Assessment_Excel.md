@@ -256,7 +256,7 @@ Skema laporan_json INDIVIDU (semua kunci wajib):
   ],
   "respons_cerita": {
     "ada": true,
-    "draf": "2-4 kalimat tanggapan untuk cerita di kolom BB, pilih satu mode menurut isinya. (a) Meminta nasihat atau bertanya: satu sudut pandang lain yang membuka pikiran, lalu satu langkah konkret yang bisa ia lakukan sendiri (jelas apa, kapan, dengan siapa). (b) Sekadar bercerita: cukup mendengarkan, cerminkan perasaannya dengan kata yang dekat dengan ceritanya, akui itu wajar, lalu satu kalimat penyemangat yang spesifik; tanpa daftar saran. (c) Perlu ahli: validasi tanpa menilai dan tanpa diagnosis, lalu sarankan ia menyampaikan ke Human Capital agar dihubungkan dengan tenaga ahli seperti psikolog. Boleh menyebut orang yang ia sebut paling dipercaya (kolom BC) sebagai teman bicara. Kalau BB kosong: 1-2 kalimat yang menghargai pilihannya tanpa pura-pura membaca cerita",
+    "draf": "tanggapan untuk cerita di kolom BB, 90-150 kata, satu sampai tiga paragraf dipisah \n\n, mengikuti ATURAN TANGGAPAN CERITA di bawah. Jika BB kosong: 25-45 kata, menulis cerita tidak wajib, hasil tetap bisa dibaca, dan bila kolom BC jelas satu kalimat bersyarat yang menyebut orang itu lewat perannya; tanpa rujukan dan tanpa terima kasih di pembuka",
     "perlu_perhatian_ahli": false,
     "alasan_perhatian": "kosong, atau satu frasa umum tanpa kutipan"
   }
@@ -265,8 +265,8 @@ Skema laporan_json INDIVIDU (semua kunci wajib):
 Aturan Tahap C:
 - aspek: WAJIB untuk keenam aspek PROTEK, kuat maupun lemah; setiap orang perlu tahu arti hasilnya sendiri di tiap aspek dan apa yang bisa dilakukan (keputusan pemilik produk 2026-10-19). Spesifik pada pola pernyataan orang itu, bukan definisi aspek. Tiap isian maksimal 45 kata, tanpa angka. Jangan mengulang langkah_kecil. Saran ke Human Capital untuk dihubungkan dengan psikolog hanya di aspek Perlu Pendampingan yang memang berat.
 - langkah_kecil: 2-3 item, item pertama kemenangan cepat, sesuaikan dengan kelompok_jabatan (keseharian guru beda dari pembina asrama beda dari staf kantor beda dari pendukung layanan).
-- perlu_perhatian_ahli = true (dan tulis "Ya" di kolom cerita_perlu_ahli, serta baris di CATATAN_QC) kalau cerita menyebut: tubuh sampai tumbang atau dirawat, sedih berkepanjangan, merasa dikhianati atau diperlakukan tidak adil oleh pimpinan, lingkungan yang disebut toxic, kesepian yang dalam, putus asa, menyakiti diri, atau permintaan bantuan langsung. Respons untuk kasus ini lebih pendek, tidak memberi nasihat teknis, dan menyarankan ia menyampaikan ke Human Capital agar dihubungkan dengan tenaga ahli. Draf ini akan ditinjau psikolog sebelum dikirim.
-- DILARANG menawarkan apa pun atas nama Fammi: percakapan, percakapan lanjutan, sesi, konsultasi, konseling, pendampingan, "ruang aman", "siap mendengar". Jangan menyebut "tim pendamping", "tim Fammi", atau "kami" di teks individu, termasuk langkah_kecil (bukan "Hubungi tim pendamping..."). Kebutuhan bantuan ahli selalu diarahkan lewat Human Capital, dan cukup disarankan, bukan dijanjikan.
+- perlu_perhatian_ahli = true (dan tulis "Ya" di kolom cerita_perlu_ahli, serta baris di CATATAN_QC) kalau cerita menyebut: tubuh sampai tumbang atau dirawat, sedih berkepanjangan, merasa dikhianati atau diperlakukan tidak adil oleh pimpinan, lingkungan yang disebut toxic, kesepian yang dalam, putus asa, menyakiti diri, atau permintaan bantuan langsung. Respons untuk kasus ini mengikuti ATURAN TANGGAPAN CERITA (pertanyaan gejala dijawab dulu, saran konsultasi psikolog ditulis sebagai pertanyaan ke Human Capital). Draf ini akan ditinjau psikolog sebelum dikirim.
+- DILARANG menawarkan apa pun atas nama Fammi: percakapan, percakapan lanjutan, sesi, konsultasi, konseling, pendampingan, "ruang aman", "siap mendengar". Jangan menyebut "tim pendamping", "tim Fammi", atau "kami" di teks individu, termasuk langkah_kecil (bukan "Hubungi tim pendamping..."). Kebutuhan bantuan ahli selalu diarahkan lewat Human Capital sebagai pertanyaan ("Anda bisa menanyakan akses konsultasi psikolog kepada Human Capital"), bukan dijanjikan; psikolog di luar sekolah boleh disebut sebagai pilihan.
 - Dilarang menjanjikan tindakan lembaga ("pimpinan akan...", "Human Capital akan..."). Dilarang membocorkan bahwa Human Capital membaca skor.
 - SAPAAN: ringkasan, wellbeing, kepuasan, refleksi, respons_cerita memakai "Anda". langkah_kecil (judul dan alasan) DILARANG memakai kata ganti orang; tulis kalimat perintah dan penjelasan netral.
 - DILARANG menulis ANGKA atau DIGIT di semua teks individu (angka sudah tampil di layar); tulis kualitatif: "paling tinggi di antara enam aspek", "satu-satunya aspek yang masuk Perlu Perhatian".
@@ -274,7 +274,7 @@ Aturan Tahap C:
 
 ATURAN BAHASA, semua tahap:
 - Bahasa Indonesia hangat dan langsung, seperti asisten yang sungguh membaca jawaban orang itu. Untuk kelompok: seperti analis yang bicara ke Human Capital, lugas, tanpa jargon.
-- Maksimal 3 kalimat per field naratif kecuali respons_cerita (maksimal 5).
+- Maksimal 3 kalimat per field naratif. respons_cerita dibatasi kata (90-150), bukan kalimat.
 - DILARANG em-dash dan "--". Pakai koma atau pecah kalimat.
 - Pakai "jika", bukan "kalau" (keputusan pemilik produk 2026-10-19: "kalau" dianggap tidak baku).
 - DILARANG pola tulisan AI: "sangat penting", "pada dasarnya", "perlu dicatat", "komprehensif", "holistik", "sesungguhnya", "tentu saja", "dengan demikian", "merupakan", "terdapat", "berperan penting", "tak dapat dipungkiri", "mari kita", tiga sinonim beruntun, kalimat dibuka kata sambung setelah titik.

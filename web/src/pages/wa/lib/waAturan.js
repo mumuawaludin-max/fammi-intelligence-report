@@ -280,6 +280,14 @@ const JALUR_BOLEH_ANGKA = /(^|\.)(terkait|jangka|bukti|jumlah)$/;
 // pemilik produk 2026-10-19). Kebutuhan bantuan ahli diarahkan lewat Human Capital. Hanya
 // diperiksa di narasi pribadi; narasi kelompok untuk Human Capital boleh mengusulkan sesi.
 export const KATA_TAWARAN = /(tim pendamping\b|pendamping fammi|tim fammi|\bkami\b|menawarkan|percakapan lanjutan|ruang aman|siap mendengar|konsultasi (dengan|ke) (tim|fammi)|psikolog yang disediakan)/i;
+// Pola tanggapan cerita yang dilarang panduan INNER (keputusan pemilik produk 2026-10-19):
+// penenangan dan pujian umum, serta konstruksi "bukan X, melainkan Y".
+export const POLA_TANGGAPAN = /(\bwajar\b|\bvalid\b|bekal (yang )?berharga|\banda kuat\b|memahami sepenuhnya|\bbukan\b[^.]{1,80}\bmelainkan\b)/i;
+// Jalur psikolog lewat Human Capital belum terverifikasi, jadi tanggapan menulisnya sebagai
+// pertanyaan ("Anda bisa menanyakan akses konsultasi psikolog kepada Human Capital"), tidak
+// menjanjikan bahwa pegawai akan dihubungkan.
+const JALUR_DIJANJIKAN = /dihubungkan (dengan|ke) (seorang |tenaga )?(psikolog|ahli)/i;
+const KATA_PER_TANGGAPAN = 180;
 
 /**
  * Lencana peringatan untuk peninjau, bukan penegak. Aturan mengikuti prompt pengolahan
@@ -290,15 +298,27 @@ export const KATA_TAWARAN = /(tim pendamping\b|pendamping fammi|tim fammi|\bkami
 export function qcNarasiWa(row) {
   const isu = [];
   const pribadi = row.cakupan === "individu" || row.cakupan === "respons_cerita";
-  const batas = row.cakupan === "respons_cerita" ? 5 : row.cakupan === "individu" ? 3 : 4;
+  const tanggapan = row.cakupan === "respons_cerita";
+  const batas = row.cakupan === "individu" ? 3 : 4;
+  // Kata yang ditanyakan pegawai sendiri (mis. "stres atau depresi") boleh muncul di tanggapan
+  // untuk menjawab pertanyaannya; yang ditandai hanya istilah diagnosis yang tidak ada di cerita.
+  const cerita = tanggapan ? String(row.isi?.cerita || "").toLowerCase() : "";
   for (const { jalur, nilai } of isianTeks(row.isi)) {
     if (KATA_TERLARANG.test(nilai)) isu.push({ isu: "kata_terlarang", jalur });
     if (/—|--/.test(nilai)) isu.push({ isu: "tanda_hubung", jalur });
-    if (KATA_DIAGNOSIS.test(nilai)) isu.push({ isu: "diagnosis", jalur });
+    const diagnosis = nilai.match(new RegExp(KATA_DIAGNOSIS.source, "gi")) || [];
+    if (diagnosis.some((k) => !cerita.includes(k.toLowerCase()))) isu.push({ isu: "diagnosis", jalur });
     if (KATA_KLISE.test(nilai)) isu.push({ isu: "klise", jalur });
     if (pribadi && KATA_TAWARAN.test(nilai)) isu.push({ isu: "tawaran", jalur });
     if (/\bkalau\b/i.test(nilai)) isu.push({ isu: "tidak_baku", jalur });
     if (pribadi && /\d/.test(nilai) && !JALUR_BOLEH_ANGKA.test(jalur)) isu.push({ isu: "angka", jalur });
+    if (tanggapan) {
+      // Tanggapan cerita mengikuti panduan INNER: 90-150 kata, jadi yang dibatasi jumlah kata.
+      if (POLA_TANGGAPAN.test(nilai)) isu.push({ isu: "pola_tanggapan", jalur });
+      if (JALUR_DIJANJIKAN.test(nilai)) isu.push({ isu: "jalur_dijanjikan", jalur });
+      if (nilai.split(/\s+/).filter(Boolean).length > KATA_PER_TANGGAPAN) isu.push({ isu: "terlalu_panjang", jalur });
+      continue;
+    }
     const kalimat = nilai.split(/[.!?]+(?:\s|$)/).filter((s) => s.trim().length > 2).length;
     if (kalimat > batas && !/(^|\.)(mengapa|bukti)$/.test(jalur)) isu.push({ isu: "kalimat_banyak", jalur });
   }
@@ -314,4 +334,7 @@ export const LABEL_ISU_QC = {
   tidak_baku: "Memakai \"kalau\"; ganti dengan \"jika\"",
   angka: "Memuat angka di narasi pribadi",
   kalimat_banyak: "Terlalu banyak kalimat",
+  pola_tanggapan: "Memuat penenangan umum (\"wajar\", \"valid\") atau \"bukan ..., melainkan ...\"",
+  jalur_dijanjikan: "Menjanjikan pegawai dihubungkan ke psikolog; tulis sebagai pertanyaan ke Human Capital",
+  terlalu_panjang: "Tanggapan lebih dari 180 kata",
 };

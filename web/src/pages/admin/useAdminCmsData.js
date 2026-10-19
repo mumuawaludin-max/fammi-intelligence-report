@@ -733,12 +733,26 @@ export async function resetPasswordAction({ userId, username }) {
   return data;
 }
 
+// Dikirim per kelompok kecil supaya ratusan akun (mis. seluruh peserta Wellbeing Assessment) tidak
+// melewati batas waktu satu panggilan Edge Function. Kelompok yang gagal dicatat gagal per akun,
+// kelompok berikutnya tetap jalan.
+const RESET_CHUNK_SIZE = 25;
+
 export async function bulkResetPasswordAction(users) {
-  const { data, error } = await supabase.functions.invoke('create-user', {
-    body: { reset_users: users.map((u) => ({ user_id: u.id, username: u.username })) },
-  });
-  if (error) throw new Error(await edgeErrorDetail(error, 'Edge Function create-user (bulk reset) gagal dipanggil.'));
-  return data.results;
+  const results = [];
+  for (let i = 0; i < users.length; i += RESET_CHUNK_SIZE) {
+    const chunk = users.slice(i, i + RESET_CHUNK_SIZE);
+    const { data, error } = await supabase.functions.invoke('create-user', {
+      body: { reset_users: chunk.map((u) => ({ user_id: u.id, username: u.username })) },
+    });
+    if (error) {
+      const pesan = await edgeErrorDetail(error, 'Edge Function create-user (bulk reset) gagal dipanggil.');
+      results.push(...chunk.map((u) => ({ ok: false, username: u.username, error: pesan })));
+    } else {
+      results.push(...(data?.results || []));
+    }
+  }
+  return results;
 }
 
 export async function deleteUserAction(userId) {

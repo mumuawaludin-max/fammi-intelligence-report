@@ -207,12 +207,12 @@ function laporanIndividu(o) {
       ? {
         ada: true,
         draf: o.perluAhli
-          ? "Terima kasih sudah bercerita dengan jujur. Rasa berat yang Anda tulis wajar dirasakan, dan tidak perlu ditanggung sendiri. Jika terasa makin berat, sampaikan ke Human Capital bahwa Anda ingin dihubungkan dengan psikolog."
-          : "Terima kasih sudah berbagi cerita. Lelah setelah pekan yang padat itu wajar, dan Anda sudah menemukan cara untuk tetap bertahan. Coba sisihkan satu waktu kecil setiap hari yang benar-benar untuk diri sendiri.",
+          ? "Tidur yang sering terputus selama beberapa pekan, ditambah pekerjaan yang terasa makin berat, bisa saling memperberat. Anda juga menulis bingung harus bercerita ke siapa. Itu beban tersendiri, karena semuanya jadi dipikul sendiri.\n\nKeluhan tidur yang berlangsung berpekan-pekan sebaiknya diperiksakan. Psikolog atau dokter bisa membantu mencari penyebabnya. Anda bisa menanyakan akses konsultasi psikolog kepada Human Capital, termasuk siapa saja yang dapat melihat informasi konsultasinya. Jika lebih nyaman, psikolog di luar sekolah juga bisa menjadi pilihan.\n\nSiapa satu orang di sekitar Anda yang selama ini mendengar tanpa menghakimi?"
+          : "Persiapan ujian membuat pekan ini padat, dan Anda pulang dalam keadaan lelah setiap hari. Anda juga menulis bahwa akhir pekan bersama keluarga masih bisa dinikmati dengan santai. Waktu itu tampaknya menjadi tempat Anda mengisi tenaga kembali.\n\nMasa ujian biasanya punya ujung yang jelas. Yang perlu dijaga adalah agar lelahnya tidak terus terbawa setelah masa itu lewat. Jika dirasa membantu, tandai satu kegiatan akhir pekan yang paling memulihkan, lalu jaga agar tidak tergeser pekerjaan.\n\nBagian mana dari akhir pekan itu yang paling membuat Anda merasa pulih?",
         perlu_perhatian_ahli: o.perluAhli,
         alasan_perhatian: o.perluAhli ? "contoh: cerita berat, perlu rujukan ahli" : "",
       }
-      : { ada: false, draf: "Anda memilih tidak menuliskan cerita, dan itu boleh. Jika suatu saat ada yang mengganjal, orang yang paling Anda percaya bisa jadi tempat bercerita.", perlu_perhatian_ahli: false, alasan_perhatian: "" },
+      : { ada: false, draf: "Anda tidak menuliskan cerita kali ini, dan menulis cerita memang tidak wajib. Hasil di atas tetap bisa Anda baca kapan saja. Ketuk tiap aspek PROTEK untuk melihat penjelasannya.", perlu_perhatian_ahli: false, alasan_perhatian: "" },
   };
 }
 

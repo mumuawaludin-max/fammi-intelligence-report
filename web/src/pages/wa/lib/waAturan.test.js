@@ -123,6 +123,26 @@ test("data contoh tidak menawarkan percakapan atau pendampingan dari Fammi", () 
   }
 });
 
+test("tanggapan cerita mengikuti panduan INNER", () => {
+  const isu = (draf, cerita = "") => qcNarasiWa({ cakupan: "respons_cerita", isi: { ada: true, cerita, draf } }).map((x) => x.isu);
+  assert.ok(isu("Perasaan itu wajar muncul.").includes("pola_tanggapan"));
+  assert.ok(isu("Ini bukan kelemahan, melainkan tanda lelah.").includes("pola_tanggapan"));
+  assert.ok(isu("Sampaikan ke Human Capital agar Anda dihubungkan dengan psikolog.").includes("jalur_dijanjikan"));
+  assert.deepEqual(isu("Anda bisa menanyakan akses konsultasi psikolog kepada Human Capital."), []);
+  assert.ok(isu(Array(181).fill("kata").join(" ")).includes("terlalu_panjang"));
+  // Tanggapan 90-150 kata tidak lagi dibatasi lima kalimat.
+  assert.deepEqual(isu("Satu. Dua. Tiga. Empat. Lima. Enam. Tujuh."), []);
+  // Istilah yang ditanyakan pegawai sendiri boleh dipakai untuk menjawab, istilah lain tetap ditandai.
+  assert.deepEqual(isu("Laporan ini tidak bisa memastikan apakah itu stres atau depresi.", "apakah ini depresi?"), []);
+  assert.ok(isu("Ini tanda depresi.", "saya lelah").includes("diagnosis"));
+});
+
+test("tanggapan cerita di data contoh lolos kendali mutu", () => {
+  for (const n of contoh.narasi.filter((x) => x.cakupan === "respons_cerita")) {
+    assert.deepEqual(qcNarasiWa({ cakupan: n.cakupan, isi: n.isi }), [], n.kunci);
+  }
+});
+
 test("narasi individu contoh punya penjelasan untuk keenam aspek PROTEK", () => {
   for (const n of contoh.narasi.filter((x) => x.cakupan === "individu")) {
     for (const a of ["p", "r", "o", "t", "e", "k"]) {

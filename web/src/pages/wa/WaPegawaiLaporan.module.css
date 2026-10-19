@@ -325,6 +325,8 @@
   color: var(--fm-ungu);
 }
 
+.pesanIsi { display: flex; flex-direction: column; gap: 10px; }
+
 .pesan p {
   margin: 0;
   font-size: 14.5px;
