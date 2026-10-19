@@ -19,8 +19,12 @@ import styles from "./WaBagian.module.css";
 
 // ── Kartu skor hero ─────────────────────────────────────────────────────────────────────────
 
-/** Kartu skor PROTEK: donat, persen besar, chip kategori, ilustrasi, dan panel narasi ungu. */
-export function KartuSkorWellbeing({ judul, pct, kategori, narasi, ringkas = false, kosong, tur = "skor-wellbeing" }) {
+/**
+ * Kartu skor PROTEK: donat, persen besar, chip kategori, ilustrasi, dan panel narasi ungu.
+ * `catatan` (laporan kelompok) menjelaskan sebaran kategori di bawah angka rata-rata, supaya
+ * rata-rata skor tidak terbaca bertentangan dengan "N% pegawai berkategori Baik" di narasi.
+ */
+export function KartuSkorWellbeing({ judul, pct, kategori, narasi, ringkas = false, kosong, catatan, tur = "skor-wellbeing" }) {
   const kat = infoKategoriProtek(kategori);
   return (
     <Kartu className={`${styles.hero} ${ringkas ? styles.heroRingkas : ""}`} naik data-tur={tur}>
@@ -34,6 +38,7 @@ export function KartuSkorWellbeing({ judul, pct, kategori, narasi, ringkas = fal
               {kat && <div><Chip warna="var(--fm-ungu-tua)" besar petunjuk={kat.arti}>{kat.label}</Chip></div>}
             </div>
           </div>
+          {catatan && <p className={styles.heroCatatan}>{catatan}</p>}
         </div>
         <div className={styles.heroGambar}><IlustrasiHati ukuran={ringkas ? 92 : 150} /></div>
       </div>
@@ -43,7 +48,7 @@ export function KartuSkorWellbeing({ judul, pct, kategori, narasi, ringkas = fal
 }
 
 /** Kartu skor kepuasan: angka per lima, bintang, chip, ilustrasi, dan panel narasi kuning. */
-export function KartuSkorKepuasan({ judul, rata, kategori5, bintang, narasi, ringkas = false, kosong, tur = "skor-kepuasan" }) {
+export function KartuSkorKepuasan({ judul, rata, kategori5, bintang, narasi, ringkas = false, kosong, catatan, tur = "skor-kepuasan" }) {
   const kat = infoKepuasan5(kategori5);
   return (
     <Kartu className={`${styles.hero} ${ringkas ? styles.heroRingkas : ""}`} naik data-tur={tur}>
@@ -58,6 +63,7 @@ export function KartuSkorKepuasan({ judul, rata, kategori5, bintang, narasi, rin
             <Bintang nilai={bintang ?? rata} ukuran={ringkas ? 26 : 32} />
             {kat && <Chip warna="var(--wa-kuning)" teks="#222222" besar petunjuk="Kategori dari rata-rata kepuasan dua belas pernyataan, skala 1 sampai 5.">{kat.label}</Chip>}
           </div>
+          {catatan && <p className={styles.heroCatatan}>{catatan}</p>}
         </div>
         <div className={styles.heroGambar}><IlustrasiPapan ukuran={ringkas ? 92 : 150} /></div>
       </div>

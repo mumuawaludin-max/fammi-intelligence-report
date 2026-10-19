@@ -216,12 +216,9 @@ Sudah diputuskan (semua 2026-10-19):
 9. Tanggal "Diperbarui" dipicu unggah data dan rilis narasi.
 10. Umpan balik pegawai dengan skala 1 sampai 10, pilihan ganda, paling banyak dua esai, dan opsi "Lainnya" di pertanyaan rencana.
 11. Kalimat "Human Capital hanya melihat rekap" dihapus dari formulir. Aturannya tetap berlaku.
-
-Diputuskan pengembang, mohon dikonfirmasi:
-
-1. Human Capital tidak melihat umpan balik per orang.
-2. Rekap umpan balik terbuka setelah tiga isian.
-3. Tab Dampak selalu seluruh lembaga.
+12. Human Capital tidak melihat umpan balik per orang, hanya rekap tanpa identitas.
+13. Rekap umpan balik terbuka setelah minimal tiga isian.
+14. Tab Dampak Asesmen selalu untuk seluruh lembaga, tidak ikut pemilih cakupan.
 
 Masih terbuka:
 

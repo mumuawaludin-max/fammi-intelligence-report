@@ -4,7 +4,19 @@
 
 import { useMemo, useState } from "react";
 import { ASPEK, DIMENSI_KEPUASAN, JUDUL_TAB_WELLBEING } from "./lib/waMeta";
-import { itemKategori, lengkapiItem, urutItem } from "./lib/waAturan";
+import { formatAngka, formatPersen, itemKategori, lengkapiItem, urutItem } from "./lib/waAturan";
+import { ambangDariTeks } from "./lib/waPembaca";
+
+// Batas kategori dibaca dari sheet PARAMETER berkas olahan (bisa berbeda antar-dataset), bukan
+// ditulis mati. Kosong kalau berkas tidak memuatnya; keterangan batas lalu tidak ditampilkan.
+function batasBaik(parameter) {
+  const a = ambangDariTeks(parameter?.kategori_total).find((x) => x.kunci === "baik");
+  return a ? ` (skor ${a.min} ke atas dari ${a.max})` : "";
+}
+function batasPuas(parameter) {
+  const m = String(parameter?.kategori_kepuasan_3 || "").match(/(\d+[.,]\d+)\s*Puas/);
+  return m ? ` (rata-rata ${formatAngka(Number(m[1].replace(",", ".")), 2)} ke atas, termasuk Sangat Puas)` : "";
+}
 import {
   DialogSemuaItem, DuaPlusMinus, KartuDimensi, KartuHuruf, KartuSkorKepuasan, KartuSkorWellbeing, KartuTopItem,
 } from "./WaBagian";
@@ -19,15 +31,25 @@ export default function WaRingkasan({ dataset, kelompok, narasi, keTab }) {
   const lemah = perlu.length ? perlu : itemKategori(items, "cukup");
   const tinggi = kuat.length ? kuat : itemKategori(items, "cukup");
   const { nItem } = kelompok.protek;
+  // Rata-rata skor dan sebaran kategori adalah dua ukuran berbeda (77% rata-rata bisa berarti 95%
+  // pegawai berkategori Baik). Keduanya disebut di kartu supaya tidak terbaca bertentangan dengan narasi.
+  const n = kelompok.nResponden;
+  const catatanWellbeing = (
+    <>Rata-rata dari {n} pegawai. <b>{kelompok.protek.n?.baik ?? 0} pegawai ({formatPersen(kelompok.protek.pctKategori?.baik)})</b> berkategori Baik{batasBaik(dataset.parameter)}.</>
+  );
+  const catatanKepuasan = (
+    <>Rata-rata dari {n} pegawai. <b>{kelompok.kepuasan.n?.puas ?? 0} pegawai ({formatPersen(kelompok.kepuasan.pctKategori?.puas)})</b> puas{batasPuas(dataset.parameter)}.</>
+  );
 
   return (
     <Bertahap className={t.halaman}>
       <div className={t.duaHero}>
         <KartuSkorWellbeing
-          judul={`Skor ${JUDUL_TAB_WELLBEING} Pegawai`}
+          judul={`Rata-rata Skor ${JUDUL_TAB_WELLBEING} Pegawai`}
           pct={kelompok.protek.pct}
           kategori={kelompok.protek.kategoriRata}
           narasi={narasi?.ringkasan?.wellbeing}
+          catatan={catatanWellbeing}
         />
         <KartuSkorKepuasan
           judul="Skor Rata-rata Kepuasan Kerja"
@@ -35,11 +57,12 @@ export default function WaRingkasan({ dataset, kelompok, narasi, keTab }) {
           kategori5={kelompok.kepuasan.kategori5}
           bintang={kelompok.kepuasan.bintang}
           narasi={narasi?.ringkasan?.kepuasan}
+          catatan={catatanKepuasan}
         />
       </div>
 
       <section>
-        <JudulBagian keterangan="Enam aspek PROTEK. Klik satu huruf untuk melihat sebaran pegawainya.">{JUDUL_TAB_WELLBEING} Pegawai</JudulBagian>
+        <JudulBagian keterangan="Persen adalah rata-rata skor tiap aspek. Bar jingga menandai aspek dengan rata-rata terendah. Klik huruf untuk melihat berapa pegawai di tiap kategori.">{JUDUL_TAB_WELLBEING} Pegawai</JudulBagian>
         <Grid kolom={6} data-tur="aspek">
           {ASPEK.map((a, i) => (
             <KartuHuruf
@@ -58,7 +81,7 @@ export default function WaRingkasan({ dataset, kelompok, narasi, keTab }) {
       </section>
 
       <section>
-        <JudulBagian keterangan="Rata-rata kepuasan per dimensi, skala 1 sampai 5. Klik untuk melihat rinciannya.">Kepuasan Kerja</JudulBagian>
+        <JudulBagian keterangan="Rata-rata kepuasan per bidang, skala 1 sampai 5. Lingkaran jingga menandai bidang dengan rata-rata terendah. Klik untuk melihat sebaran pegawainya.">Kepuasan Kerja</JudulBagian>
         <Grid kolom={6} data-tur="dimensi">
           {DIMENSI_KEPUASAN.map((d, i) => (
             <KartuDimensi

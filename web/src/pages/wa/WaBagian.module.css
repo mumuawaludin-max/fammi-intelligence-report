@@ -434,3 +434,13 @@
   .duaKolom { grid-template-columns: 1fr; }
   .hero:not(.heroRingkas) .heroAtas { flex-direction: column-reverse; align-items: flex-start; }
 }
+
+/* Keterangan sebaran kategori di bawah angka rata-rata (laporan kelompok). */
+.heroCatatan {
+  margin: 12px 0 0;
+  font-size: 13.5px;
+  line-height: 1.45;
+  color: var(--fm-teks-lembut);
+}
+
+.heroCatatan b { color: var(--fm-ungu-tua); }

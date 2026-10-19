@@ -181,10 +181,11 @@ const LANGKAH_HC = {
     },
     {
       target: "skor-wellbeing",
-      judul: `Skor ${JUDUL_TAB_WELLBEING.toLowerCase()} pegawai`,
+      judul: `Rata-rata skor ${JUDUL_TAB_WELLBEING.toLowerCase()} pegawai`,
       isi: [
         "Rata-rata skor kesejahteraan diri pegawai di cakupan ini. Tiap pegawai menjawab 42 pernyataan bernilai 1 sampai 6; totalnya diubah menjadi persen.",
         KATEGORI_PROTEK_TEKS,
+        "Baris kecil di bawahnya menghitung orang, bukan skor: berapa pegawai yang kategorinya Baik. Karena itu angkanya bisa jauh lebih tinggi dari rata-rata skor, misalnya rata-rata 77% sementara 95% pegawai berkategori Baik.",
         "Kotak ungu berisi ringkasan yang sudah ditinjau tim Fammi. Kalau kosong, narasinya belum disetujui.",
       ],
     },
