@@ -16,7 +16,7 @@ import {
   classifyPencapaian, periodeLabel, aspekIcon, avgAspek, nilaiGuruSekolah, persen, isKebijakanReady, SECTION_ICON,
   judulSectionSuara, REFLEKSI_META, REFLEKSI_SUMBER_URUTAN, resolveSummaryKey, titikSetahunAjaran,
 } from "./karakterMeta";
-import { KARAKTER_BAR_TONE_CUTOFF } from "../../lib/cutoffs";
+import { KARAKTER_PENGUATAN_CUTOFF } from "../../lib/cutoffs";
 import styles from "./KarakterViews.module.css";
 
 /**
@@ -508,7 +508,7 @@ export default function KepsekView({ session, periodeId, pekan = null }) {
                       .map((p) => ({ label: p.nama, value: pct(p.nilai) }));
                     const siswaLemah = parseTop5Pair(rk?.top5_siswa_terendah, rk?.top5_nilai_siswa_terendah)
                       .map((p) => ({ label: p.nama, value: pct(p.nilai) }))
-                      .filter((p) => p.value != null && p.value < KARAKTER_BAR_TONE_CUTOFF.aman);
+                      .filter((p) => p.value != null && p.value < KARAKTER_PENGUATAN_CUTOFF);
                     // Indikator punya dua sumber, dan sejak 2026-09-01 yang DIUTAMAKAN adalah
                     // rata-rata indikator per kelas yang dihitung database (view
                     // karakter_indikator_kelas_avg), bukan kolom top5_indikator_* dari berkas.
@@ -562,21 +562,21 @@ export default function KepsekView({ session, periodeId, pekan = null }) {
                     const indTerbaik = pakaiKelas ? indKelas.slice(0, 5) : indRingkasanAtas;
                     const indLemahSemua = pakaiKelas ? [...indKelas].reverse() : indRingkasanBawah;
                     const indLemah = indLemahSemua
-                      .filter((it) => it.value != null && it.value < KARAKTER_BAR_TONE_CUTOFF.aman)
+                      .filter((it) => it.value != null && it.value < KARAKTER_PENGUATAN_CUTOFF)
                       .slice(0, 5);
                     return (
                       <div className={styles.detailRows}>
                         {/* Baris 1: skor per aspek, diurutkan dari tertinggi, semua tampil */}
                         <section>
                           <p className={styles.dialogSectionTitle}>📊 Skor per aspek (urut tertinggi)</p>
-                          <ScoreBarList items={aspekItems} />
+                          <ScoreBarList items={aspekItems} palet="individu" />
                         </section>
 
                         {/* Baris 2: dua kolom siswa */}
                         <div className={styles.detail2col}>
                           <section>
                             <p className={styles.dialogSectionTitle}>🏆 Top 5 siswa terbaik</p>
-                            <ScoreBarList items={siswaTerbaik} rankByNumber emptyText="Belum ada data siswa." />
+                            <ScoreBarList items={siswaTerbaik} rankByNumber palet="individu" emptyText="Belum ada data siswa." />
                           </section>
                           <section>
                             <p className={styles.dialogSectionTitle}>🌱 Top 5 siswa perlu penguatan</p>
@@ -584,10 +584,10 @@ export default function KepsekView({ session, periodeId, pekan = null }) {
                                 daftar siswa kelas ini kosong, "semua sudah di atas 80%" adalah
                                 klaim yang lahir dari data kosong, bukan dari temuan. */}
                             {siswaLemah.length > 0 ? (
-                              <ScoreBarList items={siswaLemah} rankByNumber />
+                              <ScoreBarList items={siswaLemah} rankByNumber palet="individu" />
                             ) : siswaTerbaik.length > 0 ? (
                               <GoodEmptyState
-                                title="Semua siswa sudah di atas 80%"
+                                title={`Semua siswa sudah minimal ${KARAKTER_PENGUATAN_CUTOFF}%`}
                                 text="Tidak ada siswa yang perlu penguatan khusus di kelas ini periode ini."
                               />
                             ) : (
@@ -613,7 +613,7 @@ export default function KepsekView({ session, periodeId, pekan = null }) {
                         <div className={styles.detail2col}>
                           <section>
                             <p className={styles.dialogSectionTitle}>⭐ Top 5 indikator terbaik</p>
-                            <ScoreBarList items={indTerbaik} emptyText={indikatorEmptyText} />
+                            <ScoreBarList items={indTerbaik} palet="individu" emptyText={indikatorEmptyText} />
                           </section>
                           <section>
                             <p className={styles.dialogSectionTitle}>🔧 Top 5 indikator perlu penguatan</p>
@@ -622,11 +622,11 @@ export default function KepsekView({ session, periodeId, pekan = null }) {
                                 sebelah "Belum ada data indikator" -- dua pesan yang saling
                                 bertentangan, dan yang hijau itu yang menyesatkan. */}
                             {indLemah.length > 0 ? (
-                              <ScoreBarList items={indLemah} />
+                              <ScoreBarList items={indLemah} palet="individu" />
                             ) : adaIndikator ? (
                               <GoodEmptyState
-                                title="Semua indikator sudah di atas 80%"
-                                text="Tidak ada indikator di bawah 80% di kelas ini periode ini."
+                                title={`Semua indikator sudah minimal ${KARAKTER_PENGUATAN_CUTOFF}%`}
+                                text={`Tidak ada indikator di bawah ${KARAKTER_PENGUATAN_CUTOFF}% di kelas ini periode ini.`}
                               />
                             ) : (
                               <ScoreBarList items={[]} emptyText={indikatorEmptyText} />

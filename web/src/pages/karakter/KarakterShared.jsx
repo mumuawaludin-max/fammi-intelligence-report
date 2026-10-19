@@ -6,7 +6,7 @@ import DetailDialog from "./DetailDialog";
 import { supabase, fetchAllRows } from "../../lib/supabase";
 import styles from "./KarakterShared.module.css";
 import {
-  ringkasanAspekValue, aspekIcon, periodeLabel, pct, nilaiGuruSekolah, classifyBarTone,
+  ringkasanAspekValue, aspekIcon, periodeLabel, pct, nilaiGuruSekolah, classifyBarTone, classifyBarIndividu,
   extractPlainText, isBlankEssay, REFLEKSI_META,
   countMultiValue, matchedOptions, countEmosi,
 } from "./karakterMeta";
@@ -1140,6 +1140,12 @@ const BAR_TONE_COLOR = {
   waspada: "var(--status-alert)",
 };
 
+const BAR_INDIVIDU_COLOR = {
+  hijau: "var(--status-ok)",
+  biru: "var(--status-berkembang)",
+  merah: "var(--status-alert)",
+};
+
 /**
  * Baris bar per aspek (dipakai di dialog detail siswa/kelas/jenjang/sekolah dan split aspek).
  * Warna bar SELALU mengikuti skor lewat palet status 3 tingkat (hijau/kuning/merah), bukan warna
@@ -1204,15 +1210,19 @@ function useReveal(threshold = 0.2) {
  * (1..n) sebagai pengganti ikon, dipakai untuk peringkat siswa. Batang tumbuh 0->nilai saat
  * masuk viewport (dengan sedikit stagger antar baris).
  */
-export function ScoreBarList({ items, rankByNumber = false, emptyText }) {
+export function ScoreBarList({ items, rankByNumber = false, emptyText, palet = "tone" }) {
   const [wrapRef, shown] = useReveal();
   const rows = items.filter((it) => it.value != null).sort((a, b) => b.value - a.value);
   if (rows.length === 0) return <p className={styles.briefingEmptyText}>{emptyText || "Belum ada data."}</p>;
+  // palet "individu": hijau 85 / biru 50 / merah, dipakai panel Detail Kelas supaya warna bar
+  // sejalan dengan ambang daftar perlu penguatan (85). Halaman lain tetap palet "tone" 80/60.
+  const klasifikasi = palet === "individu" ? classifyBarIndividu : classifyBarTone;
+  const warna = palet === "individu" ? BAR_INDIVIDU_COLOR : BAR_TONE_COLOR;
   return (
     <div ref={wrapRef} className={styles.aspekBarList}>
       {rows.map((r, i) => {
-        const tone = classifyBarTone(r.value);
-        const color = tone ? BAR_TONE_COLOR[tone] : "var(--ink-4)";
+        const tone = klasifikasi(r.value);
+        const color = tone ? warna[tone] : "var(--ink-4)";
         return (
           <div className={styles.aspekBarRow} key={r.key ?? `${r.label}-${i}`}>
             <span className={styles.aspekBarIcon}>{rankByNumber ? i + 1 : (r.icon || "•")}</span>

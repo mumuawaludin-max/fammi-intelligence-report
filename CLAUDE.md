@@ -68,6 +68,11 @@ Warna status, dipakai hemat sebagai penanda kecil:
   menyeragamkan keduanya. Ambang "perlu perhatian" untuk daftar siswa dan tindak lanjut juga tetap
   80, jadi anak 65% tetap masuk daftar perlu perhatian walau barnya biru, dan anak 82% tetap
   terhitung "sudah baik" walau barnya biru.
+  Satu pengecualian sejak 2026-10-19 (keputusan pemilik produk): panel Detail Kelas di `KepsekView`
+  menyaring "Top 5 siswa perlu penguatan" dan "Top 5 indikator perlu penguatan" di bawah 85
+  (`KARAKTER_PENGUATAN_CUTOFF`), dan seluruh bar di panel itu memakai palet per anak 85/50
+  (`ScoreBarList palet="individu"`), supaya baris yang masuk daftar penguatan tidak berwarna hijau.
+  Kartu "Perlu Perhatian", status kelas, dan halaman lain tetap 80.
 
 Radius: 12, 16, 22, 28. Bayangan kartu lembut, bayangan hero kebiruan ungu tipis. Jangan menambah warna di luar token ini.
 

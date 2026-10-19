@@ -21,6 +21,12 @@ export const KARAKTER_PENCAPAIAN_BAIK = 80;
 // yang sama, bukan kebetulan, karena maknanya memang "belum di zona aman".
 export const KARAKTER_BAR_TONE_CUTOFF = { aman: 80, perhatian: 60 };
 
+// Ambang "Top 5 siswa perlu penguatan" dan "Top 5 indikator perlu penguatan" di panel Detail
+// Kelas (KepsekView), dinaikkan dari 80 ke 85 oleh pemilik produk 2026-10-19 mengikuti batas hijau
+// laporan per anak. Bar di panel itu ikut memakai palet KARAKTER_BAR_INDIVIDU_CUTOFF supaya baris
+// yang masuk daftar penguatan tidak berwarna hijau.
+export const KARAKTER_PENGUATAN_CUTOFF = 85;
+
 // Cutoff warna bar di LAPORAN PER ANAK modul Karakter (panel "Perkembangan tiap karakter" milik
 // Wali Kelas dan Kepala Sekolah, juga ringkasan satu kelas). Sengaja terpisah dari
 // KARAKTER_BAR_TONE_CUTOFF di atas: 85 hijau / 50 biru / di bawah 50 merah, sedangkan bar di
