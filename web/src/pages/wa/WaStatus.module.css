@@ -13,3 +13,25 @@
   background: #ffffff;
   box-shadow: var(--fm-bayangan);
 }
+
+.keluar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin: 0 auto 24px;
+  padding: 10px 20px;
+  border: none;
+  border-radius: 999px;
+  background: var(--wa-ungu-lembut);
+  color: var(--fm-ungu-tua);
+  font: inherit;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.keluar:focus-visible {
+  outline: 3px solid var(--fm-ungu);
+  outline-offset: 2px;
+}

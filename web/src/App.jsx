@@ -18,7 +18,6 @@ import ScKaryawanPage from "./pages/sc/ScKaryawanPage";
 import PaPage from "./pages/pa/PaPage";
 import LwPage from "./pages/lw/LwPage";
 import SwPage from "./pages/sw/SwPage";
-import SwPegawaiPage from "./pages/sw/SwPegawaiPage";
 import WaPage from "./pages/wa/WaPage";
 import WaPegawaiPage from "./pages/wa/WaPegawaiPage";
 import SiswaPage from "./pages/siswa/SiswaPage";
@@ -95,7 +94,7 @@ function isSingleModuleShellPeran(peran) {
 
 // Kepala unit dan Human Capital hanya punya akses ke modul Screening Awal Wellbeing, walau sekolahnya
 // punya entitlement modul lain (mis. Athirah juga memakai Perilaku Anak). Pegawai punya shell
-// sendiri, lihat early-return SwPegawaiPage.
+// sendiri, lihat early-return WaPegawaiPage.
 function isPeranKhususSw(peran) {
   return peran === "KepalaUnit" || peran === "HumanCapital";
 }
@@ -161,9 +160,6 @@ export default function App() {
   // pemilik produk untuk SC lalu diikutkan ke CW. Satu state untuk dua modul karena id
   // sub-tabnya sama; berpindah modul tidak mereset pilihan, dan itu tidak masalah.
   const [budayaTab, setBudayaTab] = useState("dashboard");
-  // Pegawai yang tertaut ke dua modul wellbeing (Screening Awal dan Wellbeing Assessment) bisa
-  // berpindah di antara keduanya dari shell ponselnya.
-  const [modulPegawai, setModulPegawai] = useState(null);
   const overview = useOverviewBriefing(session);
   const isKepsekShell = isSingleModuleShellPeran(session?.peran);
   const availablePeriods = useAvailablePeriods(session);
@@ -238,16 +234,13 @@ export default function App() {
       : <CwKaryawanPage session={session} onLogout={handleLogout} />;
   }
 
-  // Pegawai modul wellbeing: hanya laporan dirinya sendiri, mobile-first. Akun yang tertaut ke
-  // Wellbeing Assessment (dan sekolahnya punya modul wa) mendarat di laporan wa; kalau akun yang
-  // sama juga punya isian Screening Awal, keduanya bisa saling berpindah.
+  // Pegawai hanya melihat laporan Wellbeing Assessment miliknya, mobile-first. Laporan Screening
+  // Awal untuk pegawai SENGAJA disembunyikan (keputusan pemilik produk 2026-10-20): hasil screening
+  // hanya dibaca Human Capital, Kepala Unit, dan Yayasan. Pegawai tanpa isian wa mendapat keadaan
+  // kosong dengan tombol Keluar. SwPegawaiPage tetap ada untuk pratinjau dan jika keputusan ini
+  // dibalik.
   if (session.peran === "Pegawai") {
-    const adaWa = Boolean(session.wa_individu_id) && (session.modules || []).includes("wa");
-    const adaSw = Boolean(session.sw_individu_id);
-    if (adaWa && modulPegawai !== "sw") {
-      return <WaPegawaiPage session={session} onLogout={handleLogout} onKeScreening={adaSw ? () => setModulPegawai("sw") : undefined} />;
-    }
-    return <SwPegawaiPage session={session} onLogout={handleLogout} onKeAsesmen={adaWa ? () => setModulPegawai("wa") : undefined} />;
+    return <WaPegawaiPage session={session} onLogout={handleLogout} />;
   }
 
   if (session.peran === "AdminFammi") {
