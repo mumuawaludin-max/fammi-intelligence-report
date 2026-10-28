@@ -100,7 +100,7 @@ export function PersetujuanMi() {
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16, gap: 12, flexWrap: 'wrap' }}>
         <div>
           <div className="disp" style={{ fontSize: 18, fontWeight: 700, color: 'var(--ink)' }}>Persetujuan MI</div>
-          <div style={{ fontSize: 12.5, color: 'var(--ink-3)', marginTop: 2 }}>Laporan MI hasil generate Gemini yang menunggu ditinjau. Setelah disetujui, tayang ke siswa dan orang tua.</div>
+          <div style={{ fontSize: 12.5, color: 'var(--ink-3)', marginTop: 2 }}>Laporan MI hasil generate (Gemini atau kolom laporan_json di Excel) yang menunggu ditinjau. Setelah disetujui, tayang ke siswa dan orang tua.</div>
         </div>
         <div style={{ display: 'flex', gap: 8 }}>
           <button className="btn-ghost" style={{ fontSize: 12 }} onClick={load} disabled={bulkBusy}>Refresh</button>
@@ -137,6 +137,16 @@ export function PersetujuanMi() {
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
                   <span className="pill" style={{ background: mc.bg, color: mc.ink }}>MI</span>
                   {r.top_1 && <span className="pill" style={{ background: 'var(--purple-050)', color: 'var(--purple-700)' }}>Dominan: {r.top_1}</span>}
+                  {r.detail?.sumber_narasi === 'excel' && (
+                    <span className="pill" style={{ background: 'var(--status-safe-bg)', color: 'var(--status-safe)' }} title="Narasi laporan ini datang siap pakai dari kolom laporan_json di file Excel, bukan dirumuskan Gemini saat generate. Tetap wajib ditinjau seperti biasa sebelum disetujui.">
+                      📄 Dari Excel
+                    </span>
+                  )}
+                  {r.detail?.qc_narasi?.length > 0 && (
+                    <span className="pill" style={{ background: 'var(--status-warn-bg)', color: 'var(--status-warn)' }} title={r.detail.qc_narasi.join('\n')}>
+                      ⚠ {r.detail.qc_narasi.length} catatan QC
+                    </span>
+                  )}
                   <span className="mono" style={{ marginLeft: 'auto', fontSize: 11, color: 'var(--ink-4)' }}>{String(r.id).slice(0, 8)}</span>
                 </div>
                 <div

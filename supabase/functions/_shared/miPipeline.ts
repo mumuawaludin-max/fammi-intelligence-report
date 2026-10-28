@@ -1479,6 +1479,86 @@ async function generateLaporanBagian4_(inp, scores, levels, top, masterData, gem
 }
 
 
+// ── Narasi siap pakai dari kolom laporan_json ──────────────────────────────────
+//
+// Importer (web/src/pages/admin/importers/miPregen.js) sudah memecah JSON ke nama kolom detail
+// lama dan mengirimnya sebagai inp.pregen = { top, kolom }. Lapis ini memeriksa ulang dengan
+// aturan yang sama (Top dan kelengkapan kolom), lalu mencocokkan nama profesi dengan kamus.
+// KOLOM_PREGEN_ juga daftar putih: kunci lain di pregen.kolom tidak pernah ikut ke detail, jadi
+// berkas tidak bisa menimpa skor, Top, atau teks kamus.
+var KOLOM_PREGEN_ = (function() {
+  var k = ["narasi_cover", "cara_belajar_summary", "mapel_kuasai",
+           "smart_s", "smart_m", "smart_a", "smart_r", "smart_t"];
+  var i, n;
+  for (i = 1; i <= 5; i++) k.push("cara_belajar_" + i + "_title", "cara_belajar_" + i + "_body");
+  for (i = 1; i <= 4; i++) k.push("ciri_khas_" + i, "gaya_kom_positif_" + i, "refleksi_" + i, "diskusi_" + i);
+  for (i = 1; i <= 3; i++) k.push("gaya_kom_hindari_" + i, "gaya_kom_siswa_" + i + "_situasi", "gaya_kom_siswa_" + i + "_script");
+  for (i = 1; i <= 7; i++) k.push("hari_" + i);
+  for (i = 1; i <= 5; i++) k.push("sinyal_" + i + "_icon", "sinyal_" + i + "_title", "sinyal_" + i + "_body");
+  for (n = 1; n <= 3; n++) {
+    k.push("top_" + n + "_jurusan", "top_" + n + "_parenttip", "top_" + n + "_profesi_sorot",
+           "top_" + n + "_profesi_sorot_desc", "top_" + n + "_profesi_sorot_skill_1",
+           "top_" + n + "_profesi_sorot_skill_2", "top_" + n + "_profesi_sorot_skill_3",
+           "top_" + n + "_profesi_sorot_jalur", "top_" + n + "_profesi_sorot_figur",
+           "top_" + n + "_profesi_detail");
+  }
+  return k;
+})();
+
+/** Ubah inp.pregen jadi pengganti lima hasil Gemini. Melempar Error kalau Top berbeda atau ada
+ * kolom kosong (importer seharusnya sudah menolaknya, jadi ini tanda berkas diolah di luar
+ * jalur importer). Nama profesi yang tidak ada di kamus MASTER_MI dibuang dan dicatat di qc,
+ * karena tombol profesi di laporan dicocokkan lewat nama kamus. */
+function pakaiPregen_(pregen, top, masterData) {
+  var topSistem = top.map(function(code) { return MI_CODE_TO_NAME[code]; });
+  var topBerkas = Array.isArray(pregen.top) ? pregen.top : [];
+  var topSama = topSistem.every(function(nm, i) {
+    return String(topBerkas[i] || "").trim().toLowerCase() === nm.toLowerCase();
+  });
+  if (!topSama) {
+    throw new Error("Top di laporan_json (" + topBerkas.join(", ") + ") tidak sama dengan hitungan sistem (" + topSistem.join(", ") + ").");
+  }
+
+  var src = pregen.kolom || {};
+  var kolom = {};
+  var kosong = [];
+  KOLOM_PREGEN_.forEach(function(key) {
+    var v = typeof src[key] === "string" ? stripEmDash_(src[key]).trim() : "";
+    if (!v) kosong.push(key);
+    kolom[key] = v;
+  });
+  if (kosong.length) {
+    throw new Error("laporan_json tidak lengkap, kolom kosong: " + kosong.slice(0, 5).join(", ") + (kosong.length > 5 ? " (+" + (kosong.length - 5) + " lagi)" : "") + ".");
+  }
+
+  var qc = [];
+  top.forEach(function(code, i) {
+    var n = i + 1;
+    var kamus = ((masterData[code] || {}).profesi || []).map(function(p) { return String(p).trim(); });
+    var kamusLower = kamus.map(function(p) { return p.toLowerCase(); });
+    var dipakai = [];
+    var asing = [];
+    kolom["top_" + n + "_profesi_detail"].split("\n").forEach(function(line) {
+      var nama = line.split("|")[0].trim();
+      if (!nama) return;
+      if (kamusLower.indexOf(nama.toLowerCase()) === -1) asing.push(nama);
+      else dipakai.push(line.trim());
+    });
+    var hilang = kamus.filter(function(p) {
+      return !dipakai.some(function(line) { return line.split("|")[0].trim().toLowerCase() === p.toLowerCase(); });
+    });
+    kolom["top_" + n + "_profesi_detail"] = dipakai.join("\n");
+    if (asing.length) qc.push("Top " + n + ": profesi di luar kamus dibuang (" + asing.join("; ") + ")");
+    if (hilang.length) qc.push("Top " + n + ": profesi kamus tanpa penjelasan (" + hilang.join("; ") + ")");
+  });
+
+  // narasi_hero, narasi_kombinasi, narasi_profil_final, dan deskripsi mapel sulit tidak tampil
+  // di laporan siswa, jadi tidak diminta dari berkas (lihat dokumen prompt).
+  var narasi = { hero: "", kombinasi: "", profil: "", mapel1Desc: "", mapel2Desc: "", mapelNarasi: "" };
+  return { narasi: narasi, kolom: kolom, qc: qc };
+}
+
+
 async function buildOutputRow_(inp, geminiKey) {
   // Reset anggaran waktu total (lihat callDeadline_ di atas) untuk invocation ini.
   callDeadline_ = Date.now() + 60000;
@@ -1550,13 +1630,20 @@ async function buildOutputRow_(inp, geminiKey) {
   // input sama, hasil dirakit belakangan, tidak ada yang membaca hasil panggilan lain. Paralel
   // berarti total waktu = panggilan terlambat saja, dan tiap panggilan bisa memakai hampir
   // seluruh anggaran untuk retry + fallback model tanpa berebut sisa waktu.
-  var geminiResults = await Promise.all([
-    generateNarasi_(inp, scores, levels, top, masterData, geminiKey),
-    generateLaporanBagian1_(inp, scores, levels, top, masterData, geminiKey),
-    generateLaporanBagian2_(inp, scores, levels, top, masterData, geminiKey),
-    generateLaporanBagian3_(inp, scores, levels, top, masterData, geminiKey),
-    generateLaporanBagian4_(inp, scores, levels, top, masterData, geminiKey),
-  ]);
+  //
+  // Baris yang membawa narasi siap pakai (inp.pregen, dari kolom laporan_json) melewati kelima
+  // panggilan itu. Objek kolom yang sama dipakai sebagai hasil bagian 1-4 karena perakit di
+  // bawah membaca kunci dengan nama yang persis sama.
+  var hasilPregen = inp.pregen && inp.pregen.kolom ? pakaiPregen_(inp.pregen, top, masterData) : null;
+  var geminiResults = hasilPregen
+    ? [hasilPregen.narasi, hasilPregen.kolom, hasilPregen.kolom, hasilPregen.kolom, hasilPregen.kolom]
+    : await Promise.all([
+        generateNarasi_(inp, scores, levels, top, masterData, geminiKey),
+        generateLaporanBagian1_(inp, scores, levels, top, masterData, geminiKey),
+        generateLaporanBagian2_(inp, scores, levels, top, masterData, geminiKey),
+        generateLaporanBagian3_(inp, scores, levels, top, masterData, geminiKey),
+        generateLaporanBagian4_(inp, scores, levels, top, masterData, geminiKey),
+      ]);
   var narasi   = geminiResults[0];
   var laporan1 = geminiResults[1];
   var laporan2 = geminiResults[2];
@@ -1682,6 +1769,10 @@ async function buildOutputRow_(inp, geminiKey) {
   row["top_1_profesi_detail"] = laporan4["top_1_profesi_detail"] || "";
   row["top_2_profesi_detail"] = laporan4["top_2_profesi_detail"] || "";
   row["top_3_profesi_detail"] = laporan4["top_3_profesi_detail"] || "";
+
+  // Asal narasi, dibaca layar Persetujuan MI untuk badge "Dari Excel" dan catatan QC.
+  row.sumber_narasi = hasilPregen ? "excel" : "gemini";
+  if (hasilPregen && hasilPregen.qc.length) row.qc_narasi = hasilPregen.qc;
 
   return row;
 }

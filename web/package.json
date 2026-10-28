@@ -10,7 +10,7 @@
     "typecheck": "tsc --noEmit",
     "preview": "vite preview",
     "gen:assets": "node scripts/gen-assets.mjs",
-    "test": "node --test src/pages/sw/lib/swAturan.test.js src/pages/sw/lib/swPembaca.test.js src/pages/sw/lib/swEkspor.test.js src/pages/wa/lib/waPembaca.test.js src/pages/wa/lib/waAturan.test.js src/pages/wa/lib/waTur.test.js src/pages/admin/importers/waAkun.test.js scripts/wa/koreksi-sql.test.js",
+    "test": "node --test src/pages/sw/lib/swAturan.test.js src/pages/sw/lib/swPembaca.test.js src/pages/sw/lib/swEkspor.test.js src/pages/wa/lib/waPembaca.test.js src/pages/wa/lib/waAturan.test.js src/pages/wa/lib/waTur.test.js src/pages/admin/importers/waAkun.test.js src/pages/admin/importers/miPregen.test.js scripts/wa/koreksi-sql.test.js",
     "sw:baca": "node scripts/sw/baca-berkas-sw.mjs",
     "sw:contoh": "node scripts/sw/buat-data-contoh.mjs",
     "wa:baca": "node scripts/wa/baca-berkas-wa.mjs",

@@ -117,7 +117,7 @@ function TopIntelCard({ d, n }) {
       )}
       {d[`top_${n}_profesi_detail`] && (
         <details style={{ marginTop: 8 }}>
-          <summary style={{ fontSize: 11, color: 'var(--purple-700)', cursor: 'pointer', fontWeight: 700 }}>Data profesi mentah (dari Gemini)</summary>
+          <summary style={{ fontSize: 11, color: 'var(--purple-700)', cursor: 'pointer', fontWeight: 700 }}>Data profesi mentah</summary>
           <div style={{ fontSize: 11, color: 'var(--ink-3)', whiteSpace: 'pre-wrap', marginTop: 6, lineHeight: 1.5 }}>{d[`top_${n}_profesi_detail`]}</div>
         </details>
       )}
@@ -144,6 +144,7 @@ function NumberedList({ items }) {
 export function MiDetailDrawer({ row, onClose }) {
   const open = !!row;
   const d = row?.detail || {};
+  const dariExcel = d.sumber_narasi === 'excel';
 
   const caraBelajar = [1, 2, 3, 4, 5].map((i) => ({ title: d[`cara_belajar_${i}_title`], body: d[`cara_belajar_${i}_body`] }));
   const hari = [1, 2, 3, 4, 5, 6, 7].map((i) => d[`hari_${i}`]).filter(Boolean);
@@ -161,6 +162,7 @@ export function MiDetailDrawer({ row, onClose }) {
           <div style={{ padding: '20px 26px 16px', borderBottom: '1px solid var(--line)', background: 'var(--surface)', display: 'flex', flexDirection: 'column', gap: 8 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 9 }}>
               <span className="pill" style={{ background: '#E5EBF7', color: '#3B5A9E' }}>MI</span>
+              {dariExcel && <span className="pill" style={{ background: 'var(--status-safe-bg)', color: 'var(--status-safe)' }}>📄 Dari Excel</span>}
               <span className="mono" style={{ marginLeft: 'auto', fontSize: 11.5, color: 'var(--ink-3)' }}>{String(row?.id || '').slice(0, 8)}</span>
               <button className="btn-ghost" style={{ padding: 6 }} onClick={onClose}><IconX size={16} /></button>
             </div>
@@ -169,23 +171,44 @@ export function MiDetailDrawer({ row, onClose }) {
           </div>
 
           <div style={{ flex: 1, overflow: 'auto', padding: '20px 26px' }}>
+            {d.qc_narasi?.length > 0 && (
+              <div style={{ marginBottom: 16, padding: '10px 14px', background: 'var(--status-warn-bg)', borderRadius: 12 }}>
+                <div style={{ fontSize: 12, fontWeight: 800, color: 'var(--status-warn)', marginBottom: 4 }}>Catatan QC</div>
+                {d.qc_narasi.map((q, i) => (
+                  <div key={i} style={{ fontSize: 12, color: 'var(--ink-2)', lineHeight: 1.5 }}>⚠ {q}</div>
+                ))}
+              </div>
+            )}
+
             <Section title="Skor 8 kecerdasan"><SkorGrid d={d} /></Section>
 
             <Section title="Top 3 kecerdasan dominan">
               {MI_TOP_ORDER.map((n) => <TopIntelCard key={n} d={d} n={n} />)}
             </Section>
 
-            <Section title="Narasi hero">
-              <Card><Prose text={d.narasi_hero} /></Card>
-            </Section>
+            {d.narasi_cover && (
+              <Section title="Narasi sampul">
+                <Card><Prose text={d.narasi_cover} /></Card>
+              </Section>
+            )}
 
-            <Section title="Narasi kombinasi">
-              <Card><Prose text={d.narasi_kombinasi} /></Card>
-            </Section>
+            {/* Tiga narasi ini tidak tampil di laporan siswa, jadi tidak diminta dari kolom
+                laporan_json; untuk draf dari Excel bagiannya disembunyikan, bukan tampil kosong. */}
+            {!dariExcel && (
+              <>
+                <Section title="Narasi hero">
+                  <Card><Prose text={d.narasi_hero} /></Card>
+                </Section>
 
-            <Section title="Narasi profil lengkap">
-              <Card><Prose text={d.narasi_profil_final} /></Card>
-            </Section>
+                <Section title="Narasi kombinasi">
+                  <Card><Prose text={d.narasi_kombinasi} /></Card>
+                </Section>
+
+                <Section title="Narasi profil lengkap">
+                  <Card><Prose text={d.narasi_profil_final} /></Card>
+                </Section>
+              </>
+            )}
 
             {(d.cara_belajar_summary || caraBelajar.some((c) => c.title || c.body)) && (
               <Section title="Cara belajar">

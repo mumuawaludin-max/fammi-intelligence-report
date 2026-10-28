@@ -1,6 +1,7 @@
 import * as XLSX from 'xlsx';
 import { supabase, fetchAllRows } from '../../../lib/supabase';
 import { getField, parseBulan, normalizeNama } from './karakterImporter';
+import { bacaLaporanJsonMi, semuaSkorNol } from './miPregen';
 
 // Importer Multiple Intelligence. Beda dari Karakter dalam dua hal:
 // 1. File MI berisi SATU sheet datar, satu baris = satu siswa (bukan enam sheet agregat).
@@ -13,6 +14,15 @@ import { getField, parseBulan, normalizeNama } from './karakterImporter';
 // dan tidak menulis mi_hasil. Hasil parse (baris mentah per siswa) dikirim ke Edge Function
 // generate-mi satu per satu (lihat useAdminCmsData.runMiGenerate), yang menjalankan pipeline
 // (5 panggilan Gemini) lalu menulis mi_hasil berstatus menunggu_persetujuan.
+//
+// Kolom opsional laporan_json (lihat miPregen.js dan docs/Prompt_Laporan_Individu_MI_Excel.md)
+// membawa narasi yang sudah dirumuskan di luar FIR. Baris yang JSON-nya valid ikut membawa
+// field `pregen`, dan generate-mi melewati Gemini untuk baris itu. JSON rusak tidak
+// menggagalkan unggah; baris itu cuma jatuh ke Gemini dan disebut di pregenWarnings.
+//
+// Siswa yang kedelapan skornya 0 (atau ditandai TIDAK_DINILAI) tidak dibuatkan laporan sama
+// sekali: tanpa saringan ini pipeline tetap menulis laporan lengkap dengan Top 1 Musikal hasil
+// urutan kode, seperti 28 laporan SMA Harapan Bangsa periode 2026-06.
 
 const SKOR_COLS = [
   'r_inter', 'r_intra', 'r_kines', 'r_linguistik',
@@ -143,8 +153,12 @@ function nextMuridId(peta, nama) {
  * dan murid_id disusun belakangan, setelah sekolah_id diketahui (langsung dari admin atau lewat
  * resolusi nama). Return { error } atau { common }. */
 function parseMiRowCommon(r, baris, nama) {
-  const kelas = String(getField(r, 'kelas_id', 'kelas') || '').trim();
-  if (!kelas) return { error: `baris ${baris} (kelas_id kosong untuk ${nama})` };
+  // kelas_id boleh kosong (keputusan pemilik produk 2026-10-28, berkas Daarut Tauhiid tidak
+  // punya data kelas). Barisnya tetap dibuatkan laporan dengan kelas_id null: siswa dan orang
+  // tuanya tetap bisa membuka laporan, Kepala Sekolah melihatnya di agregat sekolah, tapi Wali
+  // Kelas tidak (RLS mi_hasil menyaring kelas_id terhadap cakupan) dan siswa ini tidak muncul di
+  // tabel per kelas. Layar Upload menyebut berapa siswa yang terkena.
+  const kelas = String(getField(r, 'kelas_id', 'kelas') || '').trim() || null;
 
   const periode = parseBulan(getField(r, 'periode', 'periode_id', 'bulan'));
   if (!periode) return { error: `baris ${baris} (periode tidak terbaca untuk ${nama})` };
@@ -162,6 +176,14 @@ function parseMiRowCommon(r, baris, nama) {
     mapel_sulit_2: String(getField(r, 'mapel_sulit_2') || '').trim(),
   };
   ESSAY_COLS.forEach((c) => { common[c] = String(getField(r, c) || '').trim(); });
+
+  const laporan = bacaLaporanJsonMi(getField(r, 'laporan_json'), skorObj);
+  if (semuaSkorNol(skorObj)) return { tidakDinilai: true };
+  if (laporan.tidakDinilai) {
+    return { common, pregenWarning: `${nama} (baris ${baris}): ditandai TIDAK_DINILAI padahal skornya terisi, laporannya dirumuskan Gemini` };
+  }
+  if (laporan.error) return { common, pregenWarning: `${nama} (baris ${baris}): ${laporan.error}` };
+  if (laporan.pregen) common.pregen = laporan.pregen;
   return { common };
 }
 
@@ -213,6 +235,8 @@ export async function parseMiWorkbook(file, { schools, sekolahId: forcedSekolahI
   const badRows = [];
   const outRows = [];
   const unresolvedByNama = new Map(); // namaFile asli -> { namaFile, suggestion, rows: [{nama, baris, common}] }
+  const pregenWarnings = [];
+  const tidakDinilai = [];
 
   for (let i = 0; i < rawRows.length; i++) {
     const r = rawRows[i];
@@ -223,6 +247,8 @@ export async function parseMiWorkbook(file, { schools, sekolahId: forcedSekolahI
 
     const parsedCommon = parseMiRowCommon(r, baris, nama);
     if (parsedCommon.error) { badRows.push(parsedCommon.error); continue; }
+    if (parsedCommon.tidakDinilai) { tidakDinilai.push(`${nama} (baris ${baris})`); continue; }
+    if (parsedCommon.pregenWarning) pregenWarnings.push(parsedCommon.pregenWarning);
 
     if (forcedSekolahId) {
       const peta = await muridPeta(forcedSekolahId);
@@ -249,7 +275,7 @@ export async function parseMiWorkbook(file, { schools, sekolahId: forcedSekolahI
   if (badRows.length > 0) {
     return {
       preview, ok: false,
-      error: `Data tidak terbaca di: ${badRows.slice(0, 6).join(', ')}${badRows.length > 6 ? ` (+${badRows.length - 6} baris lain)` : ''}. Tiap baris wajib punya nama_siswa, kelas_id, periode, dan 8 skor kecerdasan (r_inter..r_spasial) berisi angka${forcedSekolahId ? '' : ', dan sekolah_id'}.`,
+      error: `Data tidak terbaca di: ${badRows.slice(0, 6).join(', ')}${badRows.length > 6 ? ` (+${badRows.length - 6} baris lain)` : ''}. Tiap baris wajib punya nama_siswa, periode, dan 8 skor kecerdasan (r_inter..r_spasial) berisi angka${forcedSekolahId ? '' : ', dan sekolah_id'}.`,
     };
   }
 
@@ -259,6 +285,14 @@ export async function parseMiWorkbook(file, { schools, sekolahId: forcedSekolahI
 
   preview.periodeDetected = computePeriodeDetected(outRows);
   preview.sekolahCount = new Set(outRows.map((x) => x.sekolah_id)).size;
+  // Dihitung dari outRows + unresolved, bukan dari outRows saja: baris yang sekolahnya belum
+  // dicocokkan tetap membawa pregen dan ikut digenerate setelah admin memetakannya.
+  preview.pregenCount = outRows.filter((x) => x.pregen).length
+    + unresolved.reduce((n, u) => n + u.rows.filter((x) => x.common.pregen).length, 0);
+  preview.pregenWarnings = pregenWarnings;
+  preview.tidakDinilai = tidakDinilai;
+  preview.tanpaKelas = outRows.filter((x) => !x.kelas_id).length
+    + unresolved.reduce((n, u) => n + u.rows.filter((x) => !x.common.kelas_id).length, 0);
 
   return {
     ok: true, preview, rows: outRows,

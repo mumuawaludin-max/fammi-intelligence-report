@@ -12,7 +12,9 @@
 // tidak pernah di kode React (lihat CLAUDE.md).
 //
 // Body: { row: { murid_id, nama_siswa, kelas_id, sekolah_id, periode_id, r_inter..r_spasial,
-//                mapel_sulit_1?, mapel_sulit_2?, essay_*? } }
+//                mapel_sulit_1?, mapel_sulit_2?, essay_*?, pregen? } }
+//   pregen = { top, kolom }: narasi siap pakai dari kolom laporan_json berkas Excel (lihat
+//   web/src/pages/admin/importers/miPregen.js). Kalau ada, kelima panggilan Gemini dilewati.
 //   sekolah_id/kelas_id/murid_id/periode_id sudah di-resolve importer ke bentuk final
 //   (sekolah_id = id sekolah kanonik, periode_id = "YYYY-MM").
 //
@@ -64,6 +66,13 @@ Deno.serve(async (req) => {
     if (!inp.murid_id || !inp.sekolah_id || !inp.periode_id) {
       return json({ error: "row wajib punya murid_id, sekolah_id, periode_id." }, 400);
     }
+    // Kedelapan skor 0 = siswa belum ikut tes. Tanpa penjaga ini pipeline tetap menulis laporan
+    // lengkap ber-Top 1 Musikal (urutan kode saat semua seri). Importer sudah menyaringnya; ini
+    // lapis kedua untuk pemanggil lain.
+    const SKOR_KEYS = ["r_inter", "r_intra", "r_kines", "r_linguistik", "r_logmat", "r_musikal", "r_naturalis", "r_spasial"];
+    if (SKOR_KEYS.every((k) => !(parseFloat(inp[k]) > 0))) {
+      return json({ error: "Kedelapan skor 0 atau kosong, siswa ini belum ikut tes. Laporan tidak dibuat." }, 400);
+    }
 
     setMiModel(GEMINI_MODEL);
     const out = await buildOutputRow_(inp, GEMINI_API_KEY);
@@ -103,7 +112,7 @@ Deno.serve(async (req) => {
     const { error: insErr } = await db.from("mi_hasil").insert(miRow);
     if (insErr) return json({ error: insErr.message }, 500);
 
-    return json({ ok: true, murid_id: miRow.murid_id, top_1: out.top_1 });
+    return json({ ok: true, murid_id: miRow.murid_id, top_1: out.top_1, sumber_narasi: out.sumber_narasi });
   } catch (e) {
     return json({ error: String(e?.message || e) }, 500);
   }

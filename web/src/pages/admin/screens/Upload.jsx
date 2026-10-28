@@ -541,6 +541,50 @@ export function Upload() {
                 ))}
               </div>
             )}
+
+            {/* Kolom laporan_json (opsional), lihat docs/Prompt_Laporan_Individu_MI_Excel.md.
+                Ditampilkan sebelum generate supaya admin tahu siapa yang tidak perlu Gemini, dan
+                baris mana yang JSON-nya perlu dibetulkan dulu kalau tidak mau jatuh ke Gemini. */}
+            {(parsed.preview.pregenCount > 0 || parsed.preview.pregenWarnings?.length > 0) && (
+              <div style={{ marginTop: 10, padding: '10px 14px', background: parsed.preview.pregenWarnings?.length > 0 ? 'var(--status-warn-bg)' : 'var(--status-safe-bg)', borderRadius: 10 }}>
+                <div style={{ fontSize: 12.5, fontWeight: 700, color: parsed.preview.pregenWarnings?.length > 0 ? 'var(--status-warn)' : 'var(--status-safe)' }}>
+                  📄 {parsed.preview.pregenCount} dari {parsed.rows.length + (parsed.unresolved || []).reduce((n, u) => n + u.count, 0)} siswa punya narasi siap pakai di kolom laporan_json
+                </div>
+                <div style={{ fontSize: 11.5, color: 'var(--ink-2)', marginTop: 4, lineHeight: 1.5 }}>
+                  Yang siap pakai langsung dipakai tanpa memanggil Gemini. Sisanya dirumuskan Gemini seperti biasa. Semuanya tetap masuk antrian persetujuan.
+                </div>
+                {parsed.preview.pregenWarnings?.length > 0 && (
+                  <div style={{ marginTop: 8, display: 'flex', flexDirection: 'column', gap: 3 }}>
+                    <div style={{ fontSize: 11.5, fontWeight: 700, color: 'var(--status-warn)' }}>laporan_json ditolak, akan dirumuskan Gemini:</div>
+                    {parsed.preview.pregenWarnings.map((w, i) => (
+                      <div key={i} style={{ fontSize: 11.5, color: 'var(--ink-2)' }}>⚠ {w}</div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {parsed.preview.tanpaKelas > 0 && (
+              <div style={{ marginTop: 10, padding: '10px 14px', background: 'var(--status-warn-bg)', borderRadius: 10 }}>
+                <div style={{ fontSize: 12.5, fontWeight: 700, color: 'var(--status-warn)' }}>
+                  ⚠ {parsed.preview.tanpaKelas} siswa tanpa kelas_id
+                </div>
+                <div style={{ fontSize: 11.5, color: 'var(--ink-2)', marginTop: 4, lineHeight: 1.5 }}>
+                  Laporannya tetap dibuat dan bisa dibuka siswa serta orang tuanya, dan masuk ringkasan Kepala Sekolah. Wali Kelas tidak bisa melihatnya, dan siswa ini tidak masuk tabel per kelas.
+                </div>
+              </div>
+            )}
+
+            {parsed.preview.tidakDinilai?.length > 0 && (
+              <div style={{ marginTop: 10, padding: '10px 14px', background: 'var(--surface-soft)', borderRadius: 10 }}>
+                <div style={{ fontSize: 12.5, fontWeight: 700, color: 'var(--ink-2)' }}>
+                  {parsed.preview.tidakDinilai.length} siswa dilewati karena kedelapan skornya 0 (belum ikut tes)
+                </div>
+                <div style={{ fontSize: 11.5, color: 'var(--ink-3)', marginTop: 4, lineHeight: 1.5 }}>
+                  {parsed.preview.tidakDinilai.join(' · ')}
+                </div>
+              </div>
+            )}
           </div>
 
           {parsed.unresolved?.length > 0 && (
@@ -598,7 +642,9 @@ export function Upload() {
           ) : !parsed.unresolved?.length ? (
             <div className="card" style={{ padding: '16px 22px' }}>
               <div style={{ fontSize: 12.5, color: 'var(--ink-2)', lineHeight: 1.6, marginBottom: 12 }}>
-                Tiap siswa dirumuskan Gemini (dominan, narasi, profesi, rencana) lalu masuk Antrian Persetujuan berstatus menunggu. Prosesnya ~15-30 detik per siswa, jadi {parsed.rows.length} siswa bisa memakan beberapa menit. Jangan tutup halaman ini selama proses berjalan.
+                {parsed.rows.every((r) => r.pregen)
+                  ? `Narasi tiap siswa diambil dari kolom laporan_json, lalu masuk Antrian Persetujuan berstatus menunggu. Prosesnya beberapa detik per siswa. Jangan tutup halaman ini selama proses berjalan.`
+                  : `Siswa tanpa narasi siap pakai dirumuskan Gemini (dominan, narasi, profesi, rencana), lalu semuanya masuk Antrian Persetujuan berstatus menunggu. Gemini butuh ~15-30 detik per siswa, jadi ${parsed.rows.filter((r) => !r.pregen).length} siswa bisa memakan beberapa menit. Jangan tutup halaman ini selama proses berjalan.`}
               </div>
               {miProgress && (
                 <div style={{ marginBottom: 12 }}>
