@@ -136,7 +136,7 @@ ISI TIAP KUNCI:
 - ciri_khas: TEPAT 4 frasa pendek, 3-5 kata, perilaku yang mungkin sudah terlihat sehari-hari.
 - mapel_kuasai: 5-6 nama mata pelajaran yang sesuai jenjang dan cocok dengan Top 3.
 - smart: masing-masing 1 paragraf pendek. s = satu aktivitas konkret yang bisa dimulai sekarang; m = cara panggilan tahu dirinya maju; a = kenapa realistis di usianya; r = kaitannya dengan Top 1; t = kapan dan bagaimana mengevaluasi.
-- hari: TEPAT 7 tugas harian, ringan di hari 1, makin menantang di hari 6-7. Tiap tugas bisa dikerjakan dalam 15-30 menit tanpa biaya.
+- hari: TEPAT 7 tugas harian, ringan di hari 1, makin menantang di hari 6-7. Tiap tugas bisa dikerjakan dalam 15-30 menit tanpa biaya. Langsung isi tugasnya, JANGAN diawali "Hari 1:" atau sejenisnya; label hari sudah dipasang tampilan.
 - komunikasi.lakukan: TEPAT 4 panduan untuk orang tua atau guru saat berbicara dengan panggilan.
 - komunikasi.hindari: TEPAT 3 hal yang sebaiknya dihindari saat berbicara dengan panggilan.
 - komunikasi.kalimat_siswa: TEPAT 3. situasi 2-5 kata (mis. "Saat butuh bantuan"), kalimat = contoh kalimat yang bisa diucapkan panggilan sendiri, ditulis tanpa tanda petik.
@@ -146,7 +146,7 @@ ISI TIAP KUNCI:
 - jalur: TEPAT 3 objek, urut Top 1, Top 2, Top 3.
   - jurusan: 3-5 jurusan kuliah yang relevan dengan kecerdasan itu.
   - tip_ortu: 1-2 kalimat tips konkret untuk orang tua mendukung kecerdasan itu di rumah.
-  - profesi_sorot: satu profesi unggulan. Kalau level kecerdasan itu Kuat atau Sedang, pilih dari KAMUS PROFESI kecerdasan dan level itu. Kalau Berkembang, pilih satu profesi nyata yang memadukan kecerdasan itu dengan Top 1. deskripsi 2-3 kalimat (apa yang dikerjakan, di mana bekerja, kenapa cocok untuk panggilan); skill TEPAT 3; jalur 1-2 kalimat jalur pendidikan dan karier; figur 1-3 nama tokoh nyata yang dikenal publik di profesi itu (Indonesia lebih baik). Jangan mengarang nama tokoh; kalau ragu, tulis satu nama saja yang pasti.
+  - profesi_sorot: satu profesi unggulan. Kalau level kecerdasan itu Kuat atau Sedang, pilih dari KAMUS PROFESI kecerdasan dan level itu. Kalau Berkembang, pilih satu profesi nyata yang memadukan kecerdasan itu dengan Top 1. deskripsi 2-3 kalimat (apa yang dikerjakan, di mana bekerja, kenapa cocok untuk panggilan); skill TEPAT 3; jalur 1-2 kalimat jalur pendidikan dan karier; figur 1-3 nama tokoh nyata yang dikenal publik KARENA MENJALANKAN profesi itu sendiri (Indonesia lebih baik). Bukan pengusaha, pejabat, atau selebritas dari bidang lain yang kebetulan berkaitan: penata suara harus penata suara, dokter hewan harus dokter hewan, desainer UI/UX harus desainer. Jangan mengarang nama tokoh. Kalau untuk profesi itu tidak ada tokoh yang kamu yakini, pilih profesi_sorot lain dari kamus yang punya tokoh pasti.
   - profesi_detail: SATU objek untuk SETIAP profesi di KAMUS PROFESI kecerdasan dan level itu, dengan nama yang DISALIN PERSIS dari kamus (sistem mencocokkan nama ini dengan tombol profesi di layar). deskripsi 2 kalimat, skill TEPAT 3, jalur 1 kalimat.
 
 MENGGUNAKAN ESAI SISWA (semua kolom essay_ yang ada, mis. essay_kelebihan_cara_berpikir, essay_cara_belajar, essay_cara_belajar_paling_berhasil, essay_citacita_profesi, essay_alasan_pilih_profesi, essay_eskul, essay_penggunaan_ai):
@@ -210,7 +210,8 @@ SEBELUM MENGEMBALIKAN FILE, PERIKSA DENGAN KODE untuk setiap baris yang kamu ker
 - top sama dengan hasil LANGKAH 1;
 - jumlah item sesuai aturan TEPAT di atas, tidak ada string kosong;
 - setiap nama di profesi_detail ada di KAMUS PROFESI untuk kecerdasan dan level itu, dan jumlahnya sama dengan jumlah profesi di kamus;
-- tidak ada em-dash, double dash, karakter |, atau kata terlarang.
+- tidak ada em-dash, double dash, karakter |, atau kata terlarang;
+- setiap figur benar-benar dikenal karena menjalankan profesi_sorot yang dipasangkan.
 Perbaiki baris yang gagal sebelum mengembalikan file. Di akhir, tulis ringkasan singkat: berapa baris dikerjakan, berapa TIDAK_DINILAI, dan baris mana yang perlu saya periksa manual.
 ```
 

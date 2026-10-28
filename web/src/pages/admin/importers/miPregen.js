@@ -87,7 +87,11 @@ function keKolom(obj) {
   const smart = objek(obj.smart, 'smart');
   ['s', 'm', 'a', 'r', 't'].forEach((h) => { k[`smart_${h}`] = teks(smart[h], `smart.${h}`); });
 
-  daftar(obj.hari, 'hari', 7, 7).forEach((h, i) => { k[`hari_${i + 1}`] = teks(h, `hari ke-${i + 1}`); });
+  // Label hari ("Hari ini", "Besok", "Hari ke-3") sudah dipasang BakatView, jadi awalan
+  // "Hari 1:" dari model dibuang supaya tidak tampil dobel.
+  daftar(obj.hari, 'hari', 7, 7).forEach((h, i) => {
+    k[`hari_${i + 1}`] = teks(h, `hari ke-${i + 1}`).replace(/^hari\s*(ke-?\s*)?\d+\s*[:.)-]\s*/i, '');
+  });
 
   const kom = objek(obj.komunikasi, 'komunikasi');
   daftar(kom.lakukan, 'komunikasi.lakukan', 4, 4).forEach((x, i) => { k[`gaya_kom_positif_${i + 1}`] = teks(x, `komunikasi.lakukan ke-${i + 1}`); });
@@ -140,6 +144,16 @@ function keKolom(obj) {
   return k;
 }
 
+/** SheetJS memecah entitas angka XML di atas U+FFFF (mis. &#129309; untuk 🤝) dengan
+ * String.fromCharCode, jadi bit 0x10000-nya hilang dan emoji berubah jadi huruf CJK atau area
+ * pribadi U+F000-U+FAFF. Berkas yang ditulis ulang di luar Excel (openpyxl, dipakai Claude saat
+ * mengisi laporan_json) memakai entitas seperti itu untuk semua emoji. Rentang U+F000-U+FAFF
+ * tidak pernah muncul di teks laporan berbahasa Indonesia, jadi aman dikembalikan ke emoji aslinya
+ * di U+1F000-U+1FAFF. Ditemukan di berkas Daarut Tauhiid 2026-10-28: 108 dari 120 ikon rusak. */
+export function pulihkanEmoji(s) {
+  return s.replace(/[-﫿]/g, (c) => String.fromCodePoint(c.charCodeAt(0) + 0x10000));
+}
+
 /**
  * Baca sel laporan_json satu baris.
  *
@@ -156,7 +170,7 @@ export function bacaLaporanJsonMi(sel, row) {
   let obj = mentah;
   if (typeof mentah === 'string') {
     // Model kadang tetap membungkus JSON dengan pagar markdown walau diminta polos.
-    const bersih = mentah.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/i, '').trim();
+    const bersih = pulihkanEmoji(mentah.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/i, '').trim());
     try {
       obj = JSON.parse(bersih);
     } catch {

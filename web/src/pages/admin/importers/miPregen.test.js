@@ -1,7 +1,7 @@
 // Uji pembaca kolom laporan_json MI. Jalankan: npm test (dari folder web/).
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { bacaLaporanJsonMi, hitungTop, semuaSkorNol } from "./miPregen.js";
+import { bacaLaporanJsonMi, hitungTop, pulihkanEmoji, semuaSkorNol } from "./miPregen.js";
 
 const SKOR = {
   r_musikal: 60, r_spasial: 82, r_linguistik: 70, r_logmat: 45,
@@ -115,6 +115,24 @@ test("jumlah butir, isi kosong, pipa, dan koma di butir daftar ditolak", () => {
   const ikon = laporan();
   ikon.sinyal_ortu[0].ikon = "Judul panjang";
   assert.match(bacaLaporanJsonMi(JSON.stringify(ikon), SKOR).error, /satu emoji/);
+});
+
+test("emoji yang dipotong SheetJS dipulihkan, emoji BMP tidak disentuh", () => {
+  // &#129309; (🤝) dibaca SheetJS sebagai U+F91D; ⚽ U+26BD dan huruf biasa tetap.
+  assert.equal(pulihkanEmoji("欄"), "🤝");
+  assert.equal(pulihkanEmoji("️"), "🗣️");
+  assert.equal(pulihkanEmoji("⚽ Cepat paham"), "⚽ Cepat paham");
+
+  const l = laporan();
+  l.sinyal_ortu[0].ikon = "里";
+  const { pregen } = bacaLaporanJsonMi(JSON.stringify(l), SKOR);
+  assert.equal(pregen.kolom.sinyal_1_icon, "🧩");
+});
+
+test("awalan Hari N dibuang karena label hari dipasang tampilan", () => {
+  const l = laporan({ hari: ["Hari 1: sketsa", "Hari ke-2: tabel", "hari 3. diagram", "Hari 4 - coba", "Hari ini santai", "Tugas enam", "Tugas tujuh"] });
+  const k = bacaLaporanJsonMi(JSON.stringify(l), SKOR).pregen.kolom;
+  assert.deepEqual([k.hari_1, k.hari_2, k.hari_3, k.hari_4, k.hari_5], ["sketsa", "tabel", "diagram", "coba", "Hari ini santai"]);
 });
 
 test("kecerdasan di jalur wajib sama dengan urutan top", () => {
