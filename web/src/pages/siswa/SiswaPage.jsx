@@ -944,7 +944,7 @@ function BakatView({ student, intel, topDetails, mi, isSample, onLogout, modules
           {(essayCara || (essayBerhasil && essayBerhasil !== essayCara)) && (
             <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
               {essayCara && <Quote label={`Cara belajar sehari-harinya, kata ${panggilan}`} text={essayCara} />}
-              {essayBerhasil && essayBerhasil !== essayCara && <Quote label="Yang paling berhasil menurutnya" text={essayBerhasil} />}
+              {essayBerhasil && essayBerhasil !== essayCara && <Quote label={`Jika ada tantangan atau kesulitan belajar, biasanya ini yang dilakukan ${panggilan}`} text={essayBerhasil} />}
             </div>
           )}
           <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
@@ -973,7 +973,7 @@ function BakatView({ student, intel, topDetails, mi, isSample, onLogout, modules
               );
             })}
           </div>
-          {essayKelebihan && <div style={{ marginTop: 12 }}><Quote label={`Kata ${panggilan} tentang dirinya`} text={essayKelebihan} /></div>}
+          {essayKelebihan && <div style={{ marginTop: 12 }}><Quote label={`Bagaimana ${panggilan} memandang belajar bagi dirinya?`} text={essayKelebihan} /></div>}
         </div>
       ),
       jalan: (
@@ -1464,7 +1464,7 @@ function BakatView({ student, intel, topDetails, mi, isSample, onLogout, modules
             )}
             {essayBerhasil && essayBerhasil !== essayCara && (
               <div>
-                <div style={{ fontSize: 9.5, fontWeight: 800, letterSpacing: ".1em", textTransform: "uppercase", color: T.textMuted, marginBottom: 4 }}>Yang paling berhasil menurutnya</div>
+                <div style={{ fontSize: 9.5, fontWeight: 800, letterSpacing: ".1em", textTransform: "uppercase", color: T.textMuted, marginBottom: 4 }}>Jika ada tantangan atau kesulitan belajar, biasanya ini yang dilakukan {panggilan}</div>
                 <p style={{ margin: 0, fontSize: 12.5, lineHeight: 1.55, color: T.textBody, fontStyle: "italic" }}>"{essayBerhasil}"</p>
               </div>
             )}
