@@ -31,8 +31,16 @@ create or replace function auth.role() returns text language sql stable as $$
   select nullif(current_setting('test.role', true), '')
 $$;
 
+-- Bentuknya meniru helper produksi: tanpa set search_path dan membaca `profiles` tanpa awalan
+-- skema, jadi ia memakai search_path pemanggilnya. Pemanggil dengan search_path = '' gagal
+-- `relation "profiles" does not exist`, persis kejadian produksi 2026-11-11 (diperbaiki migration
+-- 20261111120000). Siapa yang admin tetap diatur lewat GUC test.admin.
+create table if not exists public.profiles (id uuid primary key, peran text not null);
+insert into public.profiles values ('00000000-0000-0000-0000-0000000000ad', 'AdminFammi')
+  on conflict (id) do nothing;
 create or replace function public.is_admin_fammi() returns boolean language sql stable security definer as $$
   select coalesce(current_setting('test.admin', true), '') = 'ya'
+    and exists (select 1 from profiles where peran = 'AdminFammi')
 $$;
 
 grant usage on schema public to anon, authenticated, service_role;

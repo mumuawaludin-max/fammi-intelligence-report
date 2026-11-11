@@ -30,8 +30,10 @@ Lanjutkan demo" di tempat tautan demo. Tombol Back browser berpindah antarlayar 
 Lakukan berurutan. Sebelum langkah 1, tombol **Verifikasi kode** selalu membalas "Terjadi kendala
 saat memverifikasi kode" karena fungsi `demo_verify` belum ada.
 
-1. **Migration.** Jalankan `supabase/migrations/20261111100000_demo_access.sql` di SQL Editor.
-   Aman dijalankan ulang.
+1. **Migration.** Jalankan `supabase/migrations/20261111100000_demo_access.sql`, lalu
+   `supabase/migrations/20261111120000_demo_boleh_kelola_search_path.sql`, di SQL Editor. Keduanya
+   aman dijalankan ulang. Tanpa yang kedua, Admin CMS > Kode Demo membalas
+   `relation "profiles" does not exist` (SQL Editor tetap bisa membuat kode).
 2. **Laporan keuangan.** Jalankan `supabase/demo/laporan-keuangan.sql` di SQL Editor (sekitar
    260 KB, menyimpan dashboard keuangan ke tabel `demo_reports`). Aman dijalankan ulang.
 3. **Edge Function.** Deploy `supabase/functions/demo-masuk/index.ts`:

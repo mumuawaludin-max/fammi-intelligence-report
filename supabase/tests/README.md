@@ -219,8 +219,14 @@ dan postgres:17 (2026-10-19): 23 LULUS 0 GAGAL, migration idempoten.
 Database bersih tersendiri: `demo_access_baseline.sql` (peran `anon`/`authenticated`/`service_role`
 dan `authenticator` seperti PostgREST, skema `extensions` dengan pgcrypto, `auth.uid()`/`auth.role()`
 dan `is_admin_fammi()` yang membaca GUC `test.*`, serta tabel `auth.users` tiruan dengan kolom yang
-dibaca `demo_akun_email`), migration dua kali, lalu `demo_access_verify.sql` (sekali saja per
-database; berkas ini menulis data dan berakhir sebagai `authenticator`).
+dibaca `demo_akun_email`), migration 20261111100000 dua kali, perbaikannya 20261111120000 dua kali,
+lalu `demo_access_verify.sql` (sekali saja per database; berkas ini menulis data dan berakhir
+sebagai `authenticator`).
+
+`is_admin_fammi()` tiruan sengaja dibuat seperti helper produksi: tanpa `set search_path` dan
+membaca `profiles` tanpa awalan skema. Tanpa migration 20261111120000, pemeriksaan "admin lewat
+API" di fase 2 gagal `relation "profiles" does not exist`, sama dengan yang terjadi di Admin CMS
+produksi pada 2026-11-11. Tiruan lama hanya membaca GUC, jadi kesalahan itu lolos uji.
 
 ```bash
 docker run -d --name fir-pgtest -e POSTGRES_PASSWORD=x -e POSTGRES_DB=fir postgres:15
@@ -228,10 +234,13 @@ until docker exec fir-pgtest pg_isready -U postgres -d fir; do :; done
 export MSYS_NO_PATHCONV=1
 docker cp demo_access_baseline.sql fir-pgtest:/tmp/base.sql
 docker cp ../migrations/20261111100000_demo_access.sql fir-pgtest:/tmp/m.sql
+docker cp ../migrations/20261111120000_demo_boleh_kelola_search_path.sql fir-pgtest:/tmp/m2.sql
 docker cp demo_access_verify.sql fir-pgtest:/tmp/v.sql
 docker exec fir-pgtest psql -U postgres -d fir -v ON_ERROR_STOP=1 -q -f /tmp/base.sql
 docker exec fir-pgtest psql -U postgres -d fir -v ON_ERROR_STOP=1 -f /tmp/m.sql
 docker exec fir-pgtest psql -U postgres -d fir -v ON_ERROR_STOP=1 -f /tmp/m.sql   # idempotensi
+docker exec fir-pgtest psql -U postgres -d fir -v ON_ERROR_STOP=1 -f /tmp/m2.sql
+docker exec fir-pgtest psql -U postgres -d fir -v ON_ERROR_STOP=1 -f /tmp/m2.sql  # idempotensi
 docker exec fir-pgtest psql -U postgres -d fir -f /tmp/v.sql
 docker rm -f fir-pgtest
 ```
@@ -254,3 +263,7 @@ Docker tidak berjalan saat migration ini dibuat (2026-11-11), jadi baseline, mig
 dan verifikasi dijalankan di PGlite 0.3.16 (Postgres 17 WASM, dengan pgcrypto): 90 LULUS 0 GAGAL,
 migration idempoten. PGlite tidak bisa kembali dari `SET SESSION AUTHORIZATION`, karena itu
 pemeriksaan yang bergantung pada `session_user` sengaja ditaruh di fase terakhir berkas verifikasi.
+
+Perbaikan 20261111120000 (2026-11-11), PGlite 0.3.16 dengan `is_admin_fammi()` tiruan yang baru:
+tanpa perbaikan, verifikasi berhenti di `relation "profiles" does not exist` (sama dengan
+produksi); dengan perbaikan dijalankan dua kali, 90 LULUS 0 GAGAL.
