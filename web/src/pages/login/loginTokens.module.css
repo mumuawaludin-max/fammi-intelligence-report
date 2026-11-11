@@ -1,0 +1,48 @@
+/* ============================================================
+   Palet halaman masuk dan pengalaman demo.
+   Pengecualian yang disengaja (6), lihat CLAUDE.md. Mengikuti nada deck Fammi (2026-11-11):
+   kanvas putih hangat dengan cahaya persik dan biru lembut, judul ungu tua, stabilo kuning,
+   dan lima warna modul yang padat. Hanya berlaku di dalam .scope, tidak menjalar ke modul lain.
+   Font tetap Google Sans Flex dari tokens.css.
+   ============================================================ */
+
+.scope {
+  --lg-ungu: var(--purple-600);          /* #6323DA, logo dan tombol masuk */
+  --lg-ungu-tua: var(--purple-700);      /* #5418C2 */
+  --lg-ungu-muda: var(--purple-300);     /* #B79CF0, cincin fokus */
+  --lg-tinta: #241044;                   /* judul, ungu tua deck */
+  --lg-tinta-2: var(--ink-2);            /* #4A4458 */
+  --lg-tinta-3: var(--ink-3);            /* #7C7689 */
+  --lg-garis: var(--line);               /* #ECE6F3 */
+  --lg-putih: #FFFFFF;
+  --lg-latar: #FBF8F3;                   /* putih hangat */
+  --lg-latar-isian: var(--surface-soft); /* #FBF9F5 */
+  --lg-lavender: #EDE5FA;
+
+  /* Cahaya lembut di kanvas, seperti latar slide deck. */
+  --lg-cahaya-persik: #FFE7C4;
+  --lg-cahaya-biru: #DCE8FF;
+  --lg-cahaya-lavender: #F1E9FF;
+
+  /* Stabilo kuning di balik kata penting. */
+  --lg-stabilo: #FFE45C;
+
+  /* Lima warna modul dari deck, sedikit diperdalam supaya teks putih tetap terbaca (AA). Jingga
+     terlalu terang untuk teks putih, jadi ubin jingga memakai teks ungu tua. */
+  --lg-modul-ungu: #8650DE;
+  --lg-modul-merah: #D93B3B;
+  --lg-modul-biru: #1162E3;
+  --lg-modul-jingga: #FFA21A;
+  --lg-modul-teal: #1B8077;
+
+  --lg-hijau: var(--status-safe);        /* #2E9E6B */
+  --lg-hijau-tipis: var(--status-safe-bg);
+
+  --lg-bayangan-kartu: 0 1px 2px rgba(36, 16, 68, 0.05), 0 8px 24px rgba(36, 16, 68, 0.07);
+  --lg-bayangan-panel: 0 2px 6px rgba(36, 16, 68, 0.04), 0 30px 60px rgba(36, 16, 68, 0.10);
+  --lg-bayangan-ubin: 0 10px 24px rgba(36, 16, 68, 0.12);
+  --lg-bayangan-ambang: 0 10px 30px rgba(36, 16, 68, 0.18), 0 1px 3px rgba(36, 16, 68, 0.08);
+  --lg-cincin-fokus: 0 0 0 4px rgba(99, 35, 218, 0.14);
+
+  --lg-ease: cubic-bezier(0.22, 1, 0.36, 1);
+}

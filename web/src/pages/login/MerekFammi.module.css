@@ -1,0 +1,102 @@
+/* ============================================================
+   Unsur merek bersama halaman masuk dan layar demo. Palet dari loginTokens.module.css.
+   ============================================================ */
+
+.logo {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--lg-ungu);
+}
+.logo img {
+  width: clamp(44px, 6.4vh, 56px);
+  height: clamp(44px, 6.4vh, 56px);
+  margin: -6px;
+  object-fit: contain;
+}
+.logoNama {
+  margin-left: 6px;
+  font-size: clamp(22px, 3.1vh, 27px);
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+
+/* Stabilo kuning seperti di deck, disapukan sekali saat muncul. */
+.stabilo {
+  position: relative;
+  z-index: 0;
+  white-space: nowrap;
+}
+.stabilo::before {
+  content: "";
+  position: absolute;
+  z-index: -1;
+  left: -0.08em;
+  right: -0.08em;
+  top: 0.14em;
+  bottom: 0.02em;
+  background: var(--lg-stabilo);
+  transform-origin: left center;
+  animation: sapuStabilo 0.7s var(--lg-ease) 0.5s both;
+}
+@keyframes sapuStabilo {
+  from { transform: scaleX(0); }
+  to { transform: scaleX(1); }
+}
+
+.janji {
+  font-size: clamp(14px, min(1.2vw, 2.2vh), 19px);
+  line-height: 1.4;
+  color: var(--lg-tinta);
+}
+.janji strong { font-weight: 800; }
+
+/* ---------- rasi titik ---------- */
+.jaring {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: min(48%, 420px);
+  height: auto;
+  aspect-ratio: 1;
+  pointer-events: none;
+  -webkit-mask-image: radial-gradient(circle at 100% 0%, #000 32%, transparent 76%);
+  mask-image: radial-gradient(circle at 100% 0%, #000 32%, transparent 76%);
+}
+.jaringGaris {
+  stroke: rgba(99, 35, 218, 0.22);
+  stroke-width: 1.2;
+  vector-effect: non-scaling-stroke;
+  stroke-dasharray: 1;
+  stroke-dashoffset: 1;
+  animation: gambarGaris 1.4s var(--lg-ease) forwards;
+}
+.jaringTitik {
+  opacity: 0;
+  animation: munculTitik 0.6s var(--lg-ease) forwards;
+}
+.titik_ungu { fill: var(--lg-modul-ungu); }
+.titik_merah { fill: var(--lg-modul-merah); }
+.titik_biru { fill: var(--lg-modul-biru); }
+.titik_jingga { fill: var(--lg-modul-jingga); }
+.titik_teal { fill: var(--lg-modul-teal); }
+
+@keyframes gambarGaris { to { stroke-dashoffset: 0; } }
+@keyframes munculTitik { to { opacity: 1; } }
+
+@media (max-width: 920px) {
+  .logo img { width: 46px; height: 46px; margin: -5px; }
+  .logoNama { font-size: 23px; }
+  .janji { font-size: 15px; }
+  .jaring { width: min(66%, 300px); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .stabilo::before,
+  .jaringGaris,
+  .jaringTitik {
+    animation: none;
+  }
+  .jaringGaris { stroke-dashoffset: 0; }
+  .jaringTitik { opacity: 1; }
+}

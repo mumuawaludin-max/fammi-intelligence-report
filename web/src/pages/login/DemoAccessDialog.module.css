@@ -1,0 +1,255 @@
+/* Dialog kode demo, bernada deck Fammi. Palet dari loginTokens.module.css (.scope di .tirai). */
+
+.tirai {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: flex;
+  overflow-y: auto;
+  padding: 24px 16px;
+  font-family: var(--font-body);
+  background: rgba(36, 16, 68, 0.36);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+}
+
+.dialog {
+  position: relative;
+  margin: auto;
+  width: 100%;
+  max-width: 460px;
+  padding: 30px 30px 24px;
+  border-radius: 26px;
+  color: var(--lg-tinta);
+  background: var(--lg-putih);
+  box-shadow: var(--lg-bayangan-panel);
+}
+
+.srOnly {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+.tutup {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  width: 36px;
+  height: 36px;
+  border-radius: 12px;
+  display: grid;
+  place-items: center;
+  color: var(--lg-tinta-3);
+  transition: background-color 0.2s, color 0.2s;
+}
+.tutup:hover:not(:disabled) { color: var(--lg-tinta); background: var(--lg-lavender); }
+.tutup:focus-visible { outline: 2px solid var(--lg-ungu); outline-offset: 2px; }
+.tutup:disabled { opacity: 0.4; cursor: not-allowed; }
+
+.kepala { display: flex; align-items: center; gap: 12px; padding-right: 44px; }
+.gembok {
+  flex: none;
+  width: 44px;
+  height: 44px;
+  border-radius: 14px;
+  display: grid;
+  place-items: center;
+  color: var(--lg-ungu);
+  background: var(--lg-lavender);
+}
+.eyebrow {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--lg-ungu);
+}
+
+.judul {
+  margin-top: 18px;
+  font-size: 24px;
+  font-weight: 800;
+  line-height: 1.18;
+  letter-spacing: -0.015em;
+  text-wrap: balance;
+}
+.desk {
+  margin-top: 8px;
+  font-size: 14.5px;
+  line-height: 1.55;
+  color: var(--lg-tinta-2);
+}
+
+.form { margin-top: 22px; display: flex; flex-direction: column; }
+.label {
+  font-size: 13.5px;
+  font-weight: 700;
+  color: var(--lg-tinta-2);
+}
+.input {
+  margin-top: 8px;
+  width: 100%;
+  height: 56px;
+  padding: 0 16px;
+  border-radius: 14px;
+  font-family: inherit;
+  font-size: 18px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  color: var(--lg-tinta);
+  background: var(--lg-latar-isian);
+  border: 1.5px solid var(--lg-garis);
+  outline: none;
+  transition: border-color 0.2s, box-shadow 0.2s, background-color 0.2s;
+}
+.input::placeholder {
+  font-size: 15.5px;
+  font-weight: 400;
+  letter-spacing: 0;
+  color: var(--ink-4);
+}
+.input:focus {
+  border-color: var(--lg-ungu);
+  background: var(--lg-putih);
+  box-shadow: var(--lg-cincin-fokus);
+}
+.input:disabled { opacity: 0.7; }
+.inputGalat,
+.inputGalat:focus {
+  border-color: var(--status-alert);
+  box-shadow: 0 0 0 4px rgba(214, 69, 90, 0.12);
+}
+
+.format {
+  margin-top: 8px;
+  font-size: 12.5px;
+  color: var(--lg-tinta-3);
+}
+.galat {
+  margin-top: 10px;
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  font-size: 13.5px;
+  font-weight: 600;
+  line-height: 1.45;
+  color: var(--status-alert);
+  background: var(--status-alert-bg);
+}
+.galat svg { flex: none; margin-top: 1px; }
+
+.aksi { margin-top: 20px; display: flex; gap: 10px; }
+.verifikasi {
+  flex: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+  height: 52px;
+  padding: 0 20px;
+  border-radius: 14px;
+  font-family: inherit;
+  font-size: 15.5px;
+  font-weight: 700;
+  color: var(--lg-putih);
+  background: var(--lg-ungu);
+  box-shadow: 0 10px 24px rgba(99, 35, 218, 0.22);
+  transition: transform 0.2s var(--lg-ease), background-color 0.2s;
+}
+.verifikasi:hover:not(:disabled) { background: var(--lg-ungu-tua); transform: translateY(-1px); }
+.verifikasi:active:not(:disabled) { transform: translateY(0); }
+.verifikasi:focus-visible { outline: 3px solid var(--lg-ungu-muda); outline-offset: 3px; }
+.verifikasi:disabled { cursor: progress; opacity: 0.8; }
+
+.kembali {
+  height: 52px;
+  padding: 0 18px;
+  border-radius: 14px;
+  font-family: inherit;
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--lg-tinta-2);
+  background: var(--lg-putih);
+  border: 1.5px solid var(--lg-garis);
+  transition: background-color 0.2s, border-color 0.2s;
+}
+.kembali:hover:not(:disabled) { background: var(--lg-latar-isian); border-color: var(--lg-ungu-muda); }
+.kembali:focus-visible { outline: 2px solid var(--lg-ungu); outline-offset: 2px; }
+.kembali:disabled { opacity: 0.5; cursor: not-allowed; }
+
+.putar {
+  width: 17px;
+  height: 17px;
+  border-radius: 50%;
+  border: 2px solid rgba(255, 255, 255, 0.4);
+  border-top-color: var(--lg-putih);
+  animation: putar 0.7s linear infinite;
+}
+@keyframes putar { to { transform: rotate(360deg); } }
+
+.catatan {
+  margin-top: 20px;
+  padding-top: 16px;
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  border-top: 1px solid var(--lg-garis);
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--lg-tinta-3);
+}
+.catatan svg { flex: none; color: var(--lg-ungu); }
+
+.berhasil {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  padding: 16px 4px 8px;
+}
+.berhasilIkon {
+  width: 72px;
+  height: 72px;
+  margin-bottom: 16px;
+  border-radius: 22px;
+  display: grid;
+  place-items: center;
+  color: var(--lg-hijau);
+  background: var(--lg-hijau-tipis);
+}
+.berhasil .eyebrow { color: var(--lg-hijau); }
+.berhasil .judul { margin-top: 8px; }
+.progres {
+  margin-top: 22px;
+  width: 100%;
+  max-width: 220px;
+  height: 4px;
+  border-radius: 99px;
+  overflow: hidden;
+  background: var(--lg-lavender);
+}
+.progresIsi {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--lg-ungu);
+  transform-origin: left center;
+}
+
+@media (max-width: 480px) {
+  .tirai { padding: 16px 12px; }
+  .dialog { padding: 26px 20px 20px; border-radius: 22px; }
+  .judul { font-size: 21px; }
+  .aksi { flex-direction: column; }
+  .kembali { width: 100%; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tirai * { transition: none !important; }
+  .putar { animation-duration: 1.6s; }
+}

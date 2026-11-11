@@ -186,6 +186,31 @@ export async function logoutSupabase() {
   sessionStorage.removeItem(SESSION_KEY);
 }
 
+/**
+ * Demo halaman masuk: pasang sesi akun demo yang diterbitkan Edge Function demo-masuk, lalu bangun
+ * sesi FIR yang sama persis dengan login biasa, ditambah penanda `demo` ({ tampilan, judul, label }).
+ * Kode khusus akun demo tidak pernah lewat sini; yang datang hanya access_token dan refresh_token.
+ */
+export async function masukAkunDemo(sesiAkun, demo) {
+  const { data, error } = await supabase.auth.setSession(sesiAkun);
+  if (error || !data?.session?.user) throw new Error("Sesi akun demo tidak bisa dipasang.");
+  const profileSession = await fetchProfileSession(data.session.user.id);
+  return { ...profileSession, token: data.session.access_token, demo };
+}
+
+/**
+ * Keluar dari akun demo HANYA di browser ini (scope local). signOut biasa berlaku global dan akan
+ * ikut mengeluarkan pengunjung demo lain yang sedang memakai akun demo yang sama.
+ */
+export async function keluarAkunDemo() {
+  try {
+    await supabase.auth.signOut({ scope: "local" });
+  } catch {
+    // Sesi sudah tidak ada atau jaringan putus: sesi FIR tetap dihapus di bawah.
+  }
+  sessionStorage.removeItem(SESSION_KEY);
+}
+
 /** Simpan sesi ke sessionStorage. */
 export function saveSession(data) {
   sessionStorage.setItem(SESSION_KEY, JSON.stringify(data));

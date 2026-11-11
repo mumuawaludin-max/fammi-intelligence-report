@@ -213,3 +213,44 @@ orang, rekapnya tertutup di bawah tiga isian lalu terbuka dengan rata-rata, seba
 pilihan, dan esai tanpa identitas; Human Capital sekolah lain dan Kepala Sekolah ditolak; Admin
 Fammi membaca semua; waktu kirim pertama tetap saat jawaban diubah. Sudah dijalankan di postgres:15
 dan postgres:17 (2026-10-19): 23 LULUS 0 GAGAL, migration idempoten.
+
+## Akses demo halaman masuk (20261111100000)
+
+Database bersih tersendiri: `demo_access_baseline.sql` (peran `anon`/`authenticated`/`service_role`
+dan `authenticator` seperti PostgREST, skema `extensions` dengan pgcrypto, `auth.uid()`/`auth.role()`
+dan `is_admin_fammi()` yang membaca GUC `test.*`, serta tabel `auth.users` tiruan dengan kolom yang
+dibaca `demo_akun_email`), migration dua kali, lalu `demo_access_verify.sql` (sekali saja per
+database; berkas ini menulis data dan berakhir sebagai `authenticator`).
+
+```bash
+docker run -d --name fir-pgtest -e POSTGRES_PASSWORD=x -e POSTGRES_DB=fir postgres:15
+until docker exec fir-pgtest pg_isready -U postgres -d fir; do :; done
+export MSYS_NO_PATHCONV=1
+docker cp demo_access_baseline.sql fir-pgtest:/tmp/base.sql
+docker cp ../migrations/20261111100000_demo_access.sql fir-pgtest:/tmp/m.sql
+docker cp demo_access_verify.sql fir-pgtest:/tmp/v.sql
+docker exec fir-pgtest psql -U postgres -d fir -v ON_ERROR_STOP=1 -q -f /tmp/base.sql
+docker exec fir-pgtest psql -U postgres -d fir -v ON_ERROR_STOP=1 -f /tmp/m.sql
+docker exec fir-pgtest psql -U postgres -d fir -v ON_ERROR_STOP=1 -f /tmp/m.sql   # idempotensi
+docker exec fir-pgtest psql -U postgres -d fir -f /tmp/v.sql
+docker rm -f fir-pgtest
+```
+
+Yang diperiksa: format kode dan kode mentah yang tidak tersimpan di mana pun; anon tidak membaca
+atau menulis tabel demo dan tidak bisa memanggil fungsi pengelola maupun pembantu HMAC; kode
+huruf kecil dengan spasi tetap cocok; kode pendek, tak dikenal, kedaluwarsa, dicabut, dan habis
+jatah ditolak dengan status masing-masing; sesi sah, logout mengakhiri sesi dan laporannya;
+pencabutan dan kedaluwarsa kode mematikan sesi yang sedang berjalan, habis jatah tidak; kode
+bercakupan sebagian tidak membuka sistem lain; laporan HTML hanya keluar untuk sesi sah, sistem
+yang dibuka, dan laporan aktif, dan id berbentuk path ditolak; pembatasan laju per IP (termasuk
+x-forwarded-for palsu) dan global; IP tidak tersimpan mentah; akun biasa lewat API ditolak saat
+mengelola kode, Admin Fammi lewat API bisa, dan kolom hash, token, HTML, serta kunci rahasia
+tidak terbaca siapa pun; `demo_akun_email` (dipakai Edge Function demo-masuk sebelum membuat
+tautan masuk) tertutup untuk anon dan authenticated termasuk Admin Fammi, terbuka untuk
+service_role, mengembalikan email tersimpan tanpa membedakan huruf besar, null untuk email tak
+terdaftar atau akun terhapus, dan tidak pernah menambah akun.
+
+Docker tidak berjalan saat migration ini dibuat (2026-11-11), jadi baseline, migration dua kali,
+dan verifikasi dijalankan di PGlite 0.3.16 (Postgres 17 WASM, dengan pgcrypto): 90 LULUS 0 GAGAL,
+migration idempoten. PGlite tidak bisa kembali dari `SET SESSION AUTHORIZATION`, karena itu
+pemeriksaan yang bergantung pada `session_user` sengaja ditaruh di fase terakhir berkas verifikasi.

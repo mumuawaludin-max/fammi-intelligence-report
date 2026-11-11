@@ -1,0 +1,224 @@
+/* ============================================================
+   Layar demo (#demo): kanvas deck Fammi, satu layar penuh tanpa gulir di laptop.
+   Baris: kepala (logo + status akses), isi (judul, pengantar, mozaik yang mengisi sisa ruang),
+   kaki. Palet dari login/loginTokens.module.css.
+   ============================================================ */
+
+.layar {
+  --lebar-isi: 1120px;
+  position: relative;
+  isolation: isolate;
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  width: 100%;
+  height: 100svh;
+  overflow: hidden;
+  padding: clamp(16px, 3.2vh, 36px) clamp(20px, 4.2vw, 72px) clamp(14px, 2.6vh, 28px);
+  font-family: var(--font-body);
+  color: var(--lg-tinta);
+  background:
+    radial-gradient(1000px 760px at -12% 112%, var(--lg-cahaya-persik), transparent 62%),
+    radial-gradient(900px 640px at 108% -12%, var(--lg-cahaya-biru), transparent 60%),
+    radial-gradient(720px 560px at 50% 50%, var(--lg-cahaya-lavender), transparent 70%),
+    var(--lg-latar);
+  -webkit-font-smoothing: antialiased;
+}
+
+.srOnly {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+.latar {
+  position: absolute;
+  z-index: -1;
+  inset: 0 0 auto auto;
+  width: min(52vw, 640px);
+  height: min(52vw, 640px);
+  pointer-events: none;
+}
+.latar > svg { width: 72%; }
+
+/* ---------- kepala ---------- */
+.atas,
+.isi,
+.bawah {
+  width: 100%;
+  max-width: var(--lebar-isi);
+  margin-inline: auto;
+}
+.atas {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px 16px;
+}
+.status {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 8px;
+  padding: 7px 15px 7px 12px;
+  border-radius: 999px;
+  font-size: 13px;
+  color: var(--lg-tinta-2);
+  background: var(--lg-putih);
+  box-shadow: var(--lg-bayangan-kartu);
+}
+.status strong { color: var(--lg-tinta); font-weight: 800; }
+.titikHijau {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--lg-hijau);
+  box-shadow: 0 0 0 3px var(--lg-hijau-tipis);
+}
+.pemisah { color: var(--lg-tinta-3); }
+.akhiri,
+.keMasuk {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--lg-ungu);
+  text-decoration: underline;
+  text-decoration-color: rgba(99, 35, 218, 0.35);
+  text-underline-offset: 3px;
+  transition: color 0.2s, text-decoration-color 0.2s;
+}
+.akhiri:hover,
+.keMasuk:hover { color: var(--lg-ungu-tua); text-decoration-color: currentColor; }
+.akhiri:focus-visible,
+.keMasuk:focus-visible { outline: 2px solid var(--lg-ungu); outline-offset: 2px; border-radius: 4px; }
+
+/* ---------- isi ---------- */
+.isi {
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding-block: clamp(12px, 2.6vh, 30px);
+}
+
+.judul {
+  display: flex;
+  flex-direction: column;
+  font-size: clamp(30px, min(3.4vw, 6.2vh), 58px);
+  line-height: 1.05;
+  letter-spacing: -0.025em;
+}
+.judul:focus { outline: none; }
+.judulRingan { font-weight: 400; }
+.judulTebal { font-weight: 800; }
+
+.lead {
+  margin-top: clamp(10px, 1.8vh, 18px);
+  max-width: 720px;
+  font-size: clamp(14px, min(1.15vw, 2.2vh), 18px);
+  line-height: 1.55;
+  color: var(--lg-tinta-2);
+  text-wrap: pretty;
+}
+
+/* Mozaik mengisi sisa tinggi layar, dengan batas atas supaya ubin tidak terlalu jangkung di layar
+   besar dan batas bawah supaya tombol tampilan tetap muat. */
+.mozaik {
+  flex: 0 1 min(470px, 44vw);
+  min-height: 272px;
+  margin-top: clamp(14px, 2.8vh, 30px);
+}
+
+.memeriksa {
+  align-self: center;
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--lg-tinta-2);
+}
+.memeriksa svg { color: var(--lg-ungu); }
+
+/* ---------- kaki ---------- */
+.bawah {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px 16px;
+}
+
+/* ---------- pemberitahuan gagal membuka tampilan ---------- */
+.galat {
+  position: fixed;
+  z-index: 20;
+  left: 50%;
+  bottom: clamp(16px, 4vh, 32px);
+  translate: -50% 0;
+  width: max-content;
+  max-width: min(560px, calc(100vw - 32px));
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 12px 10px 12px 15px;
+  border-radius: 16px;
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.45;
+  color: var(--status-alert);
+  background: var(--status-alert-bg);
+  box-shadow: var(--lg-bayangan-ambang);
+}
+.galat > svg { flex: none; margin-top: 1px; }
+.galatTutup {
+  flex: none;
+  width: 26px;
+  height: 26px;
+  margin: -2px 0 -2px 4px;
+  border-radius: 8px;
+  display: grid;
+  place-items: center;
+  color: inherit;
+  opacity: 0.75;
+}
+.galatTutup:hover { opacity: 1; background: rgba(36, 16, 68, 0.06); }
+.galatTutup:focus-visible { outline: 2px solid var(--status-alert); outline-offset: 1px; }
+
+.putar { animation: putar 0.8s linear infinite; }
+@keyframes putar { to { transform: rotate(360deg); } }
+
+/* ---------- layar laptop sangat pendek: terakhir kalinya, izinkan gulir daripada terpotong ---------- */
+@media (min-width: 921px) and (max-height: 560px) {
+  .layar { height: auto; min-height: 100svh; overflow: visible; }
+}
+
+/* ---------- ponsel dan tablet tegak: ditumpuk, boleh bergulir ---------- */
+@media (max-width: 920px) {
+  .layar {
+    height: auto;
+    min-height: 100svh;
+    overflow-x: hidden;
+    overflow-y: visible;
+    padding: 16px 20px 28px;
+  }
+  .latar { width: 100%; height: 340px; }
+  .latar > svg { width: min(66%, 300px); }
+  .isi { justify-content: flex-start; padding-block: 26px 22px; }
+  .judul { font-size: clamp(30px, 8.6vw, 46px); }
+  .lead { font-size: 15.5px; }
+  .mozaik { flex: none; min-height: 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .putar { animation-duration: 1.6s; }
+  .akhiri,
+  .keMasuk { transition: none; }
+}

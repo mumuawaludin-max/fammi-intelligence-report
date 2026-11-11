@@ -1,5 +1,7 @@
 import { useEffect, useState } from "react";
-import { getSession, logoutSupabase, refreshSession, saveSession, clearSession } from "./lib/auth";
+import { getSession, logoutSupabase, refreshSession, saveSession, clearSession, keluarAkunDemo } from "./lib/auth";
+import DemoModeBar from "./pages/demo/DemoModeBar";
+import { gantiRuteDemo } from "./pages/demo/ruteDemo";
 import { useOverviewBriefing } from "./hooks/useOverviewBriefing";
 import { useAvailablePeriods } from "./hooks/useAvailablePeriods";
 import { useAvailablePekan, pekanId, parsePekanId } from "./hooks/useAvailablePekan";
@@ -169,7 +171,8 @@ export default function App() {
   // /sekolah/cakupan user ini sudah diubah admin sejak login terakhir) tanpa browser tahu --
   // cek ke server begitu App dimuat, bukan cuma percaya isi sessionStorage begitu saja.
   useEffect(() => {
-    if (!getSession()) return;
+    const awal = getSession();
+    if (!awal) return;
     let alive = true;
     refreshSession().then((fresh) => {
       if (!alive) return;
@@ -179,8 +182,11 @@ export default function App() {
         setLoginNotice("Sesi login sudah berakhir. Silakan masuk kembali.");
         return;
       }
-      saveSession(fresh);
-      setSession(fresh);
+      // Penanda demo (pengunjung demo di tampilan akun demo) tidak ada di profiles, jadi dibawa
+      // dari sesi lama. Tanpanya, muat ulang halaman memakai logout global dan bilah demo hilang.
+      const baru = awal.demo ? { ...fresh, demo: awal.demo } : fresh;
+      saveSession(baru);
+      setSession(baru);
     });
     return () => { alive = false; };
   }, []);
@@ -198,6 +204,7 @@ export default function App() {
 
   function handleLogin(newSession) {
     setLoginNotice("");
+    setDemoKeluar(null);
     setSession(newSession);
     setActiveTab(
       isSingleModuleShellPeran(newSession.peran)
@@ -205,12 +212,40 @@ export default function App() {
         : "overview"
     );
   }
+  // Keluar dari tampilan akun demo: hanya sesi akun di browser ini. Tanpa status (tombol Kembali di
+  // bilah Mode demo, atau Keluar di shell), pengunjung kembali ke layar demo dan fokus ke tombol
+  // tampilan yang tadi dibuka; token sesi demo tetap tersimpan dan diperiksa ulang ke server oleh
+  // halaman masuk. Dengan status (sesi demo kedaluwarsa, dicabut, diakhiri), pengunjung kembali ke
+  // halaman masuk beserta alasannya.
+  const [demoKeluar, setDemoKeluar] = useState(null);
+  async function keluarDariDemo(status) {
+    const tampilan = session?.demo?.tampilan ?? null;
+    await keluarAkunDemo();
+    const sesiDemoMati = typeof status === "string";
+    gantiRuteDemo({ layar: sesiDemoMati ? "masuk" : "demo" });
+    setDemoKeluar(sesiDemoMati ? { status, tampilan: null } : { status: null, tampilan });
+    setLoginNotice("");
+    setSession(null);
+  }
+
   function handleLogout() {
+    if (session?.demo) {
+      keluarDariDemo();
+      return;
+    }
     logoutSupabase();
     setSession(null);
   }
 
-  if (!session) return <LoginPage onLogin={handleLogin} notice={loginNotice} />;
+  if (!session) return <LoginPage onLogin={handleLogin} notice={loginNotice} demoKeluar={demoKeluar} />;
+
+  // Selama pengunjung demo berada di tampilan akun demo, penanda mode demo ikut di setiap shell.
+  const tampil = (isi) => (session.demo ? (
+    <>
+      {isi}
+      <DemoModeBar demo={session.demo} onKeluar={keluarDariDemo} />
+    </>
+  ) : isi);
 
   // Siswa dan OrangTua sama-sama peran yang di-scope ke satu murid_id (lihat CLAUDE.md:
   // mobile-first untuk keduanya) -- SiswaPage/BakatView cuma bergantung pada session.murid_id,
@@ -219,7 +254,7 @@ export default function App() {
   // salah jatuh ke shell desktop generik (tab "mi" -> MIPage agregat sekolah, bukan laporan
   // individu anaknya) karena kondisi ini dulu cuma mengecek "Siswa".
   if (session.peran === "Siswa" || session.peran === "OrangTua") {
-    return <SiswaPage session={session} onLogout={handleLogout} />;
+    return tampil(<SiswaPage session={session} onLogout={handleLogout} />);
   }
 
   // Karyawan: padanan dari Siswa/OrangTua -- laporan pribadi, mobile-only, shell sendiri
@@ -229,9 +264,9 @@ export default function App() {
   // session.modules (entitlement school_modules) yang membedakan mana yang dirender untuk
   // sekolah/organisasi ini, fallback ke CW kalau tidak ada penanda "sc" (jaring pengaman lama).
   if (session.peran === "Karyawan") {
-    return (session.modules || []).includes("sc")
+    return tampil((session.modules || []).includes("sc")
       ? <ScKaryawanPage session={session} onLogout={handleLogout} />
-      : <CwKaryawanPage session={session} onLogout={handleLogout} />;
+      : <CwKaryawanPage session={session} onLogout={handleLogout} />);
   }
 
   // Pegawai hanya melihat laporan Wellbeing Assessment miliknya, mobile-first. Laporan Screening
@@ -240,11 +275,11 @@ export default function App() {
   // kosong dengan tombol Keluar. SwPegawaiPage tetap ada untuk pratinjau dan jika keputusan ini
   // dibalik.
   if (session.peran === "Pegawai") {
-    return <WaPegawaiPage session={session} onLogout={handleLogout} />;
+    return tampil(<WaPegawaiPage session={session} onLogout={handleLogout} />);
   }
 
   if (session.peran === "AdminFammi") {
-    return <AdminCmsPage session={session} onLogout={handleLogout} />;
+    return tampil(<AdminCmsPage session={session} onLogout={handleLogout} />);
   }
 
   // Yayasan Pendidikan Telkom: shell dan tampilan sendiri sepenuhnya (empat menu, palet Telkom,
@@ -255,7 +290,7 @@ export default function App() {
   // ke tampilan ini. Kalau nanti yayasan kedua minta tampilan serupa, naikkan penanda ini jadi
   // kolom konfigurasi di tabel yayasan -- jangan tambah cabang hardcode kedua di sini.
   if (session.peran === "Yayasan" && session.yayasan_id === YPT_ID) {
-    return <YptApp session={session} onLogout={handleLogout} />;
+    return tampil(<YptApp session={session} onLogout={handleLogout} />);
   }
 
   const bulananOptions = availablePeriods.map((id) => ({ id, label: periodeLabel(id) }));
@@ -301,7 +336,7 @@ export default function App() {
     />
   ) : null;
 
-  return (
+  return tampil(
     <div className={styles.app}>
       <Header
         userName={session.nama}
