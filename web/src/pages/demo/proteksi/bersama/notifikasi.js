@@ -1,0 +1,160 @@
+/**
+ * Notifikasi lonceng di header, satu daftar per sudut pandang (`peran`). Mengikat kedua alur:
+ * kasus baru, penugasan, dan SLA dari alur kejadian; hasil skrining, tindak lanjut, dan checklist
+ * dari alur pencegahan. Layar menambah notifikasi baru lewat beriTahu() di konteks.
+ *
+ * `tujuan` = { layar, aksi? } yang dibuka saat notifikasi diklik. Aksi yang dipakai:
+ *   kasus     { jenis: "kasus", id }   laci detail kasus di layar Kasus
+ *   semua     { jenis: "gulir", id }   gulir ke [data-bagian="<id>"] (ditangani SekolahProteksi)
+ *   orangtua  { jenis: "buka", id }    tab aplikasi ponsel: "heart", "checklist", atau "laporanku"
+ * `nada`: red (kejadian), warn (tenggat), p (pencegahan), ok (selesai). Semua data contoh.
+ */
+export const NOTIFIKASI_AWAL = [
+  // Koordinator BK
+  {
+    id: "bk-ks016",
+    peran: "bk",
+    ikon: "peringatan",
+    nada: "red",
+    judul: "Laporan baru KS-016 · Darurat",
+    isi: "Belum ditriage. Batas 15 menit lagi.",
+    waktu: "2 menit lalu",
+    tujuan: { layar: "kasus", aksi: { jenis: "kasus", id: "KS-016" } },
+  },
+  {
+    id: "bk-ks010",
+    peran: "bk",
+    ikon: "jam",
+    nada: "warn",
+    judul: "KS-010 lewat SLA rencana tindak",
+    isi: "Otomatis naik ke Kepala Sekolah.",
+    waktu: "1 jam lalu",
+    tujuan: { layar: "kasus", aksi: { jenis: "kasus", id: "KS-010" } },
+  },
+  {
+    id: "bk-2b",
+    peran: "bk",
+    ikon: "skrining",
+    nada: "p",
+    judul: "Hasil HEART kelas 2B masuk",
+    isi: "26 dari 28 anak terpetakan, 3 berstatus Waspada.",
+    waktu: "Kemarin",
+    tujuan: { layar: "skrining" },
+  },
+  {
+    id: "bk-sesi",
+    peran: "bk",
+    ikon: "ceklis",
+    nada: "p",
+    judul: "Checklist Anda: sesi BK Raka",
+    isi: "Kamis, 12 Nov · berani bilang tidak dan mencari bantuan.",
+    waktu: "Kemarin",
+    dibaca: true,
+    tujuan: { layar: "anak", aksi: { jenis: "gulir", id: "tindak" } },
+  },
+  // Wali kelas 2B
+  {
+    id: "wk-ks015",
+    peran: "walas",
+    ikon: "tugaskan",
+    nada: "red",
+    judul: "Anda ditugaskan di KS-015",
+    isi: "Temui Raka dan catat kronologi sebelum 12.12.",
+    waktu: "08.41",
+    tujuan: { layar: "kasus", aksi: { jenis: "kasus", id: "KS-015" } },
+  },
+  {
+    id: "wk-raka",
+    peran: "walas",
+    ikon: "skrining",
+    nada: "p",
+    judul: "Hasil HEART Raka: Relasi Pertemanan Waspada",
+    isi: "Tindak lanjut dan buddy sudah disiapkan.",
+    waktu: "Kemarin",
+    tujuan: { layar: "anak", aksi: { jenis: "gulir", id: "hasil" } },
+  },
+  {
+    id: "wk-jumat",
+    peran: "walas",
+    ikon: "ceklis",
+    nada: "warn",
+    judul: "3 checklist jatuh tempo Jumat",
+    isi: "Skrining Bagas dan Putri, buddy Rizky, observasi minggu ke-3.",
+    waktu: "Kemarin",
+    tujuan: { layar: "kelas", aksi: { jenis: "gulir", id: "checklist" } },
+  },
+  {
+    id: "wk-ortu",
+    peran: "walas",
+    ikon: "sukses",
+    nada: "ok",
+    judul: "Ibu Dewi menyelesaikan 1 checklist rumah",
+    isi: "Menanyakan perasaan Raka sepulang sekolah.",
+    waktu: "Selasa",
+    dibaca: true,
+    tujuan: { layar: "anak", aksi: { jenis: "gulir", id: "tindak" } },
+  },
+  // Kepala Sekolah
+  {
+    id: "ks-ks010",
+    peran: "kepsek",
+    ikon: "jam",
+    nada: "red",
+    judul: "KS-010 lewat SLA, perlu keputusan Anda",
+    isi: "Rencana tindak terlambat 2 hari.",
+    waktu: "1 jam lalu",
+    tujuan: { layar: "kasus", aksi: { jenis: "kasus", id: "KS-010" } },
+  },
+  {
+    id: "ks-ks015",
+    peran: "kepsek",
+    ikon: "tiket",
+    nada: "red",
+    judul: "Kasus Tinggi KS-015 masuk",
+    isi: "Ditugaskan ke Bu Rina dan Bu Laras.",
+    waktu: "08.41",
+    tujuan: { layar: "kasus", aksi: { jenis: "kasus", id: "KS-015" } },
+  },
+  {
+    id: "ks-heart",
+    peran: "kepsek",
+    ikon: "skrining",
+    nada: "p",
+    judul: "Skrining HEART 96% terpetakan",
+    isi: "18 anak Waspada: 13 sudah punya tindak lanjut, 5 menunggu disusun Guru BK.",
+    waktu: "Kemarin",
+    dibaca: true,
+    tujuan: { layar: "skrining" },
+  },
+  // Orang tua (Ibu Dewi)
+  {
+    id: "ot-heart",
+    peran: "ortu",
+    ikon: "skrining",
+    nada: "p",
+    judul: "Hasil skrining HEART Raka tersedia",
+    isi: "Lihat hasilnya dan saran untuk di rumah.",
+    waktu: "Kemarin",
+    tujuan: { layar: "orangtua", aksi: { jenis: "buka", id: "heart" } },
+  },
+  {
+    id: "ot-ks015",
+    peran: "ortu",
+    ikon: "tiket",
+    nada: "warn",
+    judul: "Laporan Anda KS-015 sedang ditangani",
+    isi: "Bu Rina dan Bu Laras ditugaskan menangani.",
+    waktu: "08.41",
+    tujuan: { layar: "orangtua", aksi: { jenis: "buka", id: "laporanku" } },
+  },
+  {
+    id: "ot-checklist",
+    peran: "ortu",
+    ikon: "ceklis",
+    nada: "p",
+    judul: "Checklist rumah minggu ini",
+    isi: "Undang 1 atau 2 teman sekelas bermain di rumah.",
+    waktu: "Kemarin",
+    tujuan: { layar: "orangtua", aksi: { jenis: "buka", id: "checklist" } },
+  },
+];

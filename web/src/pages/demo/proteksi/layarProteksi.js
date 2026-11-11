@@ -15,24 +15,37 @@ export const ORANG = {
 };
 
 /**
- * Menu kiri atas. `peran` = sudut pandang yang otomatis dipakai saat layar dibuka (desain: tiap
- * layar punya orangnya sendiri). Peta alur tidak mengubah sudut pandang.
+ * Layar prototipe. `peran` = sudut pandang yang otomatis dipakai saat layar dibuka (tiap layar punya
+ * orangnya sendiri; Panduan tidak mengubah sudut pandang). `tab` = tab header yang menyala, `alur` =
+ * alur yang dijalani layar itu (bilah alur, lihat bersama/alur.js), `grup` = kelompoknya.
  */
 export const LAYAR = [
-  { id: "ringkasan", grup: "Sekolah Proteksi", label: "Ringkasan", ikon: "dasbor", peran: "kepsek" },
-  { id: "skrining", grup: "Sekolah Proteksi", label: "Skrining & pemetaan", ikon: "skrining", peran: "bk" },
-  { id: "kelas", grup: "Sekolah Proteksi", label: "Ruang wali kelas", ikon: "kelompok", peran: "walas" },
-  { id: "anak", grup: "Sekolah Proteksi", label: "Profil anak", ikon: "orang", peran: "walas" },
-  { id: "kasus", grup: "Sekolah Proteksi", label: "Kasus & SLA", ikon: "tiket", peran: "bk", hitung: 8 },
-  { id: "orangtua", grup: "Aplikasi keluarga", label: "Orang tua & anak", ikon: "ponsel", peran: "ortu" },
-  { id: "alur", grup: "Panduan", label: "Peta alur & SLA", ikon: "peta", peran: null },
+  { id: "ringkasan", grup: "Ringkasan", tab: "ringkasan", alur: null, label: "Ringkasan", ikon: "dasbor", peran: "kepsek" },
+  { id: "skrining", grup: "Alur pencegahan", tab: "cegah", alur: "cegah", label: "Skrining HEART", ikon: "skrining", peran: "bk" },
+  { id: "anak", grup: "Alur pencegahan", tab: "cegah", alur: "cegah", label: "Laporan anak", ikon: "orang", peran: "walas" },
+  { id: "kelas", grup: "Alur pencegahan", tab: "cegah", alur: "cegah", label: "Ruang wali kelas", ikon: "kelompok", peran: "walas" },
+  { id: "kasus", grup: "Alur kejadian", tab: "kejadian", alur: "kejadian", label: "Kasus & penugasan", ikon: "tiket", peran: "bk", hitung: 8 },
+  { id: "orangtua", grup: "Aplikasi keluarga", tab: "orangtua", alur: null, label: "Aplikasi orang tua", ikon: "ponsel", peran: "ortu" },
+  { id: "alur", grup: "Panduan", tab: "panduan", alur: null, label: "Panduan alur & SLA", ikon: "peta", peran: null },
+];
+
+/**
+ * Tab header, selalu terlihat. Pencegahan membuka langkah pertama alurnya (Skrining HEART); langkah
+ * berikutnya ada di bilah alur. `hitung` menampilkan jumlah kasus aktif.
+ */
+export const TAB = [
+  { id: "ringkasan", label: "Ringkasan", layar: "ringkasan" },
+  { id: "cegah", label: "Pencegahan", layar: "skrining" },
+  { id: "kejadian", label: "Kejadian", layar: "kasus", hitung: true },
+  { id: "orangtua", label: "Orang tua", layar: "orangtua" },
+  { id: "panduan", label: "Panduan", layar: "alur" },
 ];
 
 /** Pilihan "Lihat sebagai" di kanan atas: tiap peran membuka layar utamanya. */
 export const PERAN = [
   { id: "kepsek", label: "Kepala Sekolah", sub: "Ringkasan", layar: "ringkasan" },
-  { id: "bk", label: "Koordinator BK", sub: "Kasus & SLA", layar: "kasus" },
-  { id: "walas", label: "Wali kelas 2B", sub: "Ruang kelas", layar: "kelas" },
+  { id: "bk", label: "Koordinator BK", sub: "Kasus & penugasan", layar: "kasus" },
+  { id: "walas", label: "Wali kelas 2B", sub: "Kelas & checklist", layar: "kelas" },
   { id: "ortu", label: "Orang tua", sub: "Aplikasi ponsel", layar: "orangtua" },
 ];
 

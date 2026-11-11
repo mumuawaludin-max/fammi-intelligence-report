@@ -1,4 +1,4 @@
-import { Fragment, useEffect, useRef } from "react";
+import { useEffect, useRef } from "react";
 import { IKON } from "./ikonData";
 import dasar from "./proteksi.module.css";
 
@@ -29,22 +29,18 @@ export function Ikon({ nama, d, size = 18, warna, className, style, label }) {
   );
 }
 
-/** Kepala kartu: ubin ikon + judul dua baris (desain memecah judul dengan <br>). */
+/**
+ * Kepala kartu: ubin ikon + judul satu baris. Judul berbentuk array (peninggalan desain awal yang
+ * memecah judul jadi dua baris) digabung dengan spasi supaya tampilan tetap ringkas.
+ */
 export function KepalaKartu({ ikon, d, nada = "p", judul, as: Tag = "h2" }) {
-  const baris = Array.isArray(judul) ? judul : [judul];
+  const teks = Array.isArray(judul) ? judul.join(" ") : judul;
   return (
     <div className="chead">
       <div className={`tile ${nada}`}>
-        <Ikon nama={ikon} d={d} size={22} />
+        <Ikon nama={ikon} d={d} size={19} />
       </div>
-      <Tag className="ctitle">
-        {baris.map((b, i) => (
-          <Fragment key={i}>
-            {i > 0 && <br />}
-            {b}
-          </Fragment>
-        ))}
-      </Tag>
+      <Tag className="ctitle">{teks}</Tag>
     </div>
   );
 }

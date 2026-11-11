@@ -1,0 +1,59 @@
+/* Komponen kecil HEART (HeartKecil.jsx). Kelas lokal; warna dari token --sp-* di .scope. */
+
+.huruf { display: inline-flex; gap: 3px; vertical-align: middle; }
+.hurufSel {
+  width: 20px;
+  height: 20px;
+  border-radius: 5px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1;
+}
+.hurufMd .hurufSel { width: 26px; height: 26px; border-radius: 7px; font-size: 13px; }
+
+.hati { display: block; max-width: 100%; height: auto; overflow: visible; }
+.kode { fill: var(--sp-putih); font-size: 14px; font-weight: 700; font-family: inherit; pointer-events: none; }
+.nama { font-size: 9px; font-weight: 600; font-family: inherit; pointer-events: none; }
+.cincin { fill: none; stroke: var(--sp-ungu); stroke-width: 3; }
+.keping { cursor: pointer; outline: none; }
+.keping:hover rect { filter: brightness(0.97); }
+.keping:focus-visible .cincin,
+.keping:focus-visible circle:first-of-type { stroke: var(--sp-ungu); stroke-width: 3; }
+
+/* Label skor di atas batang, angka ambang di bawahnya, garis penanda menembus batang. */
+.skala { position: relative; padding-top: 26px; margin: 0 12px; }
+.batang { display: flex; height: 10px; border-radius: 5px; overflow: hidden; }
+.batang span { display: block; height: 100%; }
+.angka { position: relative; height: 16px; margin-top: 4px; font-size: 11px; color: var(--sp-tinta-3); }
+.angka span { position: absolute; top: 0; transform: translateX(-50%); }
+.penanda {
+  position: absolute;
+  top: 0;
+  transform: translateX(-50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  pointer-events: none;
+}
+.penanda span {
+  padding: 2px 8px;
+  border-radius: 6px;
+  background: var(--sp-ungu-tua);
+  color: var(--sp-putih);
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 15px;
+  white-space: nowrap;
+}
+.penanda::after {
+  content: "";
+  width: 4px;
+  height: 18px;
+  margin-top: 1px;
+  border-radius: 2px;
+  background: var(--sp-ungu-tua);
+  box-shadow: 0 0 0 2px var(--sp-putih);
+}

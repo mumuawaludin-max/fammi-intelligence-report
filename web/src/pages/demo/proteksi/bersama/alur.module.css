@@ -1,0 +1,79 @@
+/* Bilah alur (AlurBar.jsx). Kelas lokal; warna dari token --sp-* di .scope. */
+
+.alur {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 10px 8px 14px;
+  background: var(--sp-putih);
+  border-radius: 12px;
+  box-shadow: var(--sp-bayangan);
+  overflow-x: auto;
+  scrollbar-width: thin;
+}
+.nama {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+.cegah .nama { color: var(--sp-ungu); }
+.kejadian .nama { color: var(--sp-merah-teks); }
+
+.daftar { display: flex; align-items: center; gap: 2px; margin: 0; padding: 0; list-style: none; }
+.butir { display: flex; align-items: center; gap: 2px; flex: none; }
+.panah { color: var(--sp-tinta-pudar); flex: none; }
+
+.langkah {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  height: 32px;
+  padding: 0 10px 0 6px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--sp-tinta-4);
+  cursor: pointer;
+  white-space: nowrap;
+}
+.langkah:hover { background: var(--sp-ungu-hover); color: var(--sp-tinta); }
+.langkah:focus-visible { outline: var(--sp-fokus); outline-offset: 1px; }
+.no {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  font-weight: 700;
+  background: var(--sp-abu-2);
+  color: var(--sp-tinta-4);
+}
+.lewat .no { background: var(--sp-ungu-tipis); color: var(--sp-ungu); }
+.sekarang { background: var(--sp-ungu-lembut); color: var(--sp-ungu-tua); font-weight: 700; }
+.sekarang .no { background: var(--sp-ungu); color: var(--sp-putih); }
+.kejadian .lewat .no { background: var(--sp-merah-tipis); color: var(--sp-merah-teks); }
+.kejadian .sekarang { background: var(--sp-merah-tipis); color: var(--sp-merah-tua); }
+.kejadian .sekarang .no { background: var(--sp-merah-teks); }
+
+.hitung {
+  min-width: 20px;
+  height: 18px;
+  padding: 0 6px;
+  border-radius: 9px;
+  background: var(--sp-abu-3);
+  color: var(--sp-tinta-4);
+  font-size: 11px;
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.sekarang .hitung { background: var(--sp-putih); }

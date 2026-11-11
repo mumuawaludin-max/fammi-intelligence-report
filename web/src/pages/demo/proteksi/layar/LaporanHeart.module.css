@@ -1,0 +1,260 @@
+/* Bagian Hasil HEART di Laporan anak (LaporanHeart.jsx). Kelas dasar ada di proteksi.module.css;
+   berkas ini hanya memuat kelas khusus bagian ini, semuanya di bawah .laporan supaya tidak menjalar
+   ke layar lain. Warna hanya token --sp-*. */
+
+.laporan { padding: 16px 18px; display: flex; flex-direction: column; gap: 14px; }
+
+/* ---------- huruf aspek berwarna status (seperti HurufHeart) ---------- */
+.laporan :global .lhkode {
+  width: 22px;
+  height: 22px;
+  border-radius: 6px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1;
+}
+.laporan :global .lhkode.besar { width: 34px; height: 34px; border-radius: 10px; font-size: 16px; }
+.laporan :global .st-baik { background: var(--sp-hijau-latar); color: var(--sp-hijau); }
+.laporan :global .st-perhatian { background: var(--sp-kuning-latar); color: var(--sp-kuning); }
+.laporan :global .st-waspada { background: var(--sp-merah-latar); color: var(--sp-merah); }
+
+/* ---------- kepala dan penjelasan "Apa yang dinilai HEART" ---------- */
+.laporan :global .lhkepala { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; }
+.laporan :global .lhtanggal { font-size: 12px; line-height: 16px; color: var(--sp-tinta-3); }
+.laporan :global .lhbukapj { margin-left: auto; }
+.laporan :global .lhbukapj svg:last-child { transition: transform 0.18s ease; }
+.laporan :global .lhputar { transform: rotate(180deg); }
+
+.laporan :global .lhpj {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 12px 14px;
+  border-radius: 12px;
+  background: var(--sp-ungu-hover);
+}
+/* Kelas di atas memberi display, jadi atribut hidden perlu ditegaskan. */
+.laporan :global .lhpj[hidden] { display: none; }
+.laporan :global .lhpjket { font-size: 12px; line-height: 17px; color: var(--sp-tinta-2); }
+.laporan :global .lhpjgrid { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 14px; }
+.laporan :global .lhpjitem { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.laporan :global .lhpjitem dt {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 2px;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--sp-ungu-tua);
+}
+.laporan :global .lhpjitem dd { margin: 0; font-size: 12px; line-height: 16px; color: var(--sp-tinta-5); }
+.laporan :global .lhpjitem dd b { font-weight: 600; color: var(--sp-tinta); }
+
+/* ---------- ringkasan naratif dan catatan kaki sumber ---------- */
+.laporan :global .lhringkas {
+  padding: 11px 14px;
+  border-radius: 12px;
+  background: var(--sp-ungu-lembut);
+  font-size: 13px;
+  line-height: 19px;
+  color: var(--sp-tinta);
+}
+.laporan :global .lhkaki {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  padding-top: 12px;
+  border-top: 1px solid var(--sp-garis-3);
+  font-size: 12px;
+  line-height: 16px;
+  color: var(--sp-tinta-3);
+}
+.laporan :global .lhkaki svg { flex: none; margin-top: 1px; color: var(--sp-tinta-pudar); }
+
+/* ---------- badan: kiri (peta hati, tabel aspek, pendukung) | kanan (detail, saran) ---------- */
+.laporan :global .lhbadan {
+  display: grid;
+  grid-template-columns: 324px minmax(0, 1fr);
+  gap: 22px;
+  align-items: start;
+}
+.laporan :global .lhkol { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
+.laporan :global .lhpeta { display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+.laporan :global .lhhati { display: flex; justify-content: center; }
+.laporan :global .lhdaftar { min-width: 0; }
+.laporan :global .lhdaftar ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 2px; }
+.laporan :global .lhdaftarkepala,
+.laporan :global .lhbaris {
+  display: grid;
+  grid-template-columns: 22px minmax(0, 1fr) 36px 100px;
+  align-items: center;
+  gap: 8px;
+}
+.laporan :global .lhdaftarkepala {
+  padding: 0 8px 4px;
+  border-bottom: 1px solid var(--sp-garis-3);
+  margin-bottom: 2px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--sp-tinta-3);
+}
+.laporan :global .lhdaftarkepala span:first-child { grid-column: 1 / 3; }
+.laporan :global .lhdaftarkepala span:nth-child(2) { text-align: right; }
+.laporan :global .lhbaris {
+  width: 100%;
+  min-height: 40px;
+  padding: 4px 8px;
+  border-radius: 9px;
+  text-align: left;
+  font-size: 13px;
+  color: var(--sp-tinta);
+}
+.laporan :global .lhbaris:hover { background: var(--sp-ungu-hover); }
+.laporan :global .lhbaris.on { background: var(--sp-ungu-lembut); box-shadow: inset 3px 0 0 var(--sp-ungu); }
+.laporan :global .lhbaris:focus-visible { outline: var(--sp-fokus); outline-offset: 1px; }
+.laporan :global .lhnama { min-width: 0; font-weight: 600; }
+.laporan :global .lhskor { font-weight: 700; text-align: right; }
+.laporan :global .lhskor small { font-size: 11px; font-weight: 500; color: var(--sp-tinta-3); }
+.laporan :global .lhbaris .pill { justify-self: start; }
+
+/* ---------- detail satu aspek ---------- */
+.laporan :global .lhdetail { display: flex; flex-direction: column; gap: 12px; min-width: 0; }
+.laporan :global .lhdkepala { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 10px; }
+.laporan :global .lhdjudul { margin: 0; font-size: 17px; line-height: 22px; font-weight: 700; color: var(--sp-ungu-tua); }
+.laporan :global .lhsegmen {
+  display: inline-flex;
+  gap: 4px;
+  margin-left: auto;
+  padding: 3px;
+  border-radius: 10px;
+  background: var(--sp-abu);
+}
+.laporan :global .lhhuruf {
+  width: 30px;
+  height: 30px;
+  border-radius: 7px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  font-weight: 700;
+}
+.laporan :global .lhhuruf:hover { filter: brightness(0.96); }
+.laporan :global .lhhuruf.on { box-shadow: 0 0 0 2px var(--sp-putih), 0 0 0 4px var(--sp-ungu); }
+.laporan :global .lhhuruf:focus-visible { outline: var(--sp-fokus); outline-offset: 3px; }
+
+.laporan :global .lhstatus { display: flex; flex-wrap: wrap; gap: 12px 16px; align-items: center; }
+.laporan :global .lharti { flex: 1 1 300px; padding: 10px 12px; border-radius: 10px; font-size: 12px; line-height: 17px; }
+.laporan :global .lharti.st-baik { background: var(--sp-hijau-tipis); color: var(--sp-hijau-tua); }
+.laporan :global .lharti.st-perhatian { background: var(--sp-kuning-tipis); color: var(--sp-kuning-tua); }
+.laporan :global .lharti.st-waspada { background: var(--sp-merah-tipis); color: var(--sp-merah-tua); }
+.laporan :global .lhskala { flex: 1 1 240px; min-width: 0; }
+
+/* Tabel indikator dan faktor pendukung: teks boleh turun baris (dasar .tbl memaksa satu baris). */
+.laporan :global .lhind tbody th,
+.laporan :global .lhpend tbody th {
+  height: 42px;
+  padding: 7px 12px;
+  border-top: 1px solid var(--sp-garis-3);
+  background: none;
+  white-space: normal;
+  line-height: 16px;
+}
+.laporan :global .lhind td,
+.laporan :global .lhpend td { height: 42px; white-space: normal; line-height: 16px; }
+.laporan :global .lhind tbody th { width: 30%; font-weight: 600; }
+.laporan :global .lhind td:nth-child(2) { width: 1%; white-space: nowrap; }
+.laporan :global .lhind td:last-child { color: var(--sp-tinta-5); }
+.laporan :global .lhpend thead th { height: 30px; padding-top: 6px; padding-bottom: 6px; }
+.laporan :global .lhpend tbody th { width: 56%; font-weight: 400; color: var(--sp-tinta-5); }
+.laporan :global .lhpend td { font-weight: 600; }
+
+.laporan :global .lhblok { display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+.laporan :global .lhsub { margin: 0; font-size: 13px; line-height: 18px; font-weight: 700; color: var(--sp-ungu-tua); }
+.laporan :global .lhsub span { font-weight: 500; color: var(--sp-tinta-3); }
+
+/* Kartu saran: label "Lakukan" dan "Caranya" di kolom kiri kecil, isinya di kanan. */
+.laporan :global .lhsaran { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+.laporan :global .lhsarankartu {
+  display: grid;
+  grid-template-columns: 22px minmax(0, 1fr);
+  gap: 10px;
+  padding: 10px 12px;
+  border: 1px solid var(--sp-garis-3);
+  border-radius: 10px;
+  background: var(--sp-abu-4);
+}
+.laporan :global .lhno {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--sp-ungu-tipis);
+  color: var(--sp-ungu);
+  font-size: 11px;
+  font-weight: 700;
+}
+.laporan :global .lhsaranisi {
+  display: grid;
+  grid-template-columns: 56px minmax(0, 1fr);
+  gap: 4px 8px;
+  min-width: 0;
+  margin: 0;
+  font-size: 12px;
+  line-height: 17px;
+}
+.laporan :global .lhsaranisi dt { padding-top: 1px; font-size: 11px; line-height: 16px; font-weight: 600; color: var(--sp-tinta-3); }
+.laporan :global .lhsaranisi dd { margin: 0; min-width: 0; }
+.laporan :global .lhsaranisi b { font-size: 13px; line-height: 18px; color: var(--sp-tinta); }
+.laporan :global .lhsaranisi ul { margin: 0; padding: 0 0 0 16px; color: var(--sp-tinta-5); }
+.laporan :global .lhsaranisi li + li { margin-top: 2px; }
+
+/* ---------- lebar layar ---------- */
+@media (max-width: 1060px) {
+  .laporan :global .lhpjgrid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
+/* Satu kolom: urutan kembali seperti laporan contoh (peta, detail, pendukung, saran). */
+@media (max-width: 960px) {
+  .laporan :global .lhbadan { display: flex; flex-direction: column; align-items: stretch; gap: 16px; }
+  .laporan :global .lhkol { display: contents; }
+  .laporan :global .lhpeta { order: 1; flex-direction: row; align-items: center; gap: 18px; }
+  .laporan :global .lhdetail { order: 2; }
+  .laporan :global .lhpendukung { order: 3; }
+  .laporan :global .lhsaranblok { order: 4; }
+  .laporan :global .lhhati { flex: none; }
+  .laporan :global .lhdaftar { flex: 1 1 auto; }
+}
+@media (max-width: 600px) {
+  .laporan { padding: 14px; }
+  .laporan :global .lhpjgrid { grid-template-columns: minmax(0, 1fr); }
+  .laporan :global .lhpeta { flex-direction: column; align-items: stretch; }
+  .laporan :global .lhsegmen { width: 100%; margin-left: 0; }
+  /* Nomor saran hanya hiasan; di layar sempit ruangnya dipakai teks. */
+  .laporan :global .lhsarankartu { grid-template-columns: minmax(0, 1fr); }
+  .laporan :global .lhno { display: none; }
+  .laporan :global .lhhuruf { flex: 1; height: 36px; }
+  /* Tabel indikator jadi baris bertumpuk: nama dan status di atas, keterangan di bawahnya. */
+  .laporan :global .lhind thead { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+  .laporan :global .lhind tbody tr {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 4px 10px;
+    align-items: center;
+    padding: 9px 12px;
+    border-top: 1px solid var(--sp-garis-3);
+  }
+  .laporan :global .lhind tbody tr:first-child { border-top: 0; }
+  .laporan :global .lhind tbody th,
+  .laporan :global .lhind td { display: block; width: auto; height: auto; padding: 0; border: 0; }
+  .laporan :global .lhind td:last-child { grid-column: 1 / -1; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .laporan :global .lhbukapj svg:last-child { transition: none; }
+}

@@ -1,193 +1,585 @@
-/* Layar 3 · Ruang wali kelas (Bu Rina, wali kelas 2B). Kelas dasar ada di proteksi.module.css;
-   di sini hanya kelas khusus layar ini, semuanya di bawah akar .layar. Nilai diambil dari
-   artboard "Kelas" kanvas desain pemilik produk 2026-11-11. */
+/* Layar Ruang wali kelas (Bu Rina, wali kelas 2B), versi ringkas HEART. Kelas dasar ada di
+   proteksi.module.css; di sini hanya kelas khusus layar ini, semuanya di bawah akar .layar dan
+   hanya memakai token --sp-*. Laci layar ini (RuangKelasLaci.jsx) dirender di dalam akar yang
+   sama, jadi kelasnya juga ada di sini. */
 
-/* ---------- judul: basis kolom kiri dan lebar paragraf pembuka layar ini berbeda dari dasar ---------- */
-.layar :global section.titlerow > div:first-child { flex-basis: 480px; }
-.layar :global .titlerow .lead { max-width: 700px; }
-
-/* Ubin ikon kecil di daftar tugas. */
-.layar :global .tile.sm { width: 36px; height: 36px; border-radius: 10px; }
-
-/* ---------- tugas saya ---------- */
-.layar :global .tasks { display: flex; flex-direction: column; gap: 10px; }
-.layar :global .task {
-  display: grid;
-  grid-template-columns: auto minmax(0, 1fr) auto;
-  gap: 14px;
+/* ---------- angka kecil di kanan kepala kartu, bilah kemajuan ---------- */
+.layar :global .ckkemajuan {
+  display: inline-flex;
   align-items: center;
-  padding: 12px 14px;
-  border: 1px solid var(--sp-garis-2);
-  border-radius: 12px;
+  gap: 10px;
+  font-size: 12px;
+  line-height: 16px;
+  color: var(--sp-tinta-2);
 }
-.layar :global .task.done { background: var(--sp-abu-4); }
-.layar :global .tt { font-size: 13px; font-weight: 700; line-height: 18px; }
-.layar :global .tm { font-size: 12px; line-height: 16px; color: var(--sp-tinta-2); margin-top: 2px; }
-.layar :global .tright { display: flex; flex-direction: column; align-items: flex-end; gap: 8px; }
+.layar :global .ckbar {
+  flex: none;
+  width: 96px;
+  height: 6px;
+  border-radius: 3px;
+  background: var(--sp-abu-3);
+  overflow: hidden;
+}
+.layar :global .ckbar > span {
+  display: block;
+  height: 100%;
+  border-radius: 3px;
+  background: var(--sp-ungu-bar);
+  transition: width 0.25s ease;
+}
 
-/* ---------- kartu skrining kelas ---------- */
-.layar :global .hero .herobot { padding-bottom: 8px; }
-.layar :global .dist { display: flex; flex-wrap: wrap; gap: 8px; padding: 12px 24px 24px; }
+/* ---------- checklist ---------- */
+.layar :global .ckgrup { display: flex; flex-direction: column; gap: 4px; }
+.layar :global .ckkepala {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0;
+  font-size: 11px;
+  line-height: 18px;
+  font-weight: 700;
+  color: var(--sp-tinta-3);
+}
+.layar :global .ckjml {
+  min-width: 18px;
+  height: 16px;
+  padding: 0 5px;
+  border-radius: 8px;
+  background: var(--sp-abu-2);
+  color: var(--sp-tinta-4);
+  font-size: 10px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.layar :global .cktoggle {
+  align-self: flex-start;
+  padding: 0 6px 0 0;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  cursor: pointer;
+}
+.layar :global .cktoggle:hover { color: var(--sp-ungu); }
+.layar :global .ckpanah { transform: rotate(-90deg); transition: transform 0.15s ease; }
+.layar :global .cktoggle[aria-expanded="true"] .ckpanah { transform: none; }
+
+.layar :global .cklist {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  border: 1px solid var(--sp-garis-2);
+  border-radius: 10px;
+  overflow: hidden;
+}
+/* Desktop: satu baris per butir, kolom sejajar seperti tabel. .ckmeta memakai display: contents
+   supaya anak, alur, dan waktu jadi kolom grid sendiri; di layar sempit ia kembali jadi satu baris
+   keterangan di bawah judul. */
+.layar :global .ckbaris {
+  display: grid;
+  grid-template-columns: 18px minmax(0, 1fr) 132px 92px 148px 152px;
+  align-items: center;
+  column-gap: 12px;
+  min-height: 44px;
+  padding: 6px 12px;
+  border-top: 1px solid var(--sp-garis-3);
+  font-size: 12px;
+  line-height: 16px;
+}
+.layar :global .ckbaris:first-child { border-top: 0; }
+.layar :global .ckbaris:hover { background: var(--sp-ungu-hover); }
+.layar :global .ckcek { width: 18px; height: 18px; margin: 0; accent-color: var(--sp-ungu); cursor: pointer; }
+.layar :global .ckjudul { font-size: 13px; line-height: 17px; font-weight: 600; color: var(--sp-tinta); cursor: pointer; }
+.layar :global .ckmeta { display: contents; }
+.layar :global .ckanak { display: inline-flex; align-items: center; gap: 6px; min-width: 0; color: var(--sp-tinta-2); }
+.layar :global .cknama { min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.layar :global .ckalur { display: inline-flex; }
+.layar :global .ckwaktu { display: inline-flex; align-items: center; gap: 5px; color: var(--sp-tinta-2); white-space: nowrap; }
+.layar :global .ckwaktu svg { flex: none; color: var(--sp-tinta-pudar); }
+.layar :global .ckbaris.kasus .ckwaktu { color: var(--sp-merah-teks); font-weight: 700; }
+.layar :global .ckbaris.kasus .ckwaktu svg { color: var(--sp-merah-teks); }
+.layar :global .ckaksi { justify-self: end; }
+.layar :global .ckaksi svg { color: var(--sp-tinta-pudar); margin-right: -3px; }
+.layar :global .ckbaris.beres .ckjudul {
+  font-weight: 500;
+  color: var(--sp-tinta-3);
+  text-decoration: line-through;
+  text-decoration-color: var(--sp-tinta-pudar);
+}
+.layar :global .ckbaris.beres .ckanak,
+.layar :global .ckbaris.beres .ckwaktu { color: var(--sp-tinta-3); font-weight: 400; }
+.layar :global .ckbaris.beres .ckwaktu svg { color: var(--sp-tinta-pudar); }
+
+/* Huruf aspek HEART di depan nama anak, berwarna status anak pada aspek itu. */
+.layar :global .ckhuruf {
+  flex: none;
+  width: 18px;
+  height: 18px;
+  border-radius: 5px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10px;
+  font-weight: 700;
+  background: var(--sp-abu-3);
+  color: var(--sp-tinta-3);
+}
+.layar :global .ckhuruf.baik { background: var(--sp-hijau-latar); color: var(--sp-hijau); }
+.layar :global .ckhuruf.perhatian { background: var(--sp-kuning-latar); color: var(--sp-kuning); }
+.layar :global .ckhuruf.waspada { background: var(--sp-merah-latar); color: var(--sp-merah); }
 
 /* ---------- peta kelas ---------- */
-.layar :global .kgrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 12px; }
-.layar :global .ktile {
+.layar :global .pklegenda {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 6px 16px;
+  margin-top: -4px;
+  font-size: 11px;
+  line-height: 16px;
+  color: var(--sp-tinta-3);
+}
+.layar :global .pkkode,
+.layar :global .pkwarna { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 12px; }
+.layar :global .pkkode b { margin-right: 4px; color: var(--sp-ungu-tua); }
+.layar :global .pkwarna > span { display: inline-flex; align-items: center; gap: 5px; }
+.layar :global .pkwarna i { width: 11px; height: 11px; border-radius: 3px; }
+.layar :global .pkwarna i.baik { background: var(--sp-hijau-latar); box-shadow: inset 0 0 0 1px var(--sp-hijau-batang); }
+.layar :global .pkwarna i.perhatian { background: var(--sp-kuning-latar); box-shadow: inset 0 0 0 1px var(--sp-jingga); }
+.layar :global .pkwarna i.waspada { background: var(--sp-merah-latar); box-shadow: inset 0 0 0 1px var(--sp-merah-teks); }
+.layar :global .pkwarna i.belum { background: var(--sp-abu-3); box-shadow: inset 0 0 0 1px var(--sp-tinta-pudar); }
+
+.layar :global .pkgrid {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: 8px;
+}
+.layar :global .pkgrid > li { display: flex; min-width: 0; }
+.layar :global .pktile {
+  flex: 1;
+  min-width: 0;
   display: flex;
   flex-direction: column;
   align-items: flex-start;
-  gap: 8px;
-  padding: 14px;
+  gap: 7px;
+  padding: 8px 9px 9px;
   border: 1px solid var(--sp-garis-2);
-  border-radius: 12px;
+  border-left: 3px solid var(--sp-garis);
+  border-radius: 10px;
   background: var(--sp-putih);
-  cursor: pointer;
   text-align: left;
-  min-height: 136px;
+  cursor: pointer;
 }
-.layar :global .ktile:hover { border-color: var(--sp-ungu-garis); background: #FBFAFF; }
-.layar :global .kav {
-  width: 40px;
-  height: 40px;
+.layar :global .pktile:hover { background: var(--sp-ungu-hover); box-shadow: var(--sp-bayangan); }
+.layar :global .pktile.waspada { border-left-color: var(--sp-merah-teks); }
+.layar :global .pktile.perhatian { border-left-color: var(--sp-jingga); }
+.layar :global .pktile.baik { border-left-color: var(--sp-hijau-batang); }
+.layar :global .pktile.belum { border-left-color: var(--sp-tinta-pudar); background: var(--sp-abu-4); }
+.layar :global .pktile.belum:hover { background: var(--sp-ungu-hover); }
+.layar :global .pkatas { display: flex; align-items: center; gap: 6px; width: 100%; min-width: 0; }
+.layar :global .pknama {
+  flex: 1;
+  min-width: 0;
+  font-size: 12px;
+  line-height: 16px;
+  font-weight: 700;
+  color: var(--sp-tinta);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.layar :global .pkpanah { flex: none; color: var(--sp-ungu); }
+.layar :global .pkchip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  height: 20px;
+  padding: 0 7px 0 5px;
+  border-radius: 6px;
+  background: var(--sp-abu-2);
+  color: var(--sp-tinta-4);
+  font-size: 11px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+/* Bukan .isi: nama itu milik akar layar di kelas dasar. */
+.layar :global .pkchip.ajak { background: var(--sp-ungu-pil); color: var(--sp-ungu); }
+.layar :global .pkchip.bahaya { background: var(--sp-merah-latar); color: var(--sp-merah); }
+
+/* Avatar inisial berwarna status (ubin, buddy, laci). */
+.layar :global .pkav {
+  flex: none;
+  width: 24px;
+  height: 24px;
   border-radius: 50%;
-  display: flex;
+  display: inline-flex;
   align-items: center;
   justify-content: center;
-  font-size: 13px;
+  font-size: 10px;
   font-weight: 700;
-  flex: none;
+  background: var(--sp-abu-2);
+  color: var(--sp-tinta-4);
 }
-.layar :global .kav.dukung { background: var(--sp-merah-latar); color: var(--sp-merah); }
-.layar :global .kav.pantau { background: var(--sp-kuning-latar); color: var(--sp-kuning); }
-.layar :global .kav.belum { background: var(--sp-abu-2); color: var(--sp-tinta-4); }
-.layar :global .kav.sesuai { background: var(--sp-hijau-latar); color: var(--sp-hijau); }
-.layar :global .kname { font-size: 13px; font-weight: 700; line-height: 17px; }
-.layar :global .kflag { font-size: 11px; line-height: 14px; color: var(--sp-tinta-2); }
-.layar :global .kflag.r { color: var(--sp-merah); font-weight: 700; }
+.layar :global .pkav.waspada { background: var(--sp-merah-latar); color: var(--sp-merah); }
+.layar :global .pkav.perhatian { background: var(--sp-kuning-latar); color: var(--sp-kuning); }
+.layar :global .pkav.baik { background: var(--sp-hijau-latar); color: var(--sp-hijau); }
+.layar :global .pkav.besar { width: 44px; height: 44px; font-size: 14px; }
+
+/* ---------- peta buddy ---------- */
+.layar :global .bdbelum {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px 12px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: var(--sp-kuning-tipis);
+}
+.layar :global .bdbelumteks { flex: 1 1 320px; min-width: 0; display: flex; flex-direction: column; gap: 2px; font-size: 13px; line-height: 18px; }
+.layar :global .bdbelumteks p { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 6px; }
+.layar :global .bdbelumteks .mut { font-size: 12px; line-height: 16px; }
+.layar :global .bdgrid {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 8px;
+}
+.layar :global .bdpasang {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+  padding: 9px 12px;
+  border: 1px solid var(--sp-garis-2);
+  border-radius: 10px;
+}
+.layar :global .bdpasang.baru { border-color: var(--sp-ungu-garis); background: var(--sp-ungu-kartu); }
+.layar :global .bdnama { display: flex; align-items: center; gap: 6px; min-width: 0; font-size: 12px; line-height: 16px; font-weight: 700; }
+.layar :global .bdorang { min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.layar :global .bdpanah { flex: none; margin: 0 2px; color: var(--sp-tinta-pudar); }
+.layar :global .bdmeta { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 10px; font-size: 11px; color: var(--sp-tinta-3); }
+.layar :global .bdcatat { font-size: 12px; line-height: 17px; color: var(--sp-tinta-3); }
 
 /* ---------- kelas kesadaran ---------- */
-.layar :global .lesl { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 10px; }
-.layar :global .les {
+.layar :global .kzlist { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
+.layar :global .kzbaris {
   display: grid;
-  grid-template-columns: auto minmax(0, 1fr);
-  gap: 12px;
-  padding: 12px 14px;
-  border-radius: 12px;
-  background: var(--sp-ungu-kartu);
-  border: 1px solid var(--sp-garis-2);
+  grid-template-columns: 24px minmax(0, 1fr) auto;
+  align-items: start;
+  gap: 10px;
+  padding: 8px 0;
+  border-top: 1px solid var(--sp-garis-3);
 }
-.layar :global .les.next { background: var(--sp-ungu-lembut); border-color: var(--sp-ungu-garis); }
-.layar :global .sno {
-  width: 28px;
-  height: 28px;
+.layar :global .kzbaris:first-child { border-top: 0; padding-top: 0; }
+.layar :global .kzbaris.next {
+  margin: 2px -10px;
+  padding: 10px;
+  border-top-color: transparent;
+  border-radius: 10px;
+  background: var(--sp-ungu-lembut);
+}
+.layar :global .kzbaris.next + .kzbaris { border-top-color: transparent; }
+.layar :global .kzno {
+  width: 24px;
+  height: 24px;
   border-radius: 50%;
-  display: flex;
+  display: inline-flex;
   align-items: center;
   justify-content: center;
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 700;
-  flex: none;
 }
-.layar :global .sno.done { background: var(--sp-hijau-latar); color: var(--sp-hijau); }
-.layar :global .sno.next { background: var(--sp-ungu); color: var(--sp-putih); }
-.layar :global .sno.plan { background: var(--sp-abu-3); color: var(--sp-tinta-2); }
-.layar :global .lt { font-size: 13px; font-weight: 700; line-height: 18px; }
-.layar :global .ld { font-size: 12px; line-height: 17px; color: var(--sp-tinta-2); margin-top: 2px; }
-.layar :global .lfoot { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 8px; }
+.layar :global .kzno.done { background: var(--sp-hijau-latar); color: var(--sp-hijau); }
+.layar :global .kzno.next { background: var(--sp-ungu); color: var(--sp-putih); }
+.layar :global .kzno.plan { background: var(--sp-abu-3); color: var(--sp-tinta-2); }
+.layar :global .kzjudul { font-size: 13px; line-height: 18px; font-weight: 700; }
+.layar :global .kzaspek { font-size: 11px; line-height: 16px; color: var(--sp-tinta-3); }
+.layar :global .kzket { margin-top: 4px; font-size: 12px; line-height: 17px; color: var(--sp-tinta-2); }
+.layar :global .kzaksi { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
 
 /* ---------- catatan observasi ---------- */
-.layar :global .notes { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
-.layar :global .note {
+.layar :global .oblist { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
+.layar :global .obbaris {
   display: grid;
-  grid-template-columns: auto minmax(0, 1fr);
-  gap: 12px;
-  padding: 12px 0;
+  grid-template-columns: 32px minmax(0, 1fr);
+  gap: 10px;
+  padding: 8px 0;
   border-top: 1px solid var(--sp-garis-3);
 }
-.layar :global .note:first-child { border-top: 0; padding-top: 0; }
-.layar :global .nh { font-size: 12px; color: var(--sp-tinta-2); }
-.layar :global .nh b { color: var(--sp-tinta); font-size: 13px; }
-.layar :global .nt { font-size: 13px; line-height: 18px; margin-top: 4px; }
-.layar :global .ntag { margin-top: 6px; }
-/* Desain tidak mengatur margin paragraf ini, jadi peramban memberi 1em (12px) atas dan bawah;
-   ditulis eksplisit karena kelas dasar menolkan margin semua p. */
-.layar :global .privacy {
-  display: flex;
-  gap: 10px;
-  align-items: flex-start;
-  margin: 12px 0;
+.layar :global .obbaris:first-child { border-top: 0; padding-top: 0; }
+.layar :global .obkepala { font-size: 12px; line-height: 16px; color: var(--sp-tinta-3); }
+.layar :global .obkepala b { font-size: 13px; color: var(--sp-tinta); }
+.layar :global .obteks { margin-top: 2px; font-size: 12px; line-height: 17px; color: var(--sp-tinta-2); }
+.layar :global .obtag { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 5px; }
+.layar :global .obsemua {
+  align-self: flex-start;
+  margin-top: -6px;
+  padding: 0;
+  border: 0;
+  background: transparent;
   font-size: 12px;
-  line-height: 17px;
-  color: var(--sp-tinta-2);
-  background: #F7F6F9;
-  border-radius: 10px;
-  padding: 12px;
+  font-weight: 600;
+  color: var(--sp-ungu);
+  cursor: pointer;
 }
+.layar :global .obsemua:hover { color: var(--sp-ungu-tua); }
+.layar :global .obprivasi {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin-top: auto;
+  padding: 8px 10px;
+  border-radius: 8px;
+  background: var(--sp-abu-4);
+  font-size: 11px;
+  line-height: 16px;
+  color: var(--sp-tinta-3);
+}
+.layar :global .obprivasi svg { flex: none; margin-top: 1px; }
 
 /* ---------- laci ringkasan anak ---------- */
-.layar :global .qv { display: flex; flex-direction: column; gap: 12px; }
-.layar :global .qvrow {
+.layar :global .rsatas { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px; }
+.layar :global .rsbagian { display: flex; flex-direction: column; gap: 6px; }
+.layar :global .rslabel { font-size: 12px; line-height: 16px; font-weight: 700; color: var(--sp-ungu-tua); }
+.layar :global .rsaspek { list-style: none; margin: 0; padding: 0; border: 1px solid var(--sp-garis-2); border-radius: 10px; }
+.layar :global .rsbaris {
   display: grid;
-  grid-template-columns: 140px minmax(0, 1fr);
-  gap: 12px;
-  font-size: 13px;
-  line-height: 18px;
-  padding: 10px 0;
+  grid-template-columns: 22px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 10px;
+  min-height: 38px;
+  padding: 4px 10px;
   border-top: 1px solid var(--sp-garis-3);
+  font-size: 13px;
 }
-.layar :global .qvrow:first-child { border-top: 0; }
-.layar :global .qvl { color: var(--sp-tinta-3); }
+.layar :global .rsbaris:first-child { border-top: 0; }
+.layar :global .rskode {
+  width: 22px;
+  height: 22px;
+  border-radius: 6px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  font-weight: 700;
+  background: var(--sp-ungu-tipis);
+  color: var(--sp-ungu);
+}
+.layar :global .rsteks { font-size: 13px; line-height: 18px; color: var(--sp-tinta-2); }
+.layar :global .rsteks b { color: var(--sp-tinta); }
+.layar :global .rsceklis { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; font-size: 13px; line-height: 18px; }
+.layar :global .rsceklis li { display: flex; align-items: flex-start; gap: 8px; }
+.layar :global .rsceklis svg { flex: none; margin-top: 2px; color: var(--sp-tinta-pudar); }
+.layar :global .rsceklis li.beres { color: var(--sp-tinta-3); }
+.layar :global .rsceklis li.beres svg { color: var(--sp-hijau-ikon); }
+.layar :global .rsraka {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: var(--sp-ungu-lembut);
+  color: var(--sp-ungu-tua);
+  font-size: 12px;
+  line-height: 17px;
+}
+.layar :global .rsraka svg { flex: none; margin-top: 1px; }
+.layar :global .rstautan {
+  padding: 0;
+  border: 0;
+  background: transparent;
+  font: inherit;
+  font-weight: 700;
+  color: var(--sp-ungu);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  cursor: pointer;
+}
+
+/* ---------- laci tetapkan buddy ---------- */
+.layar :global .bdalasan { display: flex; margin-top: -4px; }
+.layar :global .bdpilih { min-width: 0; margin: 0; padding: 0; border: 0; display: flex; flex-direction: column; gap: 8px; }
+.layar :global .bdpilih legend { margin-bottom: 6px; padding: 0; }
+.layar :global .bdopsi {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 48px;
+  padding: 8px 12px;
+  border: 1px solid var(--sp-garis);
+  border-radius: 10px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.layar :global .bdopsi:hover { background: var(--sp-ungu-hover); }
+.layar :global .bdopsi.on { border-color: var(--sp-ungu); background: var(--sp-ungu-kartu); }
+.layar :global .bdopsi input { flex: none; width: 18px; height: 18px; margin: 0; accent-color: var(--sp-ungu); }
+.layar :global .bdopsinama { flex: 1; min-width: 0; }
 
 /* ---------- laci formulir skrining ---------- */
-.layar :global .fsec { margin: 12px 0 0; font-size: 13px; font-weight: 700; color: var(--sp-ungu-tua); }
-.layar :global .qrow {
+.layar :global .fslangkah {
+  align-self: flex-start;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  padding: 4px;
+  border-radius: 10px;
+  background: var(--sp-abu);
+}
+.layar :global .fsstep {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  height: 30px;
+  padding: 0 9px 0 5px;
+  border: 0;
+  border-radius: 7px;
+  background: transparent;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--sp-tinta-4);
+  cursor: pointer;
+}
+.layar :global .fsstep:hover { color: var(--sp-ungu); }
+.layar :global .fsstep.on { background: var(--sp-putih); color: var(--sp-ungu-tua); box-shadow: var(--sp-bayangan); }
+.layar :global .fskode {
+  width: 20px;
+  height: 20px;
+  border-radius: 6px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  font-weight: 700;
+  background: var(--sp-ungu-tipis);
+  color: var(--sp-ungu);
+}
+.layar :global .fsstep.on .fskode { background: var(--sp-ungu); color: var(--sp-putih); }
+.layar :global .fsjml { font-size: 11px; font-weight: 500; color: var(--sp-tinta-3); }
+.layar :global .fscek { color: var(--sp-hijau-ikon); }
+.layar :global .fskepala { display: flex; align-items: flex-start; gap: 10px; }
+.layar :global .fsbadge {
+  flex: none;
+  width: 30px;
+  height: 30px;
+  border-radius: 8px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 15px;
+  font-weight: 700;
+  background: var(--sp-ungu);
+  color: var(--sp-putih);
+}
+.layar :global .fskepala.aman .fsbadge { background: var(--sp-merah-teks); }
+.layar :global .fsjudul { margin: 0; font-size: 14px; line-height: 19px; font-weight: 700; color: var(--sp-ungu-tua); }
+.layar :global .fsket { font-size: 12px; line-height: 17px; color: var(--sp-tinta-2); }
+.layar :global .fsdaftar { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
+.layar :global .fsbaris {
   display: grid;
-  grid-template-columns: 28px minmax(0, 1fr);
-  gap: 8px 10px;
-  padding: 12px 0;
+  grid-template-columns: 20px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 6px 10px;
+  padding: 8px 0;
   border-top: 1px solid var(--sp-garis-3);
 }
-.layar :global .qno { font-size: 12px; font-weight: 700; color: var(--sp-tinta-3); padding-top: 1px; }
-.layar :global .qt { font-size: 13px; line-height: 18px; }
-.layar :global .qopts { grid-column: 2; display: flex; flex-wrap: wrap; gap: 6px; }
-.layar :global .opt {
-  height: 36px;
-  padding: 0 14px;
+.layar :global .fsbaris:first-child { border-top: 0; }
+.layar :global .fsno { align-self: start; padding-top: 1px; font-size: 12px; font-weight: 700; color: var(--sp-tinta-3); }
+.layar :global .fsteks { font-size: 13px; line-height: 18px; }
+.layar :global .fsopsi { display: flex; flex-wrap: wrap; gap: 4px; }
+.layar :global .fsopt {
+  height: 32px;
+  padding: 0 10px;
   border: 1px solid var(--sp-garis);
   border-radius: 8px;
   background: var(--sp-putih);
   font-size: 12px;
   cursor: pointer;
 }
-.layar :global .opt:hover { border-color: var(--sp-ungu-garis); }
-.layar :global .opt.on { background: var(--sp-ungu); border-color: var(--sp-ungu); color: var(--sp-putih); font-weight: 700; }
-.layar :global .opt.on.danger { background: var(--sp-merah); border-color: var(--sp-merah); }
-
-/* Bilah kirim menempel di bawah laci. Margin dan bottom negatif menutup padding laci
-   (24px kiri-kanan, 32px bawah) supaya bilah rata dengan tepi laci. */
-.layar :global .fbar {
+.layar :global .fsopt:hover { border-color: var(--sp-ungu-garis); }
+.layar :global .fsopt.on { background: var(--sp-ungu); border-color: var(--sp-ungu); color: var(--sp-putih); font-weight: 700; }
+.layar :global .fsopt.on.bahaya { background: var(--sp-merah-teks); border-color: var(--sp-merah-teks); }
+/* Bilah kirim menempel di bawah laci. Margin dan bottom negatif menutup padding laci (20px
+   kiri-kanan, 24px bawah) supaya bilah rata dengan tepi laci. */
+.layar :global .fsbar {
   position: sticky;
-  bottom: -32px;
+  bottom: -24px;
+  z-index: 1;
+  margin: auto -20px -24px;
+  padding: 12px 20px 16px;
   background: var(--sp-putih);
-  margin: 0 -24px -32px;
-  padding: 14px 24px 18px;
   border-top: 1px solid var(--sp-garis-3);
   display: flex;
   flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
-  gap: 12px;
+  gap: 10px;
 }
-.layar :global .fprog { display: flex; align-items: center; gap: 10px; font-size: 12px; color: var(--sp-tinta-2); }
-.layar :global .prog { width: 140px; height: 8px; border-radius: 4px; background: var(--sp-abu-3); overflow: hidden; flex: none; }
-.layar :global .progf { display: block; height: 100%; border-radius: 4px; background: var(--sp-ungu-bar); }
+.layar :global .fsprog { display: inline-flex; align-items: center; gap: 10px; font-size: 12px; color: var(--sp-tinta-2); }
+.layar :global .fstombol { display: inline-flex; flex-wrap: wrap; gap: 8px; }
 
 /* ---------- fokus papan ketik ---------- */
-.layar :global .ktile:focus-visible,
-.layar :global .opt:focus-visible { outline: var(--sp-fokus); outline-offset: 2px; }
+.layar :global .ckcek:focus-visible,
+.layar :global .cktoggle:focus-visible,
+.layar :global .pktile:focus-visible,
+.layar :global .obsemua:focus-visible,
+.layar :global .rstautan:focus-visible,
+.layar :global .bdopsi input:focus-visible,
+.layar :global .fsstep:focus-visible,
+.layar :global .fsopt:focus-visible { outline: var(--sp-fokus); outline-offset: 2px; }
 
 /* ---------- lebar layar ---------- */
+/* Checklist: judul di baris pertama, keterangan di bawahnya, aksi di kanan. */
+@media (max-width: 860px) {
+  .layar :global .ckbaris {
+    grid-template-columns: 18px minmax(0, 1fr) auto;
+    grid-template-areas:
+      "cek judul aksi"
+      ". meta aksi";
+    align-items: start;
+    row-gap: 4px;
+    padding: 8px 12px;
+  }
+  .layar :global .ckcek { grid-area: cek; }
+  .layar :global .ckjudul { grid-area: judul; }
+  .layar :global .ckmeta { grid-area: meta; display: flex; flex-wrap: wrap; align-items: center; gap: 4px 10px; }
+  .layar :global .ckaksi { grid-area: aksi; align-self: center; }
+}
+@media (max-width: 640px) {
+  .layar :global .fsbaris { grid-template-columns: 20px minmax(0, 1fr); }
+  .layar :global .fsopsi { grid-column: 2; }
+}
 @media (max-width: 600px) {
-  .layar :global .task { grid-template-columns: auto minmax(0, 1fr); }
-  .layar :global .tright { grid-column: 1 / -1; align-items: flex-start; flex-direction: row; flex-wrap: wrap; }
-  .layar :global .qvrow { grid-template-columns: minmax(0, 1fr); }
+  .layar :global .ckbaris {
+    grid-template-columns: 18px minmax(0, 1fr);
+    grid-template-areas:
+      "cek judul"
+      ". meta"
+      ". aksi";
+  }
+  .layar :global .ckaksi { justify-self: start; margin-top: 4px; }
+  .layar :global .bdgrid { grid-template-columns: minmax(0, 1fr); }
+  /* Ubin peta kelas menyempit: nama boleh dua baris supaya tidak terpotong. */
+  .layar :global .pkatas { align-items: flex-start; }
+  .layar :global .pknama {
+    white-space: normal;
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    line-clamp: 2;
+    padding-top: 4px;
+  }
+  .layar :global .kzbaris { grid-template-columns: 24px minmax(0, 1fr); }
+  .layar :global .kzbaris > .pill { grid-column: 2; justify-self: start; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .layar :global .ckbar > span,
+  .layar :global .ckpanah { transition: none; }
 }

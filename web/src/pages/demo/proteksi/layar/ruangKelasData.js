@@ -1,159 +1,273 @@
 /**
- * Data contoh layar Ruang wali kelas (Kelas 2B, Bu Rina). Disalin apa adanya dari kanvas desain
- * pemilik produk 2026-11-11 (artboard "3 · Ruang wali kelas"). Semua nama dan angka fiktif.
+ * Data contoh khusus layar Ruang wali kelas (Kelas 2B, Bu Rina). Anak, status HEART, buddy, dan
+ * checklist dibaca dari data bersama (bersama/heart.js, dukungan.js, tindakLanjut.js); berkas ini
+ * hanya menyimpan yang tidak dipakai layar lain: formulir skrining versi wali kelas, pengelompokan
+ * waktu checklist, kelas kesadaran, dan catatan observasi. Semua nama dan angka fiktif.
  */
+import { ANAK_2B, HEART, STATUS, URUTAN_STATUS } from "../bersama/heart.js";
 
-/** 31 pernyataan skrining versi wali kelas. Indeks 25 sampai 30 adalah tanda keamanan. */
-export const BUTIR_SKRINING = [
-  "Mengeluh sakit perut, pusing, atau tidak enak badan selama di sekolah.",
-  "Terlihat murung atau menangis karena hal kecil.",
-  "Tampak lelah atau mengantuk di kelas seperti kurang tidur.",
-  "Gelisah ketika berpisah dengan orang tua saat diantar.",
-  "Menyampaikan rasa takut yang sulit diredakan.",
-  "Meledak marah, berteriak, atau membanting barang saat keinginannya tidak dituruti.",
-  "Sengaja menyakiti teman, misalnya memukul atau mendorong.",
-  "Menolak mengikuti aturan kelas yang sederhana.",
-  "Mengambil barang milik teman tanpa izin.",
-  "Berkata kasar atau mengejek teman.",
-  "Sulit duduk tenang saat belajar atau mendengarkan cerita.",
-  "Perhatiannya mudah teralih sebelum tugas sederhana selesai.",
-  "Bertindak tanpa melihat bahaya, misalnya memanjat tinggi atau berlari di tangga.",
-  "Sulit menunggu giliran atau sering memotong pembicaraan.",
-  "Kesulitan mengikuti instruksi dua sampai tiga langkah.",
-  "Lebih sering bermain sendiri daripada bersama teman.",
-  "Tidak diajak bermain atau dijauhi teman.",
-  "Lebih nyaman bersama guru daripada teman sebaya.",
-  "Menjadi sasaran ejekan, dorongan, atau ancaman teman.",
-  "Kesulitan bergabung ke permainan kelompok.",
-  "Mau berbagi mainan, makanan, atau alat tulis.",
-  "Menolong teman yang jatuh, sedih, atau kesulitan.",
-  "Mengajak teman yang sendirian untuk bermain.",
-  "Mengucapkan terima kasih dan maaf tanpa diingatkan.",
-  "Membantu pekerjaan kelas tanpa disuruh.",
-  "Ada luka atau memar yang penjelasannya tidak masuk akal atau berubah-ubah.",
-  "Tiba-tiba takut ke sekolah atau menolak bertemu orang tertentu.",
-  "Menerima hadiah, uang, atau pesan dari orang dewasa di luar keluarga dan diminta merahasiakannya.",
-  "Menunjukkan pengetahuan atau perilaku seksual yang tidak sesuai usianya.",
-  "Bercerita pernah disakiti, diancam, atau dipermalukan.",
-  "Menyakiti diri sendiri atau berkata ingin menghilang.",
+// ── Anak kelas 2B ──────────────────────────────────────────────────────────────────────────────
+
+const ANAK_MENURUT_NAMA = new Map(ANAK_2B.map((a) => [a.nama, a]));
+
+/** Anak kelas 2B menurut nama lengkap, atau null. */
+export function cariAnak(nama) {
+  return ANAK_MENURUT_NAMA.get(nama) || null;
+}
+
+/** Nama depan: "Raka Pratama" -> "Raka". */
+export function namaDepan(nama) {
+  return String(nama || "").split(" ")[0];
+}
+
+/** Anak yang formulir wali kelasnya belum diisi (status HEART belum ada). */
+export const ANAK_BELUM_DIISI = ANAK_2B.filter((a) => a.status === "belum").map((a) => a.nama);
+
+/** Anak berstatus Perlu Perhatian: diobservasi tiap minggu selama 4 minggu. */
+export const ANAK_OBSERVASI = ANAK_2B.filter((a) => a.status === "perhatian").map((a) => a.nama);
+
+
+/** Status dari teks alasan buddy ("Relasi Pertemanan: Waspada" -> "waspada"), atau null. */
+export function statusAlasan(alasan) {
+  const label = String(alasan || "").split(":").pop().trim();
+  return URUTAN_STATUS.find((id) => STATUS[id].label === label) || null;
+}
+
+// ── Checklist: kelompok waktu ──────────────────────────────────────────────────────────────────
+
+/** Hari demo: Rabu, 11 November 2026. Minggu ini berakhir Minggu, 15 November. */
+export const HARI_DEMO = { tanggal: 11, akhirMinggu: 15, label: "Rabu, 11 Nov", sejak: "11 Nov" };
+
+/** Kelompok checklist, urut tampil. */
+export const KELOMPOK_CHECKLIST = [
+  { id: "hari", label: "Hari ini" },
+  { id: "minggu", label: "Minggu ini" },
+  { id: "nanti", label: "Berikutnya" },
+  { id: "selesai", label: "Selesai" },
 ];
 
-export const JUMLAH_BUTIR = BUTIR_SKRINING.length;
+/** Petunjuk kelompok untuk butir yang teks waktunya tidak cukup (id butir -> id kelompok). */
+const PETUNJUK_KELOMPOK = {};
 
-/** Butir pertama kelompok tanda keamanan (jawabannya Tidak / Tidak yakin / Ya). */
-export const AWAL_TANDA_KEAMANAN = 25;
-
-/** Judul kelompok, tampil di atas butir dengan indeks ini. */
-export const KEPALA_BUTIR = {
-  0: "Perasaan",
-  5: "Perilaku",
-  10: "Fokus & energi",
-  15: "Pertemanan",
-  20: "Kepedulian (kekuatan)",
-  25: "Tanda keamanan",
+/** Aksi singkat butir yang tidak bisa ditebak dari alur atau anaknya (id butir -> jenis aksi). */
+export const AKSI_KHUSUS = {
+  "2b-buddy-rizky": "buddy",
+  "2b-observasi": "observasi",
 };
+
+const BULAN = { Okt: -31, Nov: 0, Des: 30 };
+
+/** Urutan hari dihitung dari 1 November ("Jumat, 13 Nov" -> 13, "3 Des" -> 33), atau null. */
+export function urutanHari(waktu) {
+  const cocok = /(\d{1,2}) (Okt|Nov|Des)/.exec(String(waktu || ""));
+  return cocok ? Number(cocok[1]) + BULAN[cocok[2]] : null;
+}
+
+/**
+ * Kelompok waktu satu butir yang belum selesai, dibaca dari teks `waktu` di data bersama:
+ * "Hari ini ..." dan "Setiap ..." masuk Hari ini, rutinitas "Mulai ..." masuk Minggu ini, tanggal
+ * yang sudah lewat ikut Hari ini (terlambat), sampai Minggu 15 Nov masuk Minggu ini, sisanya
+ * Berikutnya.
+ */
+export function kelompokWaktu(butir) {
+  if (PETUNJUK_KELOMPOK[butir.id]) return PETUNJUK_KELOMPOK[butir.id];
+  const w = String(butir.waktu || "").toLowerCase();
+  if (w.startsWith("hari ini") || w.startsWith("setiap")) return "hari";
+  if (w.startsWith("mulai")) return "minggu";
+  const hari = urutanHari(butir.waktu);
+  if (hari == null) return "minggu";
+  if (hari <= HARI_DEMO.tanggal) return "hari";
+  if (hari <= HARI_DEMO.akhirMinggu) return "minggu";
+  return "nanti";
+}
+
+/** Kunci urut di dalam satu kelompok: kasus dulu, lalu tenggat terdekat, rutinitas terakhir. */
+export function kunciUrut(butir) {
+  if (butir.alur === "kejadian") return -1;
+  const hari = urutanHari(butir.waktu);
+  if (String(butir.waktu || "").toLowerCase().startsWith("mulai")) return 1000 + (hari ?? 0);
+  return hari ?? 500;
+}
+
+// ── Formulir skrining HEART versi wali kelas ───────────────────────────────────────────────────
 
 export const SKALA = ["Tidak pernah", "Kadang", "Sering"];
 export const SKALA_AMAN = ["Tidak", "Tidak yakin", "Ya"];
 
-/** Anak yang formulir wali kelasnya belum diisi, urut seperti di desain. */
-export const ANAK_BELUM_DIISI = ["Bagas Prasetyo", "Putri Ayu"];
-
-/** Kategori hasil skrining: label dan kelas pil. Kunci juga dipakai sebagai kelas avatar (.kav). */
-export const KATEGORI = {
-  dukung: { label: "Perlu dukungan", pil: "pill sm bad" },
-  pantau: { label: "Perlu dipantau", pil: "pill sm warn" },
-  belum: { label: "Belum terpetakan", pil: "pill sm gray" },
-  sesuai: { label: "Sesuai tahap", pil: "pill sm ok" },
+/**
+ * Lima pernyataan per aspek, urut sama dengan HEART[].indikator, tentang yang wali kelas lihat di
+ * sekolah selama sebulan terakhir.
+ */
+const BUTIR_HEART = {
+  hiperaktivitas: [
+    "Gelisah dan sulit diam di tempat duduknya saat belajar.",
+    "Tangan atau kakinya terus bergerak ketika gelisah.",
+    "Bisa memusatkan perhatian pada satu tugas sampai selesai.",
+    "Berpikir dulu sebelum bertindak, misalnya menunggu giliran.",
+    "Memperhatikan saat guru menjelaskan atau bercerita.",
+  ],
+  emosional: [
+    "Mengeluh sakit perut, pusing, atau tidak enak badan di sekolah.",
+    "Tampak cemas, misalnya sebelum pelajaran atau saat berpisah dengan orang tua.",
+    "Terlihat senang dan ceria selama di sekolah.",
+    "Percaya diri saat mencoba hal baru atau tampil di depan kelas.",
+    "Mudah takut pada orang, tempat, atau situasi tertentu.",
+  ],
+  agresi: [
+    "Bisa menahan amarah saat kecewa atau keinginannya tidak dituruti.",
+    "Mengikuti instruksi guru dan aturan kelas.",
+    "Memaksakan keinginan pada teman, misalnya merebut atau mendorong.",
+    "Berbohong atau berbuat curang.",
+    "Mengambil barang milik teman tanpa izin.",
+  ],
+  relasi: [
+    "Berkumpul dan bermain bersama teman saat istirahat.",
+    "Punya setidaknya satu teman baik di kelas.",
+    "Disukai teman-teman sekelasnya.",
+    "Diganggu, diejek, atau didorong teman atau kakak kelas.",
+    "Lebih nyaman bersama orang dewasa daripada teman seusianya.",
+  ],
+  tolong: [
+    "Peduli saat teman sedih, kecewa, atau takut.",
+    "Mau berbagi bekal, mainan, atau alat tulis.",
+    "Menolong teman yang jatuh atau kesulitan.",
+    "Bersikap baik pada teman dan adik kelas.",
+    "Menawarkan bantuan tanpa diminta.",
+  ],
 };
 
-/** Urutan pil sebaran di kartu Skrining Kelas 2B. */
-export const URUT_SEBARAN = ["dukung", "pantau", "sesuai", "belum"];
+/** Pertanyaan keamanan di luar HEART. Jawaban Ya menjadi laporan kejadian (alur kejadian). */
+const PERTANYAAN_KEAMANAN = [
+  "Ada luka atau memar yang penjelasannya tidak masuk akal atau berubah-ubah.",
+  "Tiba-tiba takut ke sekolah atau menolak bertemu orang tertentu.",
+  "Menerima hadiah, uang, atau pesan dari orang dewasa di luar keluarga dan diminta merahasiakannya.",
+  "Menunjukkan pengetahuan atau tindakan seksual yang tidak sesuai usianya.",
+  "Bercerita pernah disakiti, diancam, atau dipermalukan.",
+  "Menyakiti diri sendiri atau berkata ingin menghilang.",
+];
 
-/**
- * Hasil sementara satu formulir (aturan contoh dari desain, hanya untuk demo). Jawaban 0/1/2.
- * Empat kelompok kesulitan (butir 1-20) dijumlah per lima butir: 6 ke atas "dukung", 4 ke atas
- * "pantau". Kelompok Kepedulian dibalik: makin jarang muncul, makin berat.
- */
-export function hasilSementara(m) {
-  let terberat = "sesuai";
-  for (let g = 0; g < 4; g += 1) {
-    let jumlah = 0;
-    for (let k = 0; k < 5; k += 1) jumlah += m[g * 5 + k] || 0;
-    if (jumlah >= 6) terberat = "dukung";
-    else if (jumlah >= 4 && terberat !== "dukung") terberat = "pantau";
-  }
-  let kurangPeduli = 0;
-  for (let k = 20; k < 25; k += 1) kurangPeduli += 2 - (m[k] == null ? 2 : m[k]);
-  if (kurangPeduli >= 6) terberat = "dukung";
-  else if (kurangPeduli >= 4 && terberat === "sesuai") terberat = "pantau";
-  return terberat;
+/** Bagian formulir: lima aspek HEART lalu pertanyaan keamanan. `awal` = nomor butir pertama. */
+export const LANGKAH_SKRINING = (() => {
+  const langkah = [
+    ...HEART.map((a) => ({ id: a.id, kode: a.kode, nama: a.nama, ket: a.dinilai, butir: BUTIR_HEART[a.id], skala: SKALA })),
+    {
+      id: "keamanan",
+      kode: null,
+      nama: "Pertanyaan keamanan",
+      ket: "Di luar HEART. Jawaban Ya langsung menjadi laporan kejadian untuk Guru BK.",
+      butir: PERTANYAAN_KEAMANAN,
+      skala: SKALA_AMAN,
+      keamanan: true,
+    },
+  ];
+  let awal = 1;
+  return langkah.map((l) => {
+    const isi = { ...l, awal };
+    awal += l.butir.length;
+    return isi;
+  });
+})();
+
+export const JUMLAH_BUTIR = LANGKAH_SKRINING.reduce((n, l) => n + l.butir.length, 0);
+
+/** Jumlah jawaban satu bagian. `jawaban` = { idLangkah: { indeks: pilihan } }. */
+export function terjawabLangkah(jawaban, idLangkah) {
+  return Object.keys(jawaban?.[idLangkah] || {}).length;
 }
 
-/** Benar kalau ada jawaban "Ya" di kelompok tanda keamanan. */
-export function adaTandaKeamanan(m) {
-  for (let i = AWAL_TANDA_KEAMANAN; i < JUMLAH_BUTIR; i += 1) {
-    if (m[i] === 2) return true;
-  }
-  return false;
+/** Jumlah jawaban seluruh formulir. */
+export function terjawabSemua(jawaban) {
+  return LANGKAH_SKRINING.reduce((n, l) => n + terjawabLangkah(jawaban, l.id), 0);
 }
 
-// [nama, kategori, orang tua sudah mengisi, yang menonjol, tindak lanjut, usia]
-const BARIS_KHUSUS = [
-  ["Raka Pratama", "dukung", true, "Pertemanan dan perasaan perlu dukungan. Kekuatan: kepedulian.", "Rencana dukungan berjalan (Bu Laras), evaluasi 3 Des. Terhubung kasus KS-015.", "7 tahun"],
-  ["Aqila Zahra", "dukung", true, "Perasaan perlu dukungan: sering mengeluh sakit perut pagi hari.", "Rencana dukungan berjalan, evaluasi 2 Des.", "7 tahun"],
-  ["Fikri Hidayat", "dukung", true, "Fokus & energi perlu dukungan.", "Rencana dukungan berjalan, evaluasi 4 Des.", "8 tahun"],
-  ["Keisha Ananda", "pantau", true, "Perasaan perlu dipantau.", "Observasi minggu 3 dari 4.", "7 tahun"],
-  ["Rizky Maulana", "pantau", true, "Fokus & energi perlu dipantau.", "Observasi minggu 3 dari 4.", "7 tahun"],
-  ["Naura Salsabila", "pantau", true, "Pertemanan perlu dipantau.", "Observasi minggu 3 dari 4.", "8 tahun"],
-  ["Arka Wijaya", "pantau", true, "Perilaku perlu dipantau.", "Observasi minggu 3 dari 4.", "7 tahun"],
-  ["Bagas Prasetyo", "belum", false, "Belum ada data.", "Formulir wali kelas dan orang tua belum diisi.", "7 tahun"],
-  ["Putri Ayu", "belum", false, "Belum ada data.", "Formulir wali kelas dan orang tua belum diisi.", "7 tahun"],
-];
+/** Bagian pertama yang belum lengkap, atau bagian terakhir kalau semua sudah. */
+export function langkahBelumLengkap(jawaban) {
+  const l = LANGKAH_SKRINING.find((x) => terjawabLangkah(jawaban, x.id) < x.butir.length);
+  return (l || LANGKAH_SKRINING[LANGKAH_SKRINING.length - 1]).id;
+}
 
-const SESUAI_TAHAP = [
-  "Adinda Maharani", "Alif Ramadhan", "Bilqis Aulia", "Cahya Kirana", "Elang Mahesa", "Farah Nabila",
-  "Gibran Akbar", "Hana Safira", "Ilham Nugraha", "Jihan Aprilia", "Kenzo Hartono", "Lala Anindya",
-  "Mikha Yohana", "Nayla Putri", "Omar Faruq", "Rafa Aditya", "Shafa Azzahra", "Tegar Wicaksono",
-  "Vania Larasati",
-];
+/** Benar kalau ada jawaban "Ya" (indeks 2) pada pertanyaan keamanan. */
+export function adaTandaBahaya(jawaban) {
+  return Object.values(jawaban?.keamanan || {}).includes(2);
+}
 
-/** Orang tuanya belum mengisi formulir. */
-const ORTU_BELUM = new Set(["Kenzo Hartono", "Omar Faruq", "Vania Larasati"]);
-
-/** 28 anak kelas 2B, urutan sama dengan peta kelas dan pilihan anak di formulir observasi. */
-export const ANAK_2B = [
-  ...BARIS_KHUSUS,
-  ...SESUAI_TAHAP.map((nama) => [nama, "sesuai", !ORTU_BELUM.has(nama), "Semua aspek sesuai tahap.", "Ikut kelas kesadaran bersama kelas.", "7 tahun"]),
-].map(([nama, kat, ortu, menonjol, tindak, usia]) => ({ nama, kat, ortu, menonjol, tindak, usia }));
-
-/** Catatan observasi yang sudah ada, terbaru di atas. */
-export const CATATAN_AWAL = [
-  { id: "awal-1", anak: "Raka Pratama", tgl: "Selasa, 10 Nov", teks: "Bermain dengan Alif dan Gibran saat istirahat, terlihat lebih ceria.", tanda: "Membaik" },
-  { id: "awal-2", anak: "Keisha Ananda", tgl: "Senin, 9 Nov", teks: "Menangis saat dijemput terlambat, tenang setelah diajak menggambar.", tanda: "Menangis" },
-  { id: "awal-3", anak: "Arka Wijaya", tgl: "Jumat, 6 Nov", teks: "Mendorong teman saat antre, langsung minta maaf setelah diingatkan.", tanda: "Konflik dengan teman" },
-  { id: "awal-4", anak: "Raka Pratama", tgl: "Jumat, 6 Nov", teks: "Menyendiri di pojok kelas saat istirahat, menolak ke kantin.", tanda: "Menyendiri · dibahas dengan Guru BK" },
-];
+// ── Kelas kesadaran dan catatan observasi ──────────────────────────────────────────────────────
 
 /**
- * Empat sesi kelas kesadaran. tahap: done (selesai), next (berikutnya), plan (terjadwal).
- * Sesi 3 berganti ke `waktuSelesai` sesudah ditandai selesai.
+ * Empat sesi kelas kesadaran. `aspek` = aspek HEART yang dilatih, `keamanan` = sesi keamanan diri
+ * (di luar HEART). tahap: done (selesai), next (berikutnya), plan (terjadwal). Sesi berikutnya
+ * berganti ke `waktuSelesai` sesudah ditandai selesai.
  */
 export const SESI_KESADARAN = [
-  { judul: "Kenali Perasaanku", isi: "Menamai rasa senang, sedih, takut, dan marah lewat kartu wajah.", waktu: "Selesai · 22 Okt", tahap: "done" },
-  { judul: "Tubuhku Milikku", isi: "Bagian tubuh pribadi, sentuhan aman dan tidak aman, boleh bilang tidak.", waktu: "Selesai · 29 Okt", tahap: "done" },
+  {
+    judul: "Kenali Emosiku",
+    isi: "Menamai rasa senang, sedih, takut, dan marah lewat kartu wajah.",
+    aspek: ["emosional"],
+    waktu: "Selesai · 22 Okt",
+    tahap: "done",
+  },
+  {
+    judul: "Tubuhku Milikku",
+    isi: "Bagian tubuh pribadi, sentuhan aman dan tidak aman, boleh bilang tidak.",
+    keamanan: true,
+    waktu: "Selesai · 29 Okt",
+    tahap: "done",
+  },
   {
     judul: "Rahasia Aman dan Rahasia Tidak Aman",
-    isi: "Rahasia yang membuat takut atau sedih harus diceritakan ke orang dewasa tepercaya.",
+    isi: "Rahasia yang membuat takut atau sedih harus diceritakan ke orang dewasa yang dipercaya.",
+    keamanan: true,
     waktu: "Kamis, 12 Nov · 07.30",
     waktuSelesai: "Selesai · 11 Nov",
     tahap: "next",
   },
-  { judul: "Teman Baik Tidak Merundung", isi: "Mengenali ejekan dan dorongan, membela teman, tahu ke mana melapor.", waktu: "Kamis, 19 Nov · 07.30", tahap: "plan" },
+  {
+    judul: "Teman Baik Tidak Merundung",
+    isi: "Mengenali ejekan dan dorongan, membela teman, tahu ke mana melapor.",
+    aspek: ["relasi", "agresi", "tolong"],
+    waktu: "Kamis, 19 Nov · 07.30",
+    tahap: "plan",
+  },
 ];
 
 /** Warna pil waktu per tahap sesi. */
 export const PIL_TAHAP = { done: "ok", next: "mid", plan: "gray" };
 
-/** Penanda yang bisa dipilih di formulir observasi. */
-export const TANDA_OBSERVASI = ["Menyendiri", "Menangis", "Marah", "Konflik dengan teman", "Takut pada seseorang", "Membaik"];
+export const PESAN_MATERI = "Materi sesi 3 (PDF, 6 halaman) dan 12 kartu cerita siap diunduh";
+
+/**
+ * Catatan observasi yang sudah ada, terbaru di atas. `aspek` = aspek HEART yang terlihat,
+ * `membaik` = ada perbaikan, `bk` = dibahas dengan Guru BK.
+ */
+export const CATATAN_AWAL = [
+  {
+    id: "awal-1",
+    anak: "Raka Pratama",
+    tgl: "Selasa, 10 Nov",
+    teks: "Bermain dengan Alif dan Gibran saat istirahat, terlihat lebih ceria.",
+    aspek: ["relasi"],
+    membaik: true,
+  },
+  {
+    id: "awal-2",
+    anak: "Keisha Ananda",
+    tgl: "Senin, 9 Nov",
+    teks: "Menangis saat dijemput terlambat, tenang setelah diajak menggambar.",
+    aspek: ["emosional"],
+  },
+  {
+    id: "awal-3",
+    anak: "Arka Wijaya",
+    tgl: "Jumat, 6 Nov",
+    teks: "Mendorong teman saat antre, langsung minta maaf setelah diingatkan.",
+    aspek: ["agresi"],
+  },
+  {
+    id: "awal-4",
+    anak: "Raka Pratama",
+    tgl: "Jumat, 6 Nov",
+    teks: "Menyendiri di pojok kelas saat istirahat, menolak ke kantin.",
+    aspek: ["relasi"],
+    bk: true,
+  },
+];

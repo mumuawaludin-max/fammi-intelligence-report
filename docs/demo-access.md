@@ -199,15 +199,27 @@ lalu jalankan SQL hasilnya di SQL Editor. Mematikan tanpa menghapus:
 ## Prototipe Sekolah Proteksi
 
 Demo Safety & Crisis Management adalah prototipe klik dari kanvas desain pemilik produk
-(2026-11-11), dibangun ulang di React: `web/src/pages/demo/proteksi/`. Isinya tujuh layar yang
-saling bertaut lewat menu kiri atas: Ringkasan (Kepala Sekolah), Skrining & pemetaan (Koordinator
-BK), Ruang wali kelas, Profil anak, Kasus & SLA (helpdesk dengan triase tingkat, SLA, dan formulir
-Lapor Kejadian), aplikasi ponsel orang tua dan mode cerita anak, serta Peta alur & SLA. Pilihan
-"Lihat sebagai" di kanan atas berpindah sudut pandang. Skrining perilaku dan mental anak 4-10
-tahun yang dulu jadi tampilan tersendiri sekarang hanya satu layarnya.
+(2026-11-11), dibangun ulang di React: `web/src/pages/demo/proteksi/`. Header lekat di atas
+menampilkan tab Ringkasan, Pencegahan, Kejadian, Orang tua, dan Panduan, lonceng notifikasi per
+sudut pandang, pilihan "Lihat sebagai", dan tombol Lapor kejadian. Dua alur selalu terlihat di
+bilah alur tiap layar:
 
-- Seluruhnya data contoh di browser. Tidak memanggil Supabase, tidak menyimpan apa pun; formulir,
-  rencana, dan laporan yang dikirim di prototipe hilang saat layar diganti.
+- Pencegahan: Skrining HEART (Koordinator BK) -> Hasil per anak dan Tindak lanjut (Laporan anak,
+  contoh lengkap Raka Pratama 2B) -> Checklist (Ruang wali kelas). Skrining memakai lima aspek
+  HEART (Hiperaktivitas, Emosional, Agresi, Relasi Pertemanan, Tolong Menolong) dengan status Baik,
+  Perlu Perhatian, Waspada, mengikuti laporan contoh pemilik produk. Laporan anak memuat peta
+  dukungan (buddy, wali kelas, Guru BK, orang dewasa yang dipercaya, tempat aman).
+- Kejadian: Lapor -> Triage -> Penugasan -> Penanganan -> Pantau & tutup, di layar Kasus &
+  penugasan dengan SLA per tingkat. Tanda bahaya dari pertanyaan keamanan skrining langsung masuk
+  alur ini.
+
+Aplikasi ponsel orang tua (hasil HEART versi orang tua, checklist rumah, laporan, mode cerita
+anak) dan Panduan alur & SLA melengkapinya.
+
+- Seluruhnya data contoh di browser. Tidak memanggil Supabase, tidak menyimpan apa pun. Centang
+  checklist dan notifikasi bertahan selama demo terbuka (terlihat di semua layar), formulir dan
+  laporan yang dikirim hilang saat layar diganti. Data yang dipakai lebih dari satu layar ada di
+  `proteksi/bersama/` dan diuji `bersama.test.js`.
 - Ikut dibundel di aplikasi tapi dimuat terpisah (lazy) saat dibuka, jadi tidak membebani halaman
   masuk. Tetap hanya terbuka lewat layar demo yang sah (`#demo/proteksi-*`) untuk kode yang membuka
   `safety-crisis`; tidak ada rute publik.

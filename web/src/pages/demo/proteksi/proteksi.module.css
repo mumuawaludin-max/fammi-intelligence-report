@@ -77,7 +77,9 @@
 
   position: relative;
   min-height: 100%;
-  overflow-x: hidden;
+  /* clip, bukan hidden: hidden menjadikan .scope wadah gulir dan header lekat (sticky) berhenti
+     menempel. */
+  overflow-x: clip;
   font-family: var(--font-body);
   /* Kanvas desain memakai bawaan browser (16px, line-height normal), sedangkan body aplikasi 15px
      dan 1.6. Dikembalikan di sini supaya teks tanpa ukuran eksplisit sama dengan desain. */
@@ -118,51 +120,177 @@
   position: relative;
   max-width: 1092px;
   margin: 0 auto;
-  padding: 30px 16px 72px;
+  padding: 10px 16px 48px;
   display: flex;
   flex-direction: column;
-  gap: 36px;
+  gap: 16px;
 }
 /* Akar tiap layar: kolom yang sama jaraknya dengan .wrap. */
-.scope :global .isi { display: flex; flex-direction: column; gap: 36px; min-width: 0; }
-.scope :global .card { background: var(--sp-putih); border-radius: 16px; box-shadow: var(--sp-bayangan); }
+.scope :global .isi { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
+.scope :global .card { background: var(--sp-putih); border-radius: 14px; box-shadow: var(--sp-bayangan); }
+/* Tujuan gulir dari bilah alur dan notifikasi tidak tertutup header yang menempel. */
+.scope :global [data-bagian] { scroll-margin-top: 76px; }
+.scope :global [data-bagian]:focus { outline: none; }
 
-/* ---------- header: menu, sudut pandang, lapor ---------- */
+/* ---------- header ringkas: merek, tab, lonceng, sudut pandang, lapor ---------- */
 .scope :global .header {
-  position: relative;
+  position: sticky;
+  top: 8px;
   z-index: 40;
   display: flex;
   flex-wrap: wrap;
   justify-content: space-between;
-  align-items: flex-start;
-  gap: 12px;
+  align-items: center;
+  gap: 8px 12px;
+  padding: 6px 8px 6px 10px;
+  background: rgba(255, 255, 255, 0.96);
+  border-radius: 14px;
+  box-shadow: var(--sp-bayangan-angkat);
+  backdrop-filter: blur(8px);
 }
-.scope :global .hgroup { position: relative; display: flex; gap: 12px; flex-wrap: wrap; }
-.scope :global .hbtn {
-  height: 44px;
-  background: var(--sp-putih);
+.scope :global .hkiri { display: flex; align-items: center; gap: 14px; min-width: 0; }
+.scope :global .hkanan { display: flex; align-items: center; gap: 8px; margin-left: auto; }
+.scope :global .hpos { position: relative; display: flex; }
+.scope :global .hmerek { display: inline-flex; align-items: center; gap: 8px; flex: none; }
+.scope :global .htabs { display: flex; gap: 2px; min-width: 0; }
+.scope :global .htab {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 36px;
+  padding: 0 12px;
   border: 0;
-  border-radius: 12px;
-  box-shadow: var(--sp-bayangan);
+  border-radius: 9px;
+  background: transparent;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--sp-tinta-4);
+  cursor: pointer;
+  white-space: nowrap;
+}
+.scope :global .htab:hover { background: var(--sp-ungu-hover); color: var(--sp-tinta); }
+.scope :global .htab.active { background: var(--sp-ungu-lembut); color: var(--sp-ungu-tua); }
+.scope :global .htab .cnt { margin-left: 0; }
+.scope :global .hikon {
+  position: relative;
+  width: 38px;
+  height: 38px;
+  border: 0;
+  border-radius: 10px;
+  background: var(--sp-abu);
+  color: var(--sp-tinta-4);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+.scope :global .hikon:hover,
+.scope :global .hikon[aria-expanded="true"] { background: var(--sp-ungu-lembut); color: var(--sp-ungu); }
+.scope :global .hbadge {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  border-radius: 9px;
+  background: var(--sp-merah-teks);
+  color: var(--sp-putih);
+  font-size: 10px;
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 0 0 2px var(--sp-putih);
+}
+.scope :global .hbtn {
+  height: 38px;
+  background: var(--sp-putih);
+  border: 1px solid var(--sp-garis-2);
+  border-radius: 10px;
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 0 16px;
+  gap: 8px;
+  padding: 0 10px;
   cursor: pointer;
   color: var(--sp-tinta);
   text-decoration: none;
   font-size: 12px;
   font-weight: 700;
-  transition: box-shadow 0.15s;
+  white-space: nowrap;
 }
-.scope :global .hbtn:hover { color: var(--sp-tinta); box-shadow: var(--sp-bayangan-angkat); }
-.scope :global .hbtn.menu { min-width: 202px; gap: 18px; padding: 0 20px 0 18px; }
-.scope :global .hbtn.peran { min-width: 236px; justify-content: space-between; }
-.scope :global .hbtn.lapor { gap: 10px; }
-.scope :global .brand { font-size: 17px; font-weight: 700; letter-spacing: -0.01em; white-space: nowrap; }
+.scope :global .hbtn:hover { color: var(--sp-tinta); background: var(--sp-ungu-hover); }
+.scope :global .hbtn.peran { padding: 0 6px 0 4px; }
+.scope :global .hbtn.peran .av { width: 28px; height: 28px; }
+.scope :global .hbtn.lapor {
+  border-color: transparent;
+  background: var(--sp-merah-tipis);
+  color: var(--sp-merah-tua);
+}
+.scope :global .hbtn.lapor:hover { background: var(--sp-merah-latar); color: var(--sp-merah-tua); }
+.scope :global .brand { font-size: 14px; font-weight: 700; letter-spacing: -0.01em; white-space: nowrap; color: var(--sp-ungu-tua); }
+
+/* Panel notifikasi lonceng. */
+.scope :global .npanel {
+  position: absolute;
+  top: 46px;
+  right: 0;
+  z-index: 50;
+  width: 372px;
+  max-width: calc(100vw - 32px);
+  max-height: min(480px, calc(100vh - 140px));
+  display: flex;
+  flex-direction: column;
+  background: var(--sp-putih);
+  border-radius: 14px;
+  box-shadow: var(--sp-bayangan-menu);
+  overflow: hidden;
+}
+.scope :global .nhead {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  padding: 12px 14px 10px;
+  border-bottom: 1px solid var(--sp-garis-3);
+  font-size: 13px;
+}
+.scope :global .nhead .mut { font-size: 12px; }
+.scope :global .nsemua {
+  margin-left: auto;
+  border: 0;
+  background: transparent;
+  color: var(--sp-ungu);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 0;
+}
+.scope :global .nlist { list-style: none; margin: 0; padding: 4px; overflow-y: auto; }
+.scope :global .nitem {
+  width: 100%;
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 10px;
+  border: 0;
+  border-radius: 10px;
+  background: transparent;
+  text-align: left;
+  cursor: pointer;
+}
+.scope :global .nitem:hover { background: var(--sp-ungu-hover); }
+.scope :global .nitem.baru { background: var(--sp-ungu-kartu); }
+.scope :global .nikon { width: 32px; height: 32px; border-radius: 9px; }
+.scope :global .nteks { display: flex; flex-direction: column; gap: 2px; min-width: 0; flex: 1; font-size: 12px; line-height: 16px; color: var(--sp-tinta-2); }
+.scope :global .nteks b { font-size: 13px; color: var(--sp-tinta); font-weight: 600; }
+.scope :global .nitem.baru .nteks b { font-weight: 700; }
+.scope :global .nwaktu { font-size: 11px; color: var(--sp-tinta-3); }
+.scope :global .ntitik { flex: none; width: 8px; height: 8px; margin-top: 6px; border-radius: 50%; background: var(--sp-ungu); }
+.scope :global .nkosong { padding: 18px 14px; font-size: 13px; color: var(--sp-tinta-3); }
+
 .scope :global .dd {
   position: absolute;
-  top: 52px;
+  top: 46px;
   background: var(--sp-putih);
   border-radius: 16px;
   box-shadow: var(--sp-bayangan-menu);
@@ -235,14 +363,14 @@
 }
 
 /* ---------- grid ---------- */
-.scope :global .row2 { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 20px; }
-.scope :global .row4 { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 20px; }
+.scope :global .row2 { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+.scope :global .row4 { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; }
 
 /* ---------- ubin ikon, judul kartu ---------- */
 .scope :global .tile {
-  width: 46px;
-  height: 46px;
-  border-radius: 12px;
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -252,10 +380,12 @@
 .scope :global .tile.dark { background: var(--sp-ungu); color: var(--sp-putih); }
 .scope :global .tile.black { background: #111111; color: var(--sp-putih); }
 .scope :global .tile.red { background: var(--sp-merah-ikon); color: var(--sp-merah-teks); }
-.scope :global .tile.green { background: var(--sp-hijau-latar); color: var(--sp-hijau-ikon); }
+.scope :global .tile.green,
+.scope :global .tile.ok { background: var(--sp-hijau-latar); color: var(--sp-hijau-ikon); }
+.scope :global .tile.warn { background: var(--sp-kuning-latar); color: var(--sp-kuning); }
 .scope :global .tile.hdr { width: 28px; height: 28px; border-radius: 8px; }
-.scope :global .ctitle { margin: 0; font-size: 16px; line-height: 20px; font-weight: 400; color: var(--sp-ungu-tua); }
-.scope :global .chead { display: flex; align-items: center; gap: 12px; }
+.scope :global .ctitle { margin: 0; font-size: 15px; line-height: 20px; font-weight: 700; color: var(--sp-ungu-tua); }
+.scope :global .chead { display: flex; align-items: center; gap: 10px; }
 .scope :global .tophead {
   display: flex;
   flex-wrap: wrap;
@@ -274,15 +404,15 @@
   align-items: center;
   justify-content: center;
   gap: 6px;
-  height: 32px;
-  min-width: 108px;
-  padding: 0 12px;
+  height: 28px;
+  min-width: 96px;
+  padding: 0 10px;
   border-radius: 8px;
   font-size: 12px;
   font-weight: 600;
   white-space: nowrap;
 }
-.scope :global .pill.sm { height: 26px; min-width: 0; padding: 0 10px; font-size: 11px; }
+.scope :global .pill.sm { height: 24px; min-width: 0; padding: 0 9px; font-size: 11px; border-radius: 7px; }
 .scope :global .pill.ok { background: var(--sp-hijau-latar); color: var(--sp-hijau); }
 .scope :global .pill.warn { background: var(--sp-kuning-latar); color: var(--sp-kuning); }
 .scope :global .pill.mid { background: var(--sp-ungu-pil); color: var(--sp-ungu); }
@@ -294,9 +424,9 @@
 .scope :global .ghost {
   display: inline-flex;
   align-items: center;
-  gap: 10px;
-  height: 40px;
-  padding: 0 16px;
+  gap: 8px;
+  height: 36px;
+  padding: 0 14px;
   border: 1px solid var(--sp-garis);
   border-radius: 10px;
   background: var(--sp-putih);
@@ -308,14 +438,14 @@
   white-space: nowrap;
 }
 .scope :global .ghost:hover { background: var(--sp-ungu-hover); color: var(--sp-ungu); }
-.scope :global .ghost.sm { height: 36px; border-radius: 8px; font-size: 12px; font-weight: 400; }
+.scope :global .ghost.sm { height: 32px; border-radius: 8px; font-size: 12px; font-weight: 500; }
 .scope :global .btnp {
   display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: 8px;
-  height: 40px;
-  padding: 0 18px;
+  height: 36px;
+  padding: 0 16px;
   border: 0;
   border-radius: 10px;
   background: var(--sp-ungu);
@@ -332,8 +462,8 @@
   display: inline-flex;
   align-items: center;
   gap: 7px;
-  height: 36px;
-  padding: 0 12px;
+  height: 32px;
+  padding: 0 11px;
   border: 1px solid var(--sp-garis);
   border-radius: 8px;
   background: var(--sp-putih);
@@ -349,8 +479,8 @@
 .scope :global .segb {
   border: 0;
   background: transparent;
-  height: 32px;
-  padding: 0 12px;
+  height: 30px;
+  padding: 0 11px;
   border-radius: 7px;
   font-size: 12px;
   font-weight: 500;
@@ -371,21 +501,21 @@
   flex-wrap: wrap;
   justify-content: space-between;
   align-items: flex-end;
-  gap: 16px;
+  gap: 12px;
 }
 .scope :global .titlerow > div:first-child { flex: 1 1 520px; min-width: 0; }
-.scope :global .tbtns { display: flex; gap: 12px; flex-wrap: wrap; }
+.scope :global .tbtns { display: flex; gap: 8px; flex-wrap: wrap; }
 .scope :global .eyebrow { margin: 0; font-size: 12px; font-weight: 500; color: var(--sp-ungu); }
 .scope :global .h1 {
-  margin: 6px 0 0;
-  font-size: 26px;
-  line-height: 32px;
+  margin: 4px 0 0;
+  font-size: 22px;
+  line-height: 28px;
   font-weight: 700;
   color: var(--sp-ungu-tua);
   letter-spacing: -0.01em;
 }
-.scope :global .lead { margin: 8px 0 0; font-size: 13px; line-height: 19px; color: var(--sp-tinta-2); max-width: 720px; }
-.scope :global .tcard { padding: 24px; display: flex; flex-direction: column; gap: 20px; }
+.scope :global .lead { margin: 4px 0 0; font-size: 13px; line-height: 18px; color: var(--sp-tinta-2); max-width: 720px; }
+.scope :global .tcard { padding: 16px 18px; display: flex; flex-direction: column; gap: 14px; }
 
 /* ---------- kartu hero (angka besar + dua progres) ---------- */
 .scope :global .hero { overflow: hidden; display: flex; flex-direction: column; }
@@ -393,21 +523,20 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 16px;
-  padding: 24px;
-  min-height: 94px;
+  gap: 12px;
+  padding: 14px 18px;
   background: linear-gradient(90deg, #D9CCFC 0%, #E9E1FD 55%, #F1ECFE 100%);
 }
 .scope :global .herobig {
   margin: 0;
-  font-size: 36px;
-  line-height: 42px;
+  font-size: 28px;
+  line-height: 34px;
   font-weight: 700;
   color: var(--sp-ungu);
   letter-spacing: -0.02em;
   white-space: nowrap;
 }
-.scope :global .herobot { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 20px; padding: 16px 24px 24px; }
+.scope :global .herobot { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; padding: 12px 18px 16px; }
 .scope :global .mini { display: flex; align-items: center; gap: 10px; font-size: 13px; font-weight: 700; }
 .scope :global .mini .ic {
   width: 24px;
@@ -419,9 +548,9 @@
   justify-content: center;
 }
 .scope :global .heroval {
-  margin: 18px 0 0;
-  font-size: 20px;
-  line-height: 24px;
+  margin: 10px 0 0;
+  font-size: 18px;
+  line-height: 22px;
   font-weight: 400;
   display: flex;
   align-items: center;
@@ -442,16 +571,16 @@
   background: var(--sp-abu);
   text-align: left;
   font-weight: 600;
-  padding: 12px 16px;
-  height: 38px;
+  padding: 8px 12px;
+  height: 34px;
   white-space: nowrap;
 }
-.scope :global .tbl td { padding: 10px 16px; border-top: 1px solid var(--sp-garis-3); height: 60px; white-space: nowrap; }
+.scope :global .tbl td { padding: 7px 12px; border-top: 1px solid var(--sp-garis-3); height: 46px; white-space: nowrap; }
 .scope :global .cellbox {
   display: flex;
   align-items: center;
   gap: 8px;
-  height: 36px;
+  height: 32px;
   padding: 0 10px;
   border: 1px solid var(--sp-garis);
   border-radius: 8px;
@@ -479,21 +608,21 @@
   background: var(--sp-putih);
   overflow-y: auto;
   overscroll-behavior: contain;
-  padding: 24px 24px 32px;
+  padding: 18px 20px 24px;
   box-shadow: var(--sp-bayangan-laci);
   display: flex;
   flex-direction: column;
-  gap: 18px;
+  gap: 14px;
 }
 .scope :global .drawer:focus { outline: none; }
-.scope :global .dhead { display: flex; align-items: center; gap: 16px; padding-bottom: 16px; border-bottom: 1px solid var(--sp-garis-3); }
-.scope :global .dtitle { font-size: 22px; line-height: 28px; font-weight: 700; margin: 0; }
+.scope :global .dhead { display: flex; align-items: center; gap: 12px; padding-bottom: 12px; border-bottom: 1px solid var(--sp-garis-3); }
+.scope :global .dtitle { font-size: 19px; line-height: 24px; font-weight: 700; margin: 0; }
 .scope :global .dsub { margin: 4px 0 0; font-size: 13px; line-height: 18px; color: var(--sp-tinta-2); }
 .scope :global .xbtn {
   border: 0;
   background: var(--sp-abu);
-  width: 40px;
-  height: 40px;
+  width: 36px;
+  height: 36px;
   border-radius: 10px;
   display: flex;
   align-items: center;
@@ -591,6 +720,10 @@
 
 /* ---------- fokus papan ketik ---------- */
 .scope :global .hbtn:focus-visible,
+.scope :global .htab:focus-visible,
+.scope :global .hikon:focus-visible,
+.scope :global .nitem:focus-visible,
+.scope :global .nsemua:focus-visible,
 .scope :global .navitem:focus-visible,
 .scope :global .ghost:focus-visible,
 .scope :global .btnp:focus-visible,
@@ -616,6 +749,12 @@
 @keyframes menuMasuk { from { opacity: 0; translate: 0 -4px; } to { opacity: 1; translate: 0 0; } }
 
 /* ---------- lebar layar ---------- */
+/* Tab pindah ke baris kedua header (bisa digeser) begitu tidak muat sebaris dengan tombol kanan. */
+@media (max-width: 1060px) {
+  .scope :global .hkiri { display: contents; }
+  .scope :global .htabs { order: 3; width: 100%; overflow-x: auto; scrollbar-width: none; }
+  .scope :global .htabs::-webkit-scrollbar { display: none; }
+}
 @media (max-width: 960px) {
   .scope :global .row4 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .scope :global .row2 { grid-template-columns: minmax(0, 1fr); }
@@ -624,13 +763,13 @@
   .scope :global .row4,
   .scope :global .herobot,
   .scope :global .row2f { grid-template-columns: minmax(0, 1fr); }
-  .scope :global .brand { font-size: 14px; }
-  .scope :global .h1 { font-size: 22px; line-height: 28px; }
-  .scope :global .herobig { font-size: 28px; }
+  .scope :global .h1 { font-size: 20px; line-height: 26px; }
+  .scope :global .herobig { font-size: 24px; }
   .scope :global .herotop { flex-wrap: wrap; }
-  .scope :global .hgroup.right { width: 100%; }
-  .scope :global .hbtn.menu { min-width: 0; }
-  .scope :global .hbtn.peran { min-width: 0; flex: 1 1 auto; }
+  .scope :global .header { top: 4px; }
+  .scope :global .brand { display: none; }
+  .scope :global .hbtn.peran .who { display: none; }
+  .scope :global .hbtn.lapor { padding: 0 9px; }
 }
 
 @media (prefers-reduced-motion: reduce) {

@@ -1,345 +1,283 @@
-import { useState } from "react";
+import { useId, useMemo, useState } from "react";
 import { useProteksi } from "../konteks";
-import { Ikon, KepalaKartu, Segmen } from "../komponen";
+import { Ikon, KepalaKartu } from "../komponen";
+import { ORANG, cariLayar } from "../layarProteksi";
+import { ALUR } from "../bersama/alur";
+import { HEART, RINGKAS_SEKOLAH } from "../bersama/heart";
 import {
-  ALUR,
-  ANGKA_KUNCI,
-  ASPEK,
-  CATATAN_KATEGORI,
-  CATATAN_RENTANG,
-  KATEGORI,
-  KATEGORI_LENGKAP,
-  KELAS,
-  NILAI_ASPEK,
-  NILAI_KATEGORI,
-  PERHATIAN,
-  PESAN_PENGINGAT,
+  KINERJA_KASUS,
   PESAN_UNDUH,
-  PIL_STATUS_KELAS,
-  RENTANG,
-  SARINGAN_KELAS,
-  STATUS_TAHAP,
-  SUMBER,
-  TAHAP,
+  TANGGAL,
+  daftarKeputusan,
+  hitungChecklist,
+  hitungTindakLanjut,
+  isiCegah,
+  isiKejadian,
+  kalimatPembuka,
+  pengingat,
 } from "./ringkasanData";
 import css from "./Ringkasan.module.css";
 
-// Skala grafik dari desain: nilai acuan (32 anak, 3,4 laporan) setinggi 176px. Kategori bernilai 0
-// tetap tampil sebagai garis 2px.
-const TINGGI_ACUAN = 176;
+const NADA_NILAI = { r: "nilaiMerah", o: "nilaiJingga" };
+const NADA_STATUS = { r: "statusMerah", o: "statusJingga" };
+
+/** Ke mana sebuah langkah membawa, untuk tooltip dan pembaca layar. */
+function tujuanLangkah(l) {
+  if (l.aksi?.jenis === "lapor") return "Buka formulir lapor kejadian";
+  if (l.aksi?.jenis === "tahap") return `Buka antrean ${l.label.toLowerCase()}`;
+  return `Buka ${cariLayar(l.layar)?.label ?? "layar"}`;
+}
 
 /**
- * Grafik batang yang bisa diklik. Batang terpilih berwarna penuh dan menampilkan nilainya di atas
- * batang. nada "p" ungu (aspek) atau "o" jingga (kategori laporan).
+ * Satu alur sebagai deret langkah yang bisa diklik. Tiap langkah memakai definisi di
+ * bersama/alur.js (label, layar, aksi), jadi klik di sini sama dengan klik di bilah alur layar lain.
+ * `isi` = angka, keterangan, dan kalimat untuk pembaca layar per langkah; `kaki` = baris bawah.
  */
-function GrafikBatang({ label, batang, aktif, nada, onPilih }) {
-  const warna = nada === "p" ? "lp" : "lo";
+function PanelAlur({ alur, kanan, isi, kaki }) {
+  const { pindah } = useProteksi();
+  const def = ALUR[alur];
+  const idJudul = useId();
+  const kejadian = alur === "kejadian";
+
   return (
-    <div className="plot" role="group" aria-label={label}>
-      {batang.map((b, i) => {
-        const on = i === aktif;
-        return (
-          <button
-            key={b.label}
-            type="button"
-            className="barcol"
-            aria-label={b.aria}
-            aria-pressed={on}
-            onClick={() => onPilih(i)}
-          >
-            <span className="barzone">
-              {on && <span className={`tip ${nada}`}>{b.teks}</span>}
-              <span className={`bar ${warna}${on ? " on" : ""}`} style={{ height: b.tinggi }} />
-            </span>
-            <span className={`blabel${on ? ` ${nada}` : ""}`}>{b.label}</span>
-          </button>
-        );
-      })}
-    </div>
+    <section className={`card alurPanel ${kejadian ? "nadaKejadian" : "nadaCegah"}`} aria-labelledby={idJudul}>
+      <div className="alurKepala">
+        <span className={`tile hdr ${kejadian ? "red" : "p"}`} aria-hidden="true">
+          <Ikon nama={kejadian ? "lapor" : "perisaiCentang"} size={16} />
+        </span>
+        <h2 className="alurJudul" id={idJudul}>
+          {def.nama}
+        </h2>
+        <span className="alurKanan">{kanan}</span>
+      </div>
+      <ol className="alurLangkah" style={{ "--n": def.langkah.length }}>
+        {def.langkah.map((l, i) => {
+          const x = isi[l.id];
+          const tujuan = tujuanLangkah(l);
+          return (
+            <li key={l.id} className="alurButir">
+              <button type="button" className="alurTombol" title={tujuan} onClick={() => pindah(l.layar, l.aksi)}>
+                <span className="alurNo" aria-hidden="true">
+                  {i + 1}
+                </span>
+                <span className="alurLabel">
+                  {l.label}
+                  <span className="sr">{`: ${x.bacaan}. ${tujuan}.`}</span>
+                </span>
+                <span className={`alurNilai${x.nada ? ` ${NADA_NILAI[x.nada]}` : ""}`} aria-hidden="true">
+                  {x.nilai}
+                  {x.satuan && <small>{x.satuan}</small>}
+                </span>
+                <span className="alurKet" aria-hidden="true">
+                  {x.ket}
+                  {/* Spasi di luar <b> supaya tetap jadi tempat pemenggalan baris. */}
+                  {x.tanda && (
+                    <>
+                      {" "}
+                      <b>{x.tanda}</b>
+                    </>
+                  )}
+                </span>
+              </button>
+            </li>
+          );
+        })}
+      </ol>
+      <div className="alurKaki">{kaki}</div>
+    </section>
   );
 }
 
 /**
- * Layar 1 · Ringkasan sekolah, sudut pandang Kepala Sekolah: tahap program, cakupan skrining awal,
- * akses cepat, angka kunci, alur kasus beserta kasus yang perlu perhatian pimpinan, dua grafik
- * yang bisa diklik, dan peta kelas dengan saringan status.
+ * Layar Ringkasan, sudut pandang Kepala Sekolah (versi ringkas 2026-11-11): kedua alur sekolah
+ * berdampingan, butir yang menunggu keputusan pimpinan, dan sebaran hasil HEART per aspek. Tanpa
+ * bilah alur karena kedua alur tampil utuh di sini.
  */
 export default function Ringkasan() {
-  const { pindah, toast } = useProteksi();
-  const [sumber, setSumber] = useState("gab");
-  const [pilihAspek, setPilihAspek] = useState(null);
-  const [rentang, setRentang] = useState("all");
-  const [pilihKategori, setPilihKategori] = useState(null);
-  const [saring, setSaring] = useState("semua");
+  const { pindah, toast, beriTahu, centang, rencanaBaru, checklistTambahan } = useProteksi();
+  const [pengingatTerkirim, setPengingatTerkirim] = useState(false);
 
-  // Tanpa pilihan, grafik aspek menyorot aspek terbanyak pada sumber itu; grafik kategori menyorot Fisik.
-  const nilaiAspek = NILAI_ASPEK[sumber];
-  const aspekAktif = pilihAspek ?? nilaiAspek.indexOf(Math.max(...nilaiAspek));
-  const batangAspek = ASPEK.map((a, i) => ({
-    label: a,
-    teks: `${nilaiAspek[i]} anak`,
-    tinggi: Math.round((nilaiAspek[i] / 32) * TINGGI_ACUAN),
-    aria: `${a}: ${nilaiAspek[i]} anak`,
-  }));
+  // Angka hidup dari konteks: rencana yang disusun Guru BK di layar Skrining dan centang checklist.
+  const tindak = hitungTindakLanjut(rencanaBaru);
+  const cegah = isiCegah(tindak, hitungChecklist(centang, checklistTambahan));
+  const kejadian = isiKejadian(centang);
+  const keputusan = daftarKeputusan(tindak);
+  const isiPengingat = pengingat(tindak);
 
-  const nilaiKategori = NILAI_KATEGORI[rentang];
-  const kategoriAktif = pilihKategori ?? 1;
-  const batangKategori = KATEGORI.map((k, i) => ({
-    label: k,
-    teks: `${nilaiKategori[i]} laporan`,
-    tinggi: nilaiKategori[i] ? Math.round((nilaiKategori[i] / 3.4) * TINGGI_ACUAN) : 2,
-    aria: `${KATEGORI_LENGKAP[i]}: ${nilaiKategori[i]} laporan`,
-  }));
+  // Dua aspek dengan anak Waspada terbanyak, untuk kalimat di bawah grafik.
+  const teratas = useMemo(
+    () =>
+      [...HEART]
+        .sort((a, b) => RINGKAS_SEKOLAH.perAspek[b.id].waspada - RINGKAS_SEKOLAH.perAspek[a.id].waspada)
+        .slice(0, 2),
+    [],
+  );
 
-  const statusSaring = SARINGAN_KELAS.find((s) => s.id === saring)?.status;
-  const barisKelas = KELAS.filter((k) => !statusSaring || k.status === statusSaring);
-
-  function pilihSumber(id) {
-    setSumber(id);
-    setPilihAspek(null);
+  function ingatkan() {
+    if (pengingatTerkirim) {
+      toast("Pengingat sudah terkirim hari ini");
+      return;
+    }
+    isiPengingat.notifikasi.forEach((n) => beriTahu(n));
+    setPengingatTerkirim(true);
+    toast(isiPengingat.pesan);
   }
 
   return (
     <div className={`isi ${css.layar}`}>
       <section className="titlerow">
         <div>
-          <p className="eyebrow">Sekolah Proteksi · TK A sampai Kelas 4 · 288 anak</p>
-          <h1 className="h1">Ringkasan perlindungan anak</h1>
-          <p className="lead">Diperbarui Rabu, 11 November 2026, pukul 10.30 WIB</p>
+          <p className="eyebrow">Ringkasan sekolah · {TANGGAL}</p>
+          <h1 className="h1">Selamat pagi, {ORANG.kepsek.nama}</h1>
+          <p className="lead">{kalimatPembuka(tindak)}</p>
         </div>
-        <span className="pill gray sm">Data contoh untuk prototipe</span>
-      </section>
-
-      <section className="card">
-        <div className="tophead" style={{ padding: "24px 24px 0" }}>
-          <KepalaKartu ikon="bendera" judul={["Tahap Program", "Semester Ganjil 2026/2027"]} />
-          <span className="mut" style={{ fontSize: 12 }}>
-            Paket Tanggap · 5 Okt 2026 sampai Mar 2027
-          </span>
-        </div>
-        <ol className="stages">
-          {TAHAP.map((t, i) => {
-            const status = STATUS_TAHAP[t.status];
-            return (
-              <li key={t.nama} className={`stage${t.status === "now" ? " now" : ""}`}>
-                <span className={`sno ${t.status}`}>
-                  {t.status === "done" ? <Ikon nama="centang" size={16} /> : i + 1}
-                </span>
-                <span className="stt">{t.nama}</span>
-                <span className="std">{t.ket}</span>
-                <span className={`pill sm ${status.pil}`}>{status.label}</span>
-              </li>
-            );
-          })}
-        </ol>
-      </section>
-
-      <section className="row2">
-        <div className="card hero">
-          <div className="herotop">
-            <KepalaKartu ikon="skrining" nada="dark" judul={["Anak Terpetakan", "Skrining Awal"]} />
-            <p className="herobig">276 anak</p>
-          </div>
-          <div className="herobot">
-            <div>
-              <div className="mini">
-                <span className="ic">
-                  <Ikon nama="pena" size={15} warna="#111" />
-                </span>
-                Formulir wali kelas
-              </div>
-              <p className="heroval">276 dari 288</p>
-              <div className="hbar">
-                <span className="pu" style={{ width: "96%" }} />
-              </div>
-              <p className="herosub">12 anak belum diisi · batas Jumat, 13 Nov</p>
-            </div>
-            <div>
-              <div className="mini">
-                <span className="ic">
-                  <Ikon nama="kelompok" size={15} warna="#111" />
-                </span>
-                Formulir orang tua
-              </div>
-              <p className="heroval">
-                <span>241 dari 288</span>
-                <span className="dot" />
-                <span className="o">47 belum</span>
-              </p>
-              <div className="hbar">
-                <span className="or" style={{ width: "84%" }} />
-              </div>
-              <p className="herosub">Pengingat WhatsApp terakhir: Selasa, 10 Nov</p>
-            </div>
-          </div>
-        </div>
-
-        <div className="card akses">
-          <KepalaKartu ikon="kisi" nada="black" judul={["Akses", "Cepat"]} />
-          <div className="fgrid">
-            <button type="button" className="fbtn" onClick={() => pindah("kasus", { jenis: "lapor" })}>
-              <Ikon nama="lapor" size={22} warna="#D63CE0" />
-              Lapor Kejadian
-            </button>
-            <button type="button" className="fbtn" onClick={() => toast(PESAN_PENGINGAT)}>
-              <Ikon nama="kirim" size={22} warna="#5B5BF0" />
-              Kirim Pengingat Skrining
-            </button>
-            <button type="button" className="fbtn" onClick={() => pindah("skrining")}>
-              <Ikon nama="peta" size={22} warna="#3D8BF2" />
-              Lihat Peta Skrining
-            </button>
-            <button type="button" className="fbtn" onClick={() => toast(PESAN_UNDUH)}>
-              <Ikon nama="unduh" size={22} warna="#3BAA35" />
-              Unduh Laporan Pimpinan
-            </button>
-          </div>
-        </div>
-      </section>
-
-      <section className="row4">
-        {ANGKA_KUNCI.map((k) => (
-          <div key={k.angka} className="card kpi">
-            <KepalaKartu ikon={k.ikon} judul={k.judul} as="h3" />
-            <p className="num">{k.angka}</p>
-            <p className={`ksub ${k.nada}`}>{k.ket}</p>
-          </div>
-        ))}
-      </section>
-
-      <section className="card tcard">
-        <div className="tophead">
-          <KepalaKartu ikon="tiket" judul={["Alur Penanganan", "Kasus"]} />
-          <button type="button" className="ghost sm" onClick={() => pindah("kasus")}>
-            Buka Kasus &amp; SLA
-            <Ikon nama="keluar" size={16} />
+        <div className="tbtns">
+          <button type="button" className="ghost sm" onClick={() => toast(PESAN_UNDUH)}>
+            <Ikon nama="unduh" size={16} />
+            Unduh laporan pimpinan
           </button>
         </div>
-        <div className="pipe">
-          {ALUR.map((p, i) => (
-            <div key={p.judul} className="pitem">
-              <div className={`pst${p.nada ? ` ${p.nada}` : ""}`}>
-                <span className="pl">{p.judul}</span>
-                <span className="pn">{p.jumlah}</span>
-                <span className="pd">{p.ket}</span>
-                <span className="pw">{p.oleh}</span>
-              </div>
-              {i < ALUR.length - 1 && (
-                <span className="pchev" aria-hidden="true">
-                  <Ikon nama="kanan" size={20} />
-                </span>
-              )}
-            </div>
-          ))}
-        </div>
-        <div className="att">
-          <p className="atth">Perlu perhatian pimpinan sekarang</p>
-          {PERHATIAN.map((a) => (
-            <div key={a.id} className={`alert ${a.nada}`}>
-              <span className={`pill sm ${a.pil}`}>{a.tingkat}</span>
-              <div className="alm">
-                <b>
-                  {a.id} · {a.judul}
-                </b>
-                <span>{a.meta}</span>
-              </div>
-              <div className="als">
-                <b className={a.warnaSla}>{a.sla}</b>
-                <span>{a.oleh}</span>
-              </div>
-              <button
-                type="button"
-                className="ghost sm"
-                aria-label={`Buka kasus ${a.id}`}
-                onClick={() => pindah("kasus", { jenis: "kasus", id: a.id })}
-              >
-                Buka
-              </button>
-            </div>
-          ))}
-        </div>
       </section>
 
-      <section className="row2">
-        <div className="card chart">
+      <div className="alurDua">
+        <PanelAlur
+          alur="cegah"
+          kanan="Batas skrining Jumat, 13 Nov"
+          isi={cegah}
+          kaki={
+            <p className="jembatanKecil">
+              <Ikon nama="peringatan" size={15} />
+              <span>
+                <b>{RINGKAS_SEKOLAH.tandaBahaya} tanda bahaya</b> dari skrining langsung masuk alur kejadian
+              </span>
+              <Ikon nama="sebelah" size={15} className="panahJembatan" />
+            </p>
+          }
+        />
+        <PanelAlur
+          alur="kejadian"
+          kanan={`${KINERJA_KASUS.aktif} kasus aktif`}
+          isi={kejadian}
+          kaki={
+            <p className="kinerja">
+              <span>
+                <b className="nilaiHijau">{KINERJA_KASUS.ketepatanSla}</b> ketepatan SLA
+              </span>
+              <span className="pisahTitik" aria-hidden="true" />
+              <span>
+                respon pertama rata-rata <b>{KINERJA_KASUS.responRata}</b>
+              </span>
+            </p>
+          }
+        />
+      </div>
+
+      <div className="barisBawah">
+        <section className="card tcard keputusan">
           <div className="tophead">
-            <KepalaKartu ikon="grafik" judul={["Hasil Pemetaan", "per Aspek"]} as="h3" />
-            <Segmen label="Sumber penilaian" pilihan={SUMBER} nilai={sumber} onPilih={pilihSumber} />
+            <KepalaKartu ikon="bendera" nada="red" judul="Perlu keputusan Anda" />
+            <span className="mut kecil">{keputusan.length} butir</span>
           </div>
-          <GrafikBatang
-            label="Grafik jumlah anak per aspek, klik batang untuk melihat nilai"
-            batang={batangAspek}
-            aktif={aspekAktif}
-            nada="p"
-            onPilih={setPilihAspek}
-          />
-          <p className="chartnote">
-            Jumlah anak yang aspeknya masuk kategori perlu dipantau atau perlu dukungan, dari 276 anak terpetakan. Satu
-            anak bisa muncul di lebih dari satu aspek.
+          <ul className="kepDaftar">
+            {keputusan.map((k) => (
+              <li key={k.id} className="kepButir">
+                <span className={`pill sm ${k.pil} kepPenanda`}>{k.penanda}</span>
+                <div className="kepIsi">
+                  <p className="kepJudul">
+                    <b>{k.judul}</b> <span className={NADA_STATUS[k.warna] || undefined}>{k.status}</span>
+                  </p>
+                  <p className="kepMeta">{k.meta}</p>
+                </div>
+                <div className="kepAksi">
+                  {k.ingatkan && (
+                    <button
+                      type="button"
+                      className={`ghost sm${pengingatTerkirim ? " terkirim" : ""}`}
+                      aria-disabled={pengingatTerkirim || undefined}
+                      aria-label={pengingatTerkirim ? "Pengingat sudah terkirim" : isiPengingat.label}
+                      onClick={ingatkan}
+                    >
+                      <Ikon nama={pengingatTerkirim ? "centang" : "kirim"} size={15} />
+                      {pengingatTerkirim ? "Terkirim" : "Ingatkan"}
+                    </button>
+                  )}
+                  <button
+                    type="button"
+                    className="ghost sm"
+                    aria-label={k.labelBuka}
+                    onClick={() => pindah(k.tujuan.layar, k.tujuan.aksi)}
+                  >
+                    Buka
+                  </button>
+                </div>
+              </li>
+            ))}
+          </ul>
+        </section>
+
+        <section className="card tcard heartSekolah">
+          <div className="tophead">
+            <KepalaKartu ikon="hati" judul="Hasil HEART sekolah" />
+            <button type="button" className="ghost sm" onClick={() => pindah("skrining")}>
+              Buka skrining
+            </button>
+          </div>
+          <div className="legendaBaris">
+            <ul className="legenda" aria-hidden="true">
+              <li>
+                <span className="titikWarna isiBaik" />
+                Baik
+              </li>
+              <li>
+                <span className="titikWarna isiPerhatian" />
+                Perlu Perhatian
+              </li>
+              <li>
+                <span className="titikWarna isiWaspada" />
+                Waspada
+              </li>
+            </ul>
+            <span className="mut kecil">{RINGKAS_SEKOLAH.terpetakan} anak terpetakan</span>
+          </div>
+          <ul className="aspekDaftar">
+            {HEART.map((a) => {
+              const x = RINGKAS_SEKOLAH.perAspek[a.id];
+              // Lebar sebanding jumlah anak (flex-grow); keping kecil tetap terlihat lewat min-width di CSS.
+              const keping = (n, kelas) => (n > 0 ? <span className={kelas} style={{ flexGrow: n }} /> : null);
+              return (
+                <li key={a.id} className="aspekBaris">
+                  <span className="aspekKode" aria-hidden="true">
+                    {a.kode}
+                  </span>
+                  <span className="aspekNama">{a.nama}</span>
+                  <span className="aspekBatang" aria-hidden="true">
+                    {keping(x.baik, "isiBaik")}
+                    {keping(x.perhatian, "isiPerhatian")}
+                    {keping(x.waspada, "isiWaspada")}
+                  </span>
+                  <span className="sr">{`: Baik ${x.baik}, Perlu Perhatian ${x.perhatian}, Waspada ${x.waspada}`}</span>
+                  <span className="angkaChip angkaPerhatian" aria-hidden="true" title={`${x.perhatian} anak Perlu Perhatian`}>
+                    {x.perhatian}
+                  </span>
+                  <span className="angkaChip angkaWaspada" aria-hidden="true" title={`${x.waspada} anak Waspada`}>
+                    {x.waspada}
+                  </span>
+                </li>
+              );
+            })}
+          </ul>
+          <p className="heartKaki">
+            Paling banyak Waspada:{" "}
+            {teratas.map((a, i) => (
+              <span key={a.id}>
+                {i > 0 && " dan "}
+                <b>{a.nama}</b> ({RINGKAS_SEKOLAH.perAspek[a.id].waspada})
+              </span>
+            ))}
+            .
           </p>
-        </div>
-
-        <div className="card chart">
-          <div className="tophead">
-            <KepalaKartu ikon="lapor" judul={["Laporan Masuk", "per Kategori"]} as="h3" />
-            <Segmen label="Rentang waktu laporan" pilihan={RENTANG} nilai={rentang} onPilih={setRentang} />
-          </div>
-          <GrafikBatang
-            label="Grafik laporan per kategori, klik batang untuk melihat nilai"
-            batang={batangKategori}
-            aktif={kategoriAktif}
-            nada="o"
-            onPilih={setPilihKategori}
-          />
-          <p className="chartnote">{`${CATATAN_RENTANG[rentang]} ${CATATAN_KATEGORI}`}</p>
-        </div>
-      </section>
-
-      <section className="card tcard">
-        <div className="tophead">
-          <KepalaKartu ikon="baris" judul={["Peta", "Kelas"]} />
-          <Segmen label="Saring status kelas" pilihan={SARINGAN_KELAS} nilai={saring} onPilih={setSaring} />
-        </div>
-        <div className="tbox">
-          <table className="tbl">
-            <thead>
-              <tr>
-                <th style={{ width: 52 }}>No</th>
-                <th>Kelas</th>
-                <th>Terpetakan</th>
-                <th>Perlu dipantau</th>
-                <th>Perlu dukungan</th>
-                <th>Kasus aktif</th>
-                <th>Status</th>
-                <th>Tindak lanjut</th>
-              </tr>
-            </thead>
-            <tbody>
-              {barisKelas.map((r, i) => (
-                <tr key={r.kelas}>
-                  <td>{i + 1}</td>
-                  <td>
-                    <div className="cellbox">
-                      <b>{r.kelas}</b>
-                      <span className="mut">{r.wali}</span>
-                    </div>
-                  </td>
-                  <td>
-                    <span className={r.terpetakan < r.jumlah ? "o" : undefined}>{`${r.terpetakan} / ${r.jumlah}`}</span>
-                  </td>
-                  <td>{r.pantau}</td>
-                  <td>{r.dukung}</td>
-                  <td>{r.kasus}</td>
-                  <td>
-                    <span className={`pill ${PIL_STATUS_KELAS[r.status]}`}>{r.status}</span>
-                  </td>
-                  <td className="rumus">{r.tindak}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </section>
+        </section>
+      </div>
     </div>
   );
 }
