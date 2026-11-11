@@ -1,5 +1,5 @@
 import { useCms } from '../store/CmsStore';
-import { IconDash, IconCheck, IconUpload, IconSpark, IconSchool, IconUser, IconLogOut } from './icons';
+import { IconDash, IconCheck, IconUpload, IconSpark, IconSchool, IconUser, IconLogOut, IconKey } from './icons';
 
 const NAV = [
   { key: 'dashboard', label: 'Dashboard', Icon: IconDash, badge: null },
@@ -17,6 +17,8 @@ const NAV = [
   { key: 'gemini', label: 'Trigger & Gemini', Icon: IconSpark, badge: null },
   { key: 'sekolah', label: 'Sekolah & Modul', Icon: IconSchool, badge: null },
   { key: 'pengguna', label: 'Pengguna & Peran', Icon: IconUser, badge: null },
+  // Kode akses demo halaman masuk (fungsi demo_code_* di migration 20261111100000).
+  { key: 'kode-demo', label: 'Kode Demo', Icon: IconKey, badge: null },
 ];
 
 export function Sidebar({ session, onLogout }) {

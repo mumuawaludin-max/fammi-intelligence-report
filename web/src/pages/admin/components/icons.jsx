@@ -145,6 +145,15 @@ export function IconPlus(props) {
   </>);
 }
 
+export function IconKey(props) {
+  return base(props, <>
+    <circle cx="7.5" cy="15.5" r="4.5" />
+    <path d="M10.7 12.3L21 2" />
+    <path d="M16 7l3 3" />
+    <path d="M18.5 4.5l2 2" />
+  </>);
+}
+
 export function IconZap(props) {
   return base({ fill: 'currentColor', ...props }, <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" />);
 }

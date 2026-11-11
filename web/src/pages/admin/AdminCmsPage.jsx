@@ -20,6 +20,7 @@ import { Gemini } from './screens/Gemini';
 import { Sekolah } from './screens/Sekolah';
 import { Pengguna } from './screens/Pengguna';
 import { SinkronYpt } from './screens/SinkronYpt';
+import { KodeDemo } from './screens/KodeDemo';
 
 function Screen({ name }) {
   switch (name) {
@@ -33,6 +34,7 @@ function Screen({ name }) {
     case 'sekolah': return <Sekolah />;
     case 'pengguna': return <Pengguna />;
     case 'sinkron-ypt': return <SinkronYpt />;
+    case 'kode-demo': return <KodeDemo />;
     default: return <Dashboard />;
   }
 }

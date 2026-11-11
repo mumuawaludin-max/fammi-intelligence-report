@@ -91,6 +91,13 @@ disiapkan"). Log `demo-masuk` hanya mencatat id tampilan, tidak pernah username.
 
 ## Membuat, melihat, dan mencabut kode
 
+Cara biasa: **Admin CMS > Kode Demo**. Isi label, masa berlaku, batas pemakaian, lama satu sesi, dan
+sistem yang dibuka, lalu Buat kode. Kode tampil sekali beserta tombol Salin kode dan Salin pesan
+undangan (kode, alamat situs, dan masa berlaku, siap dikirim). Daftar di bawahnya menunjukkan status,
+pemakaian, dan sesi yang sedang aktif per kode, dengan tombol Cabut.
+
+Lewat SQL Editor juga bisa:
+
 ```sql
 select public.demo_code_create(
   'Presentasi Yayasan X',      -- label untuk pengelola, wajib
@@ -210,8 +217,8 @@ global tetap bekerja.
 - Berkas: halaman masuk `web/src/pages/LoginPage.jsx` (juga pengatur ketiga layar lewat hash,
   `demo/ruteDemo.js`), layar demo `web/src/pages/demo/DemoBeranda.jsx`, ubin bersama
   `web/src/pages/login/MozaikSistem.jsx`, unsur merek `web/src/pages/login/MerekFammi.jsx`.
-- Belum ada layar pengelola kode di Admin CMS; pengelolaan lewat SQL Editor. Fungsinya sudah bisa
-  dipanggil akun Admin Fammi lewat `supabase.rpc`.
+- Layar pengelola kode: Admin CMS > Kode Demo (`web/src/pages/admin/screens/KodeDemo.jsx`),
+  memanggil fungsi yang sama lewat `supabase.rpc` sebagai Admin Fammi.
 - Font tetap Google Sans Flex sesuai aturan satu font di CLAUDE.md.
 
 ## Uji

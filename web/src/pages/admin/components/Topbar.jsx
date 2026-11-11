@@ -9,6 +9,7 @@ const TITLES = {
   gemini: { title: 'Trigger & Antrian Gemini', subtitle: () => 'Picu draf briefing/tindak_lanjut on-demand via Edge Function' },
   sekolah: { title: 'Sekolah & Modul', subtitle: () => 'CRUD schools, school_modules, konfigurasi aspek per sekolah' },
   pengguna: { title: 'Pengguna & Peran', subtitle: () => 'Akun per sekolah, PascalCase enum · profiles_peran_check' },
+  'kode-demo': { title: 'Kode Demo', subtitle: () => 'Akses demo halaman masuk · buat, pantau, dan cabut kode' },
 };
 // Fallback untuk key layar yang belum terdaftar di TITLES -- layar baru yang lupa menambah
 // entri di sini pernah membuat SELURUH CMS blank (screenInfo undefined -> .title melempar,
