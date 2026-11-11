@@ -14,10 +14,11 @@ Ada dua layar yang terpisah:
 | Sistem | Tombol | Isi |
 | --- | --- | --- |
 | 01 Education & Character | Rapor Karakter: Kepala Sekolah, Wali Kelas | Dashboard Rapor Karakter sungguhan, masuk sebagai akun demo |
+| 01 Education & Character | Rapor Karakter: Contoh cara input | Halaman simulasi input di app.fammi.ly, dibuka di penampil demo (`#demo/contoh-input-karakter`). Halaman itu butuh 10-15 detik untuk tampil |
 | 02 Safety & Crisis Management | Kesehatan Mental Anak 4-10 tahun | Screening anak (modul Perilaku Anak), akun demo Yayasan TK Fammi |
 | 03 Talent & Life Design | Multiple Intelligence | Laporan MI, akun demo |
 | 04 Teacher Growth & Support | Culture: Kelompok, Perorangan | School Culture lembaga dan laporan perorangan, akun demo YPS Fammi |
-| 05 Finance & Planning | Dashboard Keuangan | Laporan HTML yang disimpan server (`supabase/demo/laporan-keuangan.html`), di `#demo/finance-planning` |
+| 05 Finance & Planning | Dashboard Keuangan | Laporan HTML yang disimpan server (`supabase/demo/laporan-keuangan.html`), di `#demo/dashboard-keuangan` |
 
 Alurnya: tautan **Lihat demo aplikasi**, dialog kode demo, server memverifikasi, layar demo terbuka.
 Layar demo menampilkan masa berlaku akses, tombol **Akhiri demo**, dan tautan kembali ke halaman
@@ -109,7 +110,7 @@ tampil sekali. Database menyimpan HMAC-nya saja. Membuka sebagian sistem saja:
 atau tanpa tanda hubung.
 
 Pencabutan dan kedaluwarsa mematikan sesi demo yang sedang berjalan. Layar demo, halaman masuk, dan
-bilah "Mode demo" di dalam aplikasi memeriksa ulang sesi tiap 60 detik, setiap tab kembali terlihat,
+bilah demo di atas aplikasi memeriksa ulang sesi tiap 60 detik, setiap tab kembali terlihat,
 dan saat sesinya habis; begitu server menolak, pengunjung dikeluarkan dari akun demo dan kembali ke
 halaman masuk dengan pesan yang sesuai. Jatah pakai yang habis hanya menahan sesi baru.
 
@@ -129,7 +130,10 @@ halaman masuk dengan pesan yang sesuai. Jatah pakai yang habis hanya menahan ses
 6. Browser memasang sesi itu dan membuka aplikasi seperti login biasa, dengan penanda `demo` di sesi
    FIR. Peran akun menentukan tampilannya (Kepala Sekolah ke Rapor Karakter, Yayasan TK Fammi ke
    screening anak, staf ke laporan Culture perorangan, dan seterusnya).
-7. Bilah mengambang **Mode demo** tampil di semua shell. Tombol **Kembali**, maupun tombol Keluar
+7. Semua tampilan demo (akun, laporan HTML, tautan) memakai bilah atas yang sama: **Kembali ke
+   Intelligence Systems**, modul yang dibuka, lencana Demo report, dan catatan "Data contoh untuk
+   demonstrasi" (`DemoBilah`). Di tampilan akun, shell aplikasi tampil di bingkai di bawah bilah
+   itu. Tombol **Kembali ke Intelligence Systems**, maupun tombol Keluar
    di aplikasi, keluar dari akun demo **hanya di browser ini** (`signOut` scope local), supaya
    pengunjung lain yang memakai akun demo yang sama tidak ikut keluar, lalu kembali ke layar demo
    dengan fokus di tombol yang tadi dibuka. Token demo tetap tersimpan.

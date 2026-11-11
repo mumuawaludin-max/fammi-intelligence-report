@@ -11,7 +11,10 @@
  *             khusus akun itu: Edge Function demo-masuk memeriksa sesi demo, masuk ke akun demo yang
  *             disimpan di secret DEMO_AKUN, lalu hanya mengembalikan sesinya.
  *   "html" -> laporan HTML yang disimpan server (tabel demo_reports), dibuka di iframe sandbox.
- * URL tidak pernah dipakai sebagai path: hanya id dari registri ini yang diterima.
+ *   "tautan" -> halaman Fammi lain yang terbuka untuk umum (url di sini, bukan rahasia), dibuka di
+ *             penampil demo yang sama, mis. contoh cara input Rapor Karakter.
+ * Tampilan html dan tautan punya alamat sendiri #demo/<id tampilan>. Hash tidak pernah dipakai
+ * sebagai path: hanya id dari registri ini yang diterima.
  */
 
 export const DEMO_SYSTEMS = [
@@ -26,6 +29,13 @@ export const DEMO_SYSTEMS = [
     tampilan: [
       { id: "karakter-kepsek", jenis: "akun", grup: "Rapor Karakter", label: "Kepala Sekolah" },
       { id: "karakter-walas", jenis: "akun", grup: "Rapor Karakter", label: "Wali Kelas" },
+      {
+        id: "contoh-input-karakter",
+        jenis: "tautan",
+        grup: "Rapor Karakter",
+        label: "Contoh cara input",
+        url: "https://app.fammi.ly/s/468c0f0681",
+      },
     ],
   },
   {
@@ -111,13 +121,19 @@ export function saringSistem(daftar) {
  *   "terbatas" -> sistemnya tidak termasuk kode demo yang dipakai
  *   "terkunci" -> belum ada sesi demo
  * Tampilan berjenis "akun" selalu dianggap tersedia: kesiapan akunnya hanya diketahui server, dan
- * kalau belum diatur, pembukaannya membalas pesan yang jelas.
+ * kalau belum diatur, pembukaannya membalas pesan yang jelas. "tautan" tersedia kalau url-nya ada.
  */
 export function statusTampilan(tampilan, sesi) {
   if (!tampilan || !sesi) return "terkunci";
   if (!sesi.availableSystems?.includes(tampilan.sistem)) return "terbatas";
   if (tampilan.jenis === "html") return sesi.htmlReports?.includes(tampilan.sistem) ? "tersedia" : "segera";
+  if (tampilan.jenis === "tautan") return tampilan.url ? "tersedia" : "segera";
   return tampilan.jenis === "akun" ? "tersedia" : "segera";
+}
+
+/** Tampilan yang dibuka di penampil demo (punya alamat #demo/<id>), bukan masuk ke akun. */
+export function tampilanBerpenampil(tampilan) {
+  return Boolean(tampilan) && (tampilan.jenis === "html" || tampilan.jenis === "tautan");
 }
 
 /** Status satu sistem: tersedia kalau minimal satu tampilannya tersedia. */
@@ -130,31 +146,32 @@ export function statusSistem(sistem, sesi) {
 
 const POLA_HASH = /^#demo\/([a-z][a-z-]{2,39})$/;
 
-/** Id sistem laporan HTML dari hash URL (#demo/<id>), hanya kalau id itu ada di registri. */
+/** Id tampilan berpenampil (html atau tautan) dari hash URL (#demo/<id>), hanya id registri. */
 export function bacaHashDemo(hash) {
   const cocok = POLA_HASH.exec(typeof hash === "string" ? hash : "");
-  return cocok ? cariSistem(cocok[1])?.id ?? null : null;
+  const tampilan = cocok ? cariTampilan(cocok[1]) : null;
+  return tampilanBerpenampil(tampilan) ? tampilan.id : null;
 }
 
-export function hashDemo(id) {
-  return cariSistem(id) ? `#demo/${id}` : "";
+export function hashDemo(idTampilan) {
+  return tampilanBerpenampil(cariTampilan(idTampilan)) ? `#demo/${idTampilan}` : "";
 }
 
 /**
  * Layar halaman masuk menurut hash URL:
  *   ""             -> { layar: "masuk" }    halaman masuk (informasi + form akun)
  *   "#demo"        -> { layar: "demo" }     layar demo, hanya terbuka selama sesi demo sah
- *   "#demo/<id>"   -> { layar: "laporan" }  laporan HTML satu sistem
+ *   "#demo/<id>"   -> { layar: "laporan" }  penampil satu tampilan html atau tautan
  * Hash lain (termasuk yang berbentuk path) jatuh ke halaman masuk.
  */
 export function bacaRuteDemo(hash) {
-  if (hash === "#demo") return { layar: "demo", sistem: null };
-  const sistem = bacaHashDemo(hash);
-  return sistem ? { layar: "laporan", sistem } : { layar: "masuk", sistem: null };
+  if (hash === "#demo") return { layar: "demo", tampilan: null };
+  const tampilan = bacaHashDemo(hash);
+  return tampilan ? { layar: "laporan", tampilan } : { layar: "masuk", tampilan: null };
 }
 
 export function hashRuteDemo(rute) {
   if (rute?.layar === "demo") return "#demo";
-  if (rute?.layar === "laporan") return hashDemo(rute.sistem);
+  if (rute?.layar === "laporan") return hashDemo(rute.tampilan);
   return "";
 }

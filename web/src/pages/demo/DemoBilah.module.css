@@ -1,0 +1,170 @@
+/* Bilah atas semua tampilan demo. Palet dari login/loginTokens.module.css. */
+
+.wadah {
+  position: relative;
+  z-index: 20;
+  flex: none;
+  font-family: var(--font-body);
+  color: var(--lg-tinta);
+  -webkit-font-smoothing: antialiased;
+}
+.warna_ungu { --warna: var(--lg-modul-ungu); }
+.warna_merah { --warna: var(--lg-modul-merah); }
+.warna_biru { --warna: var(--lg-modul-biru); }
+.warna_jingga { --warna: var(--lg-modul-jingga); }
+.warna_teal { --warna: var(--lg-modul-teal); }
+
+.bilah {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  padding: 12px clamp(14px, 2.4vw, 28px);
+  background: var(--lg-putih);
+  box-shadow: 0 1px 0 var(--lg-garis);
+}
+
+.kembali {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: 42px;
+  padding: 0 16px 0 12px;
+  border-radius: 12px;
+  font-family: inherit;
+  font-size: 13.5px;
+  font-weight: 700;
+  color: var(--lg-tinta);
+  background: var(--lg-lavender);
+  transition: background-color 0.2s;
+}
+.kembali svg { transition: transform 0.2s var(--lg-ease); }
+.kembali:hover { background: color-mix(in srgb, var(--lg-lavender) 70%, var(--lg-ungu-muda)); }
+.kembali:hover svg { transform: translateX(-2px); }
+.kembali:focus-visible { outline: 2px solid var(--lg-ungu); outline-offset: 2px; }
+.kembaliPendek { display: none; }
+
+.judulBlok {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding-left: 18px;
+  border-left: 1px solid var(--lg-garis);
+}
+.judulIkon {
+  flex: none;
+  width: 38px;
+  height: 38px;
+  border-radius: 12px;
+  display: grid;
+  place-items: center;
+  color: var(--lg-putih);
+  background: var(--warna, var(--lg-ungu));
+}
+.warna_jingga .judulIkon { color: var(--lg-tinta); }
+.judulTeks { min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.judulNomor {
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.3;
+  color: var(--lg-tinta-3);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.judul {
+  margin: 0;
+  font-size: 17px;
+  font-weight: 800;
+  line-height: 1.2;
+  letter-spacing: -0.01em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.lencana {
+  flex: none;
+  padding: 4px 10px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 800;
+  line-height: 1.4;
+  color: var(--lg-tinta);
+  background: var(--lg-stabilo);
+}
+
+.tautanLuar {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 36px;
+  padding: 0 12px;
+  border-radius: 10px;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--lg-ungu);
+  text-decoration: none;
+  background: var(--lg-lavender);
+}
+.tautanLuar:hover { color: var(--lg-ungu-tua); }
+.tautanLuar:focus-visible { outline: 2px solid var(--lg-ungu); outline-offset: 2px; }
+
+.merek {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--lg-ungu);
+}
+.merek img { width: 34px; height: 34px; margin: -4px; object-fit: contain; }
+.merek span { margin-left: 6px; }
+
+.catatan {
+  margin: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 7px 16px;
+  font-size: 12.5px;
+  font-weight: 600;
+  line-height: 1.4;
+  text-align: center;
+  color: var(--lg-ungu-tua);
+  background: var(--lg-lavender);
+}
+.catatan svg { flex: none; }
+
+@media (max-width: 1100px) {
+  .merek span { display: none; }
+}
+
+@media (max-width: 720px) {
+  .bilah { gap: 10px; padding: 10px 12px; }
+  .kembali { height: 40px; padding: 0 12px 0 10px; }
+  .kembaliPanjang { display: none; }
+  .kembaliPendek { display: inline; }
+  .judulBlok { gap: 9px; padding-left: 10px; }
+  .judulIkon { width: 32px; height: 32px; border-radius: 10px; }
+  .judulNomor { display: none; }
+  .judul { font-size: 15px; }
+  .lencana { padding: 3px 8px; font-size: 11px; }
+  .tautanLuar span { display: none; }
+  .tautanLuar { padding: 0 10px; }
+  .merek { display: none; }
+  .catatan { font-size: 11.5px; padding: 6px 12px; }
+}
+
+@media (max-width: 420px) {
+  .judulIkon { display: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .kembali,
+  .kembali svg { transition: none; }
+}

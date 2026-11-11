@@ -239,12 +239,10 @@ export default function App() {
 
   if (!session) return <LoginPage onLogin={handleLogin} notice={loginNotice} demoKeluar={demoKeluar} />;
 
-  // Selama pengunjung demo berada di tampilan akun demo, penanda mode demo ikut di setiap shell.
+  // Selama pengunjung demo berada di tampilan akun demo, bilah demo (Kembali ke Intelligence
+  // Systems, modul, catatan data contoh) tampil di atas setiap shell.
   const tampil = (isi) => (session.demo ? (
-    <>
-      {isi}
-      <DemoModeBar demo={session.demo} onKeluar={keluarDariDemo} />
-    </>
+    <DemoModeBar demo={session.demo} onKeluar={keluarDariDemo}>{isi}</DemoModeBar>
   ) : isi);
 
   // Siswa dan OrangTua sama-sama peran yang di-scope ke satu murid_id (lihat CLAUDE.md:

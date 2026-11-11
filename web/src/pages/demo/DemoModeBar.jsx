@@ -1,24 +1,26 @@
 import { useEffect, useRef } from "react";
-import { ArrowLeft } from "@phosphor-icons/react";
 import { klienDemo } from "./demoAccess";
 import { sesiMati } from "./demoAturan";
-import tokens from "../login/loginTokens.module.css";
+import { cariSistem } from "./demoSystems";
+import DemoBilah from "./DemoBilah";
 import styles from "./DemoModeBar.module.css";
 
 const JEDA_PERIKSA_MS = 60_000;
 
 /**
- * Penanda kecil yang mengambang selama pengunjung demo berada di tampilan produk sungguhan
- * (sesi FIR ber-`demo`, lihat App.jsx). Tombol Kembali memanggil `onKeluar()` tanpa status:
- * pengunjung kembali ke layar demo untuk memilih tampilan lain. Sekaligus pengawas: sesi demo
- * diperiksa ulang ke server tiap menit dan setiap tab kembali terlihat. Begitu sesi demo
- * kedaluwarsa, dicabut, atau diakhiri, `onKeluar(status)` dipanggil dan pengunjung kembali ke
- * halaman masuk beserta alasannya.
+ * Bilah demo di atas tampilan produk sungguhan selama pengunjung demo memakai akun demo (sesi FIR
+ * ber-`demo`, lihat App.jsx). Tampilannya sama dengan penampil laporan demo (DemoBilah): tombol
+ * "Kembali ke Intelligence Systems" memanggil `onKeluar()` tanpa status, jadi pengunjung kembali ke
+ * layar demo. Sekaligus pengawas: sesi demo diperiksa ulang ke server tiap menit dan setiap tab
+ * kembali terlihat. Begitu sesi demo kedaluwarsa, dicabut, atau diakhiri, `onKeluar(status)`
+ * dipanggil dan pengunjung kembali ke halaman masuk beserta alasannya.
  *
- * Dibuat mengambang (position: fixed), bukan bilah di atas Header, karena beberapa shell
- * (laporan bakat, laporan individu Culture) memenuhi layar sendiri.
+ * Shell aplikasi dirender sebagai children di bingkai di bawah bilah. Bingkai itu memakai
+ * `contain: layout paint`, jadi elemen position: fixed di dalam shell (mis. SiswaPage yang
+ * memenuhi layar dengan lapisan fixed) mengacu ke bingkai, bukan ke jendela, dan tidak tertutup
+ * bilah demo.
  */
-export default function DemoModeBar({ demo, onKeluar }) {
+export default function DemoModeBar({ demo, onKeluar, children }) {
   const keluarRef = useRef(onKeluar);
   useEffect(() => {
     keluarRef.current = onKeluar;
@@ -45,16 +47,9 @@ export default function DemoModeBar({ demo, onKeluar }) {
   }, []);
 
   return (
-    <div className={`${tokens.scope} ${styles.bilah}`} role="region" aria-label="Mode demo">
-      <span className={styles.titik} aria-hidden="true" />
-      <span className={styles.teks}>
-        <strong>Mode demo</strong>
-        <span className={styles.keterangan}> · {demo.judul} · {demo.label}</span>
-      </span>
-      <button type="button" className={styles.kembali} onClick={() => onKeluar()}>
-        <ArrowLeft size={15} weight="bold" aria-hidden="true" />
-        Kembali
-      </button>
+    <div className={styles.aplikasi}>
+      <DemoBilah sistem={cariSistem(demo.sistem)} label={demo.label} onKembali={() => onKeluar()} />
+      <div className={styles.isi}>{children}</div>
     </div>
   );
 }

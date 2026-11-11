@@ -1,60 +1,17 @@
-/* Penanda mode demo yang mengambang di atas tampilan produk. */
+/* Tampilan akun demo: bilah demo di atas, shell aplikasi di bingkai sisanya. */
 
-.bilah {
-  position: fixed;
-  left: 16px;
-  bottom: 16px;
-  z-index: 3000;
-  display: inline-flex;
-  align-items: center;
-  gap: 10px;
-  max-width: calc(100vw - 32px);
-  padding: 7px 7px 7px 14px;
-  border-radius: 999px;
-  font-family: var(--font-body);
-  font-size: 13px;
-  color: var(--lg-tinta);
-  background: var(--lg-putih);
-  box-shadow: var(--lg-bayangan-ambang);
+.aplikasi {
+  display: flex;
+  flex-direction: column;
+  height: 100svh;
 }
 
-.titik {
-  flex: none;
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  background: var(--lg-hijau);
-  box-shadow: 0 0 0 3px var(--lg-hijau-tipis);
-}
-
-.teks {
-  min-width: 0;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-.teks strong { font-weight: 800; }
-.keterangan { color: var(--lg-tinta-2); }
-
-.kembali {
-  flex: none;
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  height: 32px;
-  padding: 0 13px 0 11px;
-  border-radius: 999px;
-  font-family: inherit;
-  font-size: 12.5px;
-  font-weight: 700;
-  color: var(--lg-putih);
-  background: var(--lg-tinta);
-  transition: background-color 0.2s;
-}
-.kembali:hover { background: var(--lg-ungu); }
-.kembali:focus-visible { outline: 3px solid var(--lg-ungu-muda); outline-offset: 2px; }
-
-@media (max-width: 560px) {
-  .bilah { left: 50%; transform: translateX(-50%); bottom: 12px; }
-  .keterangan { display: none; }
+/* Bingkai menjadi blok penampung elemen position: fixed di dalam shell dan menggulir sendiri,
+   jadi header lengket shell menempel tepat di bawah bilah demo. */
+.isi {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  contain: layout paint;
 }

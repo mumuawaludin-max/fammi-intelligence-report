@@ -9,7 +9,7 @@ import DemoBeranda from "./demo/DemoBeranda";
 import DemoReportViewer from "./demo/DemoReportViewer";
 import { useDemoSession } from "./demo/useDemoSession";
 import { PESAN_TAMPILAN, formatBerlaku, sesiMati } from "./demo/demoAturan";
-import { bacaRuteDemo, cariSistem, cariTampilan } from "./demo/demoSystems";
+import { bacaRuteDemo, cariSistem, cariTampilan, tampilanBerpenampil } from "./demo/demoSystems";
 import { gantiRuteDemo } from "./demo/ruteDemo";
 import tokens from "./login/loginTokens.module.css";
 import styles from "./LoginPage.module.css";
@@ -21,12 +21,8 @@ const muncul = (jeda) => ({
   transition: { duration: 0.55, ease: EASE, delay: jeda },
 });
 
-const RUTE_MASUK = { layar: "masuk", sistem: null };
-const RUTE_DEMO = { layar: "demo", sistem: null };
-
-function tampilanHtml(idSistem) {
-  return cariSistem(idSistem)?.tampilan.find((t) => t.jenis === "html")?.id ?? null;
-}
+const RUTE_MASUK = { layar: "masuk", tampilan: null };
+const RUTE_DEMO = { layar: "demo", tampilan: null };
 
 /**
  * LoginPage: gerbang masuk Fammi Intelligence Report, tiga layar lewat hash URL (demo/ruteDemo.js):
@@ -67,7 +63,7 @@ export default function LoginPage({ onLogin, notice, demoKeluar = null }) {
     function saatNavigasi() {
       const baru = bacaRuteDemo(window.location.hash);
       const lama = ruteRef.current;
-      if (lama.layar === "laporan" && baru.layar !== "laporan") setFokusTampilan(tampilanHtml(lama.sistem));
+      if (lama.layar === "laporan" && baru.layar !== "laporan") setFokusTampilan(lama.tampilan);
       ruteRef.current = baru;
       setRute(baru);
     }
@@ -93,19 +89,17 @@ export default function LoginPage({ onLogin, notice, demoKeluar = null }) {
     setRute(tujuan);
   }, []);
 
-  // ── Laporan HTML demo ────────────────────────────────────────────────────────────────────
-  const bukaLaporan = useCallback((idSistem) => {
-    if (!cariSistem(idSistem)) return;
-    pindah({ layar: "laporan", sistem: idSistem }, { tambah: true });
+  // ── Penampil demo (laporan HTML, tautan) ────────────────────────────────────────────────────────────────────
+  const bukaLaporan = useCallback((idTampilan) => {
+    if (!tampilanBerpenampil(cariTampilan(idTampilan))) return;
+    pindah({ layar: "laporan", tampilan: idTampilan }, { tambah: true });
   }, [pindah]);
 
   const tutupLaporan = useCallback(() => {
-    setFokusTampilan(tampilanHtml(ruteRef.current.sistem));
-    // Laporan selalu dibuka dari layar demo, jadi entri riwayat sebelumnya adalah layar demo.
-    if (window.history.state?.firDemo === "laporan") {
-      window.history.back();
-      return;
-    }
+    setFokusTampilan(ruteRef.current.tampilan);
+    // Sengaja tidak memakai history.back(): halaman di dalam iframe (mis. app.fammi.ly yang
+    // berpindah halaman sendiri) ikut menambah riwayat browser, sehingga back hanya memundurkan
+    // isi iframe dan penampil tidak tertutup.
     pindah(RUTE_DEMO);
   }, [pindah]);
 
@@ -117,8 +111,8 @@ export default function LoginPage({ onLogin, notice, demoKeluar = null }) {
     if (!tampilan || membukaRef.current) return;
     setGalatTampilan(null);
 
-    if (tampilan.jenis === "html") {
-      bukaLaporan(tampilan.sistem);
+    if (tampilanBerpenampil(tampilan)) {
+      bukaLaporan(tampilan.id);
       return;
     }
 
@@ -182,7 +176,7 @@ export default function LoginPage({ onLogin, notice, demoKeluar = null }) {
   if (layar === "laporan" && demo.fase === "aktif") {
     isi = (
       <DemoReportViewer
-        sistemId={rute.sistem}
+        tampilanId={rute.tampilan}
         sesi={demo.sesi}
         onKembali={tutupLaporan}
         ambilLaporanHtml={ambilLaporanHtml}

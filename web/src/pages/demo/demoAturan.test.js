@@ -77,7 +77,8 @@ test("lima sistem, nomor urut 01-05, tiap sistem punya tampilan", () => {
 
 test("tampilan sesuai permintaan: dua untuk Karakter dan Culture, HTML untuk keuangan", () => {
   const per = (id) => cariSistem(id).tampilan.map((t) => `${t.jenis}:${t.id}`);
-  assert.deepEqual(per("education-character"), ["akun:karakter-kepsek", "akun:karakter-walas"]);
+  assert.deepEqual(per("education-character"), ["akun:karakter-kepsek", "akun:karakter-walas", "tautan:contoh-input-karakter"]);
+  assert.equal(cariTampilan("contoh-input-karakter").url, "https://app.fammi.ly/s/468c0f0681");
   assert.deepEqual(per("safety-crisis"), ["akun:kesehatan-mental-anak"]);
   assert.deepEqual(per("talent-life-design"), ["akun:multiple-intelligence"]);
   assert.deepEqual(per("teacher-growth"), ["akun:culture-kelompok", "akun:culture-perorangan"]);
@@ -116,27 +117,29 @@ test("saringSistem membuang id asing dan mengikuti urutan registri", () => {
   assert.deepEqual(saringSistem(null), []);
 });
 
-test("hash URL hanya membuka id sistem registri", () => {
-  assert.equal(bacaHashDemo("#demo/finance-planning"), "finance-planning");
-  assert.equal(hashDemo("finance-planning"), "#demo/finance-planning");
+test("hash URL hanya membuka id tampilan berpenampil di registri", () => {
+  assert.equal(bacaHashDemo("#demo/dashboard-keuangan"), "dashboard-keuangan");
+  assert.equal(bacaHashDemo("#demo/contoh-input-karakter"), "contoh-input-karakter");
+  assert.equal(hashDemo("dashboard-keuangan"), "#demo/dashboard-keuangan");
+  assert.equal(hashDemo("karakter-kepsek"), "", "tampilan akun tidak punya alamat penampil");
   for (const asing of ["#demo/../../etc/passwd", "#demo/__proto__", "#demo/Finance-Planning", "#demo/finance-planning/x",
-    "#demo/", "#demo", "", null, "#demo/finance-planning?x=1", "#demo/karakter-kepsek"]) {
+    "#demo/", "#demo", "", null, "#demo/dashboard-keuangan?x=1", "#demo/karakter-kepsek", "#demo/finance-planning"]) {
     assert.equal(bacaHashDemo(asing), null, `diterima: ${String(asing)}`);
   }
   assert.equal(hashDemo("../x"), "");
 });
 
 test("rute layar: halaman masuk, layar demo, laporan; hash lain jatuh ke halaman masuk", () => {
-  assert.deepEqual(bacaRuteDemo(""), { layar: "masuk", sistem: null });
-  assert.deepEqual(bacaRuteDemo("#demo"), { layar: "demo", sistem: null });
-  assert.deepEqual(bacaRuteDemo("#demo/finance-planning"), { layar: "laporan", sistem: "finance-planning" });
+  assert.deepEqual(bacaRuteDemo(""), { layar: "masuk", tampilan: null });
+  assert.deepEqual(bacaRuteDemo("#demo"), { layar: "demo", tampilan: null });
+  assert.deepEqual(bacaRuteDemo("#demo/dashboard-keuangan"), { layar: "laporan", tampilan: "dashboard-keuangan" });
   for (const asing of ["#demo/", "#Demo", "#demo/x", "#demo/__proto__", "#demo?x=1", "#form-masuk", null, undefined, 7]) {
-    assert.deepEqual(bacaRuteDemo(asing), { layar: "masuk", sistem: null }, `bukan halaman masuk: ${String(asing)}`);
+    assert.deepEqual(bacaRuteDemo(asing), { layar: "masuk", tampilan: null }, `bukan halaman masuk: ${String(asing)}`);
   }
-  for (const rute of [{ layar: "masuk" }, { layar: "demo" }, { layar: "laporan", sistem: "finance-planning" }]) {
-    assert.deepEqual(bacaRuteDemo(hashRuteDemo(rute)), { sistem: null, ...rute });
+  for (const rute of [{ layar: "masuk" }, { layar: "demo" }, { layar: "laporan", tampilan: "contoh-input-karakter" }]) {
+    assert.deepEqual(bacaRuteDemo(hashRuteDemo(rute)), { tampilan: null, ...rute });
   }
-  assert.equal(hashRuteDemo({ layar: "laporan", sistem: "../x" }), "");
+  assert.equal(hashRuteDemo({ layar: "laporan", tampilan: "../x" }), "");
   assert.equal(hashRuteDemo(null), "");
 });
 
@@ -148,6 +151,9 @@ test("status tampilan: akun tersedia, HTML menunggu laporan server, sistem di lu
   assert.equal(statusTampilan(keuangan, { ...SESI_PENUH, htmlReports: ["finance-planning"] }), "tersedia");
   assert.equal(statusTampilan(kepsek, { availableSystems: ["finance-planning"], htmlReports: [] }), "terbatas");
   assert.equal(statusTampilan(kepsek, null), "terkunci");
+  const contohInput = cariTampilan("contoh-input-karakter");
+  assert.equal(statusTampilan(contohInput, SESI_PENUH), "tersedia");
+  assert.equal(statusTampilan(contohInput, { availableSystems: ["finance-planning"], htmlReports: [] }), "terbatas");
 
   assert.equal(statusSistem(cariSistem("finance-planning"), SESI_PENUH), "segera");
   assert.equal(statusSistem(cariSistem("teacher-growth"), SESI_PENUH), "tersedia");

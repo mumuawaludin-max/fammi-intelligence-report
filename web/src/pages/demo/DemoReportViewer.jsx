@@ -1,32 +1,35 @@
 import { useEffect, useRef, useState } from "react";
 import { motion } from "motion/react";
-import { ArrowClockwise, ArrowLeft, HourglassMedium, Info, WarningCircle } from "@phosphor-icons/react";
-import { cariSistem, statusSistem } from "./demoSystems";
+import { ArrowClockwise, ArrowLeft, HourglassMedium, WarningCircle } from "@phosphor-icons/react";
+import { cariSistem, cariTampilan, statusTampilan } from "./demoSystems";
 import { sesiMati } from "./demoAturan";
+import DemoBilah from "./DemoBilah";
 import IkonSistem from "./IkonSistem";
 import tokens from "../login/loginTokens.module.css";
 import styles from "./DemoReportViewer.module.css";
 
 /**
- * Penampil laporan HTML demo (saat ini Dashboard Keuangan untuk Finance & Planning), dibuka dari
- * layar demo selama sesi demo aktif (LoginPage, hash #demo/<id sistem>).
- *
- * Isi HTML hanya datang dari server (demo_report_html, tabel demo_reports), untuk sesi demo yang
- * sah dan sistem yang dibuka kodenya; tidak pernah dari path berkas. Iframe-nya sandbox tanpa
- * allow-same-origin: skrip laporan berjalan di origin kosong dan tidak bisa membaca token,
- * sessionStorage, cookie, atau DOM aplikasi. Kalau laporannya belum ada, tampil keadaan
- * "Report preview coming soon", bukan halaman kosong.
+ * Penampil demo untuk tampilan yang tidak masuk ke akun, dibuka dari layar demo selama sesi demo
+ * aktif (LoginPage, hash #demo/<id tampilan>):
+ *   - "html":   laporan HTML dari server (demo_report_html, tabel demo_reports), untuk sesi demo yang
+ *               sah dan sistem yang dibuka kodenya; tidak pernah dari path berkas. Iframe sandbox
+ *               tanpa allow-same-origin: skrip laporan berjalan di origin kosong dan tidak bisa
+ *               membaca token, sessionStorage, cookie, atau DOM aplikasi.
+ *   - "tautan": halaman Fammi lain yang terbuka untuk umum (mis. contoh cara input Rapor
+ *               Karakter). Origin-nya berbeda dari aplikasi ini, jadi allow-same-origin hanya
+ *               memberinya origin miliknya sendiri, tidak pernah akses ke aplikasi ini.
+ * Kalau laporannya belum ada, tampil keadaan "Report preview coming soon", bukan halaman kosong.
  */
-export default function DemoReportViewer({ sistemId, sesi, onKembali, ambilLaporanHtml, onSesiMati }) {
-  const sistem = cariSistem(sistemId);
-  const status = statusSistem(sistem, sesi);
+export default function DemoReportViewer({ tampilanId, sesi, onKembali, ambilLaporanHtml, onSesiMati }) {
+  const tampilan = cariTampilan(tampilanId);
+  const sistem = cariSistem(tampilan?.sistem);
+  const status = statusTampilan(tampilan, sesi);
   const kembaliRef = useRef(null);
-  const tampilan = sistem?.tampilan.find((t) => t.jenis === "html") || null;
 
   useEffect(() => {
     kembaliRef.current?.focus({ preventScroll: true });
     window.scrollTo(0, 0);
-  }, [sistemId]);
+  }, [tampilanId]);
 
   useEffect(() => {
     const judulLama = document.title;
@@ -36,59 +39,63 @@ export default function DemoReportViewer({ sistemId, sesi, onKembali, ambilLapor
     };
   }, [sistem]);
 
-  const bisaDibuka = sistem && tampilan && status === "tersedia";
+  const bisaDibuka = Boolean(sistem && tampilan) && status === "tersedia";
+  let isi;
+  if (!bisaDibuka) {
+    isi = <SegeraHadir sistem={sistem} terbatas={status === "terbatas"} onKembali={onKembali} />;
+  } else if (tampilan.jenis === "tautan") {
+    isi = <HalamanTautan tampilan={tampilan} sistem={sistem} />;
+  } else {
+    isi = <LaporanHtml sistem={sistem} ambilLaporanHtml={ambilLaporanHtml} onSesiMati={onSesiMati} onKembali={onKembali} />;
+  }
 
   return (
     <div className={`${tokens.scope} ${styles.penampil} ${sistem ? styles[`warna_${sistem.warna}`] : ""}`}>
-      <header className={styles.bilah}>
-        <button ref={kembaliRef} type="button" className={styles.kembali} onClick={onKembali}>
-          <ArrowLeft size={17} weight="bold" aria-hidden="true" />
-          <span className={styles.kembaliPanjang}>Kembali ke Intelligence Systems</span>
-          <span className={styles.kembaliPendek}>Kembali</span>
-        </button>
-
-        <div className={styles.judulBlok}>
-          {sistem && (
-            <span className={styles.judulIkon}>
-              <IkonSistem nama={sistem.ikon} size={20} />
-            </span>
-          )}
-          <span className={styles.judulTeks}>
-            <span className={styles.judulNomor}>
-              {sistem ? `Module ${sistem.nomor} · ${tampilan?.label || "Intelligence System"}` : "Intelligence System"}
-            </span>
-            <h1 className={styles.judul}>{sistem ? sistem.judul : "Contoh laporan"}</h1>
-          </span>
-          <span className={styles.lencana}>Demo report</span>
-        </div>
-
-        <span className={styles.merek}>
-          <img src="/favicon-512.png" alt="" width="34" height="34" />
-          <span>Fammi</span>
-        </span>
-      </header>
-
-      <p className={styles.catatan}>
-        <Info size={15} weight="bold" aria-hidden="true" />
-        Data contoh untuk demonstrasi. Nama dan angka di laporan ini karangan, bukan temuan nyata.
-      </p>
+      <DemoBilah
+        sistem={sistem}
+        label={tampilan?.label}
+        onKembali={onKembali}
+        kembaliRef={kembaliRef}
+        judulUtama
+        tautanLuar={bisaDibuka && tampilan.jenis === "tautan" ? tampilan.url : null}
+      />
 
       <main className={styles.bingkai}>
         <motion.div
-          key={sistemId}
+          key={tampilanId}
           className={styles.gulir}
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
         >
-          {bisaDibuka ? (
-            <LaporanHtml sistem={sistem} ambilLaporanHtml={ambilLaporanHtml} onSesiMati={onSesiMati} onKembali={onKembali} />
-          ) : (
-            <SegeraHadir sistem={sistem} terbatas={status === "terbatas"} onKembali={onKembali} />
-          )}
+          {isi}
         </motion.div>
       </main>
     </div>
+  );
+}
+
+// Halaman Fammi di app.fammi.ly butuh beberapa detik sampai tampil (diukur 10-15 detik), jadi
+// lapisan memuat menutup bingkai sampai halaman pertamanya selesai dimuat.
+function HalamanTautan({ tampilan, sistem }) {
+  const [dimuat, setDimuat] = useState(false);
+  return (
+    <>
+      {!dimuat && (
+        <div className={`${styles.keadaan} ${styles.lapisMuat}`} role="status">
+          <span className={styles.putar} aria-hidden="true" />
+          <p className={styles.keadaanTeks}>Memuat {tampilan.label.toLowerCase()}, mohon tunggu sebentar</p>
+        </div>
+      )}
+      <iframe
+        className={styles.iframe}
+        title={`${tampilan.label} ${sistem.judul}`}
+        src={tampilan.url}
+        sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-popups-to-escape-sandbox"
+        referrerPolicy="no-referrer"
+        onLoad={() => setDimuat(true)}
+      />
+    </>
   );
 }
 
