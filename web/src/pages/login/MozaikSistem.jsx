@@ -52,6 +52,9 @@ export default function MozaikSistem({
 function Ubin({ sistem, pilih, sesi, membuka, onBukaTampilan, daftarkanTombol }) {
   const status = pilih ? statusSistem(sistem, sesi) : null;
   const tinggi = sistem.ikon === "edukasi";
+  // Ubin pendek dengan lebih dari dua tombol (Safety: empat sudut pandang) butuh dua baris tombol,
+  // jadi keterangannya mengalah lebih awal supaya tombol tidak terpotong.
+  const banyakTombol = pilih && !tinggi && sistem.tampilan.length > 2;
   return (
     <motion.li
       className={[
@@ -59,6 +62,7 @@ function Ubin({ sistem, pilih, sesi, membuka, onBukaTampilan, daftarkanTombol })
         styles[`warna_${sistem.warna}`],
         styles[`area_${sistem.ikon}`],
         status === "terbatas" ? styles.ubinTerbatas : "",
+        banyakTombol ? styles.ubinBanyak : "",
       ].join(" ")}
       variants={VARIAN_UBIN}
     >

@@ -169,6 +169,16 @@
   .modePilih .ubinIsi { padding-top: 0; }
   .modePilih .pilihan { margin-top: 8px; }
 }
+/* Ubin pendek berisi dua baris tombol (lebih dari dua tampilan, mis. Safety): ambangnya lebih
+   tinggi karena baris tombol kedua butuh sekitar 40px. */
+@container ubin (max-height: 209px) {
+  .modePilih .ubinBanyak .ubinDesk { display: none; }
+}
+@container ubin (max-height: 165px) {
+  .modePilih .ubinBanyak .ubinAtas { display: none; }
+  .modePilih .ubinBanyak .ubinIsi { padding-top: 0; }
+  .modePilih .ubinBanyak .pilihan { margin-top: 8px; }
+}
 
 .putar { animation: putar 0.8s linear infinite; }
 @keyframes putar { to { transform: rotate(360deg); } }

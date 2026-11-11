@@ -1,0 +1,213 @@
+/* Layar Profil anak (artboard "4 · Profil anak"). Kelas dasar ada di proteksi.module.css; berkas ini
+   hanya memuat kelas khusus layar ini, semuanya di bawah .layar supaya tidak menjalar ke layar lain. */
+
+/* ---------- jejak lokasi ---------- */
+.layar :global .crumb {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  font-size: 12px;
+  color: var(--sp-tinta-2);
+}
+/* Di desain berupa tautan; di sini tombol pindah layar yang tampil seperti tautan. */
+.layar :global .crumb button {
+  padding: 0;
+  border: 0;
+  background: none;
+  font-size: inherit;
+  line-height: inherit;
+  font-weight: 500;
+  color: var(--sp-ungu);
+  cursor: pointer;
+}
+.layar :global .crumb button:hover { color: var(--sp-ungu-tua); }
+.layar :global .crumb button:focus-visible { outline: var(--sp-fokus); outline-offset: 2px; border-radius: 4px; }
+
+/* ---------- kartu profil ---------- */
+.layar :global .prof { overflow: hidden; }
+.layar :global .proftop {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 20px;
+  padding: 24px;
+  background: linear-gradient(90deg, #D9CCFC 0%, #E9E1FD 55%, #F1ECFE 100%);
+}
+.layar :global .bigav {
+  width: 72px;
+  height: 72px;
+  border-radius: 50%;
+  background: var(--sp-putih);
+  color: var(--sp-ungu);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 24px;
+  font-weight: 700;
+  flex: none;
+}
+.layar :global .pinfo { flex: 1 1 320px; min-width: 0; }
+.layar :global .pname {
+  margin: 0;
+  font-size: 28px;
+  line-height: 34px;
+  font-weight: 700;
+  color: var(--sp-ungu-tua);
+  letter-spacing: -0.01em;
+}
+.layar :global .pmeta { margin: 4px 0 0; font-size: 13px; line-height: 18px; color: var(--sp-tinta-5); }
+.layar :global .ptags { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+.layar :global .pacts { display: flex; flex-wrap: wrap; gap: 10px; margin-left: auto; }
+/* Catatan kerahasiaan di kaki kartu profil (varian layar ini). Desain tidak mengatur margin <p> ini,
+   jadi browser memberi 1em atas dan bawah; nilainya ditulis di sini karena dasar menolkan margin p. */
+.layar :global .privacy {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  margin: 12px 0;
+  padding: 12px 24px;
+  font-size: 12px;
+  line-height: 17px;
+  color: var(--sp-tinta-2);
+  background: var(--sp-abu-4);
+}
+.layar :global .privacy svg { flex: none; }
+
+/* Kartu teks di layar ini berjarak 18px antarbagian (dasar 20px). */
+.layar :global .card.tcard { gap: 18px; }
+/* Catatan kecil di kaki kartu (varian layar ini). */
+.layar :global .note { margin: 0; font-size: 12px; line-height: 17px; color: var(--sp-tinta-3); }
+
+/* ---------- hasil skrining: dua batang per aspek ---------- */
+.layar :global .legend { display: flex; flex-wrap: wrap; gap: 8px 18px; font-size: 12px; color: var(--sp-tinta-2); }
+.layar :global .legend span { display: inline-flex; align-items: center; gap: 8px; }
+.layar :global .sw { display: inline-block; width: 10px; height: 10px; border-radius: 3px; }
+.layar :global .sw.ot { background: var(--sp-ungu-bar); }
+.layar :global .sw.wk { background: var(--sp-jingga); }
+.layar :global .asp {
+  display: grid;
+  grid-template-columns: 120px minmax(0, 1fr) auto;
+  gap: 12px;
+  align-items: center;
+  padding: 12px 0;
+  border-top: 1px solid var(--sp-garis-3);
+}
+.layar :global .asp:first-of-type { border-top: 0; }
+.layar :global .aspn { font-size: 13px; font-weight: 700; }
+.layar :global .aspn span { display: block; margin-top: 2px; font-size: 11px; font-weight: 400; color: var(--sp-tinta-3); }
+.layar :global .bars { display: flex; flex-direction: column; gap: 6px; }
+.layar :global .brow { display: flex; align-items: center; gap: 10px; font-size: 12px; }
+.layar :global .btrack { flex: 1; height: 10px; border-radius: 5px; background: var(--sp-abu-2); overflow: hidden; }
+.layar :global .bfill { display: block; height: 100%; border-radius: 5px; }
+.layar :global .bfill.ot { background: var(--sp-ungu-bar); }
+.layar :global .bfill.wk { background: var(--sp-jingga); }
+.layar :global .bval { width: 42px; text-align: right; color: var(--sp-tinta-5); }
+
+/* ---------- yang perlu diketahui tim ---------- */
+.layar :global .facts { display: flex; flex-direction: column; gap: 12px; }
+.layar :global .fact {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 12px;
+  padding: 14px;
+  border-radius: 12px;
+}
+.layar :global .fact.ok { background: var(--sp-hijau-tipis); }
+.layar :global .fact.warn { background: var(--sp-kuning-tipis); }
+.layar :global .fact.info { background: var(--sp-ungu-lembut); }
+.layar :global .fact b { display: block; margin-bottom: 4px; font-size: 13px; }
+.layar :global .fact p { margin: 0; font-size: 12px; line-height: 17px; color: var(--sp-tinta-5); }
+
+/* ---------- rencana dukungan ---------- */
+.layar :global .dibuat { font-size: 12px; }
+.layar :global .planhead {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px 24px;
+  align-items: center;
+  padding: 14px 16px;
+  border-radius: 12px;
+  background: var(--sp-ungu-hover);
+}
+.layar :global .planhead b { font-size: 14px; }
+.layar :global .goal { flex: 1 1 360px; font-size: 13px; line-height: 18px; }
+.layar :global .pstat { display: flex; align-items: center; gap: 10px; font-size: 12px; }
+.layar :global .prog { width: 120px; height: 8px; border-radius: 4px; background: #E4DEF5; overflow: hidden; flex: none; }
+.layar :global .progf { display: block; height: 100%; border-radius: 4px; background: var(--sp-ungu); }
+/* Sel langkah boleh turun baris; dasar .tbl td memaksa satu baris. */
+.layar :global .tbl td.wrapcell { white-space: normal; min-width: 240px; line-height: 17px; }
+
+/* ---------- kasus terkait ---------- */
+.layar :global .kasusket { margin: 0; font-size: 13px; line-height: 18px; }
+.layar :global .sla {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 14px;
+  border-radius: 12px;
+  background: var(--sp-hijau-tipis);
+}
+.layar :global .sla b { font-size: 14px; color: var(--sp-hijau-tua); }
+.layar :global .sla span { font-size: 12px; color: var(--sp-tinta-5); }
+.layar :global .sbar { height: 8px; border-radius: 4px; background: #D2EDC6; overflow: hidden; }
+.layar :global .sbar span { display: block; width: 58%; height: 100%; border-radius: 4px; background: var(--sp-hijau-batang); }
+.layar :global .steps { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
+.layar :global .step {
+  position: relative;
+  display: grid;
+  grid-template-columns: 28px minmax(0, 1fr) auto;
+  gap: 12px;
+  align-items: start;
+  padding: 10px 0;
+}
+.layar :global .sdot {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  font-size: 12px;
+  font-weight: 700;
+}
+.layar :global .sdot.done { background: var(--sp-hijau-latar); color: var(--sp-hijau); }
+.layar :global .sdot.now { background: var(--sp-jingga); color: #3B2200; }
+.layar :global .sdot.next { background: var(--sp-abu-3); color: var(--sp-tinta-2); }
+.layar :global .st { font-size: 13px; font-weight: 700; line-height: 18px; }
+.layar :global .sd { margin-top: 2px; font-size: 12px; line-height: 16px; color: var(--sp-tinta-2); }
+
+/* ---------- riwayat ---------- */
+.layar :global .tl { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
+.layar :global .tli { display: grid; grid-template-columns: 96px 28px minmax(0, 1fr); gap: 12px; padding: 10px 0; }
+.layar :global .tld { padding-top: 5px; font-size: 12px; line-height: 16px; color: var(--sp-tinta-2); text-align: right; }
+.layar :global .tlic {
+  width: 28px;
+  height: 28px;
+  border-radius: 9px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.layar :global .tlic.skr { background: var(--sp-ungu-tipis); color: var(--sp-ungu); }
+.layar :global .tlic.obs { background: #FFEFC4; color: #B86A00; }
+.layar :global .tlic.kasus { background: var(--sp-merah-ikon); color: var(--sp-merah-teks); }
+.layar :global .tlic.plan { background: var(--sp-hijau-latar); color: var(--sp-hijau-ikon); }
+.layar :global .tlt { font-size: 13px; line-height: 18px; }
+.layar :global .tlt b { display: block; }
+
+/* ---------- laci catat observasi: jarak antarbagian 16px (dasar 18px) ---------- */
+.layar :global .drawer.laciobs { gap: 16px; }
+
+/* ---------- lebar layar ---------- */
+@media (max-width: 960px) {
+  .layar :global .pacts { margin-left: 0; }
+}
+@media (max-width: 600px) {
+  .layar :global .pname { font-size: 22px; line-height: 28px; }
+  .layar :global .asp { grid-template-columns: minmax(0, 1fr); }
+  .layar :global .tli { grid-template-columns: 28px minmax(0, 1fr); }
+  .layar :global .tld { grid-column: 1 / -1; padding: 0; text-align: left; }
+}

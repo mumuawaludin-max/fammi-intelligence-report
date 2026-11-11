@@ -4,13 +4,14 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import {
   DEMO_SYSTEMS, DEMO_SYSTEM_IDS, DEMO_TAMPILAN, bacaHashDemo, bacaRuteDemo, cariSistem, cariTampilan,
-  hashDemo, hashRuteDemo, saringSistem, statusSistem, statusTampilan,
+  hashDemo, hashRuteDemo, saringSistem, statusSistem, statusTampilan, tampilanBerpenampil,
 } from "./demoSystems.js";
 import {
   KUNCI_SESI, PESAN_SESI, PESAN_TAMPILAN, PESAN_VERIFIKASI, buatKlienDemo, formatBerlaku,
   normalisasiKode, periksaFormatKode, rapikanKetikan, sesiMati, tafsirkanLaporan, tafsirkanMasuk,
   tafsirkanSesi, tafsirkanVerifikasi,
 } from "./demoAturan.js";
+import { LAYAR, LAYAR_IDS, ORANG, PERAN, cariLayar, layarSah } from "./proteksi/layarProteksi.js";
 
 const TOKEN = "a".repeat(64);
 const NANTI = "2030-01-01T10:00:00.000Z";
@@ -75,11 +76,15 @@ test("lima sistem, nomor urut 01-05, tiap sistem punya tampilan", () => {
   });
 });
 
-test("tampilan sesuai permintaan: dua untuk Karakter dan Culture, HTML untuk keuangan", () => {
+test("tampilan sesuai permintaan: dua untuk Karakter dan Culture, prototipe untuk Safety, HTML untuk keuangan", () => {
   const per = (id) => cariSistem(id).tampilan.map((t) => `${t.jenis}:${t.id}`);
   assert.deepEqual(per("education-character"), ["akun:karakter-kepsek", "akun:karakter-walas", "tautan:contoh-input-karakter"]);
   assert.equal(cariTampilan("contoh-input-karakter").url, "https://app.fammi.ly/s/468c0f0681");
-  assert.deepEqual(per("safety-crisis"), ["akun:kesehatan-mental-anak"]);
+  // Skrining anak 4-10 tahun sekarang satu bagian Sekolah Proteksi, bukan tampilan akun tersendiri.
+  assert.deepEqual(per("safety-crisis"), [
+    "prototipe:proteksi-kepsek", "prototipe:proteksi-bk", "prototipe:proteksi-walas", "prototipe:proteksi-ortu",
+  ]);
+  assert.equal(cariTampilan("kesehatan-mental-anak"), null);
   assert.deepEqual(per("talent-life-design"), ["akun:multiple-intelligence"]);
   assert.deepEqual(per("teacher-growth"), ["akun:culture-kelompok", "akun:culture-perorangan"]);
   assert.deepEqual(per("finance-planning"), ["html:dashboard-keuangan"]);
@@ -120,7 +125,9 @@ test("saringSistem membuang id asing dan mengikuti urutan registri", () => {
 test("hash URL hanya membuka id tampilan berpenampil di registri", () => {
   assert.equal(bacaHashDemo("#demo/dashboard-keuangan"), "dashboard-keuangan");
   assert.equal(bacaHashDemo("#demo/contoh-input-karakter"), "contoh-input-karakter");
+  assert.equal(bacaHashDemo("#demo/proteksi-ortu"), "proteksi-ortu");
   assert.equal(hashDemo("dashboard-keuangan"), "#demo/dashboard-keuangan");
+  assert.equal(hashDemo("proteksi-kepsek"), "#demo/proteksi-kepsek");
   assert.equal(hashDemo("karakter-kepsek"), "", "tampilan akun tidak punya alamat penampil");
   for (const asing of ["#demo/../../etc/passwd", "#demo/__proto__", "#demo/Finance-Planning", "#demo/finance-planning/x",
     "#demo/", "#demo", "", null, "#demo/dashboard-keuangan?x=1", "#demo/karakter-kepsek", "#demo/finance-planning"]) {
@@ -158,6 +165,44 @@ test("status tampilan: akun tersedia, HTML menunggu laporan server, sistem di lu
   assert.equal(statusSistem(cariSistem("finance-planning"), SESI_PENUH), "segera");
   assert.equal(statusSistem(cariSistem("teacher-growth"), SESI_PENUH), "tersedia");
   assert.equal(statusSistem(cariSistem("teacher-growth"), { availableSystems: ["safety-crisis"] }), "terbatas");
+
+  // Prototipe ikut dibundel: tersedia tanpa laporan server, tetap terkunci untuk kode tanpa Safety.
+  const proteksi = cariTampilan("proteksi-kepsek");
+  assert.equal(statusTampilan(proteksi, SESI_PENUH), "tersedia");
+  assert.equal(statusTampilan(proteksi, { availableSystems: ["finance-planning"], htmlReports: [] }), "terbatas");
+  assert.equal(statusTampilan(proteksi, null), "terkunci");
+  assert.equal(statusSistem(cariSistem("safety-crisis"), SESI_PENUH), "tersedia");
+});
+
+test("tampilan prototipe menunjuk prototipe dan layar yang dikenal", () => {
+  const prototipe = DEMO_TAMPILAN.filter((t) => t.jenis === "prototipe");
+  assert.ok(prototipe.length > 0);
+  for (const t of prototipe) {
+    assert.equal(t.prototipe, "sekolah-proteksi", `${t.id} menunjuk prototipe yang tidak dikenal`);
+    assert.ok(LAYAR_IDS.includes(t.layar), `${t.id} membuka layar yang tidak ada: ${t.layar}`);
+    assert.ok(tampilanBerpenampil(t), `${t.id} harus punya alamat #demo/<id>`);
+  }
+  // Peta komponen di penampil demo memuat setiap prototipe yang dipakai registri.
+  const penampil = readFileSync(new URL("./DemoReportViewer.jsx", import.meta.url), "utf8");
+  for (const kunci of new Set(prototipe.map((t) => t.prototipe))) {
+    assert.ok(penampil.includes(`"${kunci}": lazy(`), `PROTOTIPE di DemoReportViewer tidak memuat ${kunci}`);
+  }
+});
+
+test("registri layar Sekolah Proteksi: id unik, peran dan orang lengkap", () => {
+  assert.equal(new Set(LAYAR_IDS).size, LAYAR_IDS.length);
+  for (const l of LAYAR) {
+    assert.ok(l.label && l.ikon && l.grup, `${l.id} kurang lengkap`);
+    if (l.peran !== null) assert.ok(ORANG[l.peran], `${l.id}: peran ${l.peran} tanpa orang`);
+  }
+  for (const p of PERAN) {
+    assert.ok(ORANG[p.id], `peran ${p.id} tanpa orang`);
+    assert.equal(cariLayar(p.layar)?.peran, p.id, `peran ${p.id} membuka layar milik peran lain`);
+  }
+  for (const asing of ["__proto__", "constructor", "../x", "", null, undefined, 7]) {
+    assert.equal(cariLayar(asing), null, `layar diterima: ${String(asing)}`);
+    assert.equal(layarSah(asing), "ringkasan");
+  }
 });
 
 // ── Ketikan dan format ───────────────────────────────────────────────────────────────────────

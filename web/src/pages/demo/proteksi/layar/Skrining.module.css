@@ -1,0 +1,145 @@
+/* Layar Skrining & pemetaan (artboard "2 · Skrining perilaku & mental 4-10 tahun").
+   Kelas dasar (card, tile, pill, tbl, laci, formulir) ada di proteksi.module.css; berkas ini
+   hanya memuat aturan khusus artboard ini, semuanya di bawah .layar :global. */
+
+/* ---------- nilai dasar yang berbeda di artboard ini ---------- */
+/* Tombol segmen 14px kiri-kanan (dasar 12px). */
+.layar :global .seg .segb { padding: 0 14px; }
+/* Kepala laci berjarak 18px ke garis bawahnya (dasar 16px). */
+.layar :global .drawer .dhead { padding-bottom: 18px; }
+/* Catatan di kelompok butir formulir berjarak 12px dari daftar butir (dasar tanpa margin). */
+.layar :global .fgroup .reco { margin: 12px 0 0; }
+
+/* "Ingatkan 47 orang tua" sesudah terkirim. Pemilih :hover ikut ditulis supaya menang atas
+   .btnp:hover dasar. */
+.layar :global .btnp.done,
+.layar :global .btnp.done:hover { background: var(--sp-hijau-latar); color: var(--sp-hijau); cursor: default; }
+
+/* Ubin ikon kecil di daftar aspek dan kepala kelompok formulir. */
+.layar :global .tile.sm { width: 32px; height: 32px; border-radius: 9px; }
+
+/* ---------- Dari Hasil ke Tindakan ---------- */
+.layar :global .cats { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; }
+.layar :global .cat {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+  padding: 16px;
+  border-radius: 12px;
+  border: 1px solid transparent;
+  cursor: pointer;
+  text-align: left;
+  min-height: 168px;
+}
+.layar :global .cat.ok { background: var(--sp-hijau-tipis); }
+.layar :global .cat.warn { background: var(--sp-kuning-tipis); }
+.layar :global .cat.bad { background: var(--sp-merah-tipis); }
+.layar :global .cat.crit { background: #FBE1E1; }
+.layar :global .cat:hover { border-color: var(--sp-ungu-garis); }
+.layar :global .cat.on { border-color: var(--sp-ungu); box-shadow: inset 0 0 0 1px var(--sp-ungu); }
+.layar :global .catt { display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 700; }
+.layar :global .cdot { width: 10px; height: 10px; border-radius: 3px; flex: none; }
+.layar :global .cdot.ok { background: var(--sp-hijau-batang); }
+.layar :global .cdot.warn { background: var(--sp-jingga); }
+.layar :global .cdot.bad { background: #E0605F; }
+.layar :global .cdot.crit { background: var(--sp-merah); }
+.layar :global .catn { font-size: 24px; line-height: 30px; font-weight: 700; }
+.layar :global .catd { font-size: 12px; line-height: 17px; color: var(--sp-tinta-5); }
+.layar :global .catw { font-size: 11px; line-height: 14px; color: var(--sp-tinta-2); margin-top: auto; padding-top: 4px; }
+.layar :global .chartnote { margin: 0; font-size: 12px; line-height: 17px; color: var(--sp-tinta-3); }
+
+/* ---------- Isi Instrumen ---------- */
+.layar :global .akses { padding: 24px; display: flex; flex-direction: column; gap: 18px; }
+.layar :global .aspl { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 10px; }
+.layar :global .aspl li { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 12px; align-items: center; }
+.layar :global .ast { display: block; font-size: 13px; font-weight: 700; }
+.layar :global .asd { display: block; font-size: 12px; line-height: 16px; color: var(--sp-tinta-3); }
+.layar :global .asn { font-size: 12px; color: var(--sp-ungu); font-weight: 700; white-space: nowrap; }
+
+/* ---------- Peta per Kelas ---------- */
+.layar :global .tbl tfoot td { background: var(--sp-abu-4); font-weight: 700; }
+.layar :global .pcell { display: flex; align-items: center; gap: 10px; }
+.layar :global .prog {
+  width: 110px;
+  height: 8px;
+  border-radius: 4px;
+  background: var(--sp-abu-3);
+  overflow: hidden;
+  flex: none;
+}
+.layar :global .progf { display: block; height: 100%; border-radius: 4px; }
+.layar :global .progf.ok { background: var(--sp-hijau-batang); }
+.layar :global .progf.warn { background: var(--sp-jingga); }
+.layar :global .progf.mid { background: var(--sp-ungu-bar); }
+/* Sel peta panas. Desain menamai tingkatnya h0-h4; di sini t0-t4 supaya tidak bentrok dengan
+   kelas judul .h1 di proteksi.module.css. */
+.layar :global .hc {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 56px;
+  height: 32px;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--sp-tinta);
+}
+.layar :global .hc.t0 { background: var(--sp-putih); color: var(--sp-tinta-3); border: 1px solid var(--sp-garis-3); }
+.layar :global .hc.t1 { background: var(--sp-ungu-lembut); }
+.layar :global .hc.t2 { background: #E4DBFC; }
+.layar :global .hc.t3 { background: #CDBDF8; }
+.layar :global .hc.t4 { background: #B39CF3; }
+
+/* ---------- Anak yang Perlu Ditindaklanjuti ---------- */
+.layar :global .lead2 { margin: -6px 0 0; font-size: 12px; line-height: 17px; color: var(--sp-tinta-2); }
+.layar :global .kid { display: flex; align-items: center; gap: 10px; }
+/* Kolom aspek atau tanda boleh turun baris (sel .tbl dasar nowrap). */
+.layar :global .tbl .wrapcell { white-space: normal; min-width: 210px; line-height: 17px; }
+.layar :global .footrow {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+}
+.layar :global .linkbtn {
+  border: 0;
+  background: none;
+  color: var(--sp-ungu);
+  font-size: 12px;
+  font-weight: 500;
+  text-decoration: underline;
+  cursor: pointer;
+  padding: 8px 4px;
+  min-height: 36px;
+}
+
+/* ---------- laci formulir dan rencana ---------- */
+.layar :global .scale { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; font-size: 12px; }
+.layar :global .fgroup { border: 1px solid var(--sp-garis-2); border-radius: 12px; padding: 16px; }
+.layar :global .fgh { display: flex; align-items: center; gap: 10px; font-size: 14px; }
+.layar :global .fgh .mut { margin-left: auto; font-size: 12px; text-align: right; }
+.layar :global .items {
+  margin: 12px 0 0;
+  padding-left: 26px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  font-size: 13px;
+  line-height: 18px;
+}
+.layar :global .dfoot { margin: 0; font-size: 12px; line-height: 17px; color: var(--sp-tinta-3); }
+.layar :global .fset { border: 0; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 4px; }
+
+/* ---------- fokus papan ketik ---------- */
+.layar :global .cat:focus-visible,
+.layar :global .linkbtn:focus-visible { outline: var(--sp-fokus); outline-offset: 2px; }
+
+/* ---------- lebar layar ---------- */
+@media (max-width: 960px) {
+  .layar :global .cats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (max-width: 600px) {
+  .layar :global .cats { grid-template-columns: minmax(0, 1fr); }
+}

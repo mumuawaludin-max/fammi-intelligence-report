@@ -17,8 +17,9 @@ const muncul = (jeda) => ({
 /**
  * Layar demo (hash #demo), hanya terbuka sesudah server menerima kode demo. Terpisah dari halaman
  * masuk: tidak ada form username dan kode khusus di sini. Tiap ubin membawa tombol tampilannya
- * (Rapor Karakter Kepala Sekolah/Wali Kelas, Kesehatan Mental Anak, Multiple Intelligence, Culture
- * Kelompok/Perorangan, Dashboard Keuangan); satu klik langsung membuka tampilannya.
+ * (Rapor Karakter Kepala Sekolah/Wali Kelas, Sekolah Proteksi per sudut pandang, Multiple
+ * Intelligence, Culture Kelompok/Perorangan, Dashboard Keuangan); satu klik langsung membuka
+ * tampilannya.
  *
  * memeriksa = true: token demo tersimpan sedang ditanyakan ke server (muat ulang di #demo).
  */

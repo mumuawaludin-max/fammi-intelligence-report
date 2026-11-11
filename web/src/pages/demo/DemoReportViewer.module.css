@@ -31,6 +31,14 @@
   overflow: hidden;
 }
 
+/* Prototipe (jenis "prototipe") menggulir di lapisan ini; .gulir sendiri tetap diam. */
+.gulirIsi {
+  position: absolute;
+  inset: 0;
+  overflow: auto;
+  overscroll-behavior: contain;
+}
+
 .iframe {
   display: block;
   width: 100%;

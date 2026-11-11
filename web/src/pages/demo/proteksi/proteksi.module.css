@@ -1,0 +1,642 @@
+/* ============================================================
+   Sekolah Proteksi: prototipe demo modul Safety & Crisis Management.
+   Pengecualian yang disengaja (7), lihat CLAUDE.md. Palet diturunkan persis dari kanvas desain
+   pemilik produk (2026-11-11) dan hanya berlaku di dalam .scope. Font tetap Google Sans Flex.
+
+   Aturan berkas ini:
+   - Semua kelas di bawah .scope ditulis :global supaya JSX memakai nama kelas desain apa adanya
+     ("card", "pill sm ok"). Kelas itu tetap terkurung: induknya .scope yang ber-hash.
+   - Berkas CSS per layar memakai pola yang sama dengan akar .layar miliknya sendiri, dan TIDAK
+     mendefinisikan ulang kelas dasar di sini. Kalau perlu varian, pakai nama kelas baru.
+   ============================================================ */
+
+.scope {
+  --sp-ungu: #4F1DB8;
+  --sp-ungu-tekan: #43179E;
+  --sp-ungu-tua: #2E1A78;
+  --sp-ungu-bar: #7C4DDB;
+  --sp-ungu-batang: #5422B8;
+  --sp-ungu-garis: #C9BCF5;
+  --sp-ungu-tipis: #ECE6FD;
+  --sp-ungu-pil: #EAE4FD;
+  --sp-ungu-lembut: #F3EFFE;
+  --sp-ungu-hover: #F7F4FE;
+  --sp-ungu-kartu: #FCFBFF;
+  --sp-latar: #F6F1FD;
+  --sp-putih: #FFFFFF;
+
+  --sp-tinta: #17151F;
+  --sp-tinta-2: #55525F;
+  --sp-tinta-3: #6E6B78;
+  --sp-tinta-4: #4A4755;
+  --sp-tinta-5: #3F3C49;
+  --sp-tinta-pudar: #9C93B2;
+
+  --sp-garis: #E3E0EA;
+  --sp-garis-2: #E7E4EC;
+  --sp-garis-3: #ECEAF0;
+  --sp-abu: #F4F3F6;
+  --sp-abu-2: #F1F0F3;
+  --sp-abu-3: #EEEDF1;
+  --sp-abu-4: #FAFAFB;
+
+  --sp-hijau: #236F1A;
+  --sp-hijau-teks: #2B8120;
+  --sp-hijau-ikon: #2E8A1F;
+  --sp-hijau-batang: #3BA82A;
+  --sp-hijau-latar: #DDF4D2;
+  --sp-hijau-tipis: #EEF9E8;
+  --sp-hijau-garis: #CBEBBF;
+  --sp-hijau-tua: #1F5A16;
+
+  --sp-kuning: #8F5100;
+  --sp-kuning-teks: #9A5800;
+  --sp-kuning-latar: #FFEBC9;
+  --sp-kuning-tipis: #FFF4E0;
+  --sp-kuning-garis: #FFD9A0;
+  --sp-kuning-tua: #5C3600;
+  --sp-jingga: #FF8A00;
+
+  --sp-merah: #B71C1C;
+  --sp-merah-teks: #C62828;
+  --sp-merah-latar: #FDE2E2;
+  --sp-merah-ikon: #FDE0E0;
+  --sp-merah-tipis: #FDECEC;
+  --sp-merah-tua: #7A1A1A;
+
+  --sp-toast: #1D1830;
+  --sp-toast-ikon: #7BE07B;
+  --sp-layar-gelap: rgba(32, 30, 44, 0.72);
+
+  --sp-bayangan: 0 1px 2px rgba(46, 26, 120, 0.06), 0 6px 18px rgba(79, 29, 184, 0.06);
+  --sp-bayangan-angkat: 0 1px 2px rgba(46, 26, 120, 0.08), 0 8px 22px rgba(79, 29, 184, 0.12);
+  --sp-bayangan-menu: 0 2px 4px rgba(46, 26, 120, 0.06), 0 12px 32px rgba(79, 29, 184, 0.14);
+  --sp-bayangan-laci: -12px 0 40px rgba(20, 10, 60, 0.2);
+  --sp-bayangan-toast: 0 10px 30px rgba(20, 10, 60, 0.3);
+  --sp-fokus: 2px solid var(--sp-ungu);
+
+  position: relative;
+  min-height: 100%;
+  overflow-x: hidden;
+  font-family: var(--font-body);
+  /* Kanvas desain memakai bawaan browser (16px, line-height normal), sedangkan body aplikasi 15px
+     dan 1.6. Dikembalikan di sini supaya teks tanpa ukuran eksplisit sama dengan desain. */
+  font-size: 16px;
+  line-height: normal;
+  color: var(--sp-tinta);
+  background: var(--sp-latar);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Satu aturan tidak boleh mencampur pemilih lokal dan :global, jadi .scope dipisah. */
+.scope { box-sizing: border-box; }
+.scope :global *,
+.scope :global *::before,
+.scope :global *::after { box-sizing: border-box; }
+.scope :global a { color: var(--sp-ungu); }
+.scope :global a:hover { color: var(--sp-ungu-tua); }
+.scope :global button,
+.scope :global select,
+.scope :global input,
+.scope :global textarea { font-family: inherit; color: inherit; }
+.scope :global h1,
+.scope :global h2,
+.scope :global h3,
+.scope :global p { margin: 0; }
+
+/* ---------- kanvas dan kerangka ---------- */
+.scope :global .bg {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(560px 460px at 94% 4%, rgba(168, 198, 255, 0.85), rgba(168, 198, 255, 0) 70%),
+    radial-gradient(520px 560px at -6% 62%, rgba(255, 241, 194, 0.8), rgba(255, 241, 194, 0) 70%),
+    radial-gradient(700px 500px at 60% 0%, rgba(236, 226, 255, 0.6), rgba(236, 226, 255, 0) 70%);
+}
+.scope :global .wrap {
+  position: relative;
+  max-width: 1092px;
+  margin: 0 auto;
+  padding: 30px 16px 72px;
+  display: flex;
+  flex-direction: column;
+  gap: 36px;
+}
+/* Akar tiap layar: kolom yang sama jaraknya dengan .wrap. */
+.scope :global .isi { display: flex; flex-direction: column; gap: 36px; min-width: 0; }
+.scope :global .card { background: var(--sp-putih); border-radius: 16px; box-shadow: var(--sp-bayangan); }
+
+/* ---------- header: menu, sudut pandang, lapor ---------- */
+.scope :global .header {
+  position: relative;
+  z-index: 40;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+}
+.scope :global .hgroup { position: relative; display: flex; gap: 12px; flex-wrap: wrap; }
+.scope :global .hbtn {
+  height: 44px;
+  background: var(--sp-putih);
+  border: 0;
+  border-radius: 12px;
+  box-shadow: var(--sp-bayangan);
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 0 16px;
+  cursor: pointer;
+  color: var(--sp-tinta);
+  text-decoration: none;
+  font-size: 12px;
+  font-weight: 700;
+  transition: box-shadow 0.15s;
+}
+.scope :global .hbtn:hover { color: var(--sp-tinta); box-shadow: var(--sp-bayangan-angkat); }
+.scope :global .hbtn.menu { min-width: 202px; gap: 18px; padding: 0 20px 0 18px; }
+.scope :global .hbtn.peran { min-width: 236px; justify-content: space-between; }
+.scope :global .hbtn.lapor { gap: 10px; }
+.scope :global .brand { font-size: 17px; font-weight: 700; letter-spacing: -0.01em; white-space: nowrap; }
+.scope :global .dd {
+  position: absolute;
+  top: 52px;
+  background: var(--sp-putih);
+  border-radius: 16px;
+  box-shadow: var(--sp-bayangan-menu);
+  padding: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  z-index: 50;
+}
+.scope :global .ddl { font-size: 11px; font-weight: 500; color: var(--sp-tinta-3); padding: 6px 10px 0; }
+.scope :global .navitem {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  min-height: 38px;
+  padding: 0 10px;
+  background: var(--sp-putih);
+  border: 1px solid var(--sp-garis-2);
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--sp-tinta);
+  text-align: left;
+  cursor: pointer;
+  text-decoration: none;
+}
+.scope :global .navitem:hover { background: var(--sp-ungu-hover); color: var(--sp-tinta); }
+.scope :global .navitem.active { border-color: var(--sp-ungu); color: var(--sp-ungu); font-weight: 700; }
+.scope :global .navitem svg { flex: none; }
+.scope :global .navitem .sub { margin-left: auto; font-size: 11px; font-weight: 400; color: var(--sp-tinta-3); }
+.scope :global .cnt {
+  margin-left: auto;
+  min-width: 22px;
+  height: 20px;
+  padding: 0 6px;
+  border-radius: 10px;
+  background: var(--sp-merah-latar);
+  color: var(--sp-merah);
+  font-size: 11px;
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.scope :global .av {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  font-weight: 700;
+  flex: none;
+  background: var(--sp-ungu-tipis);
+  color: var(--sp-ungu);
+}
+.scope :global .who { display: flex; flex-direction: column; align-items: flex-start; gap: 1px; text-align: left; }
+.scope :global .who b { font-size: 12px; }
+.scope :global .who span { font-size: 11px; font-weight: 400; color: var(--sp-tinta-3); }
+.scope :global .backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 30;
+  background: transparent;
+  border: 0;
+  padding: 0;
+  cursor: default;
+}
+
+/* ---------- grid ---------- */
+.scope :global .row2 { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 20px; }
+.scope :global .row4 { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 20px; }
+
+/* ---------- ubin ikon, judul kartu ---------- */
+.scope :global .tile {
+  width: 46px;
+  height: 46px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+}
+.scope :global .tile.p { background: var(--sp-ungu-tipis); color: var(--sp-ungu); }
+.scope :global .tile.dark { background: var(--sp-ungu); color: var(--sp-putih); }
+.scope :global .tile.black { background: #111111; color: var(--sp-putih); }
+.scope :global .tile.red { background: var(--sp-merah-ikon); color: var(--sp-merah-teks); }
+.scope :global .tile.green { background: var(--sp-hijau-latar); color: var(--sp-hijau-ikon); }
+.scope :global .tile.hdr { width: 28px; height: 28px; border-radius: 8px; }
+.scope :global .ctitle { margin: 0; font-size: 16px; line-height: 20px; font-weight: 400; color: var(--sp-ungu-tua); }
+.scope :global .chead { display: flex; align-items: center; gap: 12px; }
+.scope :global .tophead {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+}
+.scope :global .mut { color: var(--sp-tinta-3); }
+.scope :global .g { color: var(--sp-hijau-teks); }
+.scope :global .o { color: var(--sp-kuning-teks); }
+.scope :global .r { color: var(--sp-merah-teks); }
+
+/* ---------- pil status ---------- */
+.scope :global .pill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  height: 32px;
+  min-width: 108px;
+  padding: 0 12px;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+.scope :global .pill.sm { height: 26px; min-width: 0; padding: 0 10px; font-size: 11px; }
+.scope :global .pill.ok { background: var(--sp-hijau-latar); color: var(--sp-hijau); }
+.scope :global .pill.warn { background: var(--sp-kuning-latar); color: var(--sp-kuning); }
+.scope :global .pill.mid { background: var(--sp-ungu-pil); color: var(--sp-ungu); }
+.scope :global .pill.bad { background: var(--sp-merah-latar); color: var(--sp-merah); }
+.scope :global .pill.crit { background: var(--sp-merah); color: var(--sp-putih); }
+.scope :global .pill.gray { background: var(--sp-abu-2); color: var(--sp-tinta-4); }
+
+/* ---------- tombol ---------- */
+.scope :global .ghost {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  height: 40px;
+  padding: 0 16px;
+  border: 1px solid var(--sp-garis);
+  border-radius: 10px;
+  background: var(--sp-putih);
+  color: var(--sp-ungu);
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  text-decoration: none;
+  white-space: nowrap;
+}
+.scope :global .ghost:hover { background: var(--sp-ungu-hover); color: var(--sp-ungu); }
+.scope :global .ghost.sm { height: 36px; border-radius: 8px; font-size: 12px; font-weight: 400; }
+.scope :global .btnp {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  height: 40px;
+  padding: 0 18px;
+  border: 0;
+  border-radius: 10px;
+  background: var(--sp-ungu);
+  color: var(--sp-putih);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  text-decoration: none;
+}
+.scope :global .btnp:hover { background: var(--sp-ungu-tekan); color: var(--sp-putih); }
+.scope :global .btnp.off { background: #E9E6EF; color: var(--sp-tinta-2); cursor: not-allowed; }
+.scope :global .abtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  height: 36px;
+  padding: 0 12px;
+  border: 1px solid var(--sp-garis);
+  border-radius: 8px;
+  background: var(--sp-putih);
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  white-space: nowrap;
+  color: var(--sp-tinta);
+  text-decoration: none;
+}
+.scope :global .abtn:hover { background: var(--sp-ungu-hover); border-color: var(--sp-ungu-garis); color: var(--sp-tinta); }
+.scope :global .seg { display: inline-flex; flex-wrap: wrap; gap: 4px; padding: 4px; background: var(--sp-abu); border-radius: 10px; }
+.scope :global .segb {
+  border: 0;
+  background: transparent;
+  height: 32px;
+  padding: 0 12px;
+  border-radius: 7px;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--sp-tinta-4);
+  cursor: pointer;
+}
+.scope :global .segb:hover { color: var(--sp-ungu); }
+.scope :global .segb.active {
+  background: var(--sp-putih);
+  color: var(--sp-ungu);
+  font-weight: 700;
+  box-shadow: 0 1px 3px rgba(46, 26, 120, 0.12);
+}
+
+/* ---------- judul halaman ---------- */
+.scope :global .titlerow {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: flex-end;
+  gap: 16px;
+}
+.scope :global .titlerow > div:first-child { flex: 1 1 520px; min-width: 0; }
+.scope :global .tbtns { display: flex; gap: 12px; flex-wrap: wrap; }
+.scope :global .eyebrow { margin: 0; font-size: 12px; font-weight: 500; color: var(--sp-ungu); }
+.scope :global .h1 {
+  margin: 6px 0 0;
+  font-size: 26px;
+  line-height: 32px;
+  font-weight: 700;
+  color: var(--sp-ungu-tua);
+  letter-spacing: -0.01em;
+}
+.scope :global .lead { margin: 8px 0 0; font-size: 13px; line-height: 19px; color: var(--sp-tinta-2); max-width: 720px; }
+.scope :global .tcard { padding: 24px; display: flex; flex-direction: column; gap: 20px; }
+
+/* ---------- kartu hero (angka besar + dua progres) ---------- */
+.scope :global .hero { overflow: hidden; display: flex; flex-direction: column; }
+.scope :global .herotop {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 24px;
+  min-height: 94px;
+  background: linear-gradient(90deg, #D9CCFC 0%, #E9E1FD 55%, #F1ECFE 100%);
+}
+.scope :global .herobig {
+  margin: 0;
+  font-size: 36px;
+  line-height: 42px;
+  font-weight: 700;
+  color: var(--sp-ungu);
+  letter-spacing: -0.02em;
+  white-space: nowrap;
+}
+.scope :global .herobot { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 20px; padding: 16px 24px 24px; }
+.scope :global .mini { display: flex; align-items: center; gap: 10px; font-size: 13px; font-weight: 700; }
+.scope :global .mini .ic {
+  width: 24px;
+  height: 24px;
+  border-radius: 7px;
+  background: var(--sp-abu-2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.scope :global .heroval {
+  margin: 18px 0 0;
+  font-size: 20px;
+  line-height: 24px;
+  font-weight: 400;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.scope :global .dot { display: inline-block; width: 3px; height: 3px; border-radius: 50%; background: #A9A6B2; margin: 0 4px; }
+.scope :global .hbar { height: 6px; border-radius: 3px; background: var(--sp-abu-3); overflow: hidden; margin-top: 12px; }
+.scope :global .hbar span { display: block; height: 100%; border-radius: 3px; }
+.scope :global .hbar .pu { background: var(--sp-ungu-bar); }
+.scope :global .hbar .or { background: var(--sp-jingga); }
+.scope :global .herosub { margin: 10px 0 0; font-size: 12px; line-height: 16px; color: var(--sp-tinta-3); }
+
+/* ---------- tabel ---------- */
+.scope :global .tbox { border: 1px solid var(--sp-garis-2); border-radius: 10px; overflow-x: auto; }
+.scope :global .tbl { width: 100%; border-collapse: separate; border-spacing: 0; font-size: 12px; }
+.scope :global .tbl th {
+  background: var(--sp-abu);
+  text-align: left;
+  font-weight: 600;
+  padding: 12px 16px;
+  height: 38px;
+  white-space: nowrap;
+}
+.scope :global .tbl td { padding: 10px 16px; border-top: 1px solid var(--sp-garis-3); height: 60px; white-space: nowrap; }
+.scope :global .cellbox {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 36px;
+  padding: 0 10px;
+  border: 1px solid var(--sp-garis);
+  border-radius: 8px;
+  min-width: 150px;
+}
+
+/* ---------- laci (panel kanan) ---------- */
+.scope :global .overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  background: var(--sp-layar-gelap);
+  border: 0;
+  padding: 0;
+  cursor: pointer;
+}
+.scope :global .drawer {
+  position: fixed;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 70;
+  width: 612px;
+  max-width: 100%;
+  background: var(--sp-putih);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 24px 24px 32px;
+  box-shadow: var(--sp-bayangan-laci);
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+.scope :global .drawer:focus { outline: none; }
+.scope :global .dhead { display: flex; align-items: center; gap: 16px; padding-bottom: 16px; border-bottom: 1px solid var(--sp-garis-3); }
+.scope :global .dtitle { font-size: 22px; line-height: 28px; font-weight: 700; margin: 0; }
+.scope :global .dsub { margin: 4px 0 0; font-size: 13px; line-height: 18px; color: var(--sp-tinta-2); }
+.scope :global .xbtn {
+  border: 0;
+  background: var(--sp-abu);
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: var(--sp-tinta);
+  flex: none;
+}
+.scope :global .xbtn:hover { background: var(--sp-garis-3); }
+
+/* ---------- catatan berwarna, formulir ---------- */
+.scope :global .reco { margin: 0; padding: 12px 14px; border-radius: 10px; font-size: 12px; line-height: 17px; }
+.scope :global .reco.bad { background: var(--sp-merah-tipis); color: var(--sp-merah-tua); }
+.scope :global .reco.info { background: var(--sp-ungu-lembut); color: var(--sp-ungu-tua); }
+.scope :global .reco.ok { background: var(--sp-hijau-tipis); color: var(--sp-hijau-tua); }
+.scope :global .fld { display: flex; flex-direction: column; gap: 6px; }
+.scope :global .flabel { font-size: 12px; font-weight: 700; color: var(--sp-ungu-tua); }
+.scope :global .inp {
+  width: 100%;
+  min-height: 44px;
+  padding: 10px 12px;
+  border: 1px solid var(--sp-garis);
+  border-radius: 10px;
+  background: var(--sp-putih);
+  font-size: 13px;
+  line-height: 18px;
+  resize: vertical;
+}
+.scope :global .inp:focus { outline: var(--sp-fokus); outline-offset: 1px; }
+.scope :global .chk {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  font-size: 13px;
+  line-height: 18px;
+  padding: 8px 10px;
+  border-radius: 10px;
+  cursor: pointer;
+}
+.scope :global .chk:hover { background: var(--sp-ungu-hover); }
+.scope :global .chk input { width: 18px; height: 18px; margin: 1px 0 0; accent-color: var(--sp-ungu); flex: none; }
+.scope :global .chk .mut { display: block; font-size: 12px; }
+.scope :global .row2f { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+.scope :global .dacts {
+  display: flex;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: 12px;
+  padding-top: 16px;
+  border-top: 1px solid var(--sp-garis-3);
+  margin-top: auto;
+}
+.scope :global .chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.scope :global .chip {
+  height: 36px;
+  padding: 0 14px;
+  border: 1px solid var(--sp-garis);
+  border-radius: 18px;
+  background: var(--sp-putih);
+  font-size: 12px;
+  cursor: pointer;
+}
+.scope :global .chip.on { background: var(--sp-ungu-pil); border-color: var(--sp-ungu); color: var(--sp-ungu); font-weight: 700; }
+
+/* ---------- pemberitahuan ---------- */
+.scope :global .toast {
+  position: fixed;
+  left: 50%;
+  bottom: 28px;
+  transform: translateX(-50%);
+  z-index: 90;
+  background: var(--sp-toast);
+  color: var(--sp-putih);
+  font-size: 13px;
+  line-height: 18px;
+  padding: 12px 18px;
+  border-radius: 12px;
+  box-shadow: var(--sp-bayangan-toast);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  max-width: calc(100% - 32px);
+}
+.scope :global .toast svg { flex: none; }
+
+/* Pembaca layar saja. */
+.scope :global .sr {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+/* ---------- fokus papan ketik ---------- */
+.scope :global .hbtn:focus-visible,
+.scope :global .navitem:focus-visible,
+.scope :global .ghost:focus-visible,
+.scope :global .btnp:focus-visible,
+.scope :global .abtn:focus-visible,
+.scope :global .segb:focus-visible,
+.scope :global .xbtn:focus-visible,
+.scope :global .chip:focus-visible { outline: var(--sp-fokus); outline-offset: 2px; }
+
+/* ---------- animasi (kelas lokal, dipasang komponen bersama) ---------- */
+/* Judul layar menerima fokus lewat skrip saat layar berganti; tidak perlu cincin fokus. */
+.scope :global h1[tabindex="-1"]:focus,
+.scope :global [data-judul-layar]:focus { outline: none; }
+
+/* Sengaja tidak ada animasi masuk untuk seluruh layar: transform atau opacity di pembungkus layar
+   membuat laci (position: fixed) menempel ke pembungkus itu selama animasi berjalan. */
+.laciMasuk { animation: laciMasuk 0.26s cubic-bezier(0.22, 1, 0.36, 1); }
+.lapisMasuk { animation: lapisMasuk 0.2s ease-out; }
+.toastMasuk { animation: toastMasuk 0.24s cubic-bezier(0.22, 1, 0.36, 1); }
+.menuMasuk { animation: menuMasuk 0.16s ease-out; }
+@keyframes laciMasuk { from { transform: translateX(28px); opacity: 0; } to { transform: none; opacity: 1; } }
+@keyframes lapisMasuk { from { opacity: 0; } to { opacity: 1; } }
+@keyframes toastMasuk { from { opacity: 0; translate: 0 10px; } to { opacity: 1; translate: 0 0; } }
+@keyframes menuMasuk { from { opacity: 0; translate: 0 -4px; } to { opacity: 1; translate: 0 0; } }
+
+/* ---------- lebar layar ---------- */
+@media (max-width: 960px) {
+  .scope :global .row4 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .scope :global .row2 { grid-template-columns: minmax(0, 1fr); }
+}
+@media (max-width: 600px) {
+  .scope :global .row4,
+  .scope :global .herobot,
+  .scope :global .row2f { grid-template-columns: minmax(0, 1fr); }
+  .scope :global .brand { font-size: 14px; }
+  .scope :global .h1 { font-size: 22px; line-height: 28px; }
+  .scope :global .herobig { font-size: 28px; }
+  .scope :global .herotop { flex-wrap: wrap; }
+  .scope :global .hgroup.right { width: 100%; }
+  .scope :global .hbtn.menu { min-width: 0; }
+  .scope :global .hbtn.peran { min-width: 0; flex: 1 1 auto; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .laciMasuk,
+  .lapisMasuk,
+  .toastMasuk,
+  .menuMasuk { animation: none; }
+  .scope :global .hbtn { transition: none; }
+}

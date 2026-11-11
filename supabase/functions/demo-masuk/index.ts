@@ -1,8 +1,9 @@
 // Edge Function: demo-masuk
 //
 // Membuka tampilan produk sungguhan untuk pengunjung demo, memakai akun demo milik Fammi (Rapor
-// Karakter Kepala Sekolah/Wali Kelas, Kesehatan Mental Anak, Multiple Intelligence, Culture
-// Kelompok/Perorangan). Tanpa kata sandi sama sekali: fungsi ini membuat tautan masuk sekali pakai
+// Karakter Kepala Sekolah/Wali Kelas, Multiple Intelligence, Culture Kelompok/Perorangan). Safety
+// & Crisis Management tidak lewat sini lagi sejak 2026-11-11: demonya prototipe Sekolah Proteksi
+// yang dibundel di web (tampilan berjenis "prototipe"). Tanpa kata sandi sama sekali: fungsi ini membuat tautan masuk sekali pakai
 // untuk akun demo itu lalu langsung menukarnya jadi sesi, di server. Pengunjung tidak pernah
 // mengetik username atau kode khusus, dan kode khusus akun demo tidak disimpan di mana pun untuk
 // keperluan ini. Browser hanya menerima sesi Supabase Auth akun itu, dan hanya kalau sesi demonya
@@ -44,7 +45,6 @@ import { createClient } from "jsr:@supabase/supabase-js@2";
 const TAMPILAN_AKUN: Record<string, string> = {
   "karakter-kepsek": "education-character",
   "karakter-walas": "education-character",
-  "kesehatan-mental-anak": "safety-crisis",
   "multiple-intelligence": "talent-life-design",
   "culture-kelompok": "teacher-growth",
   "culture-perorangan": "teacher-growth",

@@ -33,12 +33,14 @@ const RUTE_DEMO = { layar: "demo", tampilan: null };
  *                 kode demo. Muat satu layar tanpa gulir di laptop.
  *   "#demo"       layar demo (DemoBeranda), hanya terbuka selama server menyatakan sesi demo sah.
  *                 Di sinilah tombol tampilan berada. Tidak ada username atau kode khusus:
- *                 - tampilan "akun" (Rapor Karakter, Kesehatan Mental Anak, Multiple Intelligence,
- *                   Culture): Edge Function demo-masuk memeriksa sesi demo lalu mengembalikan sesi
- *                   akun demo. Halaman ini memasangnya dan masuk ke aplikasi dengan penanda `demo`
- *                   (App.jsx menampilkan bilah "Mode demo" dan keluar hanya dari browser ini).
+ *                 - tampilan "akun" (Rapor Karakter, Multiple Intelligence, Culture): Edge Function
+ *                   demo-masuk memeriksa sesi demo lalu mengembalikan sesi akun demo. Halaman ini
+ *                   memasangnya dan masuk ke aplikasi dengan penanda `demo` (App.jsx menampilkan
+ *                   bilah "Mode demo" dan keluar hanya dari browser ini).
  *                 - tampilan "html" (Dashboard Keuangan): laporan HTML dari server.
- *   "#demo/<id>"  penampil laporan HTML (DemoReportViewer).
+ *                 - tampilan "prototipe" (Sekolah Proteksi untuk Safety & Crisis Management):
+ *                   prototipe klik berisi data contoh, dimuat terpisah saat dibuka.
+ *   "#demo/<id>"  penampil laporan HTML, tautan, dan prototipe (DemoReportViewer).
  *
  * Aturan aksesnya di pages/demo/ dan docs/demo-access.md.
  */

@@ -1,4 +1,4 @@
-import { StrictMode } from "react";
+import { StrictMode, Suspense, lazy } from "react";
 import { createRoot } from "react-dom/client";
 import "./index.css";
 import App from "./App.jsx";
@@ -48,6 +48,18 @@ const PREVIEWS = {
   "ypt": YptPreview,
   "ypt-data": YptPreviewData,
 };
+// Prototipe demo Sekolah Proteksi lewat penampil demo sungguhan, HANYA di dev server. Di produksi
+// cabang ini terbuang saat build, jadi prototipe tetap cuma terbuka lewat kode demo yang sah.
+if (import.meta.env.DEV) {
+  const ProteksiPreview = lazy(() => import("./pages/demo/proteksi/ProteksiPreview.jsx"));
+  PREVIEWS["demo-proteksi"] = function PratinjauProteksi() {
+    return (
+      <Suspense fallback={null}>
+        <ProteksiPreview />
+      </Suspense>
+    );
+  };
+}
 const previewParam = new URLSearchParams(window.location.search).get("preview");
 const RootComponent = PREVIEWS[previewParam] || App;
 

@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { Component, lazy, Suspense, useEffect, useRef, useState } from "react";
 import { motion } from "motion/react";
 import { ArrowClockwise, ArrowLeft, HourglassMedium, WarningCircle } from "@phosphor-icons/react";
 import { cariSistem, cariTampilan, statusTampilan } from "./demoSystems";
@@ -7,6 +7,11 @@ import DemoBilah from "./DemoBilah";
 import IkonSistem from "./IkonSistem";
 import tokens from "../login/loginTokens.module.css";
 import styles from "./DemoReportViewer.module.css";
+
+// Prototipe klik dimuat terpisah saat dibuka, supaya halaman masuk tidak ikut membawanya.
+const PROTOTIPE = {
+  "sekolah-proteksi": lazy(() => import("./proteksi/SekolahProteksi")),
+};
 
 /**
  * Penampil demo untuk tampilan yang tidak masuk ke akun, dibuka dari layar demo selama sesi demo
@@ -18,9 +23,13 @@ import styles from "./DemoReportViewer.module.css";
  *   - "tautan": halaman Fammi lain yang terbuka untuk umum (mis. contoh cara input Rapor
  *               Karakter). Origin-nya berbeda dari aplikasi ini, jadi allow-same-origin hanya
  *               memberinya origin miliknya sendiri, tidak pernah akses ke aplikasi ini.
+ *   - "prototipe": komponen React berisi data contoh (mis. Sekolah Proteksi), dirender langsung di
+ *               bingkai ini. Tidak memanggil server dan tidak menyentuh sesi demo.
  * Kalau laporannya belum ada, tampil keadaan "Report preview coming soon", bukan halaman kosong.
  */
-export default function DemoReportViewer({ tampilanId, sesi, onKembali, ambilLaporanHtml, onSesiMati }) {
+// layarAwal: hanya dipakai pratinjau QA dev server (ProteksiPreview) untuk membuka layar prototipe
+// tertentu; alur demo biasa memakai `layar` dari registri.
+export default function DemoReportViewer({ tampilanId, layarAwal, sesi, onKembali, ambilLaporanHtml, onSesiMati }) {
   const tampilan = cariTampilan(tampilanId);
   const sistem = cariSistem(tampilan?.sistem);
   const status = statusTampilan(tampilan, sesi);
@@ -45,6 +54,8 @@ export default function DemoReportViewer({ tampilanId, sesi, onKembali, ambilLap
     isi = <SegeraHadir sistem={sistem} terbatas={status === "terbatas"} onKembali={onKembali} />;
   } else if (tampilan.jenis === "tautan") {
     isi = <HalamanTautan tampilan={tampilan} sistem={sistem} />;
+  } else if (tampilan.jenis === "prototipe") {
+    isi = <HalamanPrototipe tampilan={tampilan} layarAwal={layarAwal} onKembali={onKembali} />;
   } else {
     isi = <LaporanHtml sistem={sistem} ambilLaporanHtml={ambilLaporanHtml} onSesiMati={onSesiMati} onKembali={onKembali} />;
   }
@@ -53,7 +64,8 @@ export default function DemoReportViewer({ tampilanId, sesi, onKembali, ambilLap
     <div className={`${tokens.scope} ${styles.penampil} ${sistem ? styles[`warna_${sistem.warna}`] : ""}`}>
       <DemoBilah
         sistem={sistem}
-        label={tampilan?.label}
+        // Di prototipe sudut pandang bisa diganti dari dalam, jadi bilah menyebut nama prototipenya.
+        label={tampilan?.jenis === "prototipe" ? tampilan.grup : tampilan?.label}
         onKembali={onKembali}
         kembaliRef={kembaliRef}
         judulUtama
@@ -97,6 +109,46 @@ function HalamanTautan({ tampilan, sistem }) {
       />
     </>
   );
+}
+
+// Prototipe menggulir di lapisannya sendiri. Laci dan toast di dalamnya (position: fixed) menempel
+// ke bingkai, bukan ke isi yang digulir, karena bingkai memakai contain: layout paint.
+function HalamanPrototipe({ tampilan, layarAwal, onKembali }) {
+  const Prototipe = PROTOTIPE[tampilan.prototipe];
+  if (!Prototipe) return <GagalMuat onKembali={onKembali} />;
+  return (
+    <div className={styles.gulirIsi}>
+      <BatasGalat cadangan={<GagalMuat onUlang={() => window.location.reload()} onKembali={onKembali} />}>
+        <Suspense
+          fallback={
+            <div className={styles.keadaan} role="status">
+              <span className={styles.putar} aria-hidden="true" />
+              <p className={styles.keadaanTeks}>Menyiapkan tampilan demo</p>
+            </div>
+          }
+        >
+          <Prototipe layarAwal={layarAwal || tampilan.layar} />
+        </Suspense>
+      </BatasGalat>
+    </div>
+  );
+}
+
+// Bagian prototipe yang gagal dimuat (mis. jaringan putus saat mengambil berkasnya) tidak boleh
+// menjatuhkan seluruh halaman masuk.
+class BatasGalat extends Component {
+  constructor(props) {
+    super(props);
+    this.state = { galat: false };
+  }
+
+  static getDerivedStateFromError() {
+    return { galat: true };
+  }
+
+  render() {
+    return this.state.galat ? this.props.cadangan : this.props.children;
+  }
 }
 
 function LaporanHtml({ sistem, ambilLaporanHtml, onSesiMati, onKembali }) {
@@ -174,10 +226,12 @@ function GagalMuat({ onUlang, onKembali }) {
       <WarningCircle size={34} weight="duotone" aria-hidden="true" className={styles.keadaanIkon} />
       <p className={styles.keadaanTeks}>Contoh laporan belum bisa dimuat.</p>
       <div className={styles.keadaanAksi}>
-        <button type="button" className={styles.tombolUtama} onClick={onUlang}>
-          <ArrowClockwise size={16} weight="bold" aria-hidden="true" />
-          Coba lagi
-        </button>
+        {onUlang && (
+          <button type="button" className={styles.tombolUtama} onClick={onUlang}>
+            <ArrowClockwise size={16} weight="bold" aria-hidden="true" />
+            Coba lagi
+          </button>
+        )}
         <button type="button" className={styles.tombolKedua} onClick={onKembali}>
           Kembali ke Intelligence Systems
         </button>

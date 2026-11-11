@@ -15,7 +15,7 @@ Ada dua layar yang terpisah:
 | --- | --- | --- |
 | 01 Education & Character | Rapor Karakter: Kepala Sekolah, Wali Kelas | Dashboard Rapor Karakter sungguhan, masuk sebagai akun demo |
 | 01 Education & Character | Rapor Karakter: Contoh cara input | Halaman simulasi input di app.fammi.ly, dibuka di penampil demo (`#demo/contoh-input-karakter`). Halaman itu butuh 10-15 detik untuk tampil |
-| 02 Safety & Crisis Management | Kesehatan Mental Anak 4-10 tahun | Screening anak (modul Perilaku Anak), akun demo Yayasan TK Fammi |
+| 02 Safety & Crisis Management | Sekolah Proteksi: Kepala Sekolah, Koordinator BK, Wali Kelas, Orang Tua | Prototipe klik Sekolah Proteksi (bagian "Prototipe Sekolah Proteksi" di bawah), dibuka di penampil demo (`#demo/proteksi-kepsek`, `-bk`, `-walas`, `-ortu`). Skrining anak 4-10 tahun hanya satu layarnya |
 | 03 Talent & Life Design | Multiple Intelligence | Laporan MI, akun demo |
 | 04 Teacher Growth & Support | Culture: Kelompok, Perorangan | School Culture lembaga dan laporan perorangan, akun demo YPS Fammi |
 | 05 Finance & Planning | Dashboard Keuangan | Laporan HTML yang disimpan server (`supabase/demo/laporan-keuangan.html`), di `#demo/dashboard-keuangan` |
@@ -46,7 +46,6 @@ saat memverifikasi kode" karena fungsi `demo_verify` belum ada.
    {
      "karakter-kepsek":       "<username akun Kepala Sekolah>",
      "karakter-walas":        "<username akun Wali Kelas>",
-     "kesehatan-mental-anak": "<username akun screening anak>",
      "multiple-intelligence": "<username akun MI>",
      "culture-kelompok":      "<username akun Culture lembaga>",
      "culture-perorangan":    "<username akun Culture staf>"
@@ -58,6 +57,11 @@ saat memverifikasi kode" karena fungsi `demo_verify` belum ada.
    yang tidak ada di secret membalas "Tampilan demo ini belum disiapkan tim Fammi" tanpa merusak
    tampilan lain; username yang tidak terdaftar membalas "Tampilan demo belum bisa dibuka" dan tidak
    pernah membuat akun baru. Perubahan secret langsung berlaku tanpa deploy ulang.
+
+   Sejak 2026-11-11 Safety & Crisis Management tidak memakai akun demo lagi. Entri
+   `kesehatan-mental-anak` yang masih ada di secret boleh dihapus. Sesudah `demo-masuk` di-deploy
+   ulang, id itu ditolak (`invalid`) walau masih ada di secret; selama belum di-deploy ulang, id itu
+   tetap diterima server tapi tidak pernah dikirim lagi oleh layar demo.
 5. **Kode demo pertama** (bagian berikut), lalu coba semua tombol di layar demo.
 
 ## Urutan go-live
@@ -135,9 +139,9 @@ halaman masuk dengan pesan yang sesuai. Jatah pakai yang habis hanya menahan ses
    mengirim email) dan langsung menukarnya jadi sesi (`verifyOtp`). Yang dibalas ke browser hanya
    access_token dan refresh_token.
 6. Browser memasang sesi itu dan membuka aplikasi seperti login biasa, dengan penanda `demo` di sesi
-   FIR. Peran akun menentukan tampilannya (Kepala Sekolah ke Rapor Karakter, Yayasan TK Fammi ke
-   screening anak, staf ke laporan Culture perorangan, dan seterusnya).
-7. Semua tampilan demo (akun, laporan HTML, tautan) memakai bilah atas yang sama: **Kembali ke
+   FIR. Peran akun menentukan tampilannya (Kepala Sekolah ke Rapor Karakter, staf ke laporan
+   Culture perorangan, dan seterusnya).
+7. Semua tampilan demo (akun, laporan HTML, tautan, prototipe) memakai bilah atas yang sama: **Kembali ke
    Intelligence Systems**, modul yang dibuka, lencana Demo report, dan catatan "Data contoh untuk
    demonstrasi" (`DemoBilah`). Di tampilan akun, shell aplikasi tampil di bingkai di bawah bilah
    itu. Tombol **Kembali ke Intelligence Systems**, maupun tombol Keluar
@@ -190,6 +194,28 @@ npm run demo:laporan -- ../supabase/demo/laporan-keuangan.html finance-planning 
 lalu jalankan SQL hasilnya di SQL Editor. Mematikan tanpa menghapus:
 `update public.demo_reports set enabled = false where system_id = 'finance-planning';`
 
+## Prototipe Sekolah Proteksi
+
+Demo Safety & Crisis Management adalah prototipe klik dari kanvas desain pemilik produk
+(2026-11-11), dibangun ulang di React: `web/src/pages/demo/proteksi/`. Isinya tujuh layar yang
+saling bertaut lewat menu kiri atas: Ringkasan (Kepala Sekolah), Skrining & pemetaan (Koordinator
+BK), Ruang wali kelas, Profil anak, Kasus & SLA (helpdesk dengan triase tingkat, SLA, dan formulir
+Lapor Kejadian), aplikasi ponsel orang tua dan mode cerita anak, serta Peta alur & SLA. Pilihan
+"Lihat sebagai" di kanan atas berpindah sudut pandang. Skrining perilaku dan mental anak 4-10
+tahun yang dulu jadi tampilan tersendiri sekarang hanya satu layarnya.
+
+- Seluruhnya data contoh di browser. Tidak memanggil Supabase, tidak menyimpan apa pun; formulir,
+  rencana, dan laporan yang dikirim di prototipe hilang saat layar diganti.
+- Ikut dibundel di aplikasi tapi dimuat terpisah (lazy) saat dibuka, jadi tidak membebani halaman
+  masuk. Tetap hanya terbuka lewat layar demo yang sah (`#demo/proteksi-*`) untuk kode yang membuka
+  `safety-crisis`; tidak ada rute publik.
+- Pratinjau di dev server tanpa kode demo: `http://localhost:5173/?preview=demo-proteksi` membuka
+  layar demo dengan sesi palsu (hanya tombol prototipe yang berfungsi), tambah
+  `&tampilan=proteksi-bk` (atau `-kepsek`, `-walas`, `-ortu`) untuk langsung masuk ke satu sudut
+  pandang. Rute ini hanya ada di `npm run dev`; build produksi membuangnya.
+- Palet desain di-scope di `proteksi/proteksi.module.css` (Pengecualian yang disengaja (7) di
+  CLAUDE.md). Registri layar dan peran di `proteksi/layarProteksi.js`.
+
 ## Keamanan kode demo
 
 - Kode diperiksa hanya di Postgres (`demo_verify`), disimpan sebagai HMAC-SHA256 dengan kunci
@@ -212,8 +238,10 @@ global tetap bekerja.
 ## Lain-lain
 
 - Registri tunggal sistem dan tampilan: `DEMO_SYSTEMS` di `web/src/pages/demo/demoSystems.js`. Id
-  sistem wajib sama dengan `public.demo_semua_sistem()` di migration, dan id tampilan berjenis akun
-  wajib sama dengan `TAMPILAN_AKUN` di Edge Function; `demoAturan.test.js` memeriksa keduanya.
+  sistem wajib sama dengan `public.demo_semua_sistem()` di migration, id tampilan berjenis akun
+  wajib sama dengan `TAMPILAN_AKUN` di Edge Function, dan tampilan berjenis prototipe wajib
+  menunjuk prototipe di `PROTOTIPE` (DemoReportViewer) serta layar yang ada di `layarProteksi.js`;
+  `demoAturan.test.js` memeriksa ketiganya.
 - Berkas: halaman masuk `web/src/pages/LoginPage.jsx` (juga pengatur ketiga layar lewat hash,
   `demo/ruteDemo.js`), layar demo `web/src/pages/demo/DemoBeranda.jsx`, ubin bersama
   `web/src/pages/login/MozaikSistem.jsx`, unsur merek `web/src/pages/login/MerekFammi.jsx`.

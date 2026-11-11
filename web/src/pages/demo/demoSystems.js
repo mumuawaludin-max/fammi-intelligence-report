@@ -13,8 +13,12 @@
  *   "html" -> laporan HTML yang disimpan server (tabel demo_reports), dibuka di iframe sandbox.
  *   "tautan" -> halaman Fammi lain yang terbuka untuk umum (url di sini, bukan rahasia), dibuka di
  *             penampil demo yang sama, mis. contoh cara input Rapor Karakter.
- * Tampilan html dan tautan punya alamat sendiri #demo/<id tampilan>. Hash tidak pernah dipakai
- * sebagai path: hanya id dari registri ini yang diterima.
+ *   "prototipe" -> prototipe klik yang ikut dibundel di aplikasi ini, seluruhnya data contoh di
+ *             browser tanpa panggilan server, dibuka di penampil demo. `prototipe` menunjuk
+ *             komponennya (peta PROTOTIPE di DemoReportViewer), `layar` layar pembukanya (id dari
+ *             proteksi/layarProteksi.js). Dipakai Sekolah Proteksi untuk Safety & Crisis Management.
+ * Tampilan html, tautan, dan prototipe punya alamat sendiri #demo/<id tampilan>. Hash tidak pernah
+ * dipakai sebagai path: hanya id dari registri ini yang diterima.
  */
 
 export const DEMO_SYSTEMS = [
@@ -46,8 +50,14 @@ export const DEMO_SYSTEMS = [
     ringkas: "Pencegahan, deteksi dini, pelaporan, dan penanganan insiden.",
     ikon: "aman",
     warna: "merah",
+    // Sekolah Proteksi (kanvas desain 2026-11-11): skrining perilaku dan mental anak 4-10 tahun
+    // sekarang hanya satu bagian di dalamnya, bukan lagi tampilan tersendiri. Keempat tombol
+    // membuka prototipe yang sama dari sudut pandang berbeda; di dalamnya peran bisa diganti.
     tampilan: [
-      { id: "kesehatan-mental-anak", jenis: "akun", grup: "Screening anak", label: "Kesehatan Mental Anak 4-10 tahun" },
+      { id: "proteksi-kepsek", jenis: "prototipe", prototipe: "sekolah-proteksi", layar: "ringkasan", grup: "Sekolah Proteksi", label: "Kepala Sekolah" },
+      { id: "proteksi-bk", jenis: "prototipe", prototipe: "sekolah-proteksi", layar: "kasus", grup: "Sekolah Proteksi", label: "Koordinator BK" },
+      { id: "proteksi-walas", jenis: "prototipe", prototipe: "sekolah-proteksi", layar: "kelas", grup: "Sekolah Proteksi", label: "Wali Kelas" },
+      { id: "proteksi-ortu", jenis: "prototipe", prototipe: "sekolah-proteksi", layar: "orangtua", grup: "Sekolah Proteksi", label: "Orang Tua" },
     ],
   },
   {
@@ -122,18 +132,23 @@ export function saringSistem(daftar) {
  *   "terkunci" -> belum ada sesi demo
  * Tampilan berjenis "akun" selalu dianggap tersedia: kesiapan akunnya hanya diketahui server, dan
  * kalau belum diatur, pembukaannya membalas pesan yang jelas. "tautan" tersedia kalau url-nya ada.
+ * "prototipe" selalu tersedia karena isinya ikut dibundel, tetap hanya untuk sistem yang dibuka
+ * kode demonya.
  */
 export function statusTampilan(tampilan, sesi) {
   if (!tampilan || !sesi) return "terkunci";
   if (!sesi.availableSystems?.includes(tampilan.sistem)) return "terbatas";
   if (tampilan.jenis === "html") return sesi.htmlReports?.includes(tampilan.sistem) ? "tersedia" : "segera";
   if (tampilan.jenis === "tautan") return tampilan.url ? "tersedia" : "segera";
+  if (tampilan.jenis === "prototipe") return tampilan.prototipe ? "tersedia" : "segera";
   return tampilan.jenis === "akun" ? "tersedia" : "segera";
 }
 
+const JENIS_BERPENAMPIL = new Set(["html", "tautan", "prototipe"]);
+
 /** Tampilan yang dibuka di penampil demo (punya alamat #demo/<id>), bukan masuk ke akun. */
 export function tampilanBerpenampil(tampilan) {
-  return Boolean(tampilan) && (tampilan.jenis === "html" || tampilan.jenis === "tautan");
+  return Boolean(tampilan) && JENIS_BERPENAMPIL.has(tampilan.jenis);
 }
 
 /** Status satu sistem: tersedia kalau minimal satu tampilannya tersedia. */
@@ -146,7 +161,7 @@ export function statusSistem(sistem, sesi) {
 
 const POLA_HASH = /^#demo\/([a-z][a-z-]{2,39})$/;
 
-/** Id tampilan berpenampil (html atau tautan) dari hash URL (#demo/<id>), hanya id registri. */
+/** Id tampilan berpenampil (html, tautan, prototipe) dari hash URL (#demo/<id>), hanya id registri. */
 export function bacaHashDemo(hash) {
   const cocok = POLA_HASH.exec(typeof hash === "string" ? hash : "");
   const tampilan = cocok ? cariTampilan(cocok[1]) : null;
@@ -161,7 +176,7 @@ export function hashDemo(idTampilan) {
  * Layar halaman masuk menurut hash URL:
  *   ""             -> { layar: "masuk" }    halaman masuk (informasi + form akun)
  *   "#demo"        -> { layar: "demo" }     layar demo, hanya terbuka selama sesi demo sah
- *   "#demo/<id>"   -> { layar: "laporan" }  penampil satu tampilan html atau tautan
+ *   "#demo/<id>"   -> { layar: "laporan" }  penampil satu tampilan html, tautan, atau prototipe
  * Hash lain (termasuk yang berbentuk path) jatuh ke halaman masuk.
  */
 export function bacaRuteDemo(hash) {

@@ -1,0 +1,325 @@
+/* ============================================================
+   Layar Kasus & SLA (Sekolah Proteksi, artboard "5 · Kasus & SLA").
+   Kelas dasar ada di proteksi.module.css. Berkas ini hanya menambah kelas khusus layar ini,
+   semuanya di bawah .layar, dan menaikkan spesifisitas di tempat desain layar ini berbeda dari
+   nilai dasar (jarak kartu dan laci, kepala laci, sel tabel).
+   ============================================================ */
+
+/* ---------- penyesuaian kelas dasar ---------- */
+.layar :global .card.tcard { gap: 18px; }
+.layar :global aside.drawer { gap: 20px; }
+.layar :global .drawer .dhead { align-items: flex-start; gap: 14px; }
+.layar :global .drawer .dtitle { margin: 0; font-size: 20px; line-height: 26px; }
+.layar :global .drawer .dtags + .dtitle { margin-top: 6px; }
+.layar :global .drawer .dsub { margin: 6px 0 0; line-height: 19px; color: var(--sp-tinta-5); }
+.layar :global .tbox .tbl th { padding: 12px 14px; }
+.layar :global .tbox .tbl td { padding: 10px 14px; height: 64px; }
+.layar :global .tbox .tbl tr.late td { background: #FFF8F8; }
+.layar :global .tbox .tbl td.wrapcell { white-space: normal; min-width: 230px; line-height: 17px; }
+
+/* ---------- tombol eskalasi (garis merah) ---------- */
+.layar :global .btnr {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: 40px;
+  padding: 0 16px;
+  border: 1px solid #F3C4C4;
+  border-radius: 10px;
+  background: var(--sp-putih);
+  color: var(--sp-merah);
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.layar :global .btnr:hover { background: var(--sp-merah-tipis); }
+
+/* ---------- kartu alur: tiap tahap sekaligus saringan antrean ---------- */
+.layar :global .pipe { display: flex; flex-wrap: wrap; gap: 6px; }
+.layar :global .pitem { flex: 1 1 150px; display: flex; align-items: stretch; gap: 6px; }
+.layar :global .pst {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+  padding: 14px;
+  border-radius: 12px;
+  background: var(--sp-ungu-kartu);
+  border: 1px solid var(--sp-garis-2);
+  cursor: pointer;
+  text-align: left;
+}
+.layar :global .pst:hover { border-color: var(--sp-ungu-garis); }
+.layar :global .pst.hot { background: var(--sp-kuning-tipis); border-color: var(--sp-kuning-garis); }
+.layar :global .pst.on { border-color: var(--sp-ungu); box-shadow: inset 0 0 0 1px var(--sp-ungu); }
+.layar :global .pl { font-size: 12px; font-weight: 700; color: var(--sp-ungu-tua); }
+.layar :global .pn { font-size: 24px; line-height: 30px; font-weight: 700; color: var(--sp-ungu); }
+.layar :global .pd { font-size: 12px; line-height: 16px; color: var(--sp-tinta-2); }
+.layar :global .pchev { display: flex; align-items: center; color: var(--sp-tinta-pudar); flex: none; }
+
+/* ---------- kartu angka ---------- */
+.layar :global .kpi { padding: 24px; min-height: 160px; display: flex; flex-direction: column; }
+.layar :global .num {
+  margin: 22px 0 0;
+  font-size: 24px;
+  line-height: 30px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  color: var(--sp-ungu);
+}
+.layar :global .ksub { margin: 12px 0 0; font-size: 12px; line-height: 16px; }
+
+/* ---------- tabel antrean ---------- */
+.layar :global .idbtn {
+  border: 0;
+  background: #EFEAFE;
+  color: var(--sp-ungu);
+  font-size: 12px;
+  font-weight: 700;
+  height: 36px;
+  padding: 0 10px;
+  border-radius: 8px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.layar :global .idbtn:hover { background: #E2D8FC; }
+.layar :global .wrapcell b { display: flex; align-items: center; gap: 6px; font-size: 13px; }
+.layar :global .sub2 { display: block; font-size: 11px; color: var(--sp-tinta-3); margin-top: 2px; }
+.layar :global .avs { display: flex; align-items: center; }
+.layar :global .av.sm { width: 28px; height: 28px; font-size: 10px; border: 2px solid var(--sp-putih); margin-left: -6px; }
+.layar :global .av.sm:first-child { margin-left: 0; }
+.layar :global .whoL { margin-left: 8px; font-size: 12px; white-space: normal; max-width: 150px; line-height: 15px; }
+.layar :global .slac { display: flex; flex-direction: column; gap: 4px; align-items: flex-start; }
+.layar :global .slan { font-size: 11px; color: var(--sp-tinta-3); }
+.layar :global .empty { padding: 28px; text-align: center; color: var(--sp-tinta-3); font-size: 13px; }
+.layar :global .rule { margin: 0; font-size: 12px; line-height: 17px; color: var(--sp-tinta-2); }
+
+/* ---------- laci detail kasus ---------- */
+.layar :global .dtags { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.layar :global .lock {
+  display: flex;
+  gap: 12px;
+  padding: 16px;
+  border-radius: 12px;
+  background: #F7F6F9;
+  font-size: 13px;
+  line-height: 19px;
+}
+.layar :global .meta { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
+.layar :global .mlabel { font-size: 12px; color: var(--sp-tinta-3); }
+.layar :global .mval { font-size: 13px; font-weight: 500; margin-top: 4px; line-height: 18px; }
+.layar :global .stepper {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 6px;
+}
+.layar :global .sp {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  text-align: center;
+  font-size: 11px;
+  line-height: 14px;
+  color: var(--sp-tinta-2);
+}
+.layar :global .sp.now { color: var(--sp-ungu-tua); font-weight: 700; }
+.layar :global .spd {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: 700;
+}
+.layar :global .spd.done { background: var(--sp-hijau-latar); color: var(--sp-hijau); }
+.layar :global .spd.now { background: var(--sp-ungu); color: var(--sp-putih); }
+.layar :global .spd.next { background: var(--sp-abu-3); color: var(--sp-tinta-2); }
+.layar :global .slabox { display: flex; flex-direction: column; border: 1px solid var(--sp-garis-2); border-radius: 12px; }
+.layar :global .slarow {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 12px;
+  align-items: center;
+  padding: 12px 14px;
+  border-top: 1px solid var(--sp-garis-3);
+}
+.layar :global .slarow:first-child { border-top: 0; }
+.layar :global .slarow b { font-size: 13px; }
+.layar :global .slat { display: block; font-size: 12px; color: var(--sp-tinta-3); margin-top: 2px; line-height: 16px; }
+.layar :global .dsec { display: flex; flex-direction: column; gap: 10px; }
+.layar :global .dsech {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--sp-ungu-tua);
+  margin: 0;
+}
+.layar :global .dsech .n {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: var(--sp-ungu);
+  color: var(--sp-putih);
+  font-size: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+}
+.layar :global .qrow {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 10px;
+  align-items: center;
+  padding: 8px 0;
+  border-top: 1px solid var(--sp-garis-3);
+  font-size: 13px;
+  line-height: 18px;
+}
+.layar :global .qrow:first-child { border-top: 0; }
+.layar :global .qopts { display: flex; gap: 6px; flex-wrap: wrap; justify-content: flex-end; }
+.layar :global .opt {
+  height: 36px;
+  padding: 0 12px;
+  border: 1px solid var(--sp-garis);
+  border-radius: 8px;
+  background: var(--sp-putih);
+  font-size: 12px;
+  cursor: pointer;
+}
+.layar :global .opt:hover { border-color: var(--sp-ungu-garis); }
+.layar :global .opt.on { background: var(--sp-ungu); border-color: var(--sp-ungu); color: var(--sp-putih); font-weight: 700; }
+.layar :global .opt.on.y { background: var(--sp-merah); border-color: var(--sp-merah); }
+.layar :global .res {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 14px;
+  border-radius: 12px;
+  font-size: 13px;
+  line-height: 18px;
+}
+.layar :global .res.Darurat { background: #FBE1E1; }
+.layar :global .res.Tinggi { background: var(--sp-merah-tipis); }
+.layar :global .res.Sedang { background: var(--sp-kuning-tipis); }
+.layar :global .res.Rendah { background: var(--sp-ungu-lembut); }
+.layar :global .res b { font-size: 14px; }
+.layar :global .assg { display: flex; flex-wrap: wrap; gap: 8px; }
+.layar :global .person {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 14px 6px 6px;
+  border: 1px solid var(--sp-garis-2);
+  border-radius: 22px;
+  font-size: 12px;
+}
+.layar :global .person b { display: block; font-size: 12px; }
+.layar :global .person span.r2 { display: block; font-size: 11px; color: var(--sp-tinta-3); }
+.layar :global .chk.done b { color: var(--sp-tinta-2); }
+.layar :global .log { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
+.layar :global .logi {
+  display: grid;
+  grid-template-columns: 76px minmax(0, 1fr);
+  gap: 12px;
+  padding: 8px 0;
+  border-top: 1px solid var(--sp-garis-3);
+  font-size: 12px;
+  line-height: 17px;
+}
+.layar :global .logi:first-child { border-top: 0; }
+.layar :global .logt { color: var(--sp-tinta-3); }
+.layar :global .noteform { display: flex; gap: 8px; }
+/* Bilah tombol menempel di bawah laci yang bergulir; margin negatif menutup padding laci. */
+.layar :global .dfootbar {
+  position: sticky;
+  bottom: -32px;
+  background: var(--sp-putih);
+  margin: 0 -24px -32px;
+  padding: 14px 24px 18px;
+  border-top: 1px solid var(--sp-garis-3);
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 10px;
+}
+.layar :global .dfootbar .fnote { margin-right: auto; font-size: 12px; color: var(--sp-tinta-3); max-width: 260px; line-height: 16px; }
+
+/* ---------- laci lapor kejadian ---------- */
+.layar :global .catgrid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+.layar :global .catb {
+  display: flex;
+  align-items: center;
+  min-height: 48px;
+  padding: 8px 12px;
+  border: 1px solid var(--sp-garis);
+  border-radius: 10px;
+  background: var(--sp-putih);
+  font-size: 13px;
+  line-height: 17px;
+  text-align: left;
+  cursor: pointer;
+}
+.layar :global .catb:hover { border-color: var(--sp-ungu-garis); }
+.layar :global .catb.on { border-color: var(--sp-ungu); background: var(--sp-ungu-lembut); color: var(--sp-ungu-tua); font-weight: 700; }
+.layar :global .danger {
+  display: flex;
+  gap: 10px;
+  padding: 12px 14px;
+  border-radius: 10px;
+  background: var(--sp-merah-tipis);
+  color: var(--sp-merah-tua);
+  font-size: 12px;
+  line-height: 17px;
+}
+.layar :global .okbox {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 20px;
+  border-radius: 14px;
+  background: var(--sp-hijau-tipis);
+}
+/* Kotak hasil menerima fokus lewat skrip sesudah laporan dikirim; tidak perlu cincin fokus. */
+.layar :global .okbox:focus { outline: none; }
+.layar :global .okbox b { font-size: 18px; color: var(--sp-hijau-tua); }
+
+/* ---------- laci aturan SLA ---------- */
+.layar :global .rlist {
+  margin: 0;
+  padding-left: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  font-size: 13px;
+  line-height: 19px;
+}
+
+/* ---------- fokus papan ketik ---------- */
+.layar :global .btnr:focus-visible,
+.layar :global .pst:focus-visible,
+.layar :global .idbtn:focus-visible,
+.layar :global .opt:focus-visible,
+.layar :global .catb:focus-visible { outline: var(--sp-fokus); outline-offset: 2px; }
+
+/* ---------- lebar layar ---------- */
+@media (max-width: 600px) {
+  .layar :global .meta,
+  .layar :global .catgrid { grid-template-columns: minmax(0, 1fr); }
+  .layar :global .pchev { display: none; }
+  .layar :global .stepper { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .layar :global .qrow { grid-template-columns: minmax(0, 1fr); }
+  .layar :global .qopts { justify-content: flex-start; }
+}
