@@ -401,11 +401,17 @@ export async function parseKarakterWorkbook(file, { sekolahId }) {
   // berbasis bentuk di bawah (sheet summary_kelas juga punya kolom berawalan "karakter" lewat
   // "input_guru_karakter1_..."). Urutannya penting, bukan gaya penulisan.
   const sudahDipakai = new Set();
-  const klaimNama = (prefix) => cariSheetKeluarga(wb, sheet, {
-    prefix, cocokBentuk: () => false, sudahDipakai,
+  const klaimNama = (prefix, cocokBentuk = () => false) => cariSheetKeluarga(wb, sheet, {
+    prefix, cocokBentuk, sudahDipakai,
   });
+  // Sheet refleksi juga dikenali lewat BENTUK (ada kolom penanda "pernyataan_orangtua"), bukan
+  // cuma lewat nama. Di berkas RA Amal Mulia, sheet testimoni jenjang pertama bernama
+  // "detail_pernyataan_orangtua_kela", tapi dua jenjang berikutnya "Sheet10" dan "Sheet11":
+  // penyusunnya kehabisan 31 karakter lalu membiarkan nama bawaan Excel. Tanpa jalur bentuk,
+  // testimoni TK A dan TK B hilang tanpa error (pratinjau tetap menyatakan sheet refleksi ada).
   const refleksi = REFLEKSI_SHEETS.map((cfg) => ({
-    cfg, rows: klaimNama(cfg.sheet).flatMap((b) => b.rows),
+    cfg,
+    rows: klaimNama(cfg.sheet, (header) => getField(header, cfg.kolomPenanda) !== undefined).flatMap((b) => b.rows),
   }));
   // summary_sekolah ditahan sebagai DAFTAR SHEET, bukan langsung digabung. Alasannya di
   // ringkasanSekolahJamak di bawah: berkas berkerangka per jenjang punya satu sheet
@@ -446,14 +452,34 @@ export async function parseKarakterWorkbook(file, { sekolahId }) {
   // menyadarinya dari tampilan.
   const perJenjang = sheetKarakter.length > 1;
 
-  /** Jenjang pemilik satu sheet: dari kolom jenjang kalau ada, kalau tidak dari nama kelasnya.
-   * Sekolah berkerangka tunggal selalu '*' -- lihat catatan kolom jenjang di migration
-   * 20260828110000_karakter_kerangka_per_jenjang.sql. */
+  // Peta nama kelas -> jenjang dari sheet summary_kelas, yang selalu punya kolom Kelas DAN jenjang
+  // berdampingan. Dipakai sebagai jalur ketiga untuk sekolah yang nama kelasnya tidak diawali
+  // angka dan sheet skornya tidak punya kolom jenjang: RA Amal Mulia memakai "Kelompok PG",
+  // "Kelas A1" (TK A), "Kelas B1" (TK B). Menebak jenjang dari huruf "A"/"B" di nama kelas bisa
+  // saja benar di sini dan salah di sekolah lain, jadi sumbernya sengaja berkas itu sendiri.
+  // Kelas yang muncul dengan dua jenjang berbeda dibuang dari peta (ambigu), bukan dipilih satu.
+  const petaKelasJenjang = new Map();
+  const kelasAmbigu = new Set();
+  sk.forEach((r) => {
+    const kunci = normalizeNama(getField(r, 'kelas'));
+    const jenjang = String(getField(r, 'jenjang') ?? '').trim();
+    if (!kunci || !jenjang || kunci === 'kelas' || normalizeKey(jenjang) === 'jenjang') return;
+    const lama = petaKelasJenjang.get(kunci);
+    if (lama && lama !== jenjang) kelasAmbigu.add(kunci);
+    petaKelasJenjang.set(kunci, jenjang);
+  });
+  kelasAmbigu.forEach((k) => petaKelasJenjang.delete(k));
+  /** Jenjang satu kelas: dari angka di depan nama kelas, kalau tidak dari peta summary_kelas. */
+  const jenjangKelas = (kelas) => jenjangDariKelas(kelas) || petaKelasJenjang.get(normalizeNama(kelas)) || null;
+
+  /** Jenjang pemilik satu sheet: dari kolom jenjang kalau ada, lalu dari nama kelasnya (angka di
+   * depan, lalu peta summary_kelas). Sekolah berkerangka tunggal selalu '*' -- lihat catatan
+   * kolom jenjang di migration 20260828110000_karakter_kerangka_per_jenjang.sql. */
   const jenjangSheet = (rows) => {
     if (!perJenjang) return '*';
     const eksplisit = modus(rows.map((r) => String(getField(r, 'jenjang') ?? '').trim()).filter((v) => v && normalizeKey(v) !== 'jenjang'));
     if (eksplisit) return eksplisit;
-    return modus(rows.map((r) => jenjangDariKelas(getField(r, 'kelas')))) || null;
+    return modus(rows.map((r) => jenjangKelas(getField(r, 'kelas')))) || null;
   };
 
   // Objek yang sama dipasang ke preview lalu diisi saat loop parsing jalan, jadi pratinjau
@@ -509,7 +535,7 @@ export async function parseKarakterWorkbook(file, { sekolahId }) {
     if (!jenjang) {
       return {
         preview, ok: false,
-        error: `Berkas ini memuat ${sheetKarakter.length} sheet skor karakter, jadi dibaca sebagai sekolah dengan kerangka karakter berbeda per jenjang. Tapi jenjang pemilik sheet "${b.name}" tidak bisa ditentukan: kolom "jenjang" tidak ada, dan kolom "kelas" tidak diawali angka (mis. "1 Ibnu Kholdun"). Tambahkan kolom "jenjang" di sheet itu, atau samakan penulisan kelasnya.`,
+        error: `Berkas ini memuat ${sheetKarakter.length} sheet skor karakter, jadi dibaca sebagai sekolah dengan kerangka karakter berbeda per jenjang. Tapi jenjang pemilik sheet "${b.name}" tidak bisa ditentukan: kolom "jenjang" tidak ada, kolom "kelas" tidak diawali angka (mis. "1 Ibnu Kholdun"), dan nama kelasnya tidak ditemukan di sheet summary_kelas (yang punya kolom Kelas dan jenjang berdampingan). Tambahkan kolom "jenjang" di sheet itu, atau pastikan nama kelas di sheet itu sama persis dengan di sheet summary_kelas.`,
       };
     }
     if (blokKarakter.some((x) => x.jenjang === jenjang)) jenjangBentrok.push({ jenjang, sheet: b.name });
@@ -635,7 +661,7 @@ export async function parseKarakterWorkbook(file, { sekolahId }) {
       // jenjang kelasnya berarti kode aspeknya menunjuk karakter yang tidak pernah diajarkan
       // ke dia. Satu-satunya penyelesaian yang jujur ada di berkas sumbernya.
       if (perJenjang) {
-        const jenjangBaris = jenjangDariKelas(kelas);
+        const jenjangBaris = jenjangKelas(kelas);
         if (jenjangBaris && jenjangBaris !== blok.jenjang) {
           jenjangNyasar.push({ sheet: blok.name, jenjangSheet: blok.jenjang, kelas, jenjangBaris, nama });
           return;
@@ -678,7 +704,7 @@ export async function parseKarakterWorkbook(file, { sekolahId }) {
       const pekan = parsePekan(getField(r, 'pekan', 'minggu', 'week'));
       if (pekan === null) { badRows.push(`${blok.name} baris ${i + 2} (kolom pekan berisi "${getField(r, 'pekan', 'minggu', 'week')}", harus P1 sampai P5 atau dikosongkan)`); return; }
       if (perJenjang) {
-        const jenjangBaris = jenjangDariKelas(kelas) || namaJenjang[namaKey];
+        const jenjangBaris = jenjangKelas(kelas) || namaJenjang[namaKey];
         if (jenjangBaris && jenjangBaris !== blok.jenjang) {
           jenjangNyasar.push({ sheet: blok.name, jenjangSheet: blok.jenjang, kelas, jenjangBaris, nama });
           return;
