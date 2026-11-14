@@ -74,6 +74,35 @@ Deno.serve(async (req) => {
       return json({ error: "Kedelapan skor 0 atau kosong, siswa ini belum ikut tes. Laporan tidak dibuat." }, 400);
     }
 
+    const db = createClient(SUPABASE_URL, SERVICE_ROLE_KEY);
+
+    // Penjaga bentrok murid_id. Nomor murid diberikan importer di browser admin dengan membaca
+    // mi_hasil lewat RLS; kalau pembacaan itu kosong (mis. admin tidak lolos policy baca), nomor
+    // mulai lagi dari M001 dan memakai nomor siswa lain. Tanpa penjaga ini, saat draf itu
+    // disetujui, laporan tayang siswa lama (sekolah, murid, periode sama) otomatis ditolak dan
+    // diganti laporan siswa yang berbeda. Di sini (service_role, RLS tidak berlaku) kita lihat
+    // baris sebenarnya: kalau nomor+periode itu sudah dipakai siswa dengan nama lain, tolak
+    // SEBELUM memanggil Gemini dan sebelum menulis apa pun. Baris 'ditolak' diabaikan.
+    const normNama = (s: unknown) => String(s ?? "").trim().replace(/\s+/g, " ").toLowerCase();
+    const { data: sudahAda, error: cekErr } = await db
+      .from("mi_hasil")
+      .select("status, nama_siswa:detail->>nama_siswa")
+      .eq("sekolah_id", inp.sekolah_id).eq("murid_id", inp.murid_id)
+      .eq("periode_id", inp.periode_id)
+      .in("status", ["disetujui", "menunggu_persetujuan"]);
+    if (cekErr) return json({ error: `Gagal memeriksa bentrok nomor murid: ${cekErr.message}` }, 500);
+    // Baris lama tanpa nama di detail (salinan era Sheets) tidak bisa dibandingkan, jadi dilewati.
+    const bentrok = (sudahAda || []).find((r) => normNama(r.nama_siswa) !== ""
+      && normNama(r.nama_siswa) !== normNama(inp.nama_siswa));
+    if (bentrok) {
+      return json({
+        error: `Nomor murid ${inp.murid_id} periode ${inp.periode_id} sudah dipakai siswa lain `
+          + `("${bentrok.nama_siswa}", ${bentrok.status}), sedangkan baris ini milik "${inp.nama_siswa}". `
+          + "Tidak ditulis supaya laporan siswa lama tidak tertimpa. Pastikan nomor murid tidak bentrok, lalu ulangi.",
+        kode: "murid_id_bentrok",
+      }, 409);
+    }
+
     setMiModel(GEMINI_MODEL);
     const out = await buildOutputRow_(inp, GEMINI_API_KEY);
 
@@ -82,7 +111,6 @@ Deno.serve(async (req) => {
     // dan level linguistik sebagai pred_linguis, tapi kolom flat mi_hasil pakai skor_* dan
     // pred_linguistik. detail menyimpan seluruh objek out (kunci r_*/pred_linguis), konsisten
     // dengan yang dibaca transformMIData/CODE_META di web (scoreKey r_inter, levelKey pred_linguis).
-    const db = createClient(SUPABASE_URL, SERVICE_ROLE_KEY);
     const miRow = {
       id: crypto.randomUUID(),
       murid_id: out.murid_id,
