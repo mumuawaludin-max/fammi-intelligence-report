@@ -1,13 +1,14 @@
 /**
- * Data contoh layar Ringkasan (sudut pandang Kepala Sekolah, Bu Hartini) prototipe Sekolah Proteksi,
- * versi ringkas 2026-11-11. Layar ini menampilkan kedua alur sekaligus:
+ * Data contoh layar Ringkasan (sudut pandang Kepala Sekolah, Bu Hartini) prototipe Sekolah Proteksi.
+ * Urutan layar (2026-11-25, "less is more"): yang perlu keputusan dulu, lalu beberapa angka kunci
+ * per alur (semua langkah ada di laci "Lihat semua langkah"), lalu hasil HEART sekolah yang dilipat.
  *   pencegahan : angka skrining dibaca dari bersama/heart.js (RINGKAS_SEKOLAH). Tindak lanjut anak
  *                Waspada sama dengan layar Skrining (13 dari 18, 5 menunggu disusun Guru BK) dan ikut
  *                bertambah saat Guru BK menyusun rencana di sana (rencanaBaru di konteks). Checklist
  *                kelas 2B dihitung hidup dari centang demo, ditambah angka tetap kelas lain.
  *   kejadian   : jumlah kasus per tahap sama dengan kasus contoh di kasusData.js (16 laporan sejak
- *                19 Okt: 1 triage, 1 penugasan, 3 penanganan, 3 dipantau, 8 selesai), termasuk aturan
- *                kasusAwal(): KS-015 pindah ke penanganan begitu respon pertamanya dicentang Bu Rina.
+ *                19 Okt: 1 cek awal, 1 bagi tugas, 3 tangani, 3 dipantau, 8 selesai), termasuk aturan
+ *                kasusAwal(): KS-015 pindah ke tangani begitu tanggapan pertamanya dicentang Bu Rina.
  * Semua nama, kelas, dan angka hanya contoh untuk demonstrasi.
  */
 import { RINGKAS_SEKOLAH } from "../bersama/heart";
@@ -17,12 +18,12 @@ export const TANGGAL = "Rabu, 11 Nov 2026";
 
 const persen = (bagian, total) => `${Math.round((bagian / total) * 100)}%`;
 
-// Spasi tak terputus (U+00A0): angka dan labelnya tetap sebaris di kolom langkah yang sempit.
+// Spasi tak terputus (U+00A0): angka dan labelnya tetap sebaris di kolom yang sempit.
 const NB = String.fromCharCode(160);
 
 // ── Alur pencegahan ─────────────────────────────────────────────────────────────────────────────
 
-/** Kelas yang formulir wali kelasnya belum lengkap. Jumlah `anak` = anak belum terpetakan. */
+/** Kelas yang formulir wali kelasnya belum lengkap. Jumlah `anak` = anak yang belum diskrining. */
 export const BELUM_TERPETAKAN = [
   { kelas: "1B", wali: "Pak Fajar", anak: 4 },
   { kelas: "2B", wali: "Bu Rina", anak: 2 },
@@ -68,22 +69,22 @@ export function isiCegah(tindak, checklist) {
   return {
     skrining: {
       nilai: persen(r.terpetakan, r.total),
-      ket: `${r.terpetakan} dari ${r.total} anak terpetakan`,
-      bacaan: `${r.terpetakan} dari ${r.total} anak terpetakan`,
+      ket: `${r.terpetakan} dari ${r.total} anak sudah ikut screening`,
+      bacaan: `${r.terpetakan} dari ${r.total} anak sudah ikut screening`,
     },
     hasil: {
       nilai: String(r.waspada),
-      satuan: "Waspada",
+      satuan: "Perlu Perhatian Lebih",
       nada: "r",
-      ket: `${r.perhatian}${NB}Perlu${NB}Perhatian, ${r.baik}${NB}Baik`,
-      bacaan: `${r.waspada} anak Waspada, ${r.perhatian} Perlu Perhatian, ${r.baik} Baik`,
+      ket: `${r.perhatian}${NB}Perlu${NB}Perhatian, ${r.baik}${NB}Aman`,
+      bacaan: `${r.waspada} anak Perlu Perhatian Lebih, ${r.perhatian} Perlu Diperhatikan, ${r.baik} Aman`,
     },
     tindak: {
       nilai: `${tindak.punya}/${tindak.total}`,
-      satuan: "Waspada",
+      satuan: "Perlu Perhatian Lebih",
       nada: tindak.menunggu ? "o" : "",
-      ket: tindak.menunggu ? `${tindak.menunggu}${NB}menunggu disusun Guru${NB}BK` : "semua sudah punya rencana",
-      bacaan: `${tindak.punya} dari ${tindak.total} anak Waspada punya tindak lanjut${
+      ket: tindak.menunggu ? `${tindak.menunggu}${NB}menunggu disusun Guru${NB}BK` : "semua sudah disusun",
+      bacaan: `${tindak.punya} dari ${tindak.total} anak Perlu Perhatian Lebih punya tindak lanjut${
         tindak.menunggu ? `, ${tindak.menunggu} menunggu disusun Guru BK` : ""
       }`,
     },
@@ -97,14 +98,14 @@ export function isiCegah(tindak, checklist) {
 
 // ── Alur kejadian ───────────────────────────────────────────────────────────────────────────────
 
-// Butir checklist respon pertama KS-015 (milik Bu Rina). Sama dengan kasusAwal() di kasusData.js.
+// Butir checklist tanggapan pertama KS-015 (milik Bu Rina). Sama dengan kasusAwal() di kasusData.js.
 const BUTIR_KS015 = CHECKLIST.filter((b) => b.kasus === "KS-015").map((b) => b.id);
 
 /** Isi tiap langkah alur kejadian. `tanda` = bagian keterangan yang ditulis merah. */
 export function isiKejadian(centang) {
-  const ks015Direspon = BUTIR_KS015.length > 0 && BUTIR_KS015.every((id) => centang[id]);
-  const tugas = ks015Direspon ? 0 : 1;
-  const tangani = ks015Direspon ? 4 : 3;
+  const ks015Ditanggapi = BUTIR_KS015.length > 0 && BUTIR_KS015.every((id) => centang[id]);
+  const tugas = ks015Ditanggapi ? 0 : 1;
+  const tangani = ks015Ditanggapi ? 4 : 3;
   return {
     lapor: {
       nilai: "16",
@@ -112,90 +113,99 @@ export function isiKejadian(centang) {
       ket: `sejak 19${NB}Okt, 8${NB}di${NB}November`,
       bacaan: "16 laporan sejak 19 Oktober, 8 di bulan November",
     },
-    triage: { nilai: "1", satuan: "menunggu", nada: "r", ket: "KS-016, Darurat", bacaan: "1 laporan Darurat menunggu triage" },
+    triage: { nilai: "1", satuan: "menunggu", nada: "r", ket: "KS-016, Darurat", bacaan: "1 laporan Darurat menunggu dicek" },
     tugas: {
       nilai: String(tugas),
       satuan: "menunggu",
-      ket: tugas ? "respon pertama" : "semua sudah direspon",
-      bacaan: tugas ? "1 kasus menunggu respon pertama penanggung jawab" : "Tidak ada kasus yang menunggu respon pertama",
+      ket: tugas ? "tanggapan pertama" : "semua sudah ditanggapi",
+      bacaan: tugas ? "1 kasus menunggu tanggapan pertama penanggung jawab" : "Tidak ada kasus yang menunggu tanggapan pertama",
     },
     tangani: {
       nilai: String(tangani),
       satuan: "berjalan",
-      ket: `rencana${NB}tindak,`,
-      tanda: "1 lewat SLA",
-      bacaan: `${tangani} kasus dalam rencana tindak, 1 lewat SLA`,
+      ket: `rencana${NB}penanganan,`,
+      tanda: "1 terlambat",
+      bacaan: `${tangani} kasus dalam rencana penanganan, 1 lewat batas waktu`,
     },
-    pantau: { nilai: "3", satuan: "dipantau", ket: "8 kasus sudah ditutup", bacaan: "3 kasus dipantau, 8 kasus sudah ditutup" },
+    pantau: { nilai: "3", satuan: "dipantau", ket: "8 kasus sudah selesai", bacaan: "3 kasus dipantau, 8 kasus sudah selesai" },
   };
 }
 
 /** Angka kaki panel kejadian, sama dengan kartu angka di layar Kasus. */
 export const KINERJA_KASUS = { aktif: 8, ketepatanSla: "96%", responRata: "42 menit" };
 
+/**
+ * Langkah yang angkanya tampil langsung di halaman, per alur (id langkah di bersama/alur.js).
+ * Semua langkah tetap ada di laci "Lihat semua langkah".
+ */
+export const LANGKAH_KUNCI = {
+  cegah: ["skrining", "tindak", "checklist"],
+  kejadian: ["triage", "tugas", "tangani"],
+};
+
 // ── Perlu keputusan Anda ────────────────────────────────────────────────────────────────────────
 
 /** Kalimat pembuka di bawah sapaan, mengikuti isi kartu Perlu keputusan Anda. */
 export function kalimatPembuka(tindak) {
   return tindak.menunggu
-    ? `Dua kasus dan ${tindak.menunggu} anak Waspada tanpa tindak lanjut menunggu keputusan Anda hari ini.`
-    : "Dua kasus dan satu tenggat skrining menunggu keputusan Anda hari ini.";
+    ? `Dua kasus dan ${tindak.menunggu} anak terindikasi Perlu Perhatian Lebih tanpa tindak lanjut menunggu keputusan Anda.`
+    : "Dua kasus dan satu tenggat screening menunggu keputusan Anda.";
 }
 
 /**
- * Tiga butir, tidak lebih. `pil` = nada pil penanda, `warna` = warna teks status (r merah,
- * o jingga), `tujuan` = layar dan aksi tombol Buka, `ingatkan` = butir yang bisa dikirimi
- * pengingat. Butir ketiga: anak Waspada tanpa tindak lanjut selama masih ada, lalu formulir
- * skrining yang belum lengkap.
+ * Tiga butir, tidak lebih, Darurat paling atas. `pil` = nada pil penanda, `warna` = warna teks
+ * status (r merah, o jingga), `tujuan` = layar dan aksi tombol Buka, `ingatkan` = butir yang bisa
+ * dikirimi pengingat. Butir ketiga: anak Waspada tanpa tindak lanjut selama masih ada, lalu
+ * formulir skrining yang belum lengkap.
  */
 export function daftarKeputusan(tindak) {
   const skrining = tindak.menunggu
     ? {
         id: "skrining",
-        penanda: "Skrining",
+        penanda: "Screening",
         pil: "mid",
-        judul: `${tindak.menunggu} anak Waspada`,
+        judul: `${tindak.menunggu} anak terindikasi Perlu Perhatian Lebih`,
         status: "belum punya tindak lanjut",
         warna: "o",
-        meta: `Disusun Guru BK · ${JUMLAH_BELUM} anak lain belum terpetakan (${KELAS_BELUM})`,
-        labelBuka: "Buka skrining HEART",
+        meta: `Disusun Guru BK · ${JUMLAH_BELUM} anak lain belum ikut screening (${KELAS_BELUM})`,
+        labelBuka: "Buka screening HEART",
         tujuan: { layar: "skrining", aksi: { jenis: "gulir", id: "daftar-anak" } },
         ingatkan: true,
       }
     : {
         id: "skrining",
-        penanda: "Skrining",
+        penanda: "Screening",
         pil: "mid",
         judul: `${JUMLAH_BELUM} anak`,
-        status: "belum terpetakan",
+        status: "belum ikut screening",
         warna: "",
         meta: `Formulir wali kelas ${BELUM_TERPETAKAN.map((k) => `${k.kelas} (${k.anak})`).join(", ")} belum lengkap`,
-        labelBuka: "Buka skrining HEART",
+        labelBuka: "Buka screening HEART",
         tujuan: { layar: "skrining" },
         ingatkan: true,
       };
   return [
     {
-      id: "ks-010",
-      penanda: "Tinggi",
-      pil: "bad",
-      judul: "KS-010",
-      status: "rencana tindak lewat 2 hari",
-      warna: "r",
-      meta: "Pemukulan di 4B · orang tua belum bisa dihubungi · dieskalasi ke Anda",
-      labelBuka: "Buka kasus KS-010",
-      tujuan: { layar: "kasus", aksi: { jenis: "kasus", id: "KS-010" } },
-    },
-    {
       id: "ks-016",
       penanda: "Darurat",
       pil: "crit",
       judul: "KS-016",
-      status: "menunggu triage, sisa 15 menit",
+      status: "menunggu dicek, sisa 15 menit",
       warna: "o",
-      meta: "Dugaan pendekatan tidak wajar di 3A · rujukan ke UPTD PPA diputuskan Anda",
+      meta: "Dugaan pendekatan tidak wajar di 3A · Anda memutuskan rujukan ke UPTD PPA",
       labelBuka: "Buka kasus KS-016",
       tujuan: { layar: "kasus", aksi: { jenis: "kasus", id: "KS-016" } },
+    },
+    {
+      id: "ks-010",
+      penanda: "Tinggi",
+      pil: "bad",
+      judul: "KS-010",
+      status: "rencana penanganan terlambat 2 hari",
+      warna: "r",
+      meta: "Pemukulan di 4B · orang tua belum bisa dihubungi · diteruskan ke Anda",
+      labelBuka: "Buka kasus KS-010",
+      tujuan: { layar: "kasus", aksi: { jenis: "kasus", id: "KS-010" } },
     },
     skrining,
   ];
@@ -206,7 +216,7 @@ const PENGINGAT_WALAS = {
   ikon: "skrining",
   nada: "warn",
   judul: "Pengingat dari Bu Hartini",
-  isi: "Lengkapi skrining HEART Bagas dan Putri sebelum Jumat, 13 Nov.",
+  isi: "Lengkapi screening HEART Bagas dan Putri sebelum Jumat, 13 Nov.",
   tujuan: { layar: "kelas", aksi: { jenis: "gulir", id: "checklist" } },
 };
 
@@ -230,7 +240,7 @@ export function pengingat(tindak) {
         ikon: "skrining",
         nada: "warn",
         judul: "Pengingat dari Bu Hartini",
-        isi: `Susun tindak lanjut untuk ${tindak.menunggu} anak Waspada yang belum punya rencana.`,
+        isi: `Susun tindak lanjut untuk ${tindak.menunggu} anak terindikasi Perlu Perhatian Lebih.`,
         tujuan: { layar: "skrining", aksi: { jenis: "gulir", id: "daftar-anak" } },
       },
       PENGINGAT_WALAS,

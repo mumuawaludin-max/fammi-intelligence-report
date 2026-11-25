@@ -18,7 +18,7 @@ export const PEMILIK = {
 
 /** Label alur untuk penanda kecil di daftar checklist. */
 export const LABEL_ALUR = {
-  skrining: "Skrining",
+  skrining: "Screening",
   cegah: "Tindak lanjut",
   kejadian: "Kasus",
 };
@@ -30,25 +30,25 @@ export const LABEL_ALUR = {
  */
 export const CHECKLIST = [
   // Raka Pratama: Relasi Pertemanan (Waspada)
-  { id: "raka-buddy", anak: "Raka Pratama", aspek: "relasi", alur: "cegah", judul: "Tetapkan buddy untuk Raka", ket: "Buddy: Alif Ramadhan", oleh: "walas", waktu: "Senin, 9 Nov", selesai: true },
+  { id: "raka-buddy", anak: "Raka Pratama", aspek: "relasi", alur: "cegah", judul: "Tetapkan teman pendamping untuk Raka", ket: "Pendamping: Alif Ramadhan", oleh: "walas", waktu: "Senin, 9 Nov", selesai: true },
   { id: "raka-kelompok", anak: "Raka Pratama", aspek: "relasi", alur: "cegah", judul: "Kerja kelompok kecil bersama Alif dan Gibran, 3 kali seminggu", oleh: "walas", waktu: "Mulai 9 Nov", selesai: false },
   { id: "raka-kantin", anak: "Raka Pratama", aspek: "relasi", alur: "cegah", judul: "Awasi area kantin saat istirahat panjang", oleh: "piket", waktu: "Setiap hari", selesai: false },
   { id: "raka-sesi-bk", anak: "Raka Pratama", aspek: "relasi", alur: "cegah", judul: "Sesi BK: berani bilang tidak dan mencari bantuan", oleh: "bk", waktu: "Kamis, 12 Nov", selesai: false },
   { id: "raka-main-rumah", anak: "Raka Pratama", aspek: "relasi", alur: "cegah", judul: "Undang 1 atau 2 teman sekelas bermain di rumah", oleh: "ortu", waktu: "Akhir pekan ini", selesai: false },
   // Raka Pratama: Emosional (Perlu Perhatian)
-  { id: "raka-obrolan", anak: "Raka Pratama", aspek: "emosional", alur: "cegah", judul: "Obrolan hasil skrining dengan orang tua", oleh: "walas", waktu: "Kamis, 5 Nov", selesai: true },
+  { id: "raka-obrolan", anak: "Raka Pratama", aspek: "emosional", alur: "cegah", judul: "Obrolan hasil screening dengan orang tua", oleh: "walas", waktu: "Kamis, 5 Nov", selesai: true },
   { id: "raka-pojok", anak: "Raka Pratama", aspek: "emosional", alur: "cegah", judul: "Pojok tenang dan kartu perasaan di kelas", oleh: "walas", waktu: "Kamis, 19 Nov", selesai: false },
   { id: "raka-sakit-perut", anak: "Raka Pratama", aspek: "emosional", alur: "cegah", judul: "Catat keluhan sakit perut tiap pagi", oleh: "ortu", waktu: "Setiap pagi", selesai: false },
   { id: "raka-cerita", anak: "Raka Pratama", aspek: "emosional", alur: "cegah", judul: "Tanyakan perasaannya sepulang sekolah", oleh: "ortu", waktu: "Setiap hari", selesai: true },
   // Raka Pratama: semua aspek
-  { id: "raka-evaluasi", anak: "Raka Pratama", aspek: null, alur: "cegah", judul: "Evaluasi 4 minggu dan skrining ulang", oleh: "bk", waktu: "Kamis, 3 Des", selesai: false },
+  { id: "raka-evaluasi", anak: "Raka Pratama", aspek: null, alur: "cegah", judul: "Evaluasi 4 minggu dan screening ulang", oleh: "bk", waktu: "Kamis, 3 Des", selesai: false },
   // Raka Pratama: penugasan kasus KS-015
-  { id: "ks015-respon", anak: "Raka Pratama", aspek: null, alur: "kejadian", kasus: "KS-015", judul: "KS-015: temui Raka dan catat kronologi", oleh: "walas", waktu: "Hari ini, sebelum 12.12", selesai: false },
+  { id: "ks015-respon", anak: "Raka Pratama", aspek: null, alur: "kejadian", kasus: "KS-015", judul: "KS-015: temui Raka dan catat kejadiannya", oleh: "walas", waktu: "Hari ini, sebelum 12.12", selesai: false },
 
   // Kelas 2B lainnya (checklist Bu Rina)
-  { id: "2b-skrining", anak: null, aspek: null, alur: "skrining", judul: "Isi skrining HEART untuk Bagas dan Putri", oleh: "walas", waktu: "Jumat, 13 Nov", selesai: false },
-  { id: "2b-buddy-rizky", anak: "Rizky Maulana", aspek: "hiperaktivitas", alur: "cegah", judul: "Tetapkan buddy untuk Rizky", oleh: "walas", waktu: "Jumat, 13 Nov", selesai: false },
-  { id: "2b-observasi", anak: null, aspek: null, alur: "cegah", judul: "Observasi minggu ke-3: Keisha, Rizky, Naura, Arka", oleh: "walas", waktu: "Jumat, 13 Nov", selesai: false },
+  { id: "2b-skrining", anak: null, aspek: null, alur: "skrining", judul: "Isi screening HEART untuk Bagas dan Putri", oleh: "walas", waktu: "Jumat, 13 Nov", selesai: false },
+  { id: "2b-buddy-rizky", anak: "Rizky Maulana", aspek: "hiperaktivitas", alur: "cegah", judul: "Tetapkan teman pendamping untuk Rizky", oleh: "walas", waktu: "Jumat, 13 Nov", selesai: false },
+  { id: "2b-observasi", anak: null, aspek: null, alur: "cegah", judul: "Pengamatan minggu ke-3: Keisha, Rizky, Naura, Arka", oleh: "walas", waktu: "Jumat, 13 Nov", selesai: false },
   { id: "2b-aqila-pojok", anak: "Aqila Zahra", aspek: "emosional", alur: "cegah", judul: "Ajak Aqila ke pojok tenang saat cemas", oleh: "walas", waktu: "Mulai 6 Nov", selesai: true },
 ];
 

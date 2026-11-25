@@ -9,38 +9,40 @@ import { DUKUNGAN_RAKA } from "../bersama/dukungan";
 import LaporanHeart from "./LaporanHeart";
 import ProfilAnakDukungan from "./ProfilAnakDukungan";
 import ProfilAnakTindak from "./ProfilAnakTindak";
-import ProfilAnakKasus from "./ProfilAnakKasus";
-import { HARI_INI, KASUS_RAKA, PENANDA, RIWAYAT_AWAL } from "./profilAnakData";
+import { RiwayatAnak } from "./ProfilAnakKasus";
+import { HARI_INI, PENANDA, RIWAYAT_AWAL } from "./profilAnakData";
+import { PESAN_WA, tautanWa } from "../bersama/whatsapp";
 import css from "./ProfilAnak.module.css";
 
 const ANAK = LAPORAN_RAKA.anak;
 
-/** Aspek yang paling butuh perhatian (status terberat, lalu skor tertinggi), dibuka pertama kali. */
+/** Aspek yang paling butuh perhatian (status terberat, lalu skor tertinggi), dipakai laci pertama kali. */
 const ASPEK_AWAL = [...HEART].sort((a, b) => {
   const x = LAPORAN_RAKA.aspek[a.id];
   const y = LAPORAN_RAKA.aspek[b.id];
   return URUTAN_STATUS.indexOf(y.status) - URUTAN_STATUS.indexOf(x.status) || y.skor - x.skor;
 })[0].id;
 
-/** Buddy Raka menurut peta dukungan bersama. */
+/** Teman pendamping Raka menurut peta dukungan bersama. */
 const BUDDY_AWAL = DUKUNGAN_RAKA.kelompok.flatMap((k) => k.orang).find((o) => o.buddy)?.nama ?? "";
 
 /**
- * Laporan anak: Raka Pratama, kelas 2B, dilihat Bu Rina sebagai wali kelas. Langkah "Hasil per anak"
- * dan "Tindak lanjut" di alur pencegahan: hasil skrining HEART, peta dukungan (buddy, orang dewasa
- * yang dipercaya, tempat aman, titik rawan), checklist tindak lanjut, lalu kasus terkait dan riwayat.
+ * Laporan anak: Raka Pratama, kelas 2B, dibuka wali kelas atau Guru BK. Langkah "Hasil per anak" dan
+ * "Tindak lanjut" di alur pencegahan. Urutannya mengikuti kebutuhan guru: paling atas status anak dan
+ * yang perlu dilakukan sekarang (kasus aktif, tugas yang belum selesai), lalu hasil HEART ringkas,
+ * lalu menu peta dukungan dan riwayat. Rincian (per aspek HEART, seluruh checklist, kasus, peta
+ * dukungan, riwayat) terbuka di laci.
  *
  * Centang checklist hidup di konteks prototipe, jadi terlihat juga di Ruang wali kelas dan aplikasi
- * orang tua. Observasi baru, ganti buddy, dan kontak orang tua hanya state layar ini (masuk ke
- * riwayat, hilang saat layar ditutup). Tidak ada yang disimpan.
+ * orang tua. Pengamatan baru, ganti teman pendamping, dan kontak orang tua hanya state layar ini
+ * (masuk ke riwayat, hilang saat layar ditutup). Tidak ada yang disimpan.
  */
 export default function ProfilAnak() {
-  const { layar, peran, pindah, toast } = useProteksi();
-  const [langkah, setLangkah] = useState("hasil");
+  const { peran, pindah, toast } = useProteksi();
+  const [langkah, setLangkah] = useState("tindak");
   const [aspek, setAspek] = useState(ASPEK_AWAL);
   const [buddy, setBuddy] = useState(BUDDY_AWAL);
   const [tambahan, setTambahan] = useState([]);
-  const [tabKasus, setTabKasus] = useState("kasus");
   const [laciObs, setLaciObs] = useState(false);
   const [teksObs, setTeksObs] = useState("");
   const [penanda, setPenanda] = useState({});
@@ -48,15 +50,16 @@ export default function ProfilAnak() {
   const akarRef = useRef(null);
   const namaSaya = ORANG[peran]?.nama ?? "Wali kelas";
 
-  // Bilah alur menyalakan "Tindak lanjut" selama bagian itu (atau bagian sesudahnya) sudah naik ke
-  // paruh atas layar; di atasnya tetap "Hasil per anak".
+  // Kartu "Yang perlu dilakukan" ada di atas, hasil HEART di bawahnya. Bilah alur menyalakan "Hasil
+  // per anak" begitu bagian hasil (atau bagian sesudahnya) naik ke paruh atas layar; di atasnya
+  // "Tindak lanjut".
   useEffect(() => {
-    const bagian = akarRef.current?.querySelector('[data-bagian="tindak"]');
+    const bagian = akarRef.current?.querySelector('[data-bagian="hasil"]');
     if (!bagian || typeof IntersectionObserver === "undefined") return undefined;
     const pengamat = new IntersectionObserver(
       ([e]) => {
         const sudahLewat = e.boundingClientRect.top < (e.rootBounds ? e.rootBounds.top : 0);
-        setLangkah(e.isIntersecting || sudahLewat ? "tindak" : "hasil");
+        setLangkah(e.isIntersecting || sudahLewat ? "hasil" : "tindak");
       },
       { rootMargin: "0px 0px -55% 0px" },
     );
@@ -70,14 +73,18 @@ export default function ProfilAnak() {
 
   function hubungiOrtu() {
     tambahRiwayat({ jenis: "kontak", t: `Menghubungi ${ANAK.ortu}`, x: "Lewat WhatsApp dari laporan anak." });
-    toast(`Membuka WhatsApp ${ANAK.ortu}. Percakapan tercatat di riwayat Raka.`);
+    toast(`WhatsApp terbuka. Pilih kontak ${ANAK.ortu}, lalu lanjutkan pesannya.`);
   }
 
   function gantiBuddy(nama) {
     if (!nama || nama === buddy) return;
-    tambahRiwayat({ jenis: "tindak", t: "Buddy diganti", x: `${nama} menggantikan ${buddy} sebagai buddy Raka.` });
+    tambahRiwayat({
+      jenis: "tindak",
+      t: "Teman pendamping diganti",
+      x: `${nama} menggantikan ${buddy} sebagai teman pendamping Raka.`,
+    });
     setBuddy(nama);
-    toast(`Buddy Raka sekarang ${nama}. Perubahan tercatat di riwayat.`);
+    toast(`Teman pendamping Raka sekarang ${nama}, tercatat di riwayat.`);
   }
 
   function bukaObs() {
@@ -89,13 +96,14 @@ export default function ProfilAnak() {
 
   function simpanObs() {
     const tanda = PENANDA.filter((g) => penanda[g]).join(", ");
-    const teks = (teksObs.trim() || "Catatan singkat tanpa keterangan tambahan.") + (tanda ? ` (${tanda})` : "");
+    const teks = (teksObs.trim() || "Tanpa catatan tambahan.") + (tanda ? ` (${tanda})` : "");
     const namaAspek = cariAspek(aspekObs)?.nama;
-    tambahRiwayat({ jenis: "obs", t: `Observasi ${namaSaya}${namaAspek ? ` · ${namaAspek}` : ""}`, x: teks });
+    tambahRiwayat({ jenis: "obs", t: `Pengamatan ${namaSaya}${namaAspek ? ` · ${namaAspek}` : ""}`, x: teks });
     setLaciObs(false);
-    setTabKasus("riwayat");
-    toast("Catatan observasi Raka tersimpan di riwayat.");
+    toast("Pengamatan Raka tersimpan di riwayat.");
   }
+
+  const riwayat = [...tambahan, ...RIWAYAT_AWAL];
 
   return (
     <div ref={akarRef} className={`isi ${css.layar}`}>
@@ -121,61 +129,52 @@ export default function ProfilAnak() {
             </h1>
             <PilStatus status={LAPORAN_RAKA.status} />
           </div>
-        </div>
-        <div className="idnaksi">
-          <button type="button" className="ghost" onClick={hubungiOrtu}>
-            <Ikon nama="telepon" size={17} warna="var(--sp-hijau-batang)" />
-            Hubungi orang tua
-          </button>
-          <button type="button" className="btnp" onClick={bukaObs}>
-            <Ikon nama="pena" size={17} />
-            Catat observasi
-          </button>
-        </div>
-        <div className="idnbawah">
           <p className="idnmeta">
             {ANAK.usia} · Kelas {ANAK.kelas} · Wali kelas {ANAK.wali} · Orang tua {ANAK.ortu}
           </p>
-          <button
-            type="button"
-            className="idncip kasus"
-            onClick={() => pindah("kasus", { jenis: "kasus", id: KASUS_RAKA.id })}
+        </div>
+        <div className="idnaksi">
+          <a
+            className="ghost"
+            href={tautanWa(PESAN_WA.walasKeOrtu)}
+            target="_blank"
+            rel="noopener noreferrer"
+            onClick={hubungiOrtu}
           >
-            <Ikon nama="tiket" size={15} />
-            Kasus aktif {KASUS_RAKA.id} · {KASUS_RAKA.tingkat}
-            <Ikon nama="kanan" size={15} />
-          </button>
-          <button
-            type="button"
-            className="idncip buddy"
-            onClick={() => pindah(layar, { jenis: "gulir", id: "dukungan" })}
-          >
-            <Ikon nama="kelompok" size={15} />
-            Buddy: {buddy}
-            <Ikon nama="turun" size={15} />
+            <Ikon nama="obrolan" size={17} warna="var(--sp-hijau-batang)" />
+            Hubungi orang tua
+          </a>
+          <button type="button" className="btnp" onClick={bukaObs}>
+            <Ikon nama="pena" size={17} />
+            Catat pengamatan
           </button>
         </div>
         <p className="idnrahasia">
           <Ikon nama="gembok" size={14} />
-          Data rahasia: hanya wali kelas {ANAK.kelas}, tim BK, dan Kepala Sekolah yang bisa membuka, dan setiap akses
-          tercatat. Hasil skrining bukan diagnosis.
+          Rahasia: hanya wali kelas {ANAK.kelas}, Guru BK, dan Kepala Sekolah, setiap akses tercatat. Hasil screening
+          bukan diagnosis.
         </p>
       </div>
 
-      <LaporanHeart aspek={aspek} onPilih={setAspek} />
-      <ProfilAnakDukungan buddy={buddy} onGanti={gantiBuddy} />
       <ProfilAnakTindak />
-      <ProfilAnakKasus tab={tabKasus} onTab={setTabKasus} riwayat={[...tambahan, ...RIWAYAT_AWAL]} />
+      <LaporanHeart aspek={aspek} onPilih={setAspek} />
+
+      <section className="card pmkartu" aria-label="Data lain Raka">
+        <ul className="pmdaftar">
+          <ProfilAnakDukungan buddy={buddy} onGanti={gantiBuddy} />
+          <RiwayatAnak riwayat={riwayat} />
+        </ul>
+      </section>
 
       {laciObs && (
-        <Laci label="Catat observasi Raka" labelTutup="Tutup catatan" lebar={520} className="laciobs" onTutup={() => setLaciObs(false)}>
+        <Laci label="Catat pengamatan Raka" labelTutup="Tutup catatan" lebar={520} className="laciobs" onTutup={() => setLaciObs(false)}>
           <KepalaLaci
             awal={
               <div className="tile p">
                 <Ikon nama="pena" size={22} />
               </div>
             }
-            judul="Catat observasi"
+            judul="Catat pengamatan"
             sub={`${ANAK.nama} · Rabu, 11 November 2026`}
             onTutup={() => setLaciObs(false)}
           />
@@ -226,7 +225,7 @@ export default function ProfilAnak() {
               onChange={(e) => setTeksObs(e.target.value)}
             />
           </div>
-          <p className="reco info">Catatan masuk ke riwayat Raka dan ikut dibaca Guru BK saat evaluasi 4 minggu.</p>
+          <p className="reco info">Catatan masuk riwayat Raka dan dibaca Guru BK saat evaluasi 4 minggu.</p>
           <div className="dacts">
             <button type="button" className="ghost" onClick={() => setLaciObs(false)}>
               Batal

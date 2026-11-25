@@ -1,61 +1,75 @@
 import { useState } from "react";
 import { useProteksi } from "../konteks";
-import { Ikon, KepalaKartu, Segmen } from "../komponen";
+import { Ikon, KepalaLaci, Laci } from "../komponen";
 import { ALUR } from "../bersama/alur";
 import { CHECKLIST } from "../bersama/tindakLanjut";
-import { IKON_RIWAYAT, KASUS_RAKA, RIWAYAT_RINGKAS } from "./profilAnakData";
+import { IKON_RIWAYAT, KASUS_RAKA } from "./profilAnakData";
 
 const K = KASUS_RAKA;
 
-/** Butir checklist respon pertama kasus ini (penugasan wali kelas), dibaca untuk kotak SLA. */
-const BUTIR_RESPON = CHECKLIST.find((c) => c.kasus === K.id && c.oleh === "walas");
+/** Butir checklist tanggapan pertama kasus ini (tugas wali kelas), dibaca untuk batas waktunya. */
+const BUTIR_TANGGAPAN = CHECKLIST.find((c) => c.kasus === K.id && c.oleh === "walas");
+
+/** Sudah ditanggapi? Mengikuti centang butir tanggapan pertama di konteks prototipe. */
+function useSudahDitanggapi() {
+  const { centang } = useProteksi();
+  return BUTIR_TANGGAPAN ? (centang[BUTIR_TANGGAPAN.id] ?? BUTIR_TANGGAPAN.selesai) : false;
+}
 
 /**
- * Kartu bertab "Kasus KS-015" dan "Riwayat". Tab kasus meringkas laporan, SLA respon pertama, dan
- * posisinya di alur kejadian; detail lengkap ada di layar Kasus & penugasan. Riwayat menampilkan
- * empat entri terbaru dulu. `tab` dipegang layar supaya simpan observasi bisa langsung membuka Riwayat.
+ * Kasus aktif Raka di kartu "Yang perlu dilakukan": satu baris berisi tingkat, judul, dan sisa batas
+ * waktu tanggapan pertama. Posisi kasus di alur kejadian dan kasus sebelumnya ada di laci; detail
+ * lengkap di layar Kasus.
  */
-export default function ProfilAnakKasus({ tab, onTab, riwayat }) {
-  const { pindah, centang } = useProteksi();
-  const [semua, setSemua] = useState(false);
-  const responBeres = BUTIR_RESPON ? (centang[BUTIR_RESPON.id] ?? BUTIR_RESPON.selesai) : false;
-  const tampil = semua ? riwayat : riwayat.slice(0, RIWAYAT_RINGKAS);
+export function KasusAktif() {
+  const { pindah } = useProteksi();
+  const [laci, setLaci] = useState(false);
+  const sudah = useSudahDitanggapi();
 
   return (
-    <section className="card tcard ksr" aria-label="Kasus dan riwayat Raka">
-      <div className="tophead">
-        <KepalaKartu ikon={tab === "kasus" ? "tiket" : "riwayat"} nada={tab === "kasus" ? "red" : "p"} judul="Kasus & riwayat" />
-        <Segmen
-          label="Pilih isi kartu"
-          pilihan={[
-            { id: "kasus", label: `Kasus ${K.id}` },
-            { id: "riwayat", label: `Riwayat (${riwayat.length})` },
-          ]}
-          nilai={tab}
-          onPilih={onTab}
-        />
+    <div className="ksbaris">
+      <span className="tile red" aria-hidden="true">
+        <Ikon nama="tiket" size={19} />
+      </span>
+      <div className="ksbarisisi">
+        <p className="ksjudul">
+          <span className="pill sm bad">{K.tingkat}</span>
+          <b>
+            Kasus {K.id}: {K.judul}
+          </b>
+        </p>
+        <p className="ksket">
+          {sudah ? `${K.sla.label} sudah tercatat, tepat waktu.` : `${K.sla.label}: ${K.sla.sisa} · ${K.sla.batas}`}
+        </p>
       </div>
+      <button type="button" className="ghost sm" aria-haspopup="dialog" onClick={() => setLaci(true)}>
+        Lihat kasus
+        <Ikon nama="kanan" size={16} />
+      </button>
 
-      {tab === "kasus" ? (
-        <div className="ksisi">
-          <div className="ksatas">
-            <div className="ksjudul">
-              <span className="pill sm bad">{K.tingkat}</span>
-              <b>{K.judul}</b>
-            </div>
-            <button type="button" className="ghost sm" onClick={() => pindah("kasus", { jenis: "kasus", id: K.id })}>
-              Buka di Kasus &amp; penugasan
-              <Ikon nama="kanan" size={16} />
-            </button>
-          </div>
-          <p className="ksket">
-            {K.kategori} · {K.ket}
+      {laci && (
+        <Laci label={`Kasus ${K.id}`} labelTutup="Tutup kasus" lebar={560} className="lacikasus" onTutup={() => setLaci(false)}>
+          <KepalaLaci
+            awal={
+              <div className="tile red">
+                <Ikon nama="tiket" size={22} />
+              </div>
+            }
+            judul={`Kasus ${K.id}`}
+            sub={K.judul}
+            onTutup={() => setLaci(false)}
+          />
+          <p className="ksjudul">
+            <span className="pill sm bad">{K.tingkat}</span>
+            <span className="ksket">
+              {K.kategori} · {K.ket}
+            </span>
           </p>
 
-          <div className={`kssla${responBeres ? " beres" : ""}`}>
-            {responBeres ? (
+          <div className="kswaktu">
+            {sudah ? (
               <p>
-                <b>{K.sla.label} tercatat, tepat waktu.</b>
+                <b>{K.sla.label} sudah tercatat, tepat waktu.</b>
                 <span>{K.sla.sesudah}</span>
               </p>
             ) : (
@@ -66,7 +80,7 @@ export default function ProfilAnakKasus({ tab, onTab, riwayat }) {
                   </b>
                   <span>{K.sla.batas}</span>
                 </p>
-                <span className="kssbatang" aria-hidden="true">
+                <span className="kswbatang" aria-hidden="true">
                   <span style={{ width: `${K.sla.persen}%` }} />
                 </span>
               </>
@@ -77,7 +91,7 @@ export default function ProfilAnakKasus({ tab, onTab, riwayat }) {
             {ALUR.kejadian.langkah.map((l, i) => {
               const t = K.tahap[l.id];
               const status = t?.status ?? "nanti";
-              const ket = responBeres && t?.ketSesudahRespon ? t.ketSesudahRespon : t?.ket;
+              const ket = sudah && t?.ketSesudahTanggapan ? t.ketSesudahTanggapan : t?.ket;
               return (
                 <li key={l.id} className={`kst ${status}`} aria-current={status === "aktif" ? "step" : undefined}>
                   <span className="kstno" aria-hidden="true">
@@ -92,11 +106,56 @@ export default function ProfilAnakKasus({ tab, onTab, riwayat }) {
             })}
           </ol>
           <p className="ksnote">{K.sebelumnya}</p>
-        </div>
-      ) : (
-        <div className="rwisi">
+
+          <div className="dacts">
+            <button type="button" className="btnp" onClick={() => pindah("kasus", { jenis: "kasus", id: K.id })}>
+              Buka di layar Kasus
+              <Ikon nama="kanan" size={16} />
+            </button>
+          </div>
+        </Laci>
+      )}
+    </div>
+  );
+}
+
+/**
+ * Baris "Riwayat" di menu bawah Laporan anak: catatan terbaru sebagai cuplikan, seluruh riwayat
+ * (skrining, pengamatan, tindak lanjut, kasus, kontak orang tua) terbuka di laci.
+ */
+export function RiwayatAnak({ riwayat }) {
+  const [laci, setLaci] = useState(false);
+  const terbaru = riwayat[0];
+
+  return (
+    <li>
+      <button type="button" className="pmbaris" aria-haspopup="dialog" onClick={() => setLaci(true)}>
+        <span className="tile p" aria-hidden="true">
+          <Ikon nama="riwayat" size={19} />
+        </span>
+        <span className="pmteks">
+          <b>Riwayat</b>
+          <span>
+            {riwayat.length} catatan · Terakhir {terbaru.d}: {terbaru.t}
+          </span>
+        </span>
+        <Ikon nama="kanan" size={18} className="pmpanah" />
+      </button>
+
+      {laci && (
+        <Laci label="Riwayat Raka" labelTutup="Tutup riwayat" lebar={560} className="laciriwayat" onTutup={() => setLaci(false)}>
+          <KepalaLaci
+            awal={
+              <div className="tile p">
+                <Ikon nama="riwayat" size={22} />
+              </div>
+            }
+            judul="Riwayat Raka"
+            sub={`${riwayat.length} catatan, terbaru di atas.`}
+            onTutup={() => setLaci(false)}
+          />
           <ol className="rwdaftar">
-            {tampil.map((e) => (
+            {riwayat.map((e) => (
               <li key={e.id} className="rwi">
                 <span className="rwtgl">{e.d}</span>
                 <span className={`rwikon ${e.jenis}`} aria-hidden="true">
@@ -109,14 +168,8 @@ export default function ProfilAnakKasus({ tab, onTab, riwayat }) {
               </li>
             ))}
           </ol>
-          {riwayat.length > RIWAYAT_RINGKAS && (
-            <button type="button" className="ghost sm rwsemua" aria-expanded={semua} onClick={() => setSemua((s) => !s)}>
-              {semua ? "Tampilkan lebih sedikit" : `Tampilkan semua (${riwayat.length})`}
-              <Ikon nama="turun" size={16} className={semua ? "rwputar" : undefined} />
-            </button>
-          )}
-        </div>
+        </Laci>
       )}
-    </section>
+    </li>
   );
 }

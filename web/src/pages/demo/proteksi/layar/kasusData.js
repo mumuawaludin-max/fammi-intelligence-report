@@ -1,9 +1,10 @@
 /**
  * Data contoh dan aturan layar Kasus & penugasan (prototipe Sekolah Proteksi). Layar ini menjalankan
- * alur kejadian dari bersama/alur.js: lapor -> triage -> penugasan -> penanganan -> pantau dan
- * tutup. Tahap satu kasus memakai id TAHAP_KASUS: triage (tingkat belum ditetapkan), tugas (tingkat
- * sudah ditetapkan, penanggung jawab baru ditunjuk atau belum, respon pertama belum), tangani
- * (respon pertama dan rencana tindak berjalan), pantau (dipantau 2 sampai 4 minggu), selesai.
+ * alur kejadian dari bersama/alur.js: Lapor -> Cek awal -> Bagi tugas -> Tangani -> Pantau & selesai.
+ * Tahap satu kasus memakai id TAHAP_KASUS: triage (cek awal, tingkat belum ditetapkan), tugas (bagi
+ * tugas: tingkat sudah ditetapkan, tanggapan pertama belum), tangani (tanggapan pertama dan rencana
+ * penanganan berjalan), pantau (dipantau 2 sampai 4 minggu), selesai. Id sengaja tetap memakai nama
+ * lama supaya aksi dari layar lain tidak berubah; yang berganti hanya teks tampilan.
  *
  * Semua nama, kelas, waktu, dan angka di sini data contoh untuk demonstrasi.
  *
@@ -77,7 +78,10 @@ export function durasi(menit) {
 }
 
 // ---------- tingkat ----------
-/** Batas respon pertama dan rencana tindak per tingkat. `tinjau` = jarak tinjau ulang (hari). */
+/**
+ * Batas waktu per tingkat: `respon` = tanggapan pertama, `rencana` = rencana penanganan siap,
+ * `tinjau` = jarak cek ulang saat dipantau (hari).
+ */
 export const ATURAN = {
   Darurat: { respon: (t) => t + 60, rencana: (t) => t + MENIT_SEHARI, responL: "1 jam", rencanaL: "24 jam", tinjau: 7 },
   Tinggi: { respon: (t) => t + 240, rencana: (t) => tambahHariKerja(t, 2), responL: "4 jam", rencanaL: "2 hari kerja", tinjau: 7 },
@@ -109,10 +113,10 @@ export const TAHAP = Object.fromEntries(
 );
 export const URUTAN_TAHAP = TAHAP_KASUS;
 
-/** Respon pertama belum tercatat (kasus baru, atau penanggung jawab belum menemui anak). */
+/** Tanggapan pertama belum tercatat (kasus baru, atau penanggung jawab belum menemui anak). */
 export const responBelum = (c) => c.tRespon == null && !c.responLabel;
 
-/** Pilihan hasil akhir saat menutup kasus. `ringkas` dipakai di riwayat. */
+/** Pilihan hasil akhir saat menyelesaikan kasus. `ringkas` dipakai di riwayat. */
 export const HASIL_AKHIR = [
   { id: "aman", label: "Tertangani, anak merasa aman", ringkas: "tertangani, anak merasa aman" },
   { id: "rujuk", label: "Dirujuk ke layanan luar, sekolah tetap memantau", ringkas: "dirujuk ke layanan luar, sekolah tetap memantau" },
@@ -165,14 +169,14 @@ export function orangKasus(id) {
   return null;
 }
 
-/** Pilihan formulir Tugaskan: wali kelas anak (bila bukan 2B) lalu lima orang tetap. */
+/** Pilihan formulir Bagi tugas: wali kelas anak (bila bukan 2B) lalu lima orang tetap. */
 export function kandidatTugas(kelas) {
   const dasar = ["wk:2B", "laras", "hartini", "joko", "fammi"];
   const wali = idWali(kelas);
   return wali && !dasar.includes(wali) ? [wali, ...dasar] : dasar;
 }
 
-/** Usulan penugasan menurut tingkat dan jawaban triage: { utama, pendukung }. */
+/** Usulan pembagian tugas menurut tingkat dan jawaban cek awal: { utama, pendukung }. */
 export function usulanTugas(tingkat, q, kelas) {
   const wali = idWali(kelas);
   if (q[4] === 2) return { utama: "hartini", pendukung: ["fammi"] };
@@ -184,7 +188,7 @@ export function usulanTugas(tingkat, q, kelas) {
 
 /** Aturan penugasan per tingkat, satu kalimat untuk laci. */
 export const ATURAN_TEKS = {
-  Darurat: "Aturan Darurat: Guru BK memimpin, Kepala Sekolah dan pendamping Fammi ikut menangani. Rujukan ke UPTD PPA atau layanan kesehatan bila perlu.",
+  Darurat: "Aturan Darurat: Guru BK memimpin, Kepala Sekolah dan pendamping Fammi ikut menangani. Rujuk ke UPTD PPA atau layanan kesehatan bila perlu.",
   Tinggi: "Aturan Tinggi: wali kelas menangani bersama Guru BK; Kepala Sekolah diberi tahu.",
   Sedang: "Aturan Sedang: Guru BK menangani dan melibatkan wali kelas bila perlu.",
   Rendah: "Aturan Rendah: wali kelas menangani; Guru BK melihat ringkasannya.",
@@ -197,7 +201,7 @@ export function namaTugas(tugas) {
   return [tugas.utama, ...tugas.pendukung].map(orangKasus).filter(Boolean).map((o) => o.nama);
 }
 
-/** Bu Laras ikut ditugaskan atau sedang memegang langkah koordinator (triage dan penugasan). */
+/** Bu Laras ikut ditugaskan atau sedang memegang langkah koordinator (cek awal dan bagi tugas). */
 export function tugasSaya(c) {
   if (c.tahap === "selesai" || c.terbatas) return false;
   if (c.tahap === "triage" || c.tahap === "tugas") return true;
@@ -207,29 +211,49 @@ export function tugasSaya(c) {
 /** Butir checklist yang lahir dari penugasan kasus ini (bersama/tindakLanjut.js). */
 export const checklistKasus = (id) => CHECKLIST.filter((b) => b.kasus === id);
 
-// ---------- SLA ----------
-/** Status SLA satu kasus untuk kolom "SLA berikutnya" dan angka di atas antrean. */
+// ---------- batas waktu ----------
+/**
+ * Batas waktu berikutnya satu kasus: `nama` = batas apa, `label` = sisa waktunya (kolom sisa waktu
+ * di daftar), `telat` = sudah lewat, `hampir` = batasnya hari ini, `sisa` = menit tersisa.
+ */
 export function slaKasus(c, kini) {
-  if (c.tahap === "selesai") return { nama: "Ditutup " + c.selesaiLabel, label: "Tepat waktu", pil: "pill sm ok", telat: false };
-  if (c.tahap === "pantau") return { nama: "Tinjau ulang", label: c.tinjauLabel, pil: "pill sm mid", telat: false };
+  if (c.tahap === "selesai") return { nama: "Selesai", label: "Selesai " + c.selesaiLabel, pil: "pill sm ok", telat: false, hampir: false };
+  if (c.tahap === "pantau") return { nama: "Cek ulang", label: "Cek ulang " + c.tinjauLabel, pil: "pill sm mid", telat: false, hampir: false };
   const aturan = ATURAN[c.tingkat];
   const tahapRespon = c.tahap === "triage" || c.tahap === "tugas" || responBelum(c);
   const batas = tahapRespon ? aturan.respon(c.masuk) : aturan.rencana(c.masuk);
   const sisa = batas - kini;
-  const nama = tahapRespon ? "Respon pertama" : "Rencana tindak";
-  if (sisa < 0) return { nama, label: "Lewat " + durasi(-sisa), pil: "pill sm bad", telat: true };
+  const nama = tahapRespon ? "Tanggapan pertama" : "Rencana penanganan";
+  if (sisa < 0) return { nama, label: "Terlambat " + durasi(-sisa), pil: "pill sm bad", telat: true, hampir: false, sisa };
   const hariIni = hariKe(batas) === hariKe(kini);
   return {
     nama,
     label: hariIni ? "Sisa " + durasi(sisa) : "Batas " + batasDari(batas, kini),
     pil: sisa / (batas - c.masuk) < 0.3 ? "pill sm warn" : "pill sm ok",
     telat: false,
+    hampir: hariIni,
+    sisa,
   };
 }
 
 /**
- * Tiga baris SLA di blok Penugasan laci detail. `tingkatHitung` = tingkat yang sedang dipilih
- * (saat triage bisa berbeda dari tingkat tersimpan).
+ * Kasus yang perlu tindakan sekarang, untuk bagian paling atas layar: tingkat Darurat, terlambat,
+ * atau batasnya hari ini. Kasus yang sudah dipantau, selesai, atau berakses terbatas tidak ikut.
+ * Urutan: Darurat, lalu yang terlambat, lalu sisa waktu tersedikit.
+ */
+export function kasusMendesak(daftar, kini) {
+  const urut = (c, s) => (c.tingkat === "Darurat" ? 0 : s.telat ? 1 : 2);
+  return daftar
+    .filter((c) => !c.terbatas && c.tahap !== "pantau" && c.tahap !== "selesai")
+    .map((c) => ({ c, s: slaKasus(c, kini) }))
+    .filter(({ c, s }) => c.tingkat === "Darurat" || s.telat || s.hampir)
+    .sort((a, b) => urut(a.c, a.s) - urut(b.c, b.s) || a.s.sisa - b.s.sisa)
+    .map(({ c }) => c);
+}
+
+/**
+ * Tiga baris batas waktu di laci detail. `tingkatHitung` = tingkat yang sedang dipilih (saat cek
+ * awal bisa berbeda dari tingkat tersimpan).
  */
 export function barisSla(c, kini, tingkatHitung) {
   if (c.terbatas) return [];
@@ -241,12 +265,12 @@ export function barisSla(c, kini, tingkatHitung) {
   const baris = [];
 
   if (c.responLabel) {
-    baris.push({ judul: "Respon pertama", target: tSimpan + tersimpan.responL, status: c.responLabel, pil: "pill sm ok" });
+    baris.push({ judul: "Tanggapan pertama", target: tSimpan + tersimpan.responL, status: c.responLabel, pil: "pill sm ok" });
   } else if (c.tRespon != null) {
     const batas = tersimpan.respon(c.masuk);
     const tepat = c.tRespon <= batas;
     baris.push({
-      judul: "Respon pertama",
+      judul: "Tanggapan pertama",
       target: tSimpan + tersimpan.responL + " · batas " + waktuLengkap(batas),
       status: "Tercatat " + waktuSingkat(c.tRespon, kini) + (tepat ? " · tepat waktu" : " · terlambat"),
       pil: tepat ? "pill sm ok" : "pill sm bad",
@@ -255,20 +279,20 @@ export function barisSla(c, kini, tingkatHitung) {
     const batas = hitung.respon(c.masuk);
     const sisa = batas - kini;
     baris.push({
-      judul: "Respon pertama",
+      judul: "Tanggapan pertama",
       target: tHitung + hitung.responL + " · batas " + waktuLengkap(batas),
-      status: sisa >= 0 ? "Sisa " + durasi(sisa) : "Lewat " + durasi(-sisa),
+      status: sisa >= 0 ? "Sisa " + durasi(sisa) : "Terlambat " + durasi(-sisa),
       pil: sisa < 0 ? "pill sm bad" : sisa / (batas - c.masuk) < 0.3 ? "pill sm warn" : "pill sm ok",
     });
   }
 
   if (c.rencanaLabel) {
-    baris.push({ judul: "Rencana tindak", target: tSimpan + tersimpan.rencanaL, status: c.rencanaLabel, pil: "pill sm ok" });
+    baris.push({ judul: "Rencana penanganan", target: tSimpan + tersimpan.rencanaL, status: c.rencanaLabel, pil: "pill sm ok" });
   } else if (c.tRencana != null) {
     const batas = tersimpan.rencana(c.masuk);
     const tepat = c.tRencana <= batas;
     baris.push({
-      judul: "Rencana tindak",
+      judul: "Rencana penanganan",
       target: tSimpan + tersimpan.rencanaL + " · batas " + waktuLengkap(batas),
       status: "Siap " + waktuSingkat(c.tRencana, kini) + (tepat ? " · tepat waktu" : " · terlambat"),
       pil: tepat ? "pill sm ok" : "pill sm bad",
@@ -278,9 +302,9 @@ export function barisSla(c, kini, tingkatHitung) {
     const sisa = batas - kini;
     const belum = responBelum(c);
     baris.push({
-      judul: "Rencana tindak",
+      judul: "Rencana penanganan",
       target: tHitung + hitung.rencanaL + " · batas " + waktuLengkap(batas),
-      status: sisa < 0 ? "Lewat " + durasi(-sisa) : belum ? "Setelah respon pertama" : "Sisa " + durasi(sisa),
+      status: sisa < 0 ? "Terlambat " + durasi(-sisa) : belum ? "Setelah tanggapan pertama" : "Sisa " + durasi(sisa),
       pil: sisa < 0 ? "pill sm bad" : belum ? "pill sm gray" : "pill sm ok",
     });
   }
@@ -288,19 +312,19 @@ export function barisSla(c, kini, tingkatHitung) {
   baris.push({
     judul: "Pemantauan",
     target: "Cek ulang tiap minggu, 2 sampai 4 minggu",
-    status: c.tahap === "pantau" ? "Tinjau " + c.tinjauLabel : c.tahap === "selesai" ? "Ditutup " + c.selesaiLabel : "Belum dimulai",
+    status: c.tahap === "pantau" ? "Cek ulang " + c.tinjauLabel : c.tahap === "selesai" ? "Selesai " + c.selesaiLabel : "Belum dimulai",
     pil: c.tahap === "pantau" ? "pill sm mid" : c.tahap === "selesai" ? "pill sm ok" : "pill sm gray",
   });
   return baris;
 }
 
-// ---------- triage: enam pertanyaan penilaian awal ----------
+// ---------- cek awal: enam pertanyaan penilaian awal ----------
 export const PERTANYAAN = [
   "Anak dalam bahaya saat ini atau butuh pertolongan medis?",
   "Ada dugaan kekerasan seksual atau pendekatan tidak wajar oleh orang dewasa?",
   "Ada kekerasan fisik atau cedera?",
   "Terjadi berulang atau dilakukan lebih dari satu orang?",
-  "Terlapor adalah guru atau staf sekolah?",
+  "Terlapor guru atau staf sekolah?",
   "Anak tampak sangat tertekan, menolak sekolah, atau menyakiti diri?",
 ];
 const SEBAB = [
@@ -330,21 +354,21 @@ export function alasanDari(q) {
   return teks.trim() || "Tidak ada tanda bahaya.";
 }
 
-// ---------- laci Aturan SLA ----------
-/** Baris tabel aturan. Batas respon dan rencana tindak dibaca dari ATURAN. */
+// ---------- laci Aturan batas waktu ----------
+/** Baris tabel aturan. Batas tanggapan pertama dan rencana penanganan dibaca dari ATURAN. */
 export const ATURAN_SLA = [
   { tingkat: "Darurat", contoh: "Anak dalam bahaya, dugaan kekerasan seksual atau pendekatan tidak wajar, terlapor staf", ke: "Guru BK (utama), Kepala Sekolah, pendamping Fammi" },
   { tingkat: "Tinggi", contoh: "Kekerasan fisik, perundungan berulang, anak sangat tertekan", ke: "Wali kelas (utama) dan Guru BK; Kepala Sekolah diberi tahu" },
-  { tingkat: "Sedang", contoh: "Ejekan, pengucilan, tanda bahaya dari skrining, jawaban tidak yakin", ke: "Guru BK" },
+  { tingkat: "Sedang", contoh: "Ejekan, pengucilan, tanda bahaya dari screening, jawaban tidak yakin", ke: "Guru BK" },
   { tingkat: "Rendah", contoh: "Konflik ringan, kekhawatiran umum", ke: "Wali kelas" },
 ];
 
 export const CATATAN_ATURAN = [
-  "Alur: laporan masuk, Koordinator BK menetapkan tingkat (triage), menugaskan penanggung jawab, penanggung jawab merespon dan menjalankan rencana tindak, lalu kasus dipantau sampai ditutup.",
-  "Jam SLA berjalan sejak laporan masuk. Lewat batas, kasus otomatis naik satu tingkat penanggung jawab: wali kelas, lalu Guru BK, lalu Kepala Sekolah.",
-  "Terlapor guru atau staf: hanya Kepala Sekolah dan pendamping Fammi yang bisa membuka detail. Staf terlapor tidak melihat kasusnya.",
-  "Pemantauan setelah rencana tindak: tiap minggu selama 2 sampai 4 minggu. Kasus ditutup dengan catatan hasil.",
-  "Pelapor, termasuk orang tua dan anak, melihat tahap dan perkiraan waktu, bukan catatan internal. Hari kerja dihitung Senin sampai Jumat.",
+  "Alur: laporan masuk, Koordinator BK melakukan cek awal (menetapkan tingkat) lalu membagi tugas, penanggung jawab memberi tanggapan pertama dan menjalankan rencana penanganan, lalu kasus dipantau sampai selesai.",
+  "Batas waktu dihitung sejak laporan masuk. Bila terlambat, kasus otomatis diteruskan ke penanggung jawab berikutnya: wali kelas, Guru BK, lalu Kepala Sekolah.",
+  "Terlapor guru atau staf: detail hanya untuk Kepala Sekolah dan pendamping Fammi. Staf terlapor tidak melihat kasusnya.",
+  "Pemantauan setelah rencana penanganan: tiap minggu selama 2 sampai 4 minggu. Kasus diselesaikan dengan catatan hasil.",
+  "Pelapor, termasuk orang tua dan anak, melihat tahap dan perkiraan waktu, bukan catatan internal. Hari kerja Senin sampai Jumat.",
 ];
 
 // ---------- formulir Lapor kejadian ----------
@@ -366,14 +390,14 @@ export function laporKosong() {
   return { jenis: "", nama: "", kelas: "2B", lokasi: "Kelas", kapan: "Hari ini", cerita: "", jawaban: [0, 0, 0, 0, 0, 0] };
 }
 
-/** Rencana tindak bawaan untuk laporan baru: [langkah, oleh, batas]. */
+/** Rencana penanganan bawaan untuk laporan baru: [langkah, oleh, batas]. */
 export const RENCANA_BARU = {
   Darurat: [
     ["Pastikan anak aman dan didampingi orang dewasa tepercaya", "Guru BK", "Hari ini"],
     ["Kabari orang tua dengan tenang", "Guru BK", "Hari ini"],
     ["Konsultasi pendamping Fammi", "Pendamping Fammi", "24 jam"],
     ["Rujuk ke layanan luar bila perlu", "Kepala Sekolah", "24 jam"],
-    ["Catat kronologi satu kali", "Guru BK", "24 jam"],
+    ["Catat kejadian satu kali", "Guru BK", "24 jam"],
   ],
   Tinggi: [
     ["Kabari orang tua", "Wali kelas", "Hari ini"],
@@ -394,7 +418,7 @@ export const RENCANA_BARU = {
 
 const rencanaDari = (tingkat) => RENCANA_BARU[tingkat].map((p) => [...p, false]);
 
-/** Kasus baru dari formulir lapor: masuk tahap triage. `id` mis. "KS-017", `kini` = waktu masuk. */
+/** Kasus baru dari formulir lapor: masuk tahap Cek awal (triage). `id` mis. "KS-017", `kini` = waktu masuk. */
 export function kasusDariLapor(lapor, id, kini, sumber = "Bu Laras (staf) · aplikasi sekolah") {
   const tingkat = tingkatDari(lapor.jawaban);
   const nama = lapor.nama.trim();
@@ -438,7 +462,7 @@ export function kasusDariLapor(lapor, id, kini, sumber = "Bu Laras (staf) · apl
  * perubahan, dipanggil layar lewat setDaftar.
  */
 
-/** Triage: tetapkan tingkat, kasus pindah ke penugasan. */
+/** Cek awal: tetapkan tingkat, kasus pindah ke Bagi tugas. */
 export function tetapkanTingkat(c, kini, tingkat, jawaban) {
   const cap = capWaktu(kini);
   const batas = batasDari(ATURAN[tingkat].respon(c.masuk), kini);
@@ -451,13 +475,13 @@ export function tetapkanTingkat(c, kini, tingkat, jawaban) {
       jawaban: jawaban.slice(),
       ...(rencanaUlang ? { rencana: rencanaDari(tingkat) } : {}),
       waktu: { ...x.waktu, triage: cap },
-      riwayat: [[cap, "Bu Laras menetapkan tingkat " + tingkat + ". Respon pertama paling lambat " + batas + "."], ...x.riwayat],
+      riwayat: [[cap, "Bu Laras menetapkan tingkat " + tingkat + ". Tanggapan pertama paling lambat " + batas + "."], ...x.riwayat],
     }),
-    pesan: "Tingkat " + c.id + " ditetapkan " + tingkat + ". Berikutnya: tugaskan penanggung jawab.",
+    pesan: "Tingkat " + c.id + " ditetapkan " + tingkat + ". Berikutnya: bagi tugas.",
   };
 }
 
-/** Penugasan: tetapkan penanggung jawab utama dan pendukung, kasus pindah ke penanganan. */
+/** Bagi tugas: tetapkan penanggung jawab utama dan pendukung, kasus pindah ke Tangani. */
 export function tugaskan(c, kini, pilihan) {
   const cap = capWaktu(kini);
   const utama = orangKasus(pilihan.utama);
@@ -474,7 +498,7 @@ export function tugaskan(c, kini, pilihan) {
         [
           cap,
           "Bu Laras menugaskan " + utama.nama + " sebagai penanggung jawab utama" + (namaPendukung ? ", didukung " + namaPendukung : "") +
-            ". Respon pertama paling lambat " + batas + ".",
+            ". Tanggapan pertama paling lambat " + batas + ".",
         ],
         ...x.riwayat,
       ],
@@ -488,14 +512,14 @@ export function tugaskan(c, kini, pilihan) {
           ikon: "tugaskan",
           nada: "red",
           judul: "Anda ditugaskan di " + c.id,
-          isi: "Utama: " + utama.nama + (namaPendukung ? ". Pendukung: " + namaPendukung : "") + ". Respon pertama paling lambat " + batas + ".",
+          isi: "Utama: " + utama.nama + (namaPendukung ? ". Pendukung: " + namaPendukung : "") + ". Tanggapan pertama paling lambat " + batas + ".",
           tujuan: { layar: "kasus", aksi: { jenis: "kasus", id: c.id } },
         }
       : null,
   };
 }
 
-/** Penanganan, langkah pertama: respon pertama tercatat. Butir checklist kasus ini ikut selesai. */
+/** Tangani, langkah pertama: tanggapan pertama tercatat. Butir checklist kasus ini ikut selesai. */
 export function catatRespon(c, kini) {
   const cap = capWaktu(kini);
   const tepat = kini <= ATURAN[c.tingkat].respon(c.masuk);
@@ -504,21 +528,21 @@ export function catatRespon(c, kini) {
     ubah: (x) => ({
       tRespon: kini,
       riwayat: [
-        [cap, "Respon pertama tercatat" + (tepat ? ", tepat waktu." : ", terlambat.") + " " + (utama ? utama.nama : "Penanggung jawab") + " sudah menemui anak, pelapor dikabari."],
+        [cap, "Tanggapan pertama tercatat" + (tepat ? ", tepat waktu." : ", terlambat.") + " " + (utama ? utama.nama : "Penanggung jawab") + " sudah menemui anak, pelapor dikabari."],
         ...x.riwayat,
       ],
     }),
     pesan:
-      "Respon pertama " + c.id + " tercatat " + jamMenit(kini) + (tepat ? ", tepat waktu." : ", terlambat.") +
-      " Rencana tindak paling lambat " + waktuLengkap(ATURAN[c.tingkat].rencana(c.masuk)) + ".",
+      "Tanggapan pertama " + c.id + " tercatat " + jamMenit(kini) + (tepat ? ", tepat waktu." : ", terlambat.") +
+      " Rencana penanganan paling lambat " + waktuLengkap(ATURAN[c.tingkat].rencana(c.masuk)) + ".",
     centang: checklistKasus(c.id).map((b) => b.id),
   };
 }
 
-/** Penanganan selesai: masuk pemantauan sesudah separuh langkah rencana tindak berjalan. */
+/** Tangani selesai: masuk pemantauan sesudah separuh langkah rencana penanganan berjalan. */
 export function kePantau(c, kini) {
   const minimal = Math.ceil(c.rencana.length / 2);
-  if (c.rencana.filter((p) => p[3]).length < minimal) return { pesan: "Jalankan minimal " + minimal + " langkah rencana tindak dulu" };
+  if (c.rencana.filter((p) => p[3]).length < minimal) return { pesan: "Jalankan minimal " + minimal + " langkah rencana penanganan dulu" };
   const cap = capWaktu(kini);
   const tinjau = labelHari(kini + ATURAN[c.tingkat].tinjau * MENIT_SEHARI);
   return {
@@ -527,13 +551,13 @@ export function kePantau(c, kini) {
       tRencana: x.tRencana != null ? x.tRencana : kini,
       tinjauLabel: tinjau,
       waktu: { ...x.waktu, tangani: cap },
-      riwayat: [[cap, "Masuk pemantauan. Tinjau ulang " + tinjau + "."], ...x.riwayat],
+      riwayat: [[cap, "Masuk pemantauan. Cek ulang " + tinjau + "."], ...x.riwayat],
     }),
-    pesan: c.id + " masuk pemantauan. Pengingat tinjau ulang " + tinjau + " dikirim ke penanggung jawab.",
+    pesan: c.id + " masuk pemantauan. Pengingat cek ulang " + tinjau + " dikirim ke penanggung jawab.",
   };
 }
 
-/** Pantau dan tutup: kasus selesai dengan catatan hasil. `hasil` = isi HASIL_AKHIR. */
+/** Pantau & selesai: kasus diselesaikan dengan catatan hasil. `hasil` = isi HASIL_AKHIR. */
 export function tutupKasus(c, kini, hasil) {
   const cap = capWaktu(kini);
   return {
@@ -541,20 +565,26 @@ export function tutupKasus(c, kini, hasil) {
       tahap: "selesai",
       selesaiLabel: labelHari(kini),
       waktu: { ...x.waktu, pantau: cap },
-      riwayat: [[cap, "Kasus ditutup: " + hasil.ringkas + "."], ...x.riwayat],
+      riwayat: [[cap, "Kasus selesai: " + hasil.ringkas + "."], ...x.riwayat],
     }),
-    pesan: c.id + " ditutup. Pelapor menerima kabar bahwa kasus selesai.",
+    pesan: c.id + " selesai. Pelapor sudah dikabari.",
   };
 }
 
-/** Tombol utama dan catatan kaki laci detail menurut tahap. */
+/**
+ * Tombol menurut tahap: `label` = tombol utama di laci detail, `segera` = tombol di kartu "Perlu
+ * tindakan sekarang" (membuka laci), `catatan` = catatan kaki laci.
+ */
 export function aksiTahap(c) {
-  if (c.tahap === "triage") return { label: "Tetapkan tingkat", catatan: "Tingkat menentukan batas respon pertama dan usulan penanggung jawab." };
-  if (c.tahap === "tugas") return { label: "Tugaskan", catatan: "Penanggung jawab menerima notifikasi aplikasi dan WhatsApp." };
-  if (c.tahap === "tangani" && responBelum(c)) return { label: "Catat respon pertama", catatan: "Respon pertama: anak sudah ditemui dan pelapor dikabari." };
-  if (c.tahap === "tangani") return { label: "Pindah ke pemantauan", catatan: "Pindahkan setelah separuh langkah rencana tindak berjalan." };
-  if (c.tahap === "pantau") return { label: "Tutup kasus", catatan: "Pilih hasil akhir di atas sebelum menutup." };
-  return { label: "", catatan: "Kasus selesai. Riwayat tetap tersimpan untuk laporan pimpinan." };
+  if (c.tahap === "triage")
+    return { label: "Tetapkan tingkat", segera: "Mulai cek awal", catatan: "Tingkat menentukan batas tanggapan pertama dan usulan penanggung jawab." };
+  if (c.tahap === "tugas") return { label: "Bagi tugas", segera: "Bagi tugas", catatan: "Penanggung jawab menerima notifikasi aplikasi dan WhatsApp." };
+  if (c.tahap === "tangani" && responBelum(c))
+    return { label: "Catat tanggapan pertama", segera: "Catat tanggapan", catatan: "Tanggapan pertama: anak sudah ditemui dan pelapor dikabari." };
+  if (c.tahap === "tangani")
+    return { label: "Pindah ke pemantauan", segera: "Periksa rencana", catatan: "Pindahkan setelah separuh langkah rencana penanganan berjalan." };
+  if (c.tahap === "pantau") return { label: "Selesaikan kasus", segera: "Cek ulang", catatan: "Pilih hasil akhir sebelum menyelesaikan kasus." };
+  return { label: "", segera: "Buka kasus", catatan: "Kasus selesai. Riwayat tersimpan untuk laporan pimpinan." };
 }
 
 // ---------- kasus contoh ----------
@@ -562,7 +592,7 @@ export function aksiTahap(c) {
  * Bentuk satu kasus:
  *   id, judul, kategori, anak, anakSingkat (dipakai di daftar untuk kasus Darurat), kelas, sumber,
  *   uraian, dariSkrining (lahir dari tanda bahaya di skrining HEART), tingkat, tahap (TAHAP_KASUS),
- *   terbatas (terlapor staf), eskalasi,
+ *   terbatas (terlapor staf), eskalasi (sudah diteruskan ke Kepala Sekolah),
  *   masuk / tRespon / tRencana (menit, lihat atas) atau label tetap untuk kasus lama:
  *   masukLabel, responLabel, rencanaLabel, tinjauLabel, selesaiLabel,
  *   jawaban (enam jawaban penilaian awal),
@@ -572,7 +602,7 @@ export function aksiTahap(c) {
  *   rencana [[langkah, oleh, batas, sudah]], riwayat [[waktu, catatan]] (terbaru di atas).
  */
 
-// Kasus yang sudah ditutup bentuknya seragam, jadi dibuat dengan satu pembantu.
+// Kasus yang sudah selesai bentuknya seragam, jadi dibuat dengan satu pembantu.
 function kasusSelesai(id, judul, kategori, anak, kelas, tingkat, masukLabel, selesaiLabel, sumber, dariSkrining = false) {
   const utama = tingkat === "Rendah" && idWali(kelas) ? idWali(kelas) : SAYA;
   return {
@@ -599,7 +629,7 @@ function kasusSelesai(id, judul, kategori, anak, kelas, tingkat, masukLabel, sel
       ["Pemantauan selesai", "Wali kelas", selesaiLabel, true],
     ],
     riwayat: [
-      [selesaiLabel, "Kasus ditutup: tertangani, anak merasa aman."],
+      [selesaiLabel, "Kasus selesai: tertangani, anak merasa aman."],
       [masukLabel, "Laporan masuk, tingkat ditetapkan, dan ditugaskan ke " + orangKasus(utama).nama + "."],
     ],
   };
@@ -627,10 +657,10 @@ export const KASUS_AWAL = [
       ["Hubungi orang tua dengan tenang, jangan menginterogasi anak", "Bu Laras", "Hari ini", false],
       ["Konsultasi dengan psikolog pendamping Fammi", "Pendamping Fammi", "24 jam", false],
       ["Rujuk ke UPTD PPA bila dugaan menguat", "Bu Hartini", "24 jam", false],
-      ["Catat kronologi satu kali, tanpa wawancara berulang", "Bu Laras", "24 jam", false],
+      ["Catat kejadian satu kali, tanpa menanyai anak berulang kali", "Bu Laras", "24 jam", false],
     ],
     riwayat: [
-      ["Rab 09.46", "Pelapor menerima kode lacak dan perkiraan waktu respon."],
+      ["Rab 09.46", "Pelapor menerima kode lacak dan perkiraan waktu tanggapan."],
       ["Rab 09.45", "Sistem: usulan tingkat Darurat dari jawaban pelapor. Kepala Sekolah diberi tahu otomatis."],
       ["Rab 09.45", "Laporan masuk lewat Lapor Aman, tanpa nama."],
     ],
@@ -644,7 +674,7 @@ export const KASUS_AWAL = [
     kelas: "2B",
     sumber: "Orang tua (Ibu Dewi) · Lapor Aman",
     uraian:
-      "Raka pulang dengan lutut lecet dan bercerita didorong lalu dipukul dua kakak kelas saat istirahat. Menurut Raka ini bukan yang pertama. Di skrining HEART, Relasi Pertemanan Raka berstatus Waspada.",
+      "Raka pulang dengan lutut lecet dan bercerita didorong lalu dipukul dua kakak kelas saat istirahat. Menurut Raka ini bukan yang pertama. Di screening HEART, Relasi Pertemanan Raka berstatus Perlu Perhatian Lebih.",
     tingkat: "Tinggi",
     tahap: "tugas",
     masuk: 3372,
@@ -660,7 +690,7 @@ export const KASUS_AWAL = [
       ["Cek kondisi Raka tiap minggu selama 4 minggu", "Bu Rina", "Mulai 18 Nov", false],
     ],
     riwayat: [
-      ["Rab 08.42", "Ibu Dewi menerima konfirmasi dan perkiraan waktu respon."],
+      ["Rab 08.42", "Ibu Dewi menerima konfirmasi dan perkiraan waktu tanggapan."],
       ["Rab 08.41", "Sistem menunjuk Bu Rina dan Bu Laras menurut aturan Tinggi dan mengirim notifikasi. Kepala Sekolah diberi tahu."],
       ["Rab 08.40", "Bu Laras menetapkan tingkat Tinggi: kekerasan fisik, berulang."],
       ["Rab 08.12", "Laporan masuk lewat Lapor Aman."],
@@ -692,7 +722,7 @@ export const KASUS_AWAL = [
     ],
     riwayat: [
       ["Rab 09.10", "Bu Laras berbicara dengan tiga anak dan menelepon orang tua mereka."],
-      ["Sel 14.05", "Respon pertama: Bu Laras menemui Nadia."],
+      ["Sel 14.05", "Tanggapan pertama: Bu Laras menemui Nadia."],
       ["Sel 13.25", "Tingkat Sedang. Ditugaskan ke Bu Laras, didukung Bu Fitri."],
       ["Sel 13.20", "Dilaporkan Bu Fitri dari ruang wali kelas."],
     ],
@@ -705,9 +735,9 @@ export const KASUS_AWAL = [
     anak: "Bima Aditya",
     anakSingkat: "Bima Aditya",
     kelas: "1B",
-    sumber: "Skrining HEART orang tua · dibuat otomatis",
+    sumber: "Screening HEART orang tua · dibuat otomatis",
     uraian:
-      "Saat mengisi skrining HEART, orang tua menjawab Ya pada pertanyaan keamanan: Bima tiba-tiba takut ke sekolah dan menolak bertemu orang tertentu.",
+      "Saat mengisi screening HEART, orang tua menjawab Ya pada pertanyaan keamanan: Bima tiba-tiba takut ke sekolah dan menolak bertemu orang tertentu.",
     tingkat: "Sedang",
     tahap: "tangani",
     masuk: 580,
@@ -723,8 +753,8 @@ export const KASUS_AWAL = [
     ],
     riwayat: [
       ["Rab 08.00", "Bima bercerita takut pada anak kelas 3 yang meminta uang jajannya."],
-      ["Sen 10.30", "Respon pertama: Bu Laras menelepon orang tua."],
-      ["Sen 09.40", "Kasus dibuat otomatis dari tanda bahaya di skrining HEART. Tingkat Sedang menurut aturan, ditugaskan ke Bu Laras."],
+      ["Sen 10.30", "Tanggapan pertama: Bu Laras menelepon orang tua."],
+      ["Sen 09.40", "Kasus dibuat otomatis dari tanda bahaya di screening HEART. Tingkat Sedang menurut aturan, ditugaskan ke Bu Laras."],
     ],
   },
   {
@@ -736,7 +766,7 @@ export const KASUS_AWAL = [
     kelas: "4B",
     sumber: "Wali kelas 4B (Pak Arif)",
     uraian:
-      "Dafa memukul teman sekelas saat bermain bola hingga lengan memar. Di skrining HEART, aspek Agresi Dafa berstatus Waspada.",
+      "Dafa memukul teman sekelas saat bermain bola hingga lengan memar. Di screening HEART, aspek Agresi Dafa berstatus Perlu Perhatian Lebih.",
     tingkat: "Tinggi",
     tahap: "tangani",
     masuk: -5100,
@@ -753,9 +783,9 @@ export const KASUS_AWAL = [
       ["Pemantauan dua minggu di kelas", "Pak Arif", "Mulai 16 Nov", false],
     ],
     riwayat: [
-      ["Sen 11.00", "Sistem: rencana tindak lewat batas, dieskalasi ke Kepala Sekolah."],
+      ["Sen 11.00", "Sistem: rencana penanganan terlambat, diteruskan ke Kepala Sekolah."],
       ["Jum 15.20", "Bu Laras: orang tua Dafa belum bisa dihubungi."],
-      ["Kam 12.10", "Respon pertama: Pak Arif memisahkan kedua anak, UKS memeriksa memar."],
+      ["Kam 12.10", "Tanggapan pertama: Pak Arif memisahkan kedua anak, UKS memeriksa memar."],
       ["Kam 11.05", "Tingkat Tinggi. Ditugaskan ke Pak Arif, didukung Bu Laras."],
       ["Kam 11.00", "Dilaporkan Pak Arif."],
     ],
@@ -786,7 +816,7 @@ export const KASUS_AWAL = [
     ],
     riwayat: [
       ["Sel 10 Nov", "Masuk pemantauan dua minggu."],
-      ["Sen 9 Nov", "Rencana tindak siap."],
+      ["Sen 9 Nov", "Rencana penanganan siap."],
       ["Jum 6 Nov", "Dilaporkan Bu Maya, tingkat Rendah. Ditugaskan ke Bu Maya."],
     ],
   },
@@ -817,7 +847,7 @@ export const KASUS_AWAL = [
     riwayat: [
       ["Sen 9 Nov", "Tantrum turun dari 4 menjadi 2 kali per minggu."],
       ["Jum 6 Nov", "Masuk pemantauan dua minggu."],
-      ["Kam 5 Nov", "Rencana tindak siap, didampingi pendamping Fammi."],
+      ["Kam 5 Nov", "Rencana penanganan siap, didampingi pendamping Fammi."],
       ["Rab 4 Nov", "Dilaporkan Bu Rahma, tingkat Tinggi."],
     ],
   },
@@ -841,7 +871,7 @@ export const KASUS_AWAL = [
   },
   kasusSelesai("KS-013", "Jatuh dari ayunan, lutut berdarah", "Cedera atau kecelakaan", "Kirana L.", "2A", "Rendah", "Sel 10 Nov", "Sel 10 Nov", "Guru piket (Pak Joko)"),
   kasusSelesai("KS-008", "Saling ejek dan dorong saat antre", "Konflik antarteman", "Raka P. dan 1 teman", "2B", "Rendah", "Jum 30 Okt", "Sel 3 Nov", "Wali kelas 2B"),
-  kasusSelesai("KS-007", "Diancam teman bila mengadu", "Tanda bahaya", "Kevin A.", "TK A", "Sedang", "Kam 29 Okt", "Kam 5 Nov", "Skrining HEART orang tua", true),
+  kasusSelesai("KS-007", "Diancam teman bila mengadu", "Tanda bahaya", "Kevin A.", "TK A", "Sedang", "Kam 29 Okt", "Kam 5 Nov", "Screening HEART orang tua", true),
   kasusSelesai("KS-006", "Uang jajan dipalak kakak kelas", "Perundungan fisik", "Rafi A.", "3A", "Sedang", "Rab 28 Okt", "Rab 4 Nov", "Wali kelas 3A"),
   kasusSelesai("KS-005", "Diejek cengeng saat bermain", "Perundungan verbal", "Tiara S.", "1A", "Rendah", "Sel 27 Okt", "Jum 30 Okt", "Anak · Pojok Cerita"),
   kasusSelesai("KS-004", "Berkelahi berebut bola", "Konflik antarteman", "2 anak", "4A", "Rendah", "Jum 23 Okt", "Sen 26 Okt", "Guru piket"),
@@ -850,9 +880,9 @@ export const KASUS_AWAL = [
 ];
 
 /**
- * Kasus saat layar dibuka. Respon pertama KS-015 adalah butir checklist Bu Rina ("ks015-respon",
+ * Kasus saat layar dibuka. Tanggapan pertama KS-015 adalah butir checklist Bu Rina ("ks015-respon",
  * bersama/tindakLanjut.js). Bila butir itu sudah dicentang di Ruang wali kelas selama demo, kasusnya
- * mulai dari penanganan dengan respon pertama tercatat, supaya kedua layar bercerita sama.
+ * mulai dari tahap Tangani dengan tanggapan pertama tercatat, supaya kedua layar bercerita sama.
  */
 export function kasusAwal(centang = {}) {
   return KASUS_AWAL.map((c) => {
@@ -865,7 +895,7 @@ export function kasusAwal(centang = {}) {
       tRespon: JAM_AWAL,
       tugas: { ...c.tugas, tetap: true },
       waktu: { ...c.waktu, tugas: c.tugas.waktu },
-      riwayat: [[capWaktu(JAM_AWAL), (pemilik ? pemilik.nama : "Penanggung jawab") + " mencentang respon pertama di checklist. Kasus masuk penanganan."], ...c.riwayat],
+      riwayat: [[capWaktu(JAM_AWAL), (pemilik ? pemilik.nama : "Penanggung jawab") + " mencentang tanggapan pertama di checklist. Kasus masuk tahap Tangani."], ...c.riwayat],
     };
   });
 }

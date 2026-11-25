@@ -18,8 +18,8 @@ import {
 
 /**
  * Empat laci layar Ruang wali kelas: formulir skrining HEART versi wali kelas, ringkasan satu anak,
- * tetapkan buddy, dan catat observasi. Laci hanya menyimpan isian sementaranya; yang berdampak ke
- * layar (terkirim, buddy baru, catatan baru) diserahkan ke RuangKelas lewat prop.
+ * pilih teman pendamping, dan catat pengamatan. Laci hanya menyimpan isian sementaranya; yang
+ * berdampak ke layar (terkirim, pendamping baru, catatan baru) diserahkan ke RuangKelas lewat prop.
  */
 
 /** Status anak untuk kelas avatar: waspada, perhatian, baik, belum. */
@@ -60,7 +60,7 @@ export function LaciSkrining({ anakIsi, pilihanAnak, jawaban, terkirim, sudahDik
   function kirim() {
     if (terkirim) return;
     if (!lengkap) {
-      toast(`Masih ada ${JUMLAH_BUTIR - terjawab} pernyataan yang belum dijawab`);
+      toast(`Jawab ${JUMLAH_BUTIR - terjawab} pernyataan lagi sebelum mengirim`);
       keLangkah(langkahBelumLengkap(jawaban));
       return;
     }
@@ -70,15 +70,15 @@ export function LaciSkrining({ anakIsi, pilihanAnak, jawaban, terkirim, sudahDik
   const pilihan = pilihanAnak.map((n) => ({ id: n, label: n + (sudahDikirim(n) ? " (terkirim)" : "") }));
 
   return (
-    <Laci label={`Skrining HEART ${anakIsi}`} labelTutup="Tutup formulir skrining" onTutup={onTutup}>
+    <Laci label={`Screening HEART ${anakIsi}`} labelTutup="Tutup formulir screening" onTutup={onTutup}>
       <KepalaLaci
         awal={
           <div className="tile p">
             <Ikon nama="skrining" size={20} />
           </div>
         }
-        judul={`Skrining HEART · ${anakIsi}`}
-        sub="Versi wali kelas · yang Anda lihat di sekolah sebulan terakhir · sekitar 3 menit"
+        judul={`Screening HEART · ${anakIsi}`}
+        sub="Yang Anda lihat di sekolah sebulan terakhir · sekitar 3 menit"
         onTutup={onTutup}
       />
       {pilihan.length > 1 && (
@@ -88,8 +88,8 @@ export function LaciSkrining({ anakIsi, pilihanAnak, jawaban, terkirim, sudahDik
       {terkirim ? (
         <p className={terkirim.kasus ? "reco bad" : "reco ok"}>
           {terkirim.kasus
-            ? `Skrining ${depan} sudah terkirim. Jawaban Ya pada pertanyaan keamanan menjadi laporan ${terkirim.kasus} dan sedang menunggu triage Bu Laras.`
-            : `Skrining ${depan} sudah terkirim. Hasil HEART keluar setelah isian orang tua masuk dan dianalisis tim ahli Fammi.`}
+            ? `Screening ${depan} terkirim. Jawaban Ya pada pertanyaan keamanan menjadi laporan ${terkirim.kasus}, menunggu dicek Bu Laras.`
+            : `Screening ${depan} terkirim. Hasil HEART keluar setelah isian orang tua masuk dan dianalisis tim ahli Fammi.`}
         </p>
       ) : (
         <>
@@ -160,8 +160,7 @@ export function LaciSkrining({ anakIsi, pilihanAnak, jawaban, terkirim, sudahDik
 
           {tanda && (
             <p className="reco bad">
-              Ada jawaban Ya pada pertanyaan keamanan. Setelah dikirim, sistem membuat laporan kejadian baru dan meneruskannya ke
-              Bu Laras (Koordinator BK) untuk triage.
+              Jawaban Ya pada pertanyaan keamanan akan menjadi laporan kejadian yang dicek Bu Laras (Guru BK).
             </p>
           )}
         </>
@@ -188,7 +187,7 @@ export function LaciSkrining({ anakIsi, pilihanAnak, jawaban, terkirim, sudahDik
           ) : (
             // Tetap bisa ditekan saat belum lengkap: pemberitahuan menjelaskan apa yang kurang.
             <button type="button" className={lengkap ? "btnp" : "btnp off"} aria-disabled={lengkap ? undefined : "true"} onClick={kirim}>
-              {`Kirim skrining ${depan}`}
+              {`Kirim screening ${depan}`}
             </button>
           )}
         </span>
@@ -200,9 +199,9 @@ export function LaciSkrining({ anakIsi, pilihanAnak, jawaban, terkirim, sudahDik
 // ── Ringkasan satu anak ────────────────────────────────────────────────────────────────────────
 
 /**
- * nama: anak yang dibuka. buddy: pasangan buddy yang memuat anak ini, atau null. butir: checklist
- * Bu Rina untuk anak ini. catatan: catatan observasi terakhirnya. terkirim: { kasus } bila formulir
- * wali kelasnya baru dikirim. perluBuddy: anak ini menunggu buddy.
+ * nama: anak yang dibuka. buddy: pasangan teman pendamping yang memuat anak ini, atau null. butir:
+ * checklist Bu Rina untuk anak ini. catatan: catatan pengamatan terakhirnya. terkirim: { kasus } bila
+ * formulir wali kelasnya baru dikirim. perluBuddy: anak ini menunggu teman pendamping.
  */
 export function LaciRingkasan({ nama, buddy, butir, centang, catatan, terkirim, perluBuddy, onIsi, onObs, onBuddy, onRaka, onTutup }) {
   const anak = cariAnak(nama);
@@ -230,7 +229,7 @@ export function LaciRingkasan({ nama, buddy, butir, centang, catatan, terkirim, 
             ? terkirim.kasus
               ? `Formulir wali kelas terkirim hari ini. Jawaban Ya pada pertanyaan keamanan menjadi laporan ${terkirim.kasus}.`
               : "Formulir wali kelas terkirim hari ini. Hasil HEART keluar setelah isian orang tua masuk dan dianalisis tim ahli Fammi."
-            : "Belum diskrining: formulir wali kelas belum diisi. Hasil HEART keluar setelah formulir Anda dan orang tua masuk."}
+            : "Formulir wali kelas belum diisi. Hasil HEART keluar setelah formulir Anda dan orang tua masuk."}
         </p>
       ) : (
         <section className="rsbagian" aria-label="Status per aspek">
@@ -250,13 +249,13 @@ export function LaciRingkasan({ nama, buddy, butir, centang, catatan, terkirim, 
       )}
 
       {(buddy || perluBuddy) && (
-        <section className="rsbagian" aria-label="Buddy">
-          <h3 className="rslabel">Buddy</h3>
+        <section className="rsbagian" aria-label="Teman pendamping">
+          <h3 className="rslabel">Teman pendamping</h3>
           {buddy ? (
             <p className="rsteks">
               {sebagaiBuddy ? (
                 <>
-                  {"Menjadi buddy untuk "}
+                  {"Menjadi teman pendamping "}
                   <b>{buddy.anak}</b>
                   {` sejak ${buddy.sejak}.`}
                 </>
@@ -268,7 +267,7 @@ export function LaciRingkasan({ nama, buddy, butir, centang, catatan, terkirim, 
               )}
             </p>
           ) : (
-            <p className="rsteks">Belum punya buddy. Calon disarankan sudah tersedia.</p>
+            <p className="rsteks">Belum punya teman pendamping.</p>
           )}
         </section>
       )}
@@ -294,7 +293,7 @@ export function LaciRingkasan({ nama, buddy, butir, centang, catatan, terkirim, 
       )}
 
       {catatan && (
-        <section className="rsbagian" aria-label="Catatan observasi terakhir">
+        <section className="rsbagian" aria-label="Catatan pengamatan terakhir">
           <h3 className="rslabel">Catatan terakhir</h3>
           <p className="rsteks">
             <span className="mut">{`${catatan.tgl}: `}</span>
@@ -306,7 +305,7 @@ export function LaciRingkasan({ nama, buddy, butir, centang, catatan, terkirim, 
       <p className="rsraka">
         <Ikon nama="info" size={15} />
         <span>
-          Laporan HEART lengkap (skor, indikator, faktor pendukung, dan saran) dalam demo ini tersedia untuk Raka Pratama.{" "}
+          Di demo ini, laporan HEART lengkap hanya tersedia untuk Raka Pratama.{" "}
           <button type="button" className="rstautan" onClick={onRaka}>
             Buka laporan Raka
           </button>
@@ -316,16 +315,16 @@ export function LaciRingkasan({ nama, buddy, butir, centang, catatan, terkirim, 
       <div className="dacts">
         <button type="button" className="ghost" onClick={onObs}>
           <Ikon nama="pena" size={16} />
-          Catat observasi
+          Catat pengamatan
         </button>
         {belum && !terkirim && (
           <button type="button" className="btnp" onClick={onIsi}>
-            Isi skrining
+            Isi screening
           </button>
         )}
         {perluBuddy && (
           <button type="button" className="btnp" onClick={onBuddy}>
-            Tetapkan buddy
+            Pilih pendamping
           </button>
         )}
       </div>
@@ -333,7 +332,7 @@ export function LaciRingkasan({ nama, buddy, butir, centang, catatan, terkirim, 
   );
 }
 
-// ── Tetapkan buddy ─────────────────────────────────────────────────────────────────────────────
+// ── Pilih teman pendamping ─────────────────────────────────────────────────────────────────────────────
 
 /** data: satu baris BELUM_BUDDY_2B ({ anak, alasan, calon }). onTetapkan(nama calon). */
 export function LaciBuddy({ data, onTetapkan, onTutup }) {
@@ -342,10 +341,10 @@ export function LaciBuddy({ data, onTetapkan, onTutup }) {
   const nada = metaStatus(statusAlasan(data.alasan)).nada;
 
   return (
-    <Laci label={`Tetapkan buddy untuk ${data.anak}`} labelTutup="Tutup pilihan buddy" onTutup={onTutup} lebar={440}>
+    <Laci label={`Pilih teman pendamping untuk ${data.anak}`} labelTutup="Tutup pilihan pendamping" onTutup={onTutup} lebar={440}>
       <KepalaLaci
         awal={<span className={`pkav besar ${kelasStatus(anak?.status)}`}>{anak?.inisial}</span>}
-        judul={`Buddy untuk ${namaDepan(data.anak)}`}
+        judul={`Teman pendamping ${namaDepan(data.anak)}`}
         sub={data.anak}
         onTutup={onTutup}
       />
@@ -353,21 +352,23 @@ export function LaciBuddy({ data, onTetapkan, onTutup }) {
         <span className={`pill sm ${nada}`}>{data.alasan}</span>
       </p>
       <p className="reco info">
-        Buddy adalah teman sekelas yang menemani saat kerja kelompok dan istirahat. Pilih teman yang duduk dekat dan sabar;
-        Bu Laras melihat pasangan ini di peta dukungan.
+        Pilih teman sekelas yang duduk dekat dan sabar, untuk menemani saat kerja kelompok dan istirahat.
       </p>
       <fieldset className="bdpilih">
-        <legend className="flabel">Calon yang disarankan</legend>
+        <legend className="flabel">Calon pendamping</legend>
         {data.calon.map((nama) => {
           const calon = cariAnak(nama);
           return (
             <label key={nama} className={`bdopsi${pilih === nama ? " on" : ""}`}>
-              <input type="radio" name="rk-calon-buddy" value={nama} checked={pilih === nama} onChange={() => setPilih(nama)} />
+              <input type="radio" className="sr" name="rk-calon-buddy" value={nama} checked={pilih === nama} onChange={() => setPilih(nama)} />
               <span className={`pkav ${kelasStatus(calon?.status)}`} aria-hidden="true">
                 {calon?.inisial}
               </span>
               <span className="bdopsinama">{nama}</span>
               <HurufHeart heart={calon?.heart || null} />
+              <span className="bdtanda" aria-hidden="true">
+                {pilih === nama && <Ikon nama="centang" size={13} />}
+              </span>
             </label>
           );
         })}
@@ -377,14 +378,14 @@ export function LaciBuddy({ data, onTetapkan, onTutup }) {
           Batal
         </button>
         <button type="button" className="btnp" onClick={() => onTetapkan(pilih)}>
-          {`Tetapkan ${namaDepan(pilih)} sebagai buddy`}
+          {`Pilih ${namaDepan(pilih)}`}
         </button>
       </div>
     </Laci>
   );
 }
 
-// ── Catat observasi ────────────────────────────────────────────────────────────────────────────
+// ── Catat pengamatan ────────────────────────────────────────────────────────────────────────────
 
 /** anakAwal: anak yang terpilih saat laci dibuka. daftarAnak: nama seluruh kelas. onSimpan(isian). */
 export function LaciObservasi({ anakAwal, daftarAnak, onSimpan, onTutup }) {
@@ -405,14 +406,14 @@ export function LaciObservasi({ anakAwal, daftarAnak, onSimpan, onTutup }) {
   }
 
   return (
-    <Laci label="Catat observasi" labelTutup="Tutup catatan" onTutup={onTutup} lebar={520}>
+    <Laci label="Catat pengamatan" labelTutup="Tutup catatan" onTutup={onTutup} lebar={520}>
       <KepalaLaci
         awal={
           <div className="tile p">
             <Ikon nama="pena" size={20} />
           </div>
         }
-        judul="Catat observasi"
+        judul="Catat pengamatan"
         sub={`${HARI_DEMO.label} 2026 · tulis yang Anda lihat, bukan dugaan`}
         onTutup={onTutup}
       />
@@ -430,7 +431,7 @@ export function LaciObservasi({ anakAwal, daftarAnak, onSimpan, onTutup }) {
       </div>
       <div className="fld">
         <span className="flabel" id="rk-obs-aspek">
-          Aspek HEART yang terlihat
+          Aspek HEART yang tampak
         </span>
         <div className="chips" role="group" aria-labelledby="rk-obs-aspek">
           {HEART.map((a) => {
@@ -469,7 +470,7 @@ export function LaciObservasi({ anakAwal, daftarAnak, onSimpan, onTutup }) {
         <input type="checkbox" checked={bk} onChange={() => setBk((b) => !b)} />
         <span>
           Perlu dibahas dengan Guru BK
-          <span className="mut">Bu Laras menerima notifikasi dan bisa langsung menambah tindak lanjut.</span>
+          <span className="mut">Bu Laras diberi tahu dan bisa menambah tindak lanjut.</span>
         </span>
       </label>
       <div className="dacts">

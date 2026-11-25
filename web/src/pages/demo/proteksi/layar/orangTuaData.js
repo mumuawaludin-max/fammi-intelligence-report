@@ -25,12 +25,15 @@ export const IC = {
 
 /* ---------- navigasi ponsel ---------- */
 
-/** Tab bawah. Id "heart", "checklist", "laporanku" juga dipakai aksi { jenis: "buka", id }. */
+/**
+ * Tab bawah, urut dari yang dicek tiap hari (checklist, laporan) ke yang dibuka sesekali (hasil
+ * HEART). Id juga dipakai aksi { jenis: "buka", id }.
+ */
 export const TAB = [
   { id: "beranda", label: "Beranda", nama: "rumah" },
-  { id: "heart", label: "Hasil HEART", nama: "hati" },
   { id: "checklist", label: "Checklist", nama: "ceklis" },
   { id: "laporanku", label: "Laporanku", d: IC.daftar },
+  { id: "heart", label: "Hasil HEART", nama: "hati" },
 ];
 export const TAB_IDS = TAB.map((t) => t.id);
 
@@ -41,31 +44,6 @@ export const JUDUL_TAB = {
   checklist: "Checklist Raka",
   laporanku: "Laporanku",
 };
-
-/**
- * Pintasan di samping ponsel (desktop saja): langkah dua alur yang bisa dicoba di aplikasi ini.
- * `id` = tab atau alur ("lapor") yang dibuka.
- */
-export const PINTASAN = [
-  {
-    id: "cegah",
-    nama: "Alur pencegahan",
-    ikon: "perisaiCentang",
-    langkah: [
-      { id: "heart", label: "Hasil HEART", ket: "Arti tiap aspek dan saran di rumah" },
-      { id: "checklist", label: "Checklist rumah", ket: "Dicentang Ibu, terlihat wali kelas" },
-    ],
-  },
-  {
-    id: "kejadian",
-    nama: "Alur kejadian",
-    ikon: "lapor",
-    langkah: [
-      { id: "lapor", label: "Lapor Aman", ket: "Bisa tanpa nama, ada mode cerita anak" },
-      { id: "laporanku", label: "Laporanku", ket: "Tahap laporan dan pesan sekolah" },
-    ],
-  },
-];
 
 /* ---------- hasil HEART Raka ---------- */
 
@@ -108,9 +86,31 @@ const BUTIR_RAKA = checklistAnak(ANAK.nama);
 export const TUGAS_RUMAH = BUTIR_RAKA.filter((c) => c.oleh === "ortu");
 /** Tugas wali kelas, Guru BK, dan guru piket: hanya dibaca di aplikasi orang tua. */
 export const TUGAS_SEKOLAH = BUTIR_RAKA.filter((c) => c.oleh !== "ortu");
+/**
+ * Kebiasaan menjaga aspek yang sudah Baik (satu per aspek), supaya hasil hijau tetap punya tindakan.
+ * Dicentang Ibu Dewi lewat konteks prototipe seperti tugas rumah lain; saran dari Fammi.
+ */
+export const PERTAHANKAN = [
+  { id: "raka-jaga-hiperaktivitas", aspek: "hiperaktivitas", judul: "Pertahankan jadwal belajar, bermain, dan tidur yang sama tiap hari", oleh: "ortu", waktu: "Setiap hari" },
+  { id: "raka-jaga-agresi", aspek: "agresi", judul: "Puji Raka saat ia tenang menghadapi hal yang membuatnya kesal", oleh: "ortu", waktu: "Minggu ini" },
+  { id: "raka-jaga-tolong", aspek: "tolong", judul: "Ajak Raka membantu satu pekerjaan kecil di rumah", oleh: "ortu", waktu: "Minggu ini" },
+];
 export const EVALUASI = BUTIR_RAKA.find((c) => c.id === "raka-evaluasi")?.waktu || "Kamis, 3 Des";
 
 /* ---------- laporan (alur kejadian) ---------- */
+
+/**
+ * Keadaan laporan dalam bahasa orang tua, menurut langkah yang sedang berjalan. Dipakai Beranda dan
+ * pil status di Laporanku; label langkah dari bersama/alur.js tetap dipakai di daftar langkah.
+ */
+export const STATUS_TAHAP = {
+  lapor: "Terkirim",
+  triage: "Menunggu dicek",
+  tugas: "Mencari penanggung jawab",
+  tangani: "Sedang ditangani",
+  pantau: "Dipantau",
+  selesai: "Selesai",
+};
 
 /** Lima langkah alur kejadian, label dari bersama/alur.js. */
 export const LANGKAH_KEJADIAN = ALUR.kejadian.langkah.map((l) => ({ id: l.id, label: l.label }));
@@ -123,7 +123,7 @@ export const KS015 = {
   tingkat: "Tinggi",
   tahap: "tangani",
   sla: {
-    judul: "Respon pertama sebelum 12.12 hari ini",
+    judul: "Ditanggapi paling lambat 12.12 hari ini",
     ket: "Raka ditemui dan dipastikan aman, lalu Ibu dikabari.",
   },
   penangan: [
@@ -132,11 +132,11 @@ export const KS015 = {
   ],
   langkah: {
     lapor: { waktu: "08.12", ket: "Laporan Ibu masuk lewat Lapor Aman." },
-    triage: { waktu: "08.40", ket: "Bu Laras menilai tingkatnya Tinggi: kekerasan fisik yang berulang." },
-    tugas: { waktu: "08.41", ket: "Bu Rina dan Bu Laras ditugaskan. Kepala Sekolah ikut diberi tahu." },
+    triage: { waktu: "08.40", ket: "Bu Laras menilai kejadian ini serius karena kekerasan fisik yang berulang." },
+    tugas: { waktu: "08.41", ket: "Bu Rina dan Bu Laras ditugaskan. Kepala Sekolah diberi tahu." },
     tangani: {
       waktu: "sebelum 12.12",
-      ket: "Bu Rina menemui Raka dan mencatat kronologi. Rencana penanganan disusun paling lambat Jumat, 13 Nov.",
+      ket: "Bu Rina menemui Raka dan mencatat kejadiannya. Rencana penanganan siap paling lambat Jumat, 13 Nov.",
     },
     pantau: { waktu: "2-4 minggu", ket: "Kondisi Raka dicek tiap minggu, lalu laporan ditutup bersama Ibu." },
   },
@@ -153,7 +153,7 @@ export const RIWAYAT_LAPORAN = [
   },
 ];
 
-/** Janji respon sekolah per tingkat, dipakai Lapor Aman dan laporan baru. */
+/** Janji tanggapan sekolah per tingkat, dipakai Lapor Aman dan laporan baru. */
 export const JANJI_RESPON = {
   Darurat: "paling lambat 1 jam, Kepala Sekolah langsung menerima laporan ini",
   Tinggi: "paling lambat 4 jam di hari sekolah",
@@ -170,14 +170,14 @@ export function laporanBaru({ kode, judul, tingkat, sumber, jam }) {
     tingkat,
     tahap: "triage",
     sla: {
-      judul: `Sekolah merespons ${JANJI_RESPON[tingkat]}`,
-      ket: "Guru BK menilai tingkat keseriusan, lalu menunjuk penanggung jawab.",
+      judul: `Sekolah menanggapi ${JANJI_RESPON[tingkat]}`,
+      ket: "Guru BK mengecek seberapa serius, lalu menunjuk penanggung jawab.",
     },
     langkah: {
       lapor: { waktu: jam, ket: `Laporan masuk lewat ${sumber}.` },
-      triage: { ket: "Guru BK menilai tingkat keseriusan laporan." },
+      triage: { ket: "Guru BK mengecek seberapa serius kejadiannya." },
       tugas: { ket: "Sekolah menunjuk penanggung jawab dan batas waktunya." },
-      tangani: { ket: "Respon pertama: anak ditemui dan Ibu dikabari." },
+      tangani: { ket: "Anak ditemui dan Ibu dikabari." },
       pantau: { ket: "Kondisi anak dicek 2 sampai 4 minggu, lalu laporan ditutup." },
     },
   };
@@ -198,7 +198,7 @@ export const PENGIRIM_BALASAN = "Anda · 10.38";
 
 /* ---------- Lapor Aman ---------- */
 
-/** `tingkat` menentukan janji respon sekolah, kecuali anak dalam bahaya (selalu Darurat). */
+/** `tingkat` menentukan janji tanggapan sekolah, kecuali anak dalam bahaya (selalu Darurat). */
 export const JENIS_KEJADIAN = [
   { label: "Disakiti secara fisik", d: IC.tangan, tingkat: "Tinggi" },
   { label: "Diejek atau dihina", d: IC.obrolan, tingkat: "Sedang" },
@@ -210,7 +210,7 @@ export const JENIS_KEJADIAN = [
 /** Indeks 2 (Ya) berarti anak dalam bahaya sekarang. */
 export const PILIHAN_BAHAYA = ["Tidak", "Tidak yakin", "Ya"];
 export const PILIHAN_ANAK = ["Raka", "Anak lain"];
-export const PILIHAN_KAPAN = ["Hari ini", "Kemarin", "Minggu ini", "Lebih lama"];
+export const PILIHAN_KAPAN = ["Hari ini", "Kemarin", "Minggu ini", "Lebih lama", "Pilih tanggal"];
 export const PILIHAN_TEMPAT = ["Kelas", "Kantin", "Halaman", "Toilet", "Antar-jemput", "Pesan atau daring", "Luar sekolah"];
 export const NAMA_LANGKAH = ["Apa yang terjadi", "Cerita singkat", "Identitas dan kirim"];
 
@@ -220,6 +220,7 @@ export const ISIAN_AWAL = {
   bahaya: 0,
   anak: "Raka",
   kapan: "Hari ini",
+  tanggal: "",
   tempat: "Kantin",
   cerita: "",
   tanpaNama: false,

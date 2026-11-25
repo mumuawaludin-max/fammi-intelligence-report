@@ -176,7 +176,7 @@ export default function ProteksiHeader() {
             )}
           </div>
 
-          {layar !== "orangtua" && (
+          {layar !== "orangtua" && layar !== "remaja" && (
             <button type="button" className="hbtn lapor" onClick={() => pilih("kasus", { jenis: "lapor" })}>
               <Ikon nama="lapor" size={17} />
               Lapor kejadian

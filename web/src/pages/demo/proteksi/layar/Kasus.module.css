@@ -1,92 +1,129 @@
 /* ============================================================
    Layar Kasus & penugasan (Sekolah Proteksi, alur kejadian).
    Kelas dasar ada di proteksi.module.css. Berkas ini hanya menambah kelas khusus layar ini,
-   semuanya di bawah .layar, dengan warna dari token --sp-* saja. Varian kelas dasar memakai nama
-   kelas baru (mis. "pill usul", "pill tg", "tbl antre").
+   semuanya di bawah .layar, dengan warna dari token --sp-* saja. Tanpa garis tepi: pembeda
+   bentuk dan keadaan memakai latar lembut, bayangan, atau teks tebal. Garis 1px hanya dipakai
+   sebagai pemisah antarbaris daftar dan tabel, dan sebagai penghubung langkah di diagram alur.
    ============================================================ */
 
-/* ---------- angka ringkas di atas antrean ---------- */
-.layar :global .kpirow { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; }
-.layar :global .kpi { display: flex; align-items: center; gap: 12px; padding: 11px 16px; min-width: 0; }
-.layar :global .nw { white-space: nowrap; }
-/* Angka dengan satuan kecil di bawahnya, supaya label di sebelahnya muat satu baris. */
-.layar :global .kpiv {
-  flex: none;
-  min-width: 40px;
+.layar :global .jamsla { font-size: 12px; color: var(--sp-tinta-3); }
+.layar :global .empty { margin: 0; padding: 24px; text-align: center; color: var(--sp-tinta-3); font-size: 13px; }
+.layar :global .rule { margin: 0; font-size: 12px; line-height: 17px; color: var(--sp-tinta-2); }
+
+/* ---------- perlu tindakan sekarang ---------- */
+.layar :global .sgsek { display: flex; flex-direction: column; gap: 10px; }
+.layar :global .sgh { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 4px 12px; }
+.layar :global .sgj {
+  margin: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 15px;
+  line-height: 20px;
+  font-weight: 700;
+  color: var(--sp-merah-tua);
+}
+.layar :global .sgn {
+  min-width: 22px;
+  height: 22px;
+  padding: 0 7px;
+  border-radius: 11px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--sp-merah);
+  color: var(--sp-putih);
+  font-size: 12px;
+  font-weight: 700;
+}
+.layar :global .sglist {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 12px;
+}
+.layar :global .sgcard {
   display: flex;
   flex-direction: column;
-  align-items: center;
-  font-size: 22px;
-  line-height: 26px;
-  font-weight: 700;
-  letter-spacing: -0.01em;
-  color: var(--sp-ungu);
-  white-space: nowrap;
+  gap: 6px;
+  min-width: 0;
+  padding: 14px 16px;
+  border-radius: 14px;
+  background: var(--sp-putih);
+  box-shadow: var(--sp-bayangan);
 }
-.layar :global .kpiu { font-size: 11px; line-height: 13px; font-weight: 600; letter-spacing: 0; }
-.layar :global .kpit { min-width: 0; display: flex; flex-direction: column; gap: 1px; }
-.layar :global .kpil { font-size: 12px; line-height: 16px; font-weight: 700; color: var(--sp-ungu-tua); }
-.layar :global .kpisub { font-size: 11px; line-height: 15px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.layar :global .sgcard.merah { background: var(--sp-merah-tipis); }
+.layar :global .sgcard.kuning { background: var(--sp-kuning-tipis); }
+.layar :global .sgtop { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.layar :global .sgid { font-size: 12px; font-weight: 700; color: var(--sp-tinta); }
+.layar :global .sgthp { margin-left: auto; font-size: 12px; color: var(--sp-tinta-3); }
+.layar :global .sgjud {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  font-size: 14px;
+  line-height: 19px;
+  font-weight: 700;
+  color: var(--sp-tinta);
+}
+.layar :global .sgsla { font-size: 12px; line-height: 16px; color: var(--sp-tinta-2); }
+.layar :global .sgsla b { font-weight: 700; color: var(--sp-tinta); }
+.layar :global .sgsla b.r { color: var(--sp-merah-teks); }
+.layar :global .sgbtn { align-self: flex-start; margin-top: 4px; height: 34px; padding: 0 14px; }
 
-/* ---------- segmen dengan angka ---------- */
+/* ---------- daftar kasus ---------- */
 .layar :global .segn { margin-left: 2px; font-size: 11px; font-weight: 700; color: var(--sp-tinta-3); }
 .layar :global .segb.active .segn { color: var(--sp-ungu); }
-
-/* ---------- tabel antrean (baris 44px, kolom tetap) ---------- */
-.layar :global .tbl.antre { table-layout: fixed; }
-.layar :global .tbl.antre col.kid { width: 84px; }
-.layar :global .tbl.antre col.kanak { width: 146px; }
-.layar :global .tbl.antre col.ktk { width: 88px; }
-.layar :global .tbl.antre col.kthp { width: 136px; }
-.layar :global .tbl.antre col.kpj { width: 140px; }
-.layar :global .tbl.antre col.ksla { width: 150px; }
-.layar :global .tbl.antre th { padding: 8px 12px; }
-.layar :global .tbl.antre td { padding: 5px 12px; height: 44px; }
-.layar :global .anth { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 12px; }
-.layar :global .jamsla { font-size: 12px; color: var(--sp-tinta-3); }
-/* Seluruh baris bisa diklik: lapisan tombol ID menutup baris (tombolnya tetap satu-satunya
-   kendali untuk papan ketik dan pembaca layar). */
-.layar :global .tbl.antre tbody tr { position: relative; }
-.layar :global .tbl.antre tbody tr:hover td { background: var(--sp-ungu-kartu); }
-.layar :global .tbl.antre tr.late td:first-child { box-shadow: inset 3px 0 0 var(--sp-merah-teks); }
-.layar :global .idbtn {
-  height: 28px;
-  padding: 0 9px;
+.layar :global .klist { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
+.layar :global .klist > li + li { border-top: 1px solid var(--sp-garis-3); }
+.layar :global .kbaris {
+  width: 100%;
+  min-height: 48px;
+  display: grid;
+  grid-template-columns: 72px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 10px;
   border: 0;
+  border-radius: 10px;
+  background: transparent;
+  text-align: left;
+  font: inherit;
+  color: var(--sp-tinta);
+  cursor: pointer;
+}
+.layar :global .kbaris:hover { background: var(--sp-ungu-hover); }
+.layar :global .kid {
+  justify-self: start;
+  height: 24px;
+  padding: 0 8px;
   border-radius: 7px;
+  display: inline-flex;
+  align-items: center;
   background: var(--sp-ungu-lembut);
   color: var(--sp-ungu);
   font-size: 12px;
   font-weight: 700;
-  cursor: pointer;
   white-space: nowrap;
 }
-.layar :global .idbtn::after { content: ""; position: absolute; inset: 0; }
-.layar :global .tbl.antre tbody tr:hover .idbtn { background: var(--sp-ungu-tipis); }
-.layar :global .kjj,
-.layar :global .kjs { display: flex; align-items: center; gap: 6px; min-width: 0; }
-.layar :global .kjj { font-size: 13px; line-height: 17px; font-weight: 600; color: var(--sp-tinta); }
-.layar :global .kjj svg { flex: none; }
-.layar :global .kjs { margin-top: 1px; font-size: 11px; line-height: 14px; color: var(--sp-tinta-3); }
+.layar :global .kbaris:hover .kid { background: var(--sp-ungu-tipis); }
+.layar :global .kjud { display: flex; align-items: center; gap: 6px; min-width: 0; font-size: 13px; line-height: 17px; font-weight: 600; }
+.layar :global .kjud svg { flex: none; }
 .layar :global .kjt { display: block; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.layar :global .skr {
-  flex: none;
-  display: inline-flex;
-  align-items: center;
-  height: 16px;
-  padding: 0 6px;
-  border-radius: 5px;
-  background: var(--sp-ungu-pil);
-  color: var(--sp-ungu);
-  font-size: 10px;
-  font-weight: 700;
-}
-/* Tingkat yang masih usulan pelapor: pil bergaris putus-putus tanpa latar. */
-.layar :global .pill.usul { background: transparent; border: 1px dashed currentColor; }
-.layar :global .pill.crit.usul { color: var(--sp-merah); }
-/* Pil tenggat di kolom SLA, sedikit lebih pendek dari pill sm supaya baris tetap 44px. */
-.layar :global .pill.tg { height: 20px; padding: 0 7px; border-radius: 6px; }
-.layar :global .thp { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 600; color: var(--sp-tinta-4); }
+.layar :global .kmeta { display: grid; grid-template-columns: 84px 150px 150px; align-items: center; gap: 12px; }
+.layar :global .ksla { justify-self: end; }
+/* Tingkat yang masih usulan pelapor (cek awal): latar abu, teks tetap berwarna tingkat. */
+.layar :global .pill.usul { background: var(--sp-abu-2); }
+.layar :global .pill.crit.usul,
+.layar :global .pill.bad.usul { color: var(--sp-merah); }
+.layar :global .pill.warn.usul { color: var(--sp-kuning); }
+.layar :global .pill.mid.usul { color: var(--sp-ungu); }
+/* Pil sisa waktu, sedikit lebih pendek dari pill sm. */
+.layar :global .pill.tg { height: 22px; padding: 0 8px; border-radius: 6px; }
+.layar :global .thp { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 600; color: var(--sp-tinta-4); white-space: nowrap; }
 .layar :global .thn {
   flex: none;
   width: 20px;
@@ -101,13 +138,40 @@
   color: var(--sp-merah-teks);
 }
 .layar :global .thp.selesai .thn { background: var(--sp-hijau-latar); color: var(--sp-hijau); }
-.layar :global .pj { display: flex; align-items: center; gap: 6px; min-width: 0; font-size: 12px; }
-.layar :global .av.xs { width: 24px; height: 24px; font-size: 10px; }
-.layar :global .pjx { flex: none; font-size: 11px; font-weight: 700; color: var(--sp-tinta-3); }
-.layar :global .slac { display: flex; flex-direction: column; align-items: flex-start; gap: 1px; }
-.layar :global .slan { font-size: 11px; line-height: 13px; color: var(--sp-tinta-3); }
-.layar :global .empty { padding: 24px; text-align: center; color: var(--sp-tinta-3); font-size: 13px; }
-.layar :global .rule { margin: 0; font-size: 12px; line-height: 17px; color: var(--sp-tinta-2); }
+
+/* ---------- bagian yang dilipat ---------- */
+.layar :global .lipatan { display: flex; flex-direction: column; gap: 8px; }
+.layar :global .lipat { border-radius: 12px; background: var(--sp-abu); }
+.layar :global .lipat > summary {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 44px;
+  padding: 8px 14px;
+  border-radius: 12px;
+  list-style: none;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--sp-ungu-tua);
+  cursor: pointer;
+}
+.layar :global .lipat > summary::-webkit-details-marker { display: none; }
+.layar :global .lipat > summary:hover { background: var(--sp-abu-3); }
+.layar :global .lipk {
+  margin-left: auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--sp-tinta-3);
+}
+.layar :global .lipv { flex: none; color: var(--sp-tinta-3); transition: transform 0.15s; }
+.layar :global .lipat[open] > summary .lipv { transform: rotate(90deg); }
+.layar :global .lipi { display: flex; flex-direction: column; gap: 10px; padding: 2px 14px 14px; }
+/* Daftar kasus selesai di dalam lipatan kartu daftar. */
+.layar :global .lipat > .klist { padding: 0 4px 6px; }
 
 /* ---------- laci: kepala dan ringkasan ---------- */
 .layar :global .drawer .dhead { align-items: flex-start; }
@@ -124,9 +188,12 @@
   text-decoration: underline;
   cursor: pointer;
 }
-.layar :global .dmeta { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px 14px; margin: 0; }
+.layar :global .dmeta { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px 14px; margin: 0; }
 .layar :global .dmeta dt { font-size: 11px; line-height: 14px; color: var(--sp-tinta-3); }
 .layar :global .dmeta dd { margin: 2px 0 0; font-size: 12px; line-height: 16px; font-weight: 500; }
+.layar :global .lipi .dmeta,
+.layar :global .dmeta.angka { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.layar :global .dmeta.angka { padding: 12px 14px; border-radius: 10px; background: var(--sp-ungu-lembut); }
 .layar :global .lock {
   display: flex;
   gap: 12px;
@@ -137,7 +204,7 @@
   line-height: 19px;
 }
 
-/* ---------- alur lima langkah satu kasus ---------- */
+/* ---------- alur lima langkah satu kasus (garis penghubung bagian dari diagram) ---------- */
 .layar :global .alurk {
   list-style: none;
   margin: 0;
@@ -172,19 +239,19 @@
   color: var(--sp-tinta-4);
 }
 .layar :global .ak.lewat .akn { background: var(--sp-merah-tipis); color: var(--sp-merah-teks); }
-.layar :global .ak.kini .akn { background: var(--sp-merah-teks); color: var(--sp-putih); box-shadow: 0 0 0 4px var(--sp-merah-tipis); }
+.layar :global .ak.kini .akn { background: var(--sp-merah-teks); color: var(--sp-putih); }
 .layar :global .akl { font-size: 12px; line-height: 15px; font-weight: 600; color: var(--sp-tinta-4); }
 .layar :global .ak.kini .akl { color: var(--sp-merah-tua); font-weight: 700; }
 .layar :global .akw { min-height: 14px; font-size: 11px; line-height: 14px; color: var(--sp-tinta-3); }
 .layar :global .ak.kini .akw { color: var(--sp-merah-teks); font-weight: 600; }
 
-/* ---------- blok di laci ---------- */
-.layar :global .blok { display: flex; flex-direction: column; gap: 10px; padding-top: 14px; border-top: 1px solid var(--sp-garis-3); }
+/* ---------- blok langkah di laci ---------- */
+.layar :global .blok { display: flex; flex-direction: column; gap: 10px; }
 .layar :global .blokh { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 2px 12px; }
 .layar :global .blokj { margin: 0; font-size: 14px; line-height: 18px; font-weight: 700; color: var(--sp-ungu-tua); }
 .layar :global .blokk { font-size: 12px; color: var(--sp-tinta-3); }
 
-/* Tetapkan tingkat: empat pilihan dengan SLA-nya. */
+/* Tetapkan tingkat: empat pilihan dengan batas waktunya. Terpilih = latar ungu pekat, teks putih. */
 .layar :global .tkgrid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; }
 .layar :global .tkb {
   display: flex;
@@ -192,30 +259,22 @@
   align-items: flex-start;
   gap: 2px;
   padding: 9px 10px;
-  border: 1px solid var(--sp-garis);
+  border: 0;
   border-radius: 10px;
-  background: var(--sp-putih);
+  background: var(--sp-abu);
   text-align: left;
   font-size: 11px;
   line-height: 15px;
   color: var(--sp-tinta-2);
   cursor: pointer;
 }
-.layar :global .tkb:hover { border-color: var(--sp-ungu-garis); }
-.layar :global .tkb.on { border-color: var(--sp-ungu); box-shadow: inset 0 0 0 1px var(--sp-ungu); background: var(--sp-ungu-kartu); }
+.layar :global .tkb:hover { background: var(--sp-ungu-lembut); }
+.layar :global .tkb.on { background: var(--sp-ungu); color: var(--sp-putih); }
 .layar :global .tkb b { font-weight: 600; color: var(--sp-tinta); }
+.layar :global .tkb.on b,
+.layar :global .tkb.on .tku { color: var(--sp-putih); }
 .layar :global .tkh { display: flex; align-items: center; gap: 6px; margin-bottom: 3px; }
 .layar :global .tku { font-size: 10px; font-weight: 700; color: var(--sp-ungu); }
-.layar :global .qdet summary {
-  width: max-content;
-  max-width: 100%;
-  padding: 2px 0;
-  font-size: 12px;
-  font-weight: 600;
-  color: var(--sp-ungu);
-  cursor: pointer;
-}
-.layar :global .qdet[open] summary { margin-bottom: 4px; }
 .layar :global .qrow {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
@@ -227,22 +286,24 @@
   line-height: 17px;
 }
 .layar :global .qrow:first-child { border-top: 0; }
+.layar :global .qjaw { font-weight: 600; }
 .layar :global .qopts { display: flex; gap: 4px; flex-wrap: wrap; justify-content: flex-end; }
 .layar :global .opt {
   height: 30px;
   padding: 0 10px;
-  border: 1px solid var(--sp-garis);
+  border: 0;
   border-radius: 8px;
-  background: var(--sp-putih);
+  background: var(--sp-abu-3);
+  color: var(--sp-tinta-4);
   font-size: 12px;
   cursor: pointer;
 }
-.layar :global .opt:hover { border-color: var(--sp-ungu-garis); }
-.layar :global .opt.on { background: var(--sp-ungu-pil); border-color: var(--sp-ungu-garis); color: var(--sp-ungu); font-weight: 700; }
-.layar :global .opt.on.r { background: var(--sp-kuning-latar); border-color: var(--sp-kuning-garis); color: var(--sp-kuning); }
-.layar :global .opt.on.y { background: var(--sp-merah); border-color: var(--sp-merah); color: var(--sp-putih); }
+.layar :global .opt:hover { background: var(--sp-ungu-lembut); }
+.layar :global .opt.on { background: var(--sp-ungu-pil); color: var(--sp-ungu); font-weight: 700; }
+.layar :global .opt.on.r { background: var(--sp-kuning-latar); color: var(--sp-kuning); }
+.layar :global .opt.on.y { background: var(--sp-merah); color: var(--sp-putih); }
 
-/* Penugasan: orang (utama, pendukung), lalu batas waktu. */
+/* Penanggung jawab (utama, pendukung) dan batas waktu. */
 .layar :global .pjl { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 2px; }
 .layar :global .pjr {
   display: grid;
@@ -252,7 +313,7 @@
   padding: 5px 8px;
   border-radius: 10px;
 }
-.layar :global .pjr.on { background: var(--sp-ungu-hover); }
+.layar :global .pjr.on { background: var(--sp-ungu-lembut); }
 .layar :global .pjn { display: flex; flex-direction: column; min-width: 0; font-size: 11px; line-height: 15px; color: var(--sp-tinta-3); }
 .layar :global .pjn b { font-size: 13px; line-height: 17px; font-weight: 600; color: var(--sp-tinta); }
 .layar :global .pjseg { padding: 3px; }
@@ -271,7 +332,7 @@
 }
 .layar :global .ckl svg { flex: none; }
 .layar :global .ckl > span:first-of-type { flex: 1; min-width: 0; }
-.layar :global .slal { display: flex; flex-direction: column; border: 1px solid var(--sp-garis-2); border-radius: 10px; }
+.layar :global .slal { display: flex; flex-direction: column; border-radius: 10px; background: var(--sp-putih); }
 .layar :global .slarow {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
@@ -284,7 +345,7 @@
 .layar :global .slarow b { font-size: 12px; }
 .layar :global .slat { display: block; margin-top: 1px; font-size: 11px; line-height: 15px; color: var(--sp-tinta-3); }
 
-/* Rencana tindak dan riwayat. */
+/* Rencana penanganan dan kronologi. */
 .layar :global .chk { padding: 6px 8px; }
 .layar :global .chk.done b { color: var(--sp-tinta-2); }
 .layar :global .log { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
@@ -303,15 +364,14 @@
 .layar :global .noteform .inp { min-height: 38px; padding: 8px 12px; }
 
 /* Bilah tombol menempel di bawah laci yang bergulir; margin negatif menutup padding laci
-   (18px 20px 24px di kelas dasar .drawer). */
+   (18px 20px 24px di kelas dasar .drawer). Pembedanya latar abu muda, bukan garis. */
 .layar :global .dfootbar {
   position: sticky;
   bottom: -24px;
   z-index: 1;
   margin: auto -20px -24px;
   padding: 12px 20px 16px;
-  background: var(--sp-putih);
-  border-top: 1px solid var(--sp-garis-3);
+  background: var(--sp-abu-4);
   display: flex;
   flex-wrap: wrap;
   justify-content: flex-end;
@@ -325,16 +385,16 @@
   gap: 8px;
   height: 36px;
   padding: 0 14px;
-  border: 1px solid var(--sp-merah-latar);
+  border: 0;
   border-radius: 10px;
-  background: var(--sp-putih);
+  background: var(--sp-merah-tipis);
   color: var(--sp-merah);
   font-size: 13px;
-  font-weight: 500;
+  font-weight: 600;
   cursor: pointer;
   white-space: nowrap;
 }
-.layar :global .btnr:hover { background: var(--sp-merah-tipis); }
+.layar :global .btnr:hover { background: var(--sp-merah-latar); }
 
 /* ---------- laci lapor kejadian ---------- */
 .layar :global .lapdgr { display: flex; align-items: flex-start; gap: 8px; }
@@ -369,7 +429,8 @@
 .layar :global .okbox b { font-size: 17px; line-height: 22px; color: var(--sp-hijau-tua); }
 .layar :global .okacts { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 2px; }
 
-/* ---------- laci aturan SLA ---------- */
+/* ---------- laci aturan batas waktu ---------- */
+.layar :global .atbox { border-radius: 10px; overflow-x: auto; }
 .layar :global .tbl.atur th { white-space: normal; }
 .layar :global .tbl.atur td.wrapcell { white-space: normal; min-width: 130px; line-height: 16px; }
 .layar :global .rlist {
@@ -383,47 +444,19 @@
 }
 
 /* ---------- fokus papan ketik ---------- */
-.layar :global .idbtn:focus-visible,
+.layar :global .kbaris:focus-visible,
 .layar :global .btnr:focus-visible,
 .layar :global .lnk:focus-visible,
 .layar :global .tkb:focus-visible,
 .layar :global .opt:focus-visible,
-.layar :global .qdet summary:focus-visible { outline: var(--sp-fokus); outline-offset: 2px; }
+.layar :global .lipat > summary:focus-visible { outline: var(--sp-fokus); outline-offset: 2px; }
 
 /* ---------- lebar layar ---------- */
-/* Di bawah 980px antrean berubah jadi kartu bertumpuk supaya tidak perlu digeser mendatar. */
-@media (max-width: 980px) {
-  .layar :global .kpirow { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-  .layar :global .tbl.antre,
-  .layar :global .tbl.antre tbody { display: block; }
-  .layar :global .tbl.antre colgroup,
-  .layar :global .tbl.antre thead { display: none; }
-  .layar :global .tbl.antre tbody tr {
-    display: grid;
-    grid-template-columns: 64px minmax(0, 1fr) auto;
-    grid-template-areas:
-      "id kej kej"
-      ". anak anak"
-      "tk thp sla"
-      ". pj sla";
-    align-items: center;
-    gap: 4px 10px;
-    padding: 10px 12px;
-    border-top: 1px solid var(--sp-garis-3);
-  }
-  .layar :global .tbl.antre tbody tr:first-child { border-top: 0; }
-  .layar :global .tbl.antre tbody tr.late { box-shadow: inset 3px 0 0 var(--sp-merah-teks); }
-  .layar :global .tbl.antre tbody tr:hover { background: var(--sp-ungu-kartu); }
-  .layar :global .tbl.antre td { display: block; height: auto; padding: 0; border: 0; min-width: 0; background: none; }
-  .layar :global .tbl.antre tr.late td:first-child { box-shadow: none; }
-  .layar :global .tbl.antre td.cid { grid-area: id; }
-  .layar :global .tbl.antre td.ckj { grid-area: kej; }
-  .layar :global .tbl.antre td.canak { grid-area: anak; font-size: 12px; color: var(--sp-tinta-2); }
-  .layar :global .tbl.antre td.ctk { grid-area: tk; }
-  .layar :global .tbl.antre td.cthp { grid-area: thp; }
-  .layar :global .tbl.antre td.cpj { grid-area: pj; }
-  .layar :global .tbl.antre td.csla { grid-area: sla; justify-self: end; }
-  .layar :global .tbl.antre td.csla .slac { align-items: flex-end; }
+/* Di bawah 760px tingkat, tahap, dan sisa waktu turun ke baris kedua di bawah judul. */
+@media (max-width: 760px) {
+  .layar :global .kbaris { grid-template-columns: 64px minmax(0, 1fr); gap: 6px 10px; padding: 10px 8px; }
+  .layar :global .kmeta { grid-column: 2; display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; }
+  .layar :global .ksla { justify-self: auto; }
 }
 @media (max-width: 600px) {
   .layar :global .dmeta,
@@ -433,9 +466,6 @@
   .layar :global .akl { font-size: 11px; }
   /* Catatan kaki laci mengambil satu baris penuh; tombol berjajar di bawahnya. */
   .layar :global .dfootbar .fnote { flex-basis: 100%; max-width: none; }
-}
-@media (max-width: 420px) {
-  .layar :global .kpirow { grid-template-columns: minmax(0, 1fr); }
 }
 @media (max-width: 380px) {
   .layar :global .pjr { grid-template-columns: 32px minmax(0, 1fr); }

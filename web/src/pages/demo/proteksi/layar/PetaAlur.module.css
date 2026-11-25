@@ -1,96 +1,119 @@
-/* Layar Panduan alur & SLA (versi ringkas 2026-11-11): dua jalur, dua jembatan antar alur, lalu
-   tabel SLA per tingkat. Kelas dasar ada di proteksi.module.css; berkas ini hanya memuat aturan
-   khusus layar ini. */
+/* Layar Panduan (2026-11-25): dua alur berdampingan, langkah bernomor yang bisa diketuk, dua
+   penghubung antar alur, lalu batas waktu per tingkat (tabel lengkap dilipat). Tanpa garis tepi:
+   pembeda memakai latar lembut dan bayangan. Kelas dasar ada di proteksi.module.css; berkas ini
+   hanya memuat aturan khusus layar ini. */
 
 .layar { line-height: normal; }
 .layar :global .kecil { font-size: 12px; }
+.layar :global .putarAtas { rotate: 180deg; }
 
-/* ---------- jalur ----------
-   --warna  warna alur (ungu pencegahan, merah kejadian): garis atas kartu dan nomor langkah
-   --sela   celah antarlangkah, tempat kepala panah */
+/* ---------- dua alur ----------
+   --warna        warna alur (ungu pencegahan, merah kejadian): nomor langkah
+   --warna-tipis  latar langkah yang sedang terbuka */
+.layar :global .jalurDua {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+  align-items: start;
+}
 .layar :global .jalur {
   --warna: var(--sp-ungu);
+  --warna-tipis: var(--sp-ungu-lembut);
   display: flex;
   flex-direction: column;
   gap: 12px;
-  padding: 14px 16px 16px;
-  box-shadow: inset 0 3px 0 var(--warna), var(--sp-bayangan);
+  min-width: 0;
+  padding: 14px 14px 12px;
 }
-.layar :global .jalurKejadian { --warna: var(--sp-merah-teks); }
-.layar :global .jalurKepala { display: flex; align-items: center; flex-wrap: wrap; gap: 4px 10px; }
-.layar :global .jalurJudul { font-size: 15px; line-height: 20px; font-weight: 700; color: var(--sp-ungu-tua); }
-.layar :global .jalurKet { font-size: 12px; line-height: 16px; color: var(--sp-tinta-3); }
+.layar :global .jalurKejadian { --warna: var(--sp-merah-teks); --warna-tipis: var(--sp-merah-tipis); }
+.layar :global .jalurKepala { display: flex; align-items: center; gap: 10px; padding: 0 2px; }
+.layar :global .jalurJudul { margin: 0; font-size: 15px; line-height: 20px; font-weight: 700; color: var(--sp-ungu-tua); }
+.layar :global .jalurKet { margin: 0; font-size: 12px; line-height: 16px; color: var(--sp-tinta-3); }
 
-.layar :global .jalurLangkah {
-  --sela: 18px;
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  display: grid;
-  grid-template-columns: repeat(var(--n), minmax(0, 1fr));
-  column-gap: var(--sela);
-}
-.layar :global .jalurButir { position: relative; display: flex; min-width: 0; }
-/* Kepala panah di tengah celah ke langkah berikutnya. */
+.layar :global .jalurLangkah { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 4px; }
+/* Garis penghubung tegak antarnomor langkah (bagian diagram alur). */
+.layar :global .jalurButir { position: relative; border-radius: 12px; }
 .layar :global .jalurButir:not(:last-child)::after {
   content: "";
   position: absolute;
-  top: 50%;
-  right: calc(var(--sela) / -2 - 3px);
-  translate: 0 -50%;
-  border-top: 5px solid transparent;
-  border-bottom: 5px solid transparent;
-  border-left: 7px solid var(--sp-tinta-pudar);
+  top: 38px;
+  bottom: -6px;
+  left: 22px;
+  width: 2px;
+  border-radius: 1px;
+  background: var(--sp-garis);
   pointer-events: none;
 }
-.layar :global .jalurKartu {
-  flex: 1;
-  min-width: 0;
+.layar :global .jalurButir.terbuka { background: var(--warna-tipis); }
+.layar :global .jalurTombol {
+  position: relative;
+  z-index: 1;
+  width: 100%;
   display: flex;
-  flex-direction: column;
-  gap: 8px;
-  padding: 10px 12px 12px;
-  border: 1px solid var(--sp-garis-2);
+  align-items: center;
+  gap: 12px;
+  padding: 8px 10px;
+  border: 0;
   border-radius: 12px;
-  background: var(--sp-abu-4);
+  background: transparent;
+  text-align: left;
+  cursor: pointer;
 }
-.layar :global .jalurAtas { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.layar :global .jalurButir:not(.terbuka) .jalurTombol:hover { background: var(--sp-ungu-hover); }
+.layar :global .jalurTombol:focus-visible { outline: var(--sp-fokus); outline-offset: 1px; }
 .layar :global .jalurNo {
   flex: none;
-  width: 22px;
-  height: 22px;
+  width: 26px;
+  height: 26px;
   border-radius: 50%;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 700;
   background: var(--warna);
   color: var(--sp-putih);
 }
-.layar :global .jalurLabel { flex: 1; min-width: 0; font-size: 13px; line-height: 17px; font-weight: 700; color: var(--sp-tinta); }
-.layar :global .ghost.jalurBuka { flex: none; height: 28px; padding: 0 10px; }
+.layar :global .jalurTeks { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 1px; }
+.layar :global .jalurLabel { font-size: 13px; line-height: 17px; font-weight: 700; color: var(--sp-tinta); }
+.layar :global .jalurRingkas { font-size: 12px; line-height: 16px; color: var(--sp-tinta-2); }
+.layar :global .jalurPanah { flex: none; color: var(--sp-tinta-pudar); transition: rotate 0.15s ease; }
+.layar :global .terbuka .jalurPanah { rotate: 180deg; color: var(--warna); }
+
+.layar :global .jalurRinci { display: flex; flex-direction: column; gap: 8px; padding: 0 12px 12px 48px; }
+.layar :global .jalurRinci[hidden] { display: none; }
 .layar :global .jalurFakta {
   margin: 0;
   display: flex;
   flex-direction: column;
-  gap: 5px;
+  gap: 4px;
   font-size: 12px;
   line-height: 16px;
   color: var(--sp-tinta-2);
 }
 .layar :global .jalurFakta dt { display: inline; margin-right: 5px; font-weight: 700; color: var(--sp-ungu-tua); }
 .layar :global .jalurFakta dd { display: inline; margin: 0; }
+.layar :global .ghost.jalurBuka { align-self: start; height: 30px; padding: 0 10px; background: var(--sp-putih); }
+.layar :global .ghost.jalurBuka:hover { background: var(--sp-ungu-tipis); }
 
-/* ---------- jembatan antar alur ----------
-   Turun: dari pencegahan (jalur di atas) ke kejadian. Naik: dari kejadian ke pencegahan. */
-.layar :global .jembatan { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+/* ---------- penghubung antar alur ----------
+   Turun: dari pencegahan ke kejadian. Naik: dari kejadian ke pencegahan. */
+.layar :global .jembatan {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
 .layar :global .jembatanKartu {
   display: grid;
   grid-template-columns: 32px minmax(0, 1fr) auto;
   align-items: center;
   gap: 4px 12px;
   padding: 12px 14px;
+  border-radius: 12px;
+  background: var(--sp-abu-4);
 }
 .layar :global .jembatanPanah {
   width: 32px;
@@ -105,22 +128,43 @@
 .layar :global .jembatanTurun .jembatanPanah svg { rotate: 90deg; }
 .layar :global .jembatanNaik .jembatanPanah { background: var(--sp-ungu-tipis); color: var(--sp-ungu); }
 .layar :global .jembatanNaik .jembatanPanah svg { rotate: -90deg; }
-.layar :global .jembatanJudul { font-size: 13px; line-height: 18px; font-weight: 700; color: var(--sp-tinta); }
+.layar :global .jembatanJudul { margin: 0; font-size: 13px; line-height: 18px; font-weight: 700; color: var(--sp-tinta); }
 .layar :global .jembatanRute {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
   gap: 2px 4px;
   margin-top: 1px;
-  font-size: 11px;
-  line-height: 14px;
+  font-size: 12px;
+  line-height: 15px;
   font-weight: 600;
   color: var(--sp-tinta-3);
 }
 .layar :global .jembatanTeks { margin-top: 4px; font-size: 12px; line-height: 16px; color: var(--sp-tinta-2); }
 
-/* ---------- tabel SLA ----------
-   Kelas dasar menahan isi sel di satu baris; contoh kejadian di sini panjang, jadi boleh turun. */
+/* ---------- batas waktu per tingkat ---------- */
+.layar :global .tingkatDaftar { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
+.layar :global .tingkatBaris {
+  display: grid;
+  grid-template-columns: 76px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 0;
+  border-top: 1px solid var(--sp-garis-3);
+  font-size: 12px;
+  line-height: 16px;
+}
+.layar :global .tingkatBaris:first-child { padding-top: 0; border-top: 0; }
+.layar :global .pill.tingkatPil { width: 76px; }
+.layar :global .tingkatContoh { color: var(--sp-tinta-2); }
+.layar :global .tingkatWaktu { white-space: nowrap; color: var(--sp-tinta-3); }
+.layar :global .tingkatWaktu b { font-weight: 700; color: var(--sp-tinta); }
+.layar :global .slaCatatan { margin: 0; font-size: 12px; line-height: 16px; color: var(--sp-tinta-3); }
+.layar :global .ghost.tabelTombol { align-self: start; }
+
+/* Tabel lengkap (dilipat). Kelas dasar menahan isi sel di satu baris; contoh kejadian panjang,
+   jadi boleh turun. */
+.layar :global .slaKotak[hidden] { display: none; }
 .layar :global .slaTabel td,
 .layar :global .slaTabel tbody th {
   height: auto;
@@ -132,40 +176,23 @@
 }
 .layar :global .slaTabel tbody th { background: transparent; border-top: 1px solid var(--sp-garis-3); text-align: left; font-weight: 400; }
 .layar :global .slaTabel td.slaWaktu { white-space: nowrap; color: var(--sp-tinta); }
-.layar :global .slaCatatan { font-size: 12px; line-height: 16px; color: var(--sp-tinta-3); }
 
 /* ---------- lebar layar ---------- */
-/* Langkah disusun menurun; kartu langkah jadi dua kolom (nama langkah | siapa, kapan, hasil). */
-@media (max-width: 1000px) {
-  .layar :global .jalurLangkah { display: flex; flex-direction: column; row-gap: var(--sela); }
-  .layar :global .jalurButir:not(:last-child)::after {
-    top: auto;
-    right: auto;
-    left: 50%;
-    bottom: calc((var(--sela) + 7px) / -2);
-    translate: -50% 0;
-    border-left: 5px solid transparent;
-    border-right: 5px solid transparent;
-    border-top: 7px solid var(--sp-tinta-pudar);
-    border-bottom: 0;
-  }
-  .layar :global .jalurKartu {
-    display: grid;
-    grid-template-columns: minmax(180px, 240px) minmax(0, 1fr);
-    align-items: start;
-    gap: 6px 16px;
-  }
+@media (max-width: 900px) {
+  .layar :global .jalurDua { grid-template-columns: minmax(0, 1fr); }
   .layar :global .jembatan { grid-template-columns: minmax(0, 1fr); }
 }
 
-/* Ponsel: kartu langkah satu kolom, tabel SLA jadi kartu per tingkat. */
+/* Ponsel: penghubung bertumpuk, tabel lengkap jadi kartu per tingkat berlatar abu muda. */
 @media (max-width: 640px) {
-  .layar :global .jalur { padding: 12px; }
-  .layar :global .jalurKartu { grid-template-columns: minmax(0, 1fr); }
+  .layar :global .jalur { padding: 12px 10px 10px; }
+  .layar :global .jalurRinci { padding-left: 12px; }
   .layar :global .jembatanKartu { grid-template-columns: 32px minmax(0, 1fr); }
   .layar :global .ghost.jembatanBuka { grid-column: 2; justify-self: start; margin-top: 4px; }
+  .layar :global .tingkatBaris { grid-template-columns: 76px minmax(0, 1fr); }
+  .layar :global .tingkatWaktu { grid-column: 2; white-space: normal; }
 
-  .layar :global .tbox.slaKotak { border: 0; border-radius: 0; overflow: visible; }
+  .layar :global .tbox.slaKotak { border-radius: 0; overflow: visible; }
   .layar :global .slaTabel,
   .layar :global .slaTabel tbody,
   .layar :global .slaTabel tr,
@@ -180,15 +207,15 @@
     clip: rect(0 0 0 0);
     white-space: nowrap;
   }
-  .layar :global .slaTabel tr { padding: 10px 12px; border: 1px solid var(--sp-garis-2); border-radius: 10px; }
+  .layar :global .slaTabel tr { padding: 10px 12px; border-radius: 10px; background: var(--sp-abu-4); }
   .layar :global .slaTabel tr + tr { margin-top: 8px; }
-  .layar :global .slaTabel tbody th { padding: 0 0 6px; border: 0; }
+  .layar :global .slaTabel tbody th { padding: 0 0 6px; border-top: 0; }
   .layar :global .slaTabel td {
     display: grid;
-    grid-template-columns: 108px minmax(0, 1fr);
+    grid-template-columns: 120px minmax(0, 1fr);
     gap: 8px;
     padding: 3px 0;
-    border: 0;
+    border-top: 0;
   }
   .layar :global .slaTabel td::before { content: attr(data-label); font-weight: 600; color: var(--sp-tinta-3); }
   .layar :global .slaTabel td.slaWaktu { white-space: normal; }

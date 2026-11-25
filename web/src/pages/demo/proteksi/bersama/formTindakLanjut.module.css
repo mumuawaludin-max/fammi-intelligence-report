@@ -1,0 +1,67 @@
+/* Formulir tindak lanjut tambahan sekolah (FormTindakLanjut.jsx). Tanpa garis tepi, tanpa gradien. */
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 14px;
+  border-radius: 16px;
+  background: var(--sp-ungu-lembut);
+  animation: muncul 0.25s ease both;
+}
+@keyframes muncul {
+  from { opacity: 0; transform: translateY(6px); }
+}
+.judulForm { margin: 0; display: flex; align-items: center; gap: 6px; font-size: 14px; font-weight: 800; color: var(--sp-ungu-tua); }
+.fld { display: flex; flex-direction: column; gap: 6px; font-size: 12px; font-weight: 700; color: var(--sp-tinta-2); }
+.inp {
+  width: 100%;
+  min-height: 40px;
+  padding: 8px 12px;
+  border: 0;
+  border-radius: 12px;
+  background: var(--sp-putih);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--sp-tinta);
+}
+.inp:focus { outline: var(--sp-fokus); outline-offset: 1px; }
+.dua { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.chip {
+  min-height: 34px;
+  padding: 0 12px;
+  border: 0;
+  border-radius: 17px;
+  background: var(--sp-putih);
+  font: inherit;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--sp-tinta-2);
+  cursor: pointer;
+}
+.on { background: var(--sp-ungu); color: var(--sp-putih); }
+.aksi { display: flex; justify-content: flex-end; gap: 8px; }
+.batal,
+.simpan {
+  min-height: 38px;
+  padding: 0 16px;
+  border: 0;
+  border-radius: 12px;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.batal { background: var(--sp-putih); color: var(--sp-tinta-2); }
+.simpan { background: var(--sp-ungu); color: var(--sp-putih); }
+.simpan:disabled { background: var(--sp-abu-3); color: var(--sp-tinta-3); cursor: default; }
+.chip:focus-visible,
+.batal:focus-visible,
+.simpan:focus-visible { outline: var(--sp-fokus); outline-offset: 2px; }
+@media (max-width: 560px) {
+  .dua { grid-template-columns: minmax(0, 1fr); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .form { animation: none; }
+}

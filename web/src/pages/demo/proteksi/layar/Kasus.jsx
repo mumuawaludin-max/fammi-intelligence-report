@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useProteksi } from "../konteks";
-import { Ikon, KepalaKartu, KepalaLaci, Laci, Segmen } from "../komponen";
+import { Ikon, KepalaLaci, Laci, Segmen } from "../komponen";
 import AlurBar from "../bersama/AlurBar";
 import { ALUR, TAHAP_KASUS } from "../bersama/alur";
 import { PEMILIK } from "../bersama/tindakLanjut";
@@ -19,7 +19,6 @@ import {
   LOKASI,
   PERTANYAAN,
   PIL_TINGKAT,
-  SAYA,
   TAHAP,
   TINGKAT,
   URUTAN_TAHAP,
@@ -34,6 +33,7 @@ import {
   kandidatTugas,
   kasusAwal,
   kasusDariLapor,
+  kasusMendesak,
   kePantau,
   laporKosong,
   namaTugas,
@@ -42,57 +42,57 @@ import {
   slaKasus,
   tetapkanTingkat,
   tingkatDari,
-  tugasSaya,
   tugaskan,
   tutupKasus,
   usulanTugas,
   waktuLengkap,
 } from "./kasusData";
+import GrafikKasus from "./GrafikKasus";
 import css from "./Kasus.module.css";
 
 const LEBAR_LACI = 640;
 
 /**
- * Saringan antrean (segmen). Id tahap sama dengan TAHAP_KASUS, jadi bilah alur dan aksi
- * { jenis: "tahap", id } dari layar lain atau notifikasi langsung memasangnya.
+ * Saringan daftar kasus. Id tahap sama dengan TAHAP_KASUS, jadi bilah alur dan aksi
+ * { jenis: "tahap", id } dari layar lain atau notifikasi langsung memasangnya. Label mengikuti
+ * langkah alur kejadian. Kasus selesai tampil terlipat di bawah saringan "Semua aktif" dan
+ * "Pantau & selesai"; aksi { jenis: "tahap", id: "selesai" } membuka saringan pantau dengan
+ * lipatan itu terbuka.
  */
 const SARINGAN = [
   { id: "aktif", label: "Semua aktif", cocok: (c) => c.tahap !== "selesai" },
-  { id: "triage", label: "Triage", cocok: (c) => c.tahap === "triage" },
-  { id: "tugas", label: "Penugasan", cocok: (c) => c.tahap === "tugas" },
-  { id: "tangani", label: "Penanganan", cocok: (c) => c.tahap === "tangani" },
-  { id: "pantau", label: "Pantau", cocok: (c) => c.tahap === "pantau" },
-  { id: "selesai", label: "Selesai", cocok: (c) => c.tahap === "selesai" },
-  { id: "saya", label: "Tugas saya", cocok: tugasSaya },
+  ...["triage", "tugas", "tangani", "pantau"].map((id) => ({ id, label: TAHAP[id].label, cocok: (c) => c.tahap === id })),
 ];
 
-/** Dua peran di formulir Tugaskan. */
+/** Dua peran di formulir Bagi tugas. */
 const PERAN_TUGAS = [
   { id: "utama", label: "Utama" },
   { id: "pendukung", label: "Pendukung" },
 ];
 
 /**
- * Kasus & penugasan (sudut pandang Bu Laras, Koordinator BK): alur kejadian lapor -> triage ->
- * penugasan -> penanganan -> pantau dan tutup. Bilah alur sekaligus saringan antrean, empat angka
- * ringkas, antrean padat, laci detail kasus (alur lima langkah, tetapkan tingkat, tugaskan, rencana
- * tindak, pemantauan, riwayat), laci Lapor kejadian, dan laci Aturan SLA. Semua data contoh dan
- * hanya hidup di state layar ini; penugasan dan laporan baru memberi tahu peran lain lewat lonceng.
+ * Kasus & penugasan (sudut pandang Bu Laras, Koordinator BK). Urutan layar mengikuti kebutuhan
+ * Koordinator BK: (1) kasus yang perlu tindakan sekarang, satu tombol langsung ke langkahnya,
+ * (2) daftar kasus per tahap yang ringkas (kode, judul, tingkat, tahap, sisa waktu), (3) seluruh
+ * detail (kronologi, penilaian awal, rencana penanganan, catatan) di laci setelah baris diklik.
+ * Semua data contoh dan hanya hidup di state layar ini; pembagian tugas dan laporan baru memberi
+ * tahu peran lain lewat lonceng.
  */
 export default function Kasus() {
   const { aksi, aksiSelesai, toast, setHitungKasus, beriTahu, centang, ubahCentang, pindah, laporanBaru, buatLaporan } =
     useProteksi();
-  // Laporan yang dibuat selama demo dari layar mana pun (lihat konteks) masuk antrean di tahap triage.
+  // Laporan yang dibuat selama demo dari layar mana pun (lihat konteks) masuk tahap Cek awal.
   const [daftar, setDaftar] = useState(() => [
     ...laporanBaru.map((l) => ({ ...kasusDariLapor(l.lapor, l.id, JAM_AWAL, l.sumber), ...(l.tambahan || {}) })),
     ...kasusAwal(centang),
   ]);
   const [kini, setKini] = useState(JAM_AWAL);
   const [saring, setSaring] = useState("aktif");
+  const [bukaSelesai, setBukaSelesai] = useState(false);
   const [laci, setLaci] = useState(null);
   const [pilihan, setPilihan] = useState(null);
   // Isian laci yang belum dikirim, per kasus: jawaban penilaian yang dikoreksi, tingkat yang dipilih
-  // saat triage, dan formulir Tugaskan.
+  // saat cek awal, dan formulir Bagi tugas.
   const [koreksi, setKoreksi] = useState({});
   const [tingkatPilih, setTingkatPilih] = useState({});
   const [drafTugas, setDrafTugas] = useState({});
@@ -113,6 +113,11 @@ export default function Kasus() {
     setLaci("kasus");
   }, []);
 
+  const pilihSaring = useCallback((id) => {
+    setSaring(id === "selesai" ? "pantau" : id);
+    setBukaSelesai(id === "selesai");
+  }, []);
+
   const tutupLaci = () => setLaci(null);
 
   // Permintaan dari header, bilah alur layar lain, atau notifikasi. Laci sengaja dibuka lewat efek:
@@ -124,9 +129,9 @@ export default function Kasus() {
     // eslint-disable-next-line react-hooks/set-state-in-effect -- permintaan sekali pakai, sengaja sesudah efek induk (lihat atas)
     if (aksi.jenis === "lapor") bukaLapor();
     else if (aksi.jenis === "kasus" && daftar.some((c) => c.id === aksi.id)) bukaKasus(aksi.id);
-    else if (aksi.jenis === "tahap" && TAHAP_KASUS.includes(aksi.id)) setSaring(aksi.id);
+    else if (aksi.jenis === "tahap" && TAHAP_KASUS.includes(aksi.id)) pilihSaring(aksi.id);
     aksiSelesai();
-  }, [aksi, aksiSelesai, bukaLapor, bukaKasus, daftar]);
+  }, [aksi, aksiSelesai, bukaLapor, bukaKasus, pilihSaring, daftar]);
 
   /** Ubah satu kasus; `menit` memajukan jam prototipe. */
   function ubahKasus(id, ubah, menit = 0) {
@@ -134,16 +139,16 @@ export default function Kasus() {
     if (menit) setKini((t) => t + menit);
   }
 
-  // ---------- antrean ----------
+  // ---------- daftar ----------
   const sla = new Map(daftar.map((c) => [c.id, slaKasus(c, kini)]));
   const hitung = (id) => daftar.filter(SARINGAN.find((s) => s.id === id).cocok).length;
   const cocok = (SARINGAN.find((s) => s.id === saring) || SARINGAN[0]).cocok;
+  // Urut menurut tahap alur, lalu yang terlambat, lalu tingkat.
   const peringkat = (c) =>
-    (c.tahap === "selesai" ? 9 : c.tahap === "pantau" ? 5 : 0) +
-    (sla.get(c.id).telat ? -2 : 0) +
-    BOBOT_TINGKAT[c.tingkat] * 0.1 +
-    URUTAN_TAHAP.indexOf(c.tahap) * 0.01;
+    URUTAN_TAHAP.indexOf(c.tahap) * 10 + (sla.get(c.id).telat ? 0 : 5) + BOBOT_TINGKAT[c.tingkat];
   const baris = daftar.filter(cocok).sort((a, b) => peringkat(a) - peringkat(b));
+  const selesai = daftar.filter((c) => c.tahap === "selesai");
+  const tampilSelesai = saring === "aktif" || saring === "pantau";
   const pilihanSegmen = SARINGAN.map((s) => ({
     id: s.id,
     label: (
@@ -153,15 +158,12 @@ export default function Kasus() {
     ),
   }));
 
+  const segera = kasusMendesak(daftar, kini);
+
   // Bilah alur: langkah yang menyala = saringan tahap yang aktif; angka = jumlah kasus per tahap.
   const aktifAlur = ALUR.kejadian.langkah.some((l) => l.id === saring) ? saring : null;
   const hitungAlur = Object.fromEntries(["triage", "tugas", "tangani", "pantau"].map((t) => [t, hitung(t)]));
-  const pilihLangkah = (l) => (l.id === "lapor" ? bukaLapor() : setSaring(l.id));
-
-  const menunggu = daftar
-    .filter((c) => c.tahap === "triage")
-    .sort((a, b) => ATURAN[a.tingkat].respon(a.masuk) - ATURAN[b.tingkat].respon(b.masuk));
-  const lewat = daftar.filter((c) => c.tahap !== "selesai" && sla.get(c.id).telat);
+  const pilihLangkah = (l) => (l.id === "lapor" ? bukaLapor() : pilihSaring(l.id));
 
   // Lencana tab Kejadian mengikuti jumlah kasus aktif di layar ini.
   const jumlahAktif = hitung("aktif");
@@ -188,7 +190,7 @@ export default function Kasus() {
     });
   }
 
-  /** Formulir Tugaskan: satu penanggung jawab utama, pendukung boleh lebih dari satu. */
+  /** Formulir Bagi tugas: satu penanggung jawab utama, pendukung boleh lebih dari satu. */
   function aturPeran(id, peran) {
     const awal = drafKasus;
     setDrafTugas((semua) => {
@@ -201,7 +203,7 @@ export default function Kasus() {
         if (utama) pendukung = [utama, ...pendukung];
         utama = id;
       } else if (d.pendukung.includes(id)) {
-        // Menekan Pendukung lagi melepasnya dari penugasan.
+        // Menekan Pendukung lagi melepasnya dari pembagian tugas.
       } else {
         if (utama === id) utama = null;
         pendukung = [...pendukung, id];
@@ -224,7 +226,8 @@ export default function Kasus() {
     setCatatan("");
   }
 
-  function eskalasi() {
+  /** Teruskan ke Kepala Sekolah: Bu Hartini ikut menangani dan menerima notifikasi. */
+  function teruskan() {
     const c = kasus;
     ubahKasus(
       c.id,
@@ -234,7 +237,7 @@ export default function Kasus() {
           x.tugas && x.tugas.utama !== "hartini" && !x.tugas.pendukung.includes("hartini")
             ? { ...x.tugas, pendukung: [...x.tugas.pendukung, "hartini"] }
             : x.tugas,
-        riwayat: [[capWaktu(kini), "Bu Laras mengeskalasi kasus ke Kepala Sekolah."], ...x.riwayat],
+        riwayat: [[capWaktu(kini), "Bu Laras meneruskan kasus ke Kepala Sekolah."], ...x.riwayat],
       }),
       2,
     );
@@ -242,11 +245,11 @@ export default function Kasus() {
       peran: "kepsek",
       ikon: "atas",
       nada: "red",
-      judul: `${c.id} dieskalasi ke Anda`,
+      judul: `${c.id} diteruskan ke Anda`,
       isi: `${c.judul}. Bu Laras meminta keputusan Kepala Sekolah.`,
       tujuan: { layar: "kasus", aksi: { jenis: "kasus", id: c.id } },
     });
-    toast(`${c.id} dieskalasi. Bu Hartini menerima notifikasi aplikasi dan WhatsApp.`);
+    toast(`${c.id} diteruskan ke Kepala Sekolah. Bu Hartini menerima notifikasi aplikasi dan WhatsApp.`);
   }
 
   /** Tombol utama laci: menjalankan langkah tahap ini (aturannya di kasusData.js). */
@@ -284,7 +287,7 @@ export default function Kasus() {
 
   function kirimLapor() {
     if (!lapor.jenis) {
-      toast("Pilih dulu jenis kejadiannya");
+      toast("Pilih jenis kejadian dulu");
       return;
     }
     // Nomor dibagi konteks (satu urutan untuk semua layar); laporannya juga tersimpan di sana.
@@ -292,17 +295,17 @@ export default function Kasus() {
     const baru = kasusDariLapor(lapor, id, kini);
     setDaftar((semua) => [baru, ...semua]);
     setTercatat({ id, tingkat: baru.tingkat });
-    setSaring("triage");
+    pilihSaring("triage");
     setKini((t) => t + 2);
     beriTahu({
       peran: ["bk", "kepsek"],
       ikon: "peringatan",
       nada: "red",
       judul: `Laporan baru ${id}`,
-      isi: `${baru.kategori}, kelas ${baru.kelas}. Usulan tingkat ${baru.tingkat}, menunggu triage.`,
+      isi: `${baru.kategori}, kelas ${baru.kelas}. Usulan tingkat ${baru.tingkat}, menunggu dicek.`,
       tujuan: { layar: "kasus", aksi: { jenis: "kasus", id } },
     });
-    toast(`Laporan ${id} masuk antrean triage.`);
+    toast(`Laporan ${id} masuk, menunggu cek awal.`);
   }
 
   return (
@@ -311,17 +314,13 @@ export default function Kasus() {
 
       <section className="titlerow">
         <div>
-          <p className="eyebrow">Alur kejadian</p>
-          <h1 className="h1">Kasus &amp; penugasan</h1>
-          <p className="lead">
-            Setiap laporan ditriage, ditugaskan ke penanggung jawab, ditangani, lalu dipantau sampai ditutup, masing-masing dengan batas
-            waktu (SLA).
-          </p>
+          <h1 className="h1">Kasus</h1>
+          <p className="lead">Kasus mendesak di atas; klik satu kasus untuk detailnya.</p>
         </div>
         <div className="tbtns">
           <button type="button" className="ghost" onClick={() => setLaci("aturan")}>
             <Ikon nama="jam" size={18} />
-            Aturan SLA
+            Lihat aturan batas waktu
           </button>
           <button type="button" className="btnp" onClick={bukaLapor}>
             <Ikon nama="tambah" size={18} />
@@ -330,85 +329,64 @@ export default function Kasus() {
         </div>
       </section>
 
-      <section className="kpirow" aria-label="Angka kasus">
-        <Angka
-          nilai={menunggu.length}
-          satuan="kasus"
-          label="Menunggu triage"
-          sub={
-            menunggu.length
-              ? `${menunggu[0].id} · ${sla.get(menunggu[0].id).label.toLowerCase()}${menunggu.length > 1 ? ` · +${menunggu.length - 1} lainnya` : ""}`
-              : "Tidak ada laporan yang menunggu"
-          }
-          nada={menunggu.length ? "o" : "g"}
-        />
-        <Angka
-          nilai={lewat.length}
-          satuan="kasus"
-          label="Lewat SLA"
-          sub={
-            lewat.length
-              ? lewat.map((x) => `${x.id} · ${sla.get(x.id).nama.split(" ")[0].toLowerCase()} ${sla.get(x.id).label.toLowerCase()}`).join("; ")
-              : "Semua dalam batas waktu"
-          }
-          nada={lewat.length ? "r" : "g"}
-        />
-        <Angka
-          nilai="42"
-          satuan="menit"
-          label={
-            <>
-              Respon pertama <span className="nw">rata-rata</span>
-            </>
-          }
-          sub="Semua tingkat, sejak 19 Okt"
-          nada="g"
-        />
-        <Angka nilai="96%" label="Ketepatan SLA" sub="25 dari 26 tahap tepat waktu" nada="g" />
+      <section className="sgsek" aria-labelledby="kasus-segera" data-bagian="segera">
+        <div className="sgh">
+          <h2 className="sgj" id="kasus-segera">
+            Perlu tindakan sekarang <span className="sgn">{segera.length}</span>
+          </h2>
+          <span className="jamsla">Per {waktuLengkap(kini)}</span>
+        </div>
+        {segera.length ? (
+          <ul className="sglist">
+            {segera.map((c) => (
+              <KartuSegera key={c.id} kasus={c} sla={sla.get(c.id)} onBuka={bukaKasus} />
+            ))}
+          </ul>
+        ) : (
+          <p className="reco ok">Tidak ada kasus mendesak. Semua masih dalam batas waktu.</p>
+        )}
       </section>
 
-      <section className="card tcard" data-bagian="antrean">
+      <section className="card tcard" aria-labelledby="kasus-gambaran">
         <div className="tophead">
-          <div className="anth">
-            <KepalaKartu ikon="tiket" judul="Antrean kasus" />
-            <span className="jamsla">SLA per {waktuLengkap(kini)}</span>
-          </div>
-          <Segmen label="Saring antrean menurut tahap" pilihan={pilihanSegmen} nilai={saring} onPilih={setSaring} />
+          <h2 className="ctitle" id="kasus-gambaran">
+            Gambaran kasus aktif
+          </h2>
+          <span className="lipk">Klik baris untuk menyaring daftar</span>
         </div>
-        <div className="tbox">
-          <table className="tbl antre">
-            <colgroup>
-              <col className="kid" />
-              <col />
-              <col className="kanak" />
-              <col className="ktk" />
-              <col className="kthp" />
-              <col className="kpj" />
-              <col className="ksla" />
-            </colgroup>
-            <thead>
-              <tr>
-                <th scope="col">ID</th>
-                <th scope="col">Kejadian</th>
-                <th scope="col">Anak · kelas</th>
-                <th scope="col">Tingkat</th>
-                <th scope="col">Tahap</th>
-                <th scope="col">Penanggung jawab</th>
-                <th scope="col">SLA berikutnya</th>
-              </tr>
-            </thead>
-            <tbody>
-              {baris.map((c) => (
+        <GrafikKasus daftar={daftar} onTahap={pilihSaring} terpilih={saring} />
+      </section>
+
+      <section className="card tcard" data-bagian="antrean" aria-labelledby="kasus-daftar">
+        <div className="tophead">
+          <h2 className="ctitle" id="kasus-daftar">
+            Daftar kasus
+          </h2>
+          <Segmen label="Saring kasus menurut tahap" pilihan={pilihanSegmen} nilai={saring} onPilih={pilihSaring} />
+        </div>
+        {baris.length ? (
+          <ul className="klist">
+            {baris.map((c) => (
+              <BarisKasus key={c.id} kasus={c} sla={sla.get(c.id)} onBuka={bukaKasus} />
+            ))}
+          </ul>
+        ) : (
+          <p className="empty">Tidak ada kasus di tahap ini.</p>
+        )}
+        {tampilSelesai && selesai.length > 0 && (
+          <details className="lipat" open={bukaSelesai} onToggle={(e) => setBukaSelesai(e.currentTarget.open)}>
+            <summary>
+              <span>Sudah selesai</span>
+              <span className="lipk">{selesai.length} kasus</span>
+              <Ikon nama="kanan" size={16} className="lipv" />
+            </summary>
+            <ul className="klist">
+              {selesai.map((c) => (
                 <BarisKasus key={c.id} kasus={c} sla={sla.get(c.id)} onBuka={bukaKasus} />
               ))}
-            </tbody>
-          </table>
-          {baris.length === 0 && <p className="empty">Tidak ada kasus di tahap ini.</p>}
-        </div>
-        <p className="rule">
-          Tingkat bergaris putus-putus masih usulan pelapor, ditetapkan saat triage. Nama anak pada kasus Darurat disingkat; kasus dengan
-          terlapor staf sekolah hanya bisa dibuka Kepala Sekolah dan pendamping Fammi.
-        </p>
+            </ul>
+          </details>
+        )}
       </section>
 
       {laci === "kasus" && (
@@ -429,7 +407,7 @@ export default function Kasus() {
             onCatatan={setCatatan}
             onTambahCatatan={tambahCatatan}
             onHasil={setHasil}
-            onEskalasi={eskalasi}
+            onTeruskan={teruskan}
             onLanjut={lanjutkan}
             onSkrining={() => pindah("skrining")}
             onTutup={tutupLaci}
@@ -451,121 +429,96 @@ export default function Kasus() {
         </Laci>
       )}
       {laci === "aturan" && (
-        <Laci label="Aturan SLA" labelTutup="Tutup aturan SLA" lebar={LEBAR_LACI} onTutup={tutupLaci}>
-          <AturanSla onAtur={() => toast("Pengaturan acuan SLA sekolah akan dibuka di jendela terpisah")} onTutup={tutupLaci} />
+        <Laci label="Aturan batas waktu" labelTutup="Tutup aturan batas waktu" lebar={LEBAR_LACI} onTutup={tutupLaci}>
+          <AturanBatas onAtur={() => toast("Pengaturan acuan sekolah dibuka di jendela terpisah")} onTutup={tutupLaci} />
         </Laci>
       )}
     </div>
   );
 }
 
-/** Satu angka ringkas di atas antrean. `nada`: o (menunggu), r (lewat), g (baik). */
-function Angka({ nilai, satuan, label, sub, nada }) {
+/** Pil tingkat. Saat cek awal tingkatnya masih usulan pelapor: pil berlatar abu dengan teks berwarna. */
+function PilTingkat({ tingkat, usul }) {
   return (
-    <div className="card kpi">
-      <p className="kpiv">
-        {nilai}
-        {satuan && <span className="kpiu"> {satuan}</span>}
-      </p>
-      <div className="kpit">
-        <p className="kpil">{label}</p>
-        <p className={`kpisub ${nada}`} title={sub}>
-          {sub}
-        </p>
-      </div>
-    </div>
+    <span className={`${PIL_TINGKAT[tingkat]}${usul ? " usul" : ""}`} title={usul ? "Usulan pelapor, belum ditetapkan" : undefined}>
+      {tingkat}
+      {usul && <span className="sr"> (usulan)</span>}
+    </span>
   );
 }
 
-/**
- * Satu baris antrean. Seluruh baris bisa diklik lewat tombol ID (lapisan tombol menutup baris).
- * Nama anak kasus Darurat disingkat; kasus terlapor staf disembunyikan.
- */
-function BarisKasus({ kasus: c, sla, onBuka }) {
-  const anak = c.terbatas
-    ? "Akses terbatas"
-    : (c.tingkat === "Darurat" ? c.anakSingkat || c.anak : c.anak) + (c.kelas ? " · " + c.kelas : "");
-  const tahap = TAHAP[c.tahap];
-  const usul = c.tahap === "triage";
-  const utama = orangKasus(c.tugas?.utama);
-  const nPendukung = c.tugas ? c.tugas.pendukung.length : 0;
+/** Satu kartu "Perlu tindakan sekarang": alasan mendesaknya, lalu satu tombol ke langkah berikutnya. */
+function KartuSegera({ kasus: c, sla, onBuka }) {
+  const aksi = aksiTahap(c);
+  const nada = sla.telat || c.tingkat === "Darurat" ? "merah" : "kuning";
   return (
-    <tr className={sla.telat ? "late" : undefined}>
-      <td className="cid">
-        <button
-          type="button"
-          className="idbtn"
-          aria-label={`Buka kasus ${c.id}`}
-          title={`${c.id}: ${c.judul}`}
-          onClick={() => onBuka(c.id)}
-        >
-          {c.id}
-        </button>
-      </td>
-      <td className="ckj">
-        <span className="kjj">
+    <li className={`sgcard ${nada}`}>
+      <span className="sgtop">
+        <PilTingkat tingkat={c.tingkat} usul={c.tahap === "triage"} />
+        <span className="sgid">{c.id}</span>
+        <span className="sgthp">{TAHAP[c.tahap].label}</span>
+      </span>
+      <b className="sgjud">{c.judul}</b>
+      <span className="sgsla">
+        {sla.nama} · <b className={sla.telat ? "r" : undefined}>{sla.label}</b>
+      </span>
+      <button type="button" className="btnp sgbtn" aria-label={`${aksi.segera} ${c.id}`} onClick={() => onBuka(c.id)}>
+        {aksi.segera}
+        <Ikon nama="kanan" size={16} />
+      </button>
+    </li>
+  );
+}
+
+/** Satu baris daftar: kode, judul singkat, tingkat, tahap, sisa waktu. Seluruh baris satu tombol. */
+function BarisKasus({ kasus: c, sla, onBuka }) {
+  const tahap = TAHAP[c.tahap];
+  return (
+    <li>
+      <button type="button" className="kbaris" onClick={() => onBuka(c.id)}>
+        <span className="kid">{c.id}</span>
+        <span className="kjud">
           {c.terbatas && <Ikon nama="gembok" size={13} warna="var(--sp-tinta-2)" />}
           <span className="kjt">{c.judul}</span>
-        </span>{" "}
-        <span className="kjs">
-          {c.dariSkrining && <span className="skr">Dari skrining HEART</span>}
-          <span className="kjt">{c.kategori}</span>
         </span>
-      </td>
-      <td className="canak">
-        <span className="kjt">{anak}</span>
-      </td>
-      <td className="ctk">
-        <span className={`${PIL_TINGKAT[c.tingkat]}${usul ? " usul" : ""}`} title={usul ? "Usulan pelapor, belum ditetapkan" : undefined}>
-          {c.tingkat}
-          {usul && <span className="sr"> (usulan)</span>}
-        </span>
-      </td>
-      <td className="cthp">
-        <span className={`thp ${c.tahap}`}>
-          <span className="thn" aria-hidden="true">
-            {tahap.no ?? <Ikon nama="centang" size={12} />}
+        <span className="kmeta">
+          <span className="ktk">
+            <PilTingkat tingkat={c.tingkat} usul={c.tahap === "triage"} />
           </span>
-          {tahap.label}
-        </span>
-      </td>
-      <td className="cpj">
-        {utama ? (
-          <span className="pj">
-            <span className="av xs" aria-hidden="true">
-              {utama.inisial}
+          <span className={`thp ${c.tahap}`}>
+            <span className="thn" aria-hidden="true">
+              {tahap.no ?? <Ikon nama="centang" size={12} />}
             </span>
-            <span className="kjt">{utama.nama}</span>
-            {nPendukung > 0 && (
-              <span className="pjx" title={namaTugas(c.tugas).slice(1).join(", ")}>
-                +{nPendukung}
-                <span className="sr"> pendukung</span>
-              </span>
-            )}
+            {tahap.label}
           </span>
-        ) : (
-          // Belum ada penanggung jawab: langkah berikutnya milik Koordinator BK.
-          <span className="slac">
-            <span className="mut">Belum ditunjuk</span>{" "}
-            <span className="slan">
-              {TAHAP[c.tahap].label}: {orangKasus(SAYA).nama}
+          <span className="ksla">
+            <span className={`${sla.pil} tg`} title={sla.nama}>
+              {sla.label}
             </span>
           </span>
-        )}
-      </td>
-      <td className="csla">
-        <span className="slac">
-          <span className="slan">{sla.nama}</span>{" "}
-          <span className={`${sla.pil} tg`}>{sla.label}</span>
         </span>
-      </td>
-    </tr>
+      </button>
+    </li>
+  );
+}
+
+/** Bagian yang dilipat di laci detail. */
+function Lipat({ judul, info, children }) {
+  return (
+    <details className="lipat">
+      <summary>
+        <span>{judul}</span>
+        {info != null && <span className="lipk">{info}</span>}
+        <Ikon nama="kanan" size={16} className="lipv" />
+      </summary>
+      <div className="lipi">{children}</div>
+    </details>
   );
 }
 
 /**
  * Tiga pilihan jawaban penilaian awal (Tidak, Tidak yakin, Ya). Yang terpilih berwarna menurut
- * bobotnya: Tidak lembut, Tidak yakin kuning, Ya merah, supaya jawaban yang menaikkan tingkat
+ * bobotnya: Tidak ungu lembut, Tidak yakin kuning, Ya merah, supaya jawaban yang menaikkan tingkat
  * langsung terlihat.
  */
 function PilihanJawaban({ pertanyaan, nilai, onPilih }) {
@@ -615,16 +568,17 @@ function AlurKasus({ kasus: c }) {
   );
 }
 
-/** Triage: empat tingkat dengan SLA-nya, usulan dari jawaban pelapor, dan jawaban yang bisa dikoreksi. */
-function BlokTingkat({ jawaban, tingkat, onTingkat, onJawab }) {
+/** Cek awal: empat tingkat dengan batas waktunya, usulan dari jawaban pelapor, jawaban yang bisa dikoreksi. */
+function BlokTingkat({ kasus: c, jawaban, tingkat, onTingkat, onJawab }) {
   const usulan = tingkatDari(jawaban);
+  const penerima = namaTugas(usulanTugas(tingkat, jawaban, c.kelas)).join(", ");
   return (
     <section className="blok" aria-labelledby="kasus-tingkat">
       <div className="blokh">
         <h3 className="blokj" id="kasus-tingkat">
           Tetapkan tingkat
         </h3>
-        <span className="blokk">SLA dihitung sejak laporan masuk</span>
+        <span className="blokk">Batas waktu dihitung sejak laporan masuk</span>
       </div>
       <div className="tkgrid" role="group" aria-labelledby="kasus-tingkat">
         {TINGKAT.map((t) => {
@@ -637,7 +591,7 @@ function BlokTingkat({ jawaban, tingkat, onTingkat, onJawab }) {
                 {t === usulan && <span className="tku">Usulan</span>}
               </span>{" "}
               <span>
-                Respon <b>{a.responL}</b>
+                Tanggapan <b>{a.responL}</b>
               </span>{" "}
               <span>
                 Rencana <b>{a.rencanaL}</b>
@@ -647,63 +601,38 @@ function BlokTingkat({ jawaban, tingkat, onTingkat, onJawab }) {
         })}
       </div>
       <p className="reco info">
-        <b>Usulan {usulan}.</b> {alasanDari(jawaban)}
+        <b>Usulan {usulan}.</b> {alasanDari(jawaban)} Penanggung jawab {tingkat}: {penerima}.
       </p>
-      <details className="qdet">
-        <summary>Periksa jawaban pelapor</summary>
-        <div>
-          {PERTANYAAN.map((t, i) => (
-            <div key={t} className="qrow">
-              <span>{t}</span>
-              <PilihanJawaban pertanyaan={t} nilai={jawaban[i]} onPilih={(j) => onJawab(i, j)} />
-            </div>
-          ))}
-        </div>
-      </details>
+      <p className="rule">{jawaban[4] === 2 ? ATURAN_STAF : ATURAN_TEKS[tingkat]}</p>
+      <Lipat judul="Periksa jawaban pelapor" info="Penilaian awal">
+        {PERTANYAAN.map((t, i) => (
+          <div key={t} className="qrow">
+            <span>{t}</span>
+            <PilihanJawaban pertanyaan={t} nilai={jawaban[i]} onPilih={(j) => onJawab(i, j)} />
+          </div>
+        ))}
+      </Lipat>
     </section>
   );
 }
 
 /**
- * Penugasan dan SLA. Triage: usulan menurut tingkat yang dipilih. Penugasan: formulir Tugaskan
- * (utama dan pendukung). Sesudahnya: siapa memegang kasus, batas waktunya, dan butir checklist yang
- * lahir dari penugasan ini.
+ * Daftar penanggung jawab. Bagi tugas: formulir (utama dan pendukung). Sesudahnya: siapa memegang
+ * kasus dan butir checklist yang lahir dari pembagian tugas ini.
  */
-function BlokTugas({ kasus: c, kini, tingkat, jawaban, draf, centang, onPeran }) {
-  const triage = c.tahap === "triage";
+function DaftarTugas({ kasus: c, draf, centang, onPeran }) {
   const form = c.tahap === "tugas";
-  const tampil = triage ? usulanTugas(tingkat, jawaban, c.kelas) : form ? draf : c.tugas;
+  const tampil = form ? draf : c.tugas;
   const peranDi = (id) => (tampil?.utama === id ? "utama" : tampil?.pendukung.includes(id) ? "pendukung" : null);
   const daftarOrang = form
     ? [...new Set([...kandidatTugas(c.kelas), ...(tampil.utama ? [tampil.utama] : []), ...tampil.pendukung])]
     : tampil
       ? [tampil.utama, ...tampil.pendukung]
       : [];
-  const batasRespon = c.masuk != null ? batasDari(ATURAN[tingkat].respon(c.masuk), kini) : null;
   const butir = checklistKasus(c.id);
 
-  let keterangan = c.tugas ? `Ditugaskan ${c.tugas.waktu}` : "";
-  let catatan = null;
-  if (triage) {
-    keterangan = `Usulan aturan ${tingkat}`;
-    catatan = (jawaban[4] === 2 ? ATURAN_STAF : ATURAN_TEKS[tingkat]) + " Ditetapkan sesudah tingkat.";
-  } else if (form) {
-    keterangan = batasRespon ? `Respon pertama paling lambat ${batasRespon}` : "";
-    catatan =
-      c.tugas && !c.tugas.tetap
-        ? `Ditunjuk otomatis menurut aturan ${c.tingkat} pada ${c.tugas.waktu} dan sudah diberi tahu. Periksa, tambah pendukung bila perlu, lalu tugaskan.`
-        : `Terisi usulan aturan ${c.tingkat}. Pilih satu penanggung jawab utama, pendukung boleh lebih dari satu.`;
-  }
-
   return (
-    <section className="blok" aria-labelledby="kasus-tugas">
-      <div className="blokh">
-        <h3 className="blokj" id="kasus-tugas">
-          Penugasan
-        </h3>
-        {keterangan && <span className="blokk">{keterangan}</span>}
-      </div>
-      {catatan && <p className="rule">{catatan}</p>}
+    <>
       <ul className="pjl">
         {daftarOrang.map((id) => {
           const o = orangKasus(id);
@@ -736,22 +665,50 @@ function BlokTugas({ kasus: c, kini, tingkat, jawaban, draf, centang, onPeran })
             <span className={centang[b.id] ? "pill sm ok" : "pill sm gray"}>{centang[b.id] ? "Dicentang" : "Belum dicentang"}</span>
           </p>
         ))}
-      <div className="slal" role="group" aria-label="Batas waktu (SLA)">
-        {barisSla(c, kini, tingkat).map((r) => (
-          <div key={r.judul} className="slarow">
-            <span>
-              <b>{r.judul}</b>
-              <span className="slat">{r.target}</span>
-            </span>
-            <span className={r.pil}>{r.status}</span>
-          </div>
-        ))}
-      </div>
-    </section>
+    </>
   );
 }
 
-/** Isi laci detail kasus. Tombol utama di bilah bawah menjalankan langkah tahap kasus ini. */
+/** Tiga baris batas waktu: tanggapan pertama, rencana penanganan, pemantauan. */
+function BatasWaktu({ kasus: c, kini, tingkat }) {
+  return (
+    <div className="slal" role="group" aria-label="Batas waktu">
+      {barisSla(c, kini, tingkat).map((r) => (
+        <div key={r.judul} className="slarow">
+          <span>
+            <b>{r.judul}</b>
+            <span className="slat">{r.target}</span>
+          </span>
+          <span className={r.pil}>{r.status}</span>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+/** Rencana penanganan: butir yang bisa dicentang selama kasus belum selesai. */
+function DaftarRencana({ kasus: c, onRencana }) {
+  return (
+    <div>
+      {c.rencana.map((p, i) => (
+        <label key={i} className={`chk${p[3] ? " done" : ""}`}>
+          <input type="checkbox" checked={p[3]} disabled={c.tahap === "selesai"} onChange={() => onRencana(i)} />
+          <span>
+            <b>{p[0]}</b>
+            <span className="mut">
+              {p[1]} · {p[2]}
+            </span>
+          </span>
+        </label>
+      ))}
+    </div>
+  );
+}
+
+/**
+ * Isi laci detail kasus. Paling atas langkah tahap ini (tetapkan tingkat, bagi tugas, rencana
+ * penanganan, atau hasil akhir); data lain dilipat. Tombol utama di bilah bawah menjalankan langkahnya.
+ */
 function DetailKasus({
   kasus: c,
   kini,
@@ -768,7 +725,7 @@ function DetailKasus({
   onCatatan,
   onTambahCatatan,
   onHasil,
-  onEskalasi,
+  onTeruskan,
   onLanjut,
   onSkrining,
   onTutup,
@@ -777,10 +734,12 @@ function DetailKasus({
   const triage = c.tahap === "triage";
   const aksi = aksiTahap(c);
   const nSelesai = c.rencana.filter((p) => p[3]).length;
-  const tampilRencana = ["tangani", "pantau", "selesai"].includes(c.tahap) && c.rencana.length > 0;
-  const bisaEskalasi = (c.tahap === "tangani" || c.tahap === "pantau") && !c.eskalasi;
+  const infoRencana = `${nSelesai} dari ${c.rencana.length} selesai`;
+  const adaRencana = ["tangani", "pantau", "selesai"].includes(c.tahap) && c.rencana.length > 0;
+  const bisaTeruskan = (c.tahap === "tangani" || c.tahap === "pantau") && !c.eskalasi;
+  const utama = orangKasus(c.tugas?.utama);
 
-  // Tombol Eskalasi dan Tutup kasus hilang sesudah ditekan. Fokus pindah ke laci lebih dulu
+  // Tombol Teruskan dan Selesaikan kasus hilang sesudah ditekan. Fokus pindah ke laci lebih dulu
   // supaya tidak jatuh ke luar dialog.
   function fokusKeLaci() {
     kepalaRef.current?.closest('[role="dialog"]')?.focus({ preventScroll: true });
@@ -792,22 +751,19 @@ function DetailKasus({
         <div className="dheadi">
           <div className="dtags">
             <span className="pill sm gray">{c.id}</span>
-            <span className={`${PIL_TINGKAT[tingkat]}${triage ? " usul" : ""}`} title={triage ? "Belum ditetapkan" : undefined}>
-              {tingkat}
-              {triage && <span className="sr"> (belum ditetapkan)</span>}
-            </span>
+            <PilTingkat tingkat={tingkat} usul={triage} />
             <span className="pill sm gray">{TAHAP[c.tahap].label}</span>
-            {c.dariSkrining && <span className="pill sm mid">Dari skrining HEART</span>}
-            {c.eskalasi && <span className="pill sm bad">Dieskalasi ke Kepala Sekolah</span>}
+            {c.dariSkrining && <span className="pill sm mid">Dari screening HEART</span>}
+            {c.eskalasi && <span className="pill sm bad">Diteruskan ke Kepala Sekolah</span>}
           </div>
           <h2 className="dtitle">{c.judul}</h2>
           <p className="dsub">{c.terbatas ? "Detail kasus disembunyikan untuk peran Anda." : c.uraian}</p>
           {c.dariSkrining && (
             <p className="skrl">
               <Ikon nama="skrining" size={15} />
-              Kasus ini lahir dari tanda bahaya di skrining HEART.
+              Dibuat dari tanda bahaya di screening HEART.
               <button type="button" className="lnk" onClick={onSkrining}>
-                Buka skrining
+                Buka screening
               </button>
             </p>
           )}
@@ -820,20 +776,16 @@ function DetailKasus({
       {!c.terbatas && (
         <dl className="dmeta">
           <div>
-            <dt>Masuk</dt>
-            <dd>{c.masuk != null ? waktuLengkap(c.masuk) : c.masukLabel}</dd>
-          </div>
-          <div>
-            <dt>Pelapor dan kanal</dt>
-            <dd>{c.sumber || ""}</dd>
-          </div>
-          <div>
             <dt>Anak</dt>
             <dd>{c.anak + (c.kelas ? " · " + c.kelas : "")}</dd>
           </div>
           <div>
-            <dt>Jenis</dt>
-            <dd>{c.kategori}</dd>
+            <dt>Masuk</dt>
+            <dd>{c.masuk != null ? waktuLengkap(c.masuk) : c.masukLabel}</dd>
+          </div>
+          <div>
+            <dt>Penanggung jawab</dt>
+            <dd>{utama ? utama.nama : "Belum ditunjuk"}</dd>
           </div>
         </dl>
       )}
@@ -844,47 +796,46 @@ function DetailKasus({
         <div className="lock">
           <Ikon nama="gembok" size={22} warna="var(--sp-tinta-3)" style={{ flex: "none" }} />
           <span>
-            <b>Akses terbatas.</b> Terlapor dalam kasus ini adalah staf sekolah, jadi detail hanya terbuka untuk Kepala Sekolah dan
-            pendamping Fammi. Anda tetap melihat tahap dan jadwal tinjau agar beban kerja tim terbaca: masuk Rabu 21 Okt, dipantau sampai
-            Rabu 18 Nov.
+            <b>Akses terbatas.</b> Terlapor staf sekolah, jadi detailnya hanya untuk Kepala Sekolah dan pendamping Fammi. Masuk Rabu 21
+            Okt, dipantau sampai Rabu 18 Nov.
           </span>
         </div>
       ) : (
         <>
-          {triage && <BlokTingkat jawaban={jawaban} tingkat={tingkat} onTingkat={onTingkat} onJawab={onJawab} />}
+          {/* Langkah tahap ini, selalu terbuka. */}
+          {triage && <BlokTingkat kasus={c} jawaban={jawaban} tingkat={tingkat} onTingkat={onTingkat} onJawab={onJawab} />}
 
-          <BlokTugas kasus={c} kini={kini} tingkat={tingkat} jawaban={jawaban} draf={draf} centang={centang} onPeran={onPeran} />
+          {c.tahap === "tugas" && (
+            <section className="blok" aria-labelledby="kasus-tugas">
+              <div className="blokh">
+                <h3 className="blokj" id="kasus-tugas">
+                  Bagi tugas
+                </h3>
+                <span className="blokk">Satu utama, pendukung boleh lebih dari satu</span>
+              </div>
+              {c.tugas && !c.tugas.tetap && (
+                <p className="rule">Ditunjuk otomatis {c.tugas.waktu} menurut aturan {c.tingkat} dan sudah diberi tahu. Periksa, lalu bagi tugas.</p>
+              )}
+              <DaftarTugas kasus={c} draf={draf} centang={centang} onPeran={onPeran} />
+            </section>
+          )}
 
-          {tampilRencana && (
+          {c.tahap === "tangani" && adaRencana && (
             <section className="blok" aria-labelledby="kasus-rencana">
               <div className="blokh">
                 <h3 className="blokj" id="kasus-rencana">
-                  Rencana tindak
+                  Rencana penanganan
                 </h3>
-                <span className="blokk">
-                  {nSelesai} dari {c.rencana.length} selesai
-                </span>
+                <span className="blokk">{infoRencana}</span>
               </div>
-              <div>
-                {c.rencana.map((p, i) => (
-                  <label key={i} className={`chk${p[3] ? " done" : ""}`}>
-                    <input type="checkbox" checked={p[3]} disabled={c.tahap === "selesai"} onChange={() => onRencana(i)} />
-                    <span>
-                      <b>{p[0]}</b>
-                      <span className="mut">
-                        {p[1]} · {p[2]}
-                      </span>
-                    </span>
-                  </label>
-                ))}
-              </div>
+              <DaftarRencana kasus={c} onRencana={onRencana} />
             </section>
           )}
 
           {c.tahap === "pantau" && (
-            <div className="fld">
+            <div className="fld blok">
               <label className="flabel" htmlFor="kasus-hasil">
-                Hasil akhir saat menutup kasus
+                Hasil akhir
               </label>
               <select id="kasus-hasil" className="inp" value={hasil} onChange={(e) => onHasil(e.target.value)}>
                 {HASIL_AKHIR.map((h) => (
@@ -896,57 +847,90 @@ function DetailKasus({
             </div>
           )}
 
-          <section className="blok" aria-labelledby="kasus-riwayat">
-            <div className="blokh">
-              <h3 className="blokj" id="kasus-riwayat">
-                Catatan dan riwayat
-              </h3>
-            </div>
-            {c.tahap !== "selesai" && (
-              <div className="noteform">
-                <label className="sr" htmlFor="kasus-catatan">
-                  Catatan baru
-                </label>
-                <input
-                  id="kasus-catatan"
-                  className="inp"
-                  placeholder="Tambah catatan perkembangan"
-                  value={catatan}
-                  onChange={(e) => onCatatan(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter" && !e.nativeEvent.isComposing) {
-                      e.preventDefault();
-                      onTambahCatatan();
-                    }
-                  }}
-                />
-                <button type="button" className="ghost" onClick={onTambahCatatan}>
-                  Tambah
-                </button>
-              </div>
+          {/* Data pendukung, dilipat. */}
+          <div className="lipatan">
+            {c.tugas && c.tahap !== "tugas" && (
+              <Lipat judul="Penanggung jawab" info={namaTugas(c.tugas).length + " orang"}>
+                <DaftarTugas kasus={c} draf={draf} centang={centang} onPeran={onPeran} />
+              </Lipat>
             )}
-            <ol className="log">
-              {c.riwayat.map((l, i) => (
-                <li key={c.riwayat.length - i} className="logi">
-                  <span className="logt">{l[0]}</span>
-                  <span>{l[1]}</span>
-                </li>
-              ))}
-            </ol>
-          </section>
+            <Lipat judul="Batas waktu" info={slaKasus(c, kini).label}>
+              <BatasWaktu kasus={c} kini={kini} tingkat={tingkat} />
+            </Lipat>
+            {adaRencana && c.tahap !== "tangani" && (
+              <Lipat judul="Rencana penanganan" info={infoRencana}>
+                <DaftarRencana kasus={c} onRencana={onRencana} />
+              </Lipat>
+            )}
+            {!triage && (
+              <Lipat judul="Penilaian awal" info={`Tingkat ${c.tingkat}`}>
+                {PERTANYAAN.map((t, i) => (
+                  <div key={t} className="qrow">
+                    <span>{t}</span>
+                    <b className="qjaw">{JAWABAN[c.jawaban[i]]}</b>
+                  </div>
+                ))}
+              </Lipat>
+            )}
+            <Lipat judul="Data laporan" info={c.kategori}>
+              <dl className="dmeta">
+                <div>
+                  <dt>Pelapor dan kanal</dt>
+                  <dd>{c.sumber || ""}</dd>
+                </div>
+                <div>
+                  <dt>Jenis</dt>
+                  <dd>{c.kategori}</dd>
+                </div>
+              </dl>
+            </Lipat>
+            <Lipat judul="Catatan kejadian" info={c.riwayat.length + " catatan"}>
+              {c.tahap !== "selesai" && (
+                <div className="noteform">
+                  <label className="sr" htmlFor="kasus-catatan">
+                    Catatan baru
+                  </label>
+                  <input
+                    id="kasus-catatan"
+                    className="inp"
+                    placeholder="Tambah catatan perkembangan"
+                    value={catatan}
+                    onChange={(e) => onCatatan(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" && !e.nativeEvent.isComposing) {
+                        e.preventDefault();
+                        onTambahCatatan();
+                      }
+                    }}
+                  />
+                  <button type="button" className="ghost" onClick={onTambahCatatan}>
+                    Tambah
+                  </button>
+                </div>
+              )}
+              <ol className="log">
+                {c.riwayat.map((l, i) => (
+                  <li key={c.riwayat.length - i} className="logi">
+                    <span className="logt">{l[0]}</span>
+                    <span>{l[1]}</span>
+                  </li>
+                ))}
+              </ol>
+            </Lipat>
+          </div>
 
           <div className="dfootbar">
             <span className="fnote">{aksi.catatan}</span>
-            {bisaEskalasi && (
+            {bisaTeruskan && (
               <button
                 type="button"
                 className="btnr"
                 onClick={() => {
                   fokusKeLaci();
-                  onEskalasi();
+                  onTeruskan();
                 }}
               >
-                Eskalasi
+                Teruskan ke Kepala Sekolah
               </button>
             )}
             {c.tahap !== "selesai" && (
@@ -990,7 +974,7 @@ function FormLapor({ lapor, kini, tercatat, onUbah, onJawab, onKirim, onBukaKasu
           </div>
         }
         judul="Lapor kejadian"
-        sub="Isi yang Anda ketahui saja. Identitas pelapor hanya terlihat oleh tim penanganan."
+        sub="Isi yang Anda ketahui saja; identitas pelapor hanya dilihat tim penanganan."
         onTutup={onTutup}
       />
 
@@ -998,15 +982,15 @@ function FormLapor({ lapor, kini, tercatat, onUbah, onJawab, onKirim, onBukaKasu
         <div className="okbox" ref={hasilRef} tabIndex={-1}>
           <b>Laporan {tercatat.id} tercatat</b>
           <span>
-            Masuk tahap triage dengan usulan tingkat {tercatat.tingkat}. Koordinator BK dan Kepala Sekolah sudah menerima notifikasi; jam
-            SLA berjalan sejak sekarang.
+            Usulan tingkat {tercatat.tingkat}, menunggu dicek. Koordinator BK dan Kepala Sekolah sudah diberi tahu, batas waktu mulai
+            berjalan.
           </span>
           <div className="okacts">
             <button type="button" className="btnp" onClick={onBukaKasus}>
               Buka kasus
             </button>
             <button type="button" className="ghost" onClick={onTutup}>
-              Kembali ke antrean
+              Kembali ke daftar kasus
             </button>
           </div>
         </div>
@@ -1014,7 +998,7 @@ function FormLapor({ lapor, kini, tercatat, onUbah, onJawab, onKirim, onBukaKasu
         <>
           <p className="reco bad lapdgr">
             <Ikon nama="peringatan" size={16} style={{ flex: "none", marginTop: 1 }} />
-            <span>Bila anak dalam bahaya saat ini, amankan anak dulu dan hubungi 112 atau layanan SAPA 129. Isi laporan setelah anak aman.</span>
+            <span>Bila anak dalam bahaya saat ini, amankan anak dulu dan minta bantuan orang dewasa terdekat. Isi laporan setelah anak aman.</span>
           </p>
 
           <div className="fld">
@@ -1095,7 +1079,7 @@ function FormLapor({ lapor, kini, tercatat, onUbah, onJawab, onKirim, onBukaKasu
               id="kasus-lapor-cerita"
               className="inp"
               rows={2}
-              placeholder="Tulis apa yang Anda lihat atau dengar, tanpa menebak alasannya."
+              placeholder="Tulis yang Anda lihat atau dengar, tanpa menebak sebabnya."
               value={lapor.cerita}
               onChange={(e) => onUbah("cerita", e.target.value)}
             />
@@ -1119,13 +1103,13 @@ function FormLapor({ lapor, kini, tercatat, onUbah, onJawab, onKirim, onBukaKasu
             <div className={`res ${tingkat}`} aria-live="polite">
               <b>Usulan tingkat {tingkat}</b>
               <span>
-                Respon pertama paling lambat {batas}. Usulan penanggung jawab: {penerima}.
+                Tanggapan pertama paling lambat {batas}. Usulan penanggung jawab: {penerima}.
               </span>
             </div>
           </section>
 
           <div className="dfootbar">
-            <span className="fnote">Laporan masuk antrean triage. Koordinator BK menetapkan tingkat, lalu menugaskan.</span>
+            <span className="fnote">Setelah dikirim, Koordinator BK menetapkan tingkat lalu membagi tugas.</span>
             <button type="button" className="ghost" onClick={onTutup}>
               Batal
             </button>
@@ -1139,8 +1123,8 @@ function FormLapor({ lapor, kini, tercatat, onUbah, onJawab, onKirim, onBukaKasu
   );
 }
 
-/** Isi laci Aturan SLA: tabel tingkat, catatan aturan, dan tombol acuan sekolah. */
-function AturanSla({ onAtur, onTutup }) {
+/** Isi laci Aturan batas waktu: tabel tingkat, catatan aturan, angka bulan ini, dan tombol acuan sekolah. */
+function AturanBatas({ onAtur, onTutup }) {
   return (
     <>
       <KepalaLaci
@@ -1149,19 +1133,19 @@ function AturanSla({ onAtur, onTutup }) {
             <Ikon nama="jam" size={22} />
           </div>
         }
-        judul="Aturan SLA dan penugasan"
-        sub="Usulan awal. Batas waktu dan penanggung jawab bisa diatur tiap sekolah."
+        judul="Aturan batas waktu"
+        sub="Usulan awal, bisa diatur tiap sekolah."
         onTutup={onTutup}
       />
-      <div className="tbox">
+      <div className="atbox">
         <table className="tbl atur">
           <thead>
             <tr>
               <th scope="col">Tingkat</th>
               <th scope="col">Contoh</th>
               <th scope="col">Penanggung jawab</th>
-              <th scope="col">Respon pertama</th>
-              <th scope="col">Rencana tindak</th>
+              <th scope="col">Tanggapan pertama</th>
+              <th scope="col">Rencana penanganan</th>
             </tr>
           </thead>
           <tbody>
@@ -1184,6 +1168,16 @@ function AturanSla({ onAtur, onTutup }) {
           <li key={t}>{t}</li>
         ))}
       </ol>
+      <dl className="dmeta angka">
+        <div>
+          <dt>Tanggapan pertama rata-rata</dt>
+          <dd>42 menit, semua tingkat sejak 19 Okt</dd>
+        </div>
+        <div>
+          <dt>Tepat waktu</dt>
+          <dd>96%, 25 dari 26 tahap</dd>
+        </div>
+      </dl>
       <div className="dfootbar">
         <button type="button" className="ghost" onClick={onAtur}>
           Atur acuan sekolah

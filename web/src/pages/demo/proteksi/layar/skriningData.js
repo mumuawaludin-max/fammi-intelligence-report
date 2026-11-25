@@ -9,7 +9,7 @@
  * sama dengan bentuk ANAK_2B di bersama/heart.js. Anak kelas 2B wajib sama persis dengan ANAK_2B
  * (diuji di skriningData.test.js).
  */
-import { HEART } from "../bersama/heart.js";
+import { HEART, RINGKAS_SEKOLAH } from "../bersama/heart.js";
 
 const KODE_STATUS = { b: "baik", p: "perhatian", w: "waspada" };
 
@@ -29,7 +29,7 @@ export function aspekMenonjol(kode) {
 
 /**
  * Kelas. anak = jumlah anak, walas / ortu = formulir wali kelas / orang tua yang sudah masuk. Anak
- * terpetakan kalau formulir wali kelasnya sudah masuk (276 dari 288).
+ * sudah diskrining kalau formulir wali kelasnya sudah masuk (276 dari 288).
  */
 export const KELAS = [
   { kelas: "TK A", wali: "Bu Nisa", anak: 20, walas: 20, ortu: 17 },
@@ -48,6 +48,19 @@ export const KELAS = [
 /** Nama wali kelas per kelas. */
 export const WALI = Object.fromEntries(KELAS.map((k) => [k.kelas, k.wali]));
 
+const jumlahKelas = (kunci) => KELAS.reduce((n, k) => n + k[kunci], 0);
+
+/** Jumlah seluruh sekolah: anak, formulir wali kelas, formulir orang tua, orang tua yang belum mengisi. */
+export const TOTAL = {
+  anak: jumlahKelas("anak"),
+  walas: jumlahKelas("walas"),
+  ortu: jumlahKelas("ortu"),
+  belumOrtu: jumlahKelas("anak") - jumlahKelas("ortu"),
+};
+
+/** Kelas yang formulir wali kelasnya belum lengkap (sebagian anaknya belum diskrining). */
+export const KELAS_WALAS_BELUM = KELAS.filter((k) => k.walas < k.anak);
+
 /** Kelas sudut pandang "walas" di prototipe (Bu Rina). Hanya tindak lanjut kelas ini yang masuk loncengnya. */
 export const KELAS_WALAS = "2B";
 
@@ -57,8 +70,9 @@ export const KELAS_WALAS = "2B";
  *   laporan   Raka: laporan lengkap dan checklist hidup dari konteks, plus kasus `kasus`
  *   berjalan  tindak lanjut berjalan, `evaluasi` = tanggal evaluasi, `buddy` = teman pendamping
  *   kasus     juga ditangani di alur kejadian: `kasus` = id di Kasus, `tingkat`, `oleh`
- * `calonBuddy` = usulan wali kelas untuk laci Susun tindak lanjut. Fikri sudah diberi buddy oleh
- * wali kelasnya (BUDDY_2B), tapi checklist tindak lanjutnya belum disusun.
+ * `calonBuddy` = usulan wali kelas untuk laci Susun tindak lanjut. Fikri sudah diberi teman
+ * pendamping oleh wali kelasnya (BUDDY_2B), tapi checklist tindak lanjutnya belum disusun. Di layar,
+ * `buddy` tampil sebagai "pendamping sebaya".
  */
 export const WASPADA = [
   { nama: "Fikri Hidayat", kelas: "2B", heart: "wbpbb", tindak: { jenis: "belum", buddy: "Elang Mahesa", sejak: "6 Nov" } },
@@ -82,8 +96,8 @@ export const WASPADA = [
 ];
 
 /**
- * 37 anak Perlu Perhatian: wali kelas mengamati 4 minggu. `minggu` = minggu observasi ke berapa,
- * `catatan` = catatan terakhir wali kelas. Urut dari observasi yang paling dekat selesai.
+ * 37 anak Perlu Perhatian: wali kelas mengamati 4 minggu. `minggu` = minggu pengamatan ke berapa,
+ * `catatan` = catatan terakhir wali kelas. Urut dari pengamatan yang paling dekat selesai.
  */
 export const PERHATIAN = [
   { nama: "Nabila Rahma", kelas: "TK A", heart: "bpbbb", minggu: 3, catatan: "Menangis saat berpisah di gerbang, tenang sesudah 10 menit." },
@@ -145,11 +159,11 @@ export const VERSI = [
 ];
 
 export const SUB_FORMULIR = {
-  ot: "Versi orang tua · dibuka dari tautan WhatsApp · sekitar 8 menit · tentang anak di rumah sebulan terakhir",
-  wk: "Versi wali kelas · diisi di aplikasi sekolah · sekitar 3 menit per anak · tentang anak di sekolah sebulan terakhir",
+  ot: "Lewat tautan WhatsApp · sekitar 8 menit · tentang anak di rumah sebulan terakhir",
+  wk: "Di aplikasi sekolah · sekitar 3 menit per anak · tentang anak di sekolah sebulan terakhir",
 };
 
-export const JAWABAN_HEART = ["Tidak pernah", "Kadang-kadang", "Sering"];
+export const JAWABAN_HEART = ["Tidak pernah", "Kadang", "Sering"];
 export const JAWABAN_KEAMANAN = ["Ya", "Tidak", "Tidak yakin"];
 
 /**
@@ -247,7 +261,7 @@ export const USULAN = {
     { teks: "Jeda gerak 2 menit tiap 20 menit belajar", oleh: "walas" },
   ],
   emosional: [
-    { teks: "Obrolan hasil skrining dengan orang tua", oleh: "walas" },
+    { teks: "Obrolan hasil screening dengan orang tua", oleh: "walas" },
     { teks: "Sesi BK mingguan: mengenali dan menamai perasaan", oleh: "bk" },
     { teks: "Pojok tenang dan kartu perasaan di kelas", oleh: "walas" },
     { teks: "Tanyakan perasaannya sepulang sekolah", oleh: "ortu" },
@@ -288,3 +302,36 @@ export const EVALUASI = [
   { id: "4", label: "4 minggu lagi", tanggal: "9 Des" },
   { id: "6", label: "6 minggu lagi", tanggal: "23 Des" },
 ];
+
+// ── Turunan untuk layar ─────────────────────────────────────────────────────────────────────────
+
+/** Semua anak di daftar: Waspada lalu Perlu Perhatian. */
+export const SEMUA_ANAK = [...WASPADA, ...PERHATIAN];
+
+/** Anak Waspada yang belum punya tindak lanjut (awal demo), urut tampil. */
+export const WASPADA_BELUM = WASPADA.filter((a) => a.tindak.jenis === "belum");
+
+/** Tanda bahaya yang kasusnya belum selesai. */
+export const TANDA_TERBUKA = TANDA_BAHAYA.filter((t) => !t.selesai);
+
+/** Dua aspek dengan anak Perlu Perhatian atau Waspada terbanyak, untuk keterangan sebaran. */
+export const ASPEK_TERATAS = HEART.map((a) => {
+  const x = RINGKAS_SEKOLAH.perAspek[a.id];
+  return { aspek: a, n: x.perhatian + x.waspada };
+})
+  .sort((p, q) => q.n - p.n)
+  .slice(0, 2);
+
+/** Hasil satu kelas per aspek: jumlah anak tidak Baik dan yang Waspada. */
+export const HASIL_KELAS = KELAS.map((k) => {
+  const anak = SEMUA_ANAK.filter((a) => a.kelas === k.kelas);
+  const perAspek = HEART.map((a) => {
+    const status = anak.map((x) => bacaHeart(x.heart)[a.id]);
+    return {
+      aspek: a,
+      ditandai: status.filter((s) => s !== "baik").length,
+      waspada: status.filter((s) => s === "waspada").length,
+    };
+  });
+  return { ...k, perAspek, jumlah: anak.length, waspada: anak.filter((x) => WASPADA.includes(x)).length };
+});

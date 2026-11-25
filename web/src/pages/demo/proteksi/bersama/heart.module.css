@@ -14,14 +14,60 @@
 }
 .hurufMd .hurufSel { width: 26px; height: 26px; border-radius: 7px; font-size: 13px; }
 
-.hati { display: block; max-width: 100%; height: auto; overflow: visible; }
-.kode { fill: var(--sp-putih); font-size: 14px; font-weight: 700; font-family: inherit; pointer-events: none; }
-.nama { font-size: 9px; font-weight: 600; font-family: inherit; pointer-events: none; }
-.cincin { fill: none; stroke: var(--sp-ungu); stroke-width: 3; }
-.keping { cursor: pointer; outline: none; }
-.keping:hover rect { filter: brightness(0.97); }
-.keping:focus-visible .cincin,
-.keping:focus-visible circle:first-of-type { stroke: var(--sp-ungu); stroke-width: 3; }
+.hati { display: block; max-width: 100%; height: auto; margin: 0 auto; }
+/* Keping datar: latar lembut status, huruf berwarna status. Keping aktif terisi pekat, huruf putih. */
+.potong { fill: var(--isi); transition: fill 0.2s ease; }
+.kode {
+  fill: var(--teks);
+  font-size: 22px;
+  font-weight: 800;
+  font-family: inherit;
+  pointer-events: none;
+  transition: fill 0.2s ease;
+}
+.keping {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: kepingMasuk 0.5s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+  animation-delay: calc(var(--urut) * 70ms);
+}
+.bisaPilih { cursor: pointer; outline: none; }
+.bisaPilih:hover .potong { fill: var(--kuat); fill-opacity: 0.35; }
+.aktif .potong,
+.bisaPilih:focus-visible .potong { fill: var(--kuat); fill-opacity: 1; }
+.aktif .kode,
+.bisaPilih:focus-visible .kode { fill: var(--sp-putih); }
+@keyframes kepingMasuk {
+  from { opacity: 0; transform: scale(0.86); }
+  to { opacity: 1; transform: scale(1); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .keping { animation: none; }
+}
+
+/* Legenda di bawah hati: nama aspek di luar gambar supaya tidak pernah terpotong. */
+.petaBungkus { display: flex; flex-direction: column; align-items: center; gap: 12px; margin: 0 auto; width: 100%; }
+.legenda {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 6px 12px;
+}
+.legenda li { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; color: var(--sp-tinta-2); }
+.legendaHuruf {
+  width: 20px;
+  height: 20px;
+  border-radius: 6px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  font-weight: 800;
+}
+.legendaNama { white-space: nowrap; }
 
 /* Label skor di atas batang, angka ambang di bawahnya, garis penanda menembus batang. */
 .skala { position: relative; padding-top: 26px; margin: 0 12px; }
@@ -55,5 +101,4 @@
   margin-top: 1px;
   border-radius: 2px;
   background: var(--sp-ungu-tua);
-  box-shadow: 0 0 0 2px var(--sp-putih);
 }

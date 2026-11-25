@@ -1,178 +1,84 @@
-import { useRef, useState } from "react";
+import { useState } from "react";
 import { useProteksi } from "../konteks";
-import { Ikon, KepalaKartu, Segmen } from "../komponen";
-import { inisial } from "../alat";
+import { Ikon, KepalaKartu } from "../komponen";
 import AlurBar from "../bersama/AlurBar";
-import { HurufHeart, PilStatus } from "../bersama/HeartKecil";
-import { HEART, RINGKAS_SEKOLAH } from "../bersama/heart";
+import { RINGKAS_SEKOLAH } from "../bersama/heart";
 import { checklistAnak } from "../bersama/tindakLanjut";
 import {
+  ASPEK_TERATAS,
   HEART_ANAK,
   KELAS,
   KELAS_WALAS,
+  KELAS_WALAS_BELUM,
   PERHATIAN,
   PERTANYAAN_KEAMANAN,
+  SEMUA_ANAK,
   TANDA_BAHAYA,
+  TANDA_TERBUKA,
+  TOTAL,
   WALI,
   WASPADA,
+  WASPADA_BELUM,
   aspekMenonjol,
-  bacaHeart,
 } from "./skriningData";
-import { LaciFormulir, LaciRingkasan, LaciTindakLanjut } from "./SkriningLaci";
+import {
+  AspekMenonjol,
+  BarisAnak,
+  LaciDaftar,
+  LaciFormulir,
+  LaciKemajuan,
+  LaciRingkasan,
+  LaciSebaran,
+  LaciTindakLanjut,
+} from "./SkriningLaci";
+import { Cincin } from "../bersama/Grafik";
 import css from "./Skrining.module.css";
 
-/** Empat ubin status. `daftar` = daftar anak yang dibuka saat ubin diklik (Baik tidak punya daftar). */
-const UBIN = [
-  {
-    id: "baik",
-    nada: "ok",
-    status: "baik",
-    jumlah: RINGKAS_SEKOLAH.baik,
-    langkah: "Kelas kesadaran bersama",
-    oleh: "Wali kelas",
-  },
-  {
-    id: "perhatian",
-    nada: "warn",
-    status: "perhatian",
-    jumlah: RINGKAS_SEKOLAH.perhatian,
-    langkah: "Observasi 4 minggu",
-    oleh: "Wali kelas",
-    daftar: "perhatian",
-  },
-  {
-    id: "waspada",
-    nada: "bad",
-    status: "waspada",
-    jumlah: RINGKAS_SEKOLAH.waspada,
-    langkah: "Tindak lanjut, checklist, dan buddy",
-    oleh: "Guru BK, wali kelas, orang tua",
-    daftar: "waspada",
-  },
-  {
-    id: "tanda",
-    nada: "crit",
-    label: "Tanda bahaya",
-    jumlah: RINGKAS_SEKOLAH.tandaBahaya,
-    langkah: "Langsung jadi laporan kejadian",
-    oleh: "Koordinator BK",
-    daftar: "tanda",
-  },
-];
-
 const DAFTAR = [
-  { id: "waspada", label: `Waspada (${WASPADA.length})` },
-  { id: "perhatian", label: `Perlu Perhatian (${PERHATIAN.length})` },
+  { id: "waspada", label: `Perlu Perhatian Lebih (${WASPADA.length})` },
+  { id: "perhatian", label: `Perlu Diperhatikan (${PERHATIAN.length})` },
   { id: "tanda", label: `Tanda bahaya (${TANDA_BAHAYA.length})` },
 ];
 
 const PENGANTAR = {
-  waspada:
-    "Guru BK menyusun tindak lanjut bersama wali kelas dan orang tua: butir checklist per aspek dan buddy. Yang belum punya tindak lanjut ada di atas.",
-  perhatian:
-    "Wali kelas mengamati selama 4 minggu dan mencatat tiap minggu. Bila belum membaik, Guru BK menyusun tindak lanjut.",
-  tanda:
-    "Jawaban Ya pada pertanyaan keamanan langsung menjadi laporan kejadian dan ditangani di alur kejadian, terpisah dari hasil HEART.",
+  waspada: "Guru BK menyusun tindak lanjut bersama wali kelas dan orang tua.",
+  perhatian: "Wali kelas mengamati 4 minggu, lalu Guru BK menyusun tindak lanjut bila belum membaik.",
+  tanda: "Jawaban Ya pada pertanyaan keamanan langsung jadi laporan kejadian.",
 };
-
-const TAB_KELAS = [
-  { id: "progres", label: "Progres pengisian" },
-  { id: "hasil", label: "Hasil per kelas" },
-];
-
-const BARIS_AWAL = 8;
-
-const jumlahKelas = (kunci) => KELAS.reduce((n, k) => n + k[kunci], 0);
-const TOTAL_ANAK = jumlahKelas("anak");
-const TOTAL_WALAS = jumlahKelas("walas");
-const TOTAL_ORTU = jumlahKelas("ortu");
-const BELUM_ORTU = TOTAL_ANAK - TOTAL_ORTU;
-const KELAS_WALAS_BELUM = KELAS.filter((k) => k.walas < k.anak);
-const SEMUA_ANAK = [...WASPADA, ...PERHATIAN];
 
 const persen = (n, dari) => `${Math.round((n / dari) * 100)}%`;
 
-/** Dua aspek dengan anak Perlu Perhatian atau Waspada terbanyak, untuk catatan di bawah grafik. */
-const ASPEK_TERATAS = HEART.map((a) => {
-  const x = RINGKAS_SEKOLAH.perAspek[a.id];
-  return { aspek: a, n: x.perhatian + x.waspada };
-})
-  .sort((p, q) => q.n - p.n)
-  .slice(0, 2);
-
-/** Hasil satu kelas per aspek: jumlah anak tidak Baik dan yang Waspada. */
-const HASIL_KELAS = KELAS.map((k) => {
-  const anak = SEMUA_ANAK.filter((a) => a.kelas === k.kelas);
-  const perAspek = HEART.map((a) => {
-    const status = anak.map((x) => bacaHeart(x.heart)[a.id]);
-    return {
-      aspek: a,
-      ditandai: status.filter((s) => s !== "baik").length,
-      waspada: status.filter((s) => s === "waspada").length,
-    };
-  });
-  return { ...k, perAspek, jumlah: anak.length, waspada: anak.filter((x) => WASPADA.includes(x)).length };
-});
-
-/** Batang kecil + angka "n / dari". `label` hanya tampil di layar sempit, saat kepala tabel disembunyikan. */
-function Progres({ nilai, dari, nada, label }) {
-  return (
-    <span className="pcell">
-      <span className="hp" aria-hidden="true">
-        {label}
-      </span>
-      <span className="prog" aria-hidden="true">
-        <span className={`progf ${nada}`} style={{ width: persen(nilai, dari) }} />
-      </span>
-      <span className={nilai < dari && nada === "warn" ? "o" : undefined}>{`${nilai} / ${dari}`}</span>
-    </span>
-  );
-}
-
 /**
  * Skrining HEART (sudut pandang Bu Laras, Koordinator BK, seluruh sekolah): langkah pertama alur
- * pencegahan. Empat ubin status menyaring daftar anak, hasil per aspek HEART, progres pengisian dan
- * hasil per kelas, lalu daftar anak yang perlu ditindaklanjuti beserta langkah berikutnya. Laci:
- * formulir, susun tindak lanjut, dan ringkasan anak. Semua data contoh.
+ * pencegahan. Halaman utama ringkas seperti menu, urut menurut journey Guru BK:
+ *   1. Perlu ditangani sekarang  tanda bahaya yang kasusnya terbuka dan anak Waspada tanpa tindak
+ *                                lanjut ([data-bagian="daftar-anak"], tujuan gulir dari Ringkasan)
+ *   2. Kemajuan skrining         berapa anak sudah diskrining, kelas mana yang belum
+ *   3. Rincian hasil             daftar lengkap anak, sebaran per aspek dan kelas, isi formulir
+ * Rincian ada di laci (SkriningLaci.jsx). Laci anak (susun tindak lanjut, ringkasan) bisa terbuka di
+ * atas laci daftar; menutupnya kembali ke daftar. Semua data contoh.
  */
 export default function Skrining() {
   const { pindah, toast, beriTahu, centang, rencanaBaru, simpanRencana, tambahChecklist } = useProteksi();
+  const [laci, setLaci] = useState(null);
+  const [laciAnak, setLaciAnak] = useState(null);
   const [daftar, setDaftar] = useState("waspada");
   const [semua, setSemua] = useState(false);
-  const [tabKelas, setTabKelas] = useState("progres");
-  const [laci, setLaci] = useState(null);
   // Tindak lanjut yang disusun di layar ini disimpan di konteks, jadi tetap ada saat layar berganti.
   const disusun = rencanaBaru;
   const [diingatkan, setDiingatkan] = useState({});
   const [semuaDiingatkan, setSemuaDiingatkan] = useState(false);
   const [walasDiingatkan, setWalasDiingatkan] = useState(false);
-  const daftarRef = useRef(null);
 
   function pilihDaftar(id) {
     setDaftar(id);
     setSemua(false);
   }
 
-  // Ubin menyaring daftar anak di bawah, lalu menggulir ke sana. Fokus pindah ke tombol segmen yang
-  // sama di kartu daftar, supaya papan ketik dan pembaca layar ikut ke tempat hasilnya.
-  function pilihUbin(u) {
-    if (!u.daftar) {
-      toast(`${u.jumlah} anak Baik cukup ikut kelas kesadaran bersama, dijadwalkan wali kelas masing-masing`);
-      return;
-    }
-    pilihDaftar(u.daftar);
-    const kartu = daftarRef.current;
-    if (!kartu) return;
-    const halus = !window.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches;
-    kartu.scrollIntoView({ block: "start", behavior: halus ? "smooth" : "auto" });
-    const tombol = kartu.querySelectorAll(".seg .segb")[DAFTAR.findIndex((d) => d.id === u.daftar)];
-    tombol?.focus({ preventScroll: true });
-  }
-
   function ingatkanSemua() {
     if (semuaDiingatkan) return;
     setSemuaDiingatkan(true);
-    toast(`Pengingat WhatsApp terkirim ke ${BELUM_ORTU} orang tua di ${KELAS.length} kelas`);
+    toast(`Pengingat WhatsApp terkirim ke ${TOTAL.belumOrtu} orang tua di ${KELAS.length} kelas`);
   }
 
   function ingatkanKelas(k) {
@@ -189,7 +95,7 @@ export default function Skrining() {
         peran: "walas",
         ikon: "skrining",
         nada: "warn",
-        judul: "Pengingat skrining HEART dari Bu Laras",
+        judul: "Pengingat screening HEART dari Bu Laras",
         isi: `Formulir ${walas.anak - walas.walas} anak kelas ${walas.kelas} belum diisi. Batas Jumat, 13 Nov.`,
         tujuan: { layar: "kelas", aksi: { jenis: "gulir", id: "checklist" } },
       });
@@ -199,7 +105,7 @@ export default function Skrining() {
 
   function simpanTindak(anak, hasil) {
     simpanRencana(anak.nama, hasil);
-    setLaci(null);
+    setLaciAnak(null);
     // Anak 2B: butirnya masuk checklist bersama, jadi milik Bu Rina langsung muncul di Ruang wali
     // kelas (langkah Checklist). Kelas lain punya wali kelas di luar prototipe.
     if (anak.kelas === KELAS_WALAS) {
@@ -214,6 +120,7 @@ export default function Skrining() {
           oleh: b.oleh,
           waktu: "Mulai Kamis, 12 Nov",
           selesai: false,
+          ...(b.sumber ? { sumber: b.sumber } : {}),
         })),
       );
     }
@@ -243,28 +150,31 @@ export default function Skrining() {
   }
 
   const bukaKasus = (id) => pindah("kasus", { jenis: "kasus", id });
+  const bukaRingkasan = (nama) => setLaciAnak({ jenis: "ringkasan", nama });
+  const bukaTindak = (nama) => setLaciAnak({ jenis: "tindak", nama });
 
   // Kemajuan checklist Raka hidup dari konteks: centang di Ruang wali kelas ikut terlihat di sini.
   const butirRaka = checklistAnak("Raka Pratama");
   const selesaiRaka = butirRaka.filter((b) => centang[b.id]).length;
 
-  // Baris daftar anak. Tiap baris punya satu tombol aksi yang tetap elemen yang sama saat labelnya
-  // berganti (Susun tindak lanjut -> Ringkasan), supaya laci bisa mengembalikan fokus ke baris itu.
+  const aksiRingkasan = (nama) => ({ label: "Lihat ringkasan", label2: nama, dialog: true, onClick: () => bukaRingkasan(nama) });
+
+  // Baris anak Waspada. Satu baris = nama, aspek yang menonjol, status tindak lanjut, satu tombol.
   function barisWaspada(a) {
     const t = a.tindak;
     const baru = disusun[a.nama];
-    const dasar = { nama: a.nama, kelas: a.kelas, heart: a.heart, aspek: aspekMenonjol(a.heart) };
+    const dasar = { nama: a.nama, kelas: a.kelas, heart: a.heart, ket: <AspekMenonjol kode={a.heart} /> };
     if (t.jenis === "laporan") {
       return {
         ...dasar,
-        tindak: (
-          <span className="tl">
+        status: (
+          <>
             <span className="tlbar" aria-hidden="true">
               <span style={{ width: persen(selesaiRaka, butirRaka.length) }} />
             </span>
             <b>{`${selesaiRaka} dari ${butirRaka.length} checklist`}</b>
             <span className="mut">{`Kasus ${t.kasus}`}</span>
-          </span>
+          </>
         ),
         aksi: { label: "Buka laporan", label2: a.nama, onClick: () => pindah("anak", { jenis: "gulir", id: "hasil" }) },
       };
@@ -272,11 +182,11 @@ export default function Skrining() {
     if (t.jenis === "kasus") {
       return {
         ...dasar,
-        tindak: (
-          <span className="tl">
+        status: (
+          <>
             <span className="pill sm bad">{`Kasus ${t.kasus}`}</span>
             <span className="mut">{`${t.tingkat} · ${t.oleh}`}</span>
-          </span>
+          </>
         ),
         aksi: { label: "Buka kasus", label2: `${t.kasus} ${a.nama}`, onClick: () => bukaKasus(t.kasus) },
       };
@@ -284,78 +194,126 @@ export default function Skrining() {
     if (t.jenis === "berjalan" || baru) {
       return {
         ...dasar,
-        tindak: (
-          <span className="tl">
-            <span className="pill sm mid">Tindak lanjut berjalan</span>
-            <span className="mut">{baru ? `disusun hari ini · evaluasi ${baru.evaluasi.tanggal}` : `evaluasi ${t.evaluasi}`}</span>
-          </span>
+        status: (
+          <>
+            <span className="pill sm mid">{baru ? "Tersimpan hari ini" : "Berjalan"}</span>
+            <span className="mut">{`evaluasi ${baru ? baru.evaluasi.tanggal : t.evaluasi}`}</span>
+          </>
         ),
-        aksi: { label: "Ringkasan", label2: a.nama, onClick: () => setLaci({ jenis: "ringkasan", nama: a.nama }) },
+        aksi: aksiRingkasan(a.nama),
       };
     }
     return {
       ...dasar,
-      tindak: (
-        <span className="tl">
-          <span className="pill sm warn">{t.buddy ? "Checklist belum disusun" : "Belum ada tindak lanjut"}</span>
-          <span className="mut">{t.buddy ? `buddy ${t.buddy.split(" ")[0]} sejak ${t.sejak}` : "Guru BK"}</span>
-        </span>
+      status: (
+        <>
+          <span className="pill sm warn">Belum ada tindak lanjut</span>
+          {t.buddy ? <span className="mut">{`pendamping sebaya sejak ${t.sejak}`}</span> : null}
+        </>
       ),
-      aksi: {
-        label: "Susun tindak lanjut",
-        label2: `untuk ${a.nama}`,
-        ikon: "tambah",
-        onClick: () => setLaci({ jenis: "tindak", nama: a.nama }),
-      },
+      aksi: { label: "Susun tindak lanjut", label2: `untuk ${a.nama}`, ikon: "tambah", utama: true, dialog: true, onClick: () => bukaTindak(a.nama) },
     };
   }
 
-  let baris;
-  if (daftar === "waspada") {
-    baris = WASPADA.map(barisWaspada);
-  } else if (daftar === "perhatian") {
-    baris = PERHATIAN.map((a) => ({
-      nama: a.nama,
-      kelas: a.kelas,
-      heart: a.heart,
-      aspek: aspekMenonjol(a.heart),
-      tindak: (
-        <span className="tl">
-          <span className="pill sm mid">{`Observasi minggu ${a.minggu} dari 4`}</span>
-          <span className="mut">{WALI[a.kelas]}</span>
-        </span>
-      ),
-      aksi: { label: "Ringkasan", label2: a.nama, onClick: () => setLaci({ jenis: "ringkasan", nama: a.nama }) },
-    }));
-  } else {
-    baris = TANDA_BAHAYA.map((a) => ({
+  function barisTanda(a) {
+    return {
       nama: a.nama,
       kelas: a.kelas,
       heart: HEART_ANAK[a.nama],
-      tanda: (
+      ket: `${PERTANYAAN_KEAMANAN[a.butir].replace(/\.$/, "")} (isian ${a.sumber.toLowerCase()})`,
+      status: a.selesai ? (
         <>
-          {PERTANYAAN_KEAMANAN[a.butir].replace(/\.$/, "")}
-          <span className="mut">{` · isian ${a.sumber.toLowerCase()}`}</span>
-        </>
-      ),
-      tindak: a.selesai ? (
-        <span className="tl">
           <span className="pill sm ok">{`Kasus ${a.kasus} selesai`}</span>
           <span className="mut">{a.selesai}</span>
-        </span>
+        </>
       ) : (
-        <span className="tl">
+        <>
           <span className="pill sm bad">{`Kasus ${a.kasus}`}</span>
           <span className="mut">{`${a.tingkat} · ${a.oleh}`}</span>
-        </span>
+        </>
       ),
       aksi: { label: "Buka kasus", label2: `${a.kasus} ${a.nama}`, onClick: () => bukaKasus(a.kasus) },
-    }));
+    };
   }
-  const total = baris.length;
-  const tampil = semua ? baris : baris.slice(0, BARIS_AWAL);
 
-  const anakLaci = laci ? SEMUA_ANAK.find((a) => a.nama === laci.nama) : null;
+  function barisPerhatian(a) {
+    return {
+      nama: a.nama,
+      kelas: a.kelas,
+      heart: a.heart,
+      ket: <AspekMenonjol kode={a.heart} />,
+      status: (
+        <>
+          <span className="pill sm mid">{`Pengamatan minggu ${a.minggu} dari 4`}</span>
+          <span className="mut">{WALI[a.kelas]}</span>
+        </>
+      ),
+      aksi: aksiRingkasan(a.nama),
+    };
+  }
+
+  // 1. Paling mendesak: tanda bahaya yang kasusnya terbuka, lalu anak Waspada tanpa tindak lanjut.
+  // Anak yang tindak lanjutnya baru disimpan tetap di barisnya (tombol yang sama, label berganti)
+  // supaya fokus kembali ke tempatnya sesudah laci ditutup.
+  const mendesak = [
+    ...TANDA_TERBUKA.map((a) => ({
+      nama: a.nama,
+      kelas: a.kelas,
+      ket: (
+        <>
+          <span className="pill sm crit">Tanda bahaya</span>
+          {`Kasus ${a.kasus} · ${a.oleh}`}
+        </>
+      ),
+      aksi: { label: "Buka kasus", label2: `${a.kasus} ${a.nama}`, onClick: () => bukaKasus(a.kasus) },
+    })),
+    ...WASPADA_BELUM.map((a) => {
+      const baru = disusun[a.nama];
+      return {
+        nama: a.nama,
+        kelas: a.kelas,
+        ket: baru ? (
+          <>
+            <span className="pill sm ok">Tersimpan</span>
+            {`evaluasi ${baru.evaluasi.tanggal}`}
+          </>
+        ) : (
+          <>
+            <span className="pill sm bad">Perlu Perhatian Lebih</span>
+            <AspekMenonjol kode={a.heart} />
+          </>
+        ),
+        aksi: baru
+          ? aksiRingkasan(a.nama)
+          : { label: "Susun tindak lanjut", label2: `untuk ${a.nama}`, ikon: "tambah", utama: true, dialog: true, onClick: () => bukaTindak(a.nama) },
+      };
+    }),
+  ];
+  const sisa = TANDA_TERBUKA.length + WASPADA_BELUM.filter((a) => !disusun[a.nama]).length;
+
+  let barisDaftar;
+  if (daftar === "waspada") barisDaftar = WASPADA.map(barisWaspada);
+  else if (daftar === "perhatian") barisDaftar = PERHATIAN.map(barisPerhatian);
+  else barisDaftar = TANDA_BAHAYA.map(barisTanda);
+
+  const anakLaci = laciAnak ? SEMUA_ANAK.find((a) => a.nama === laciAnak.nama) : null;
+  const tutup = () => setLaci(null);
+  const tutupAnak = () => setLaciAnak(null);
+  const menu = [
+    {
+      id: "daftar",
+      ikon: "kelompok",
+      judul: "Daftar anak",
+      ket: `${RINGKAS_SEKOLAH.waspada} Perlu Perhatian Lebih · ${RINGKAS_SEKOLAH.perhatian} Perlu Diperhatikan · ${RINGKAS_SEKOLAH.baik} Aman`,
+    },
+    {
+      id: "sebaran",
+      ikon: "hati",
+      judul: "Sebaran per aspek dan kelas",
+      ket: `Terbanyak: ${ASPEK_TERATAS.map((t) => t.aspek.nama).join(" dan ")}`,
+    },
+    { id: "formulir", ikon: "skrining", judul: "Isi formulir", ket: "Versi orang tua dan wali kelas" },
+  ];
 
   return (
     <div className={`isi ${css.layar}`}>
@@ -364,398 +322,140 @@ export default function Skrining() {
       <section className="titlerow">
         <div>
           <p className="eyebrow">Alur pencegahan · Langkah 1</p>
-          <h1 className="h1">Skrining HEART</h1>
-          <p className="lead">
-            Orang tua dan wali kelas mengisi pernyataan yang sama untuk tiap anak, lalu hasilnya menjadi lima aspek HEART per
-            anak: Hiperaktivitas, Emosional, Agresi, Relasi Pertemanan, dan Tolong Menolong.
-          </p>
-        </div>
-        <div className="tbtns">
-          <button type="button" className="ghost" onClick={() => setLaci({ jenis: "formulir" })}>
-            <Ikon nama="mata" size={18} />
-            Lihat formulir
-          </button>
-          {semuaDiingatkan ? (
-            <button type="button" className="ghost" aria-disabled="true" onClick={ingatkanSemua}>
-              <Ikon nama="centang" size={18} />
-              Pengingat terkirim
-            </button>
-          ) : (
-            <button type="button" className="btnp" onClick={ingatkanSemua}>
-              <Ikon nama="kirim" size={18} />
-              {`Ingatkan ${BELUM_ORTU} orang tua`}
-            </button>
-          )}
+          <h1 className="h1">Screening HEART</h1>
+          <p className="lead">Orang tua dan wali kelas mengisi pernyataan yang sama untuk tiap anak.</p>
         </div>
       </section>
 
-      <section className="stiles" aria-labelledby="skrining-ubin">
-        <h2 id="skrining-ubin" className="sr">
-          Hasil skrining sekolah
-        </h2>
-        {UBIN.map((u) => {
-          const aktif = Boolean(u.daftar) && u.daftar === daftar;
-          return (
-            <div key={u.id} className={`stile ${u.nada}${aktif ? " on" : ""}`}>
-              <button
-                type="button"
-                className="stileb"
-                aria-pressed={u.daftar ? aktif : undefined}
-                onClick={() => pilihUbin(u)}
-              >
-                <span className="sthead">
-                  {u.status ? <PilStatus status={u.status} kecil /> : <span className="pill sm crit">{u.label}</span>}
-                  <span className="stnum">
-                    {u.jumlah}
-                    <small> anak</small>
-                  </span>
-                </span>
-                <span className="stlangkah">{u.langkah}</span>
-                <span className="stoleh">
-                  <Ikon nama="orang" size={14} />
-                  {u.oleh}
-                </span>
-              </button>
-              {u.id === "tanda" ? (
-                <button type="button" className="stlink" onClick={() => pindah("kasus")}>
-                  Buka alur kejadian
-                  <Ikon nama="sebelah" size={14} />
-                </button>
-              ) : null}
-            </div>
-          );
-        })}
-      </section>
-
-      <section className="card tcard">
+      <section className="card tcard" data-bagian="daftar-anak" aria-label="Perlu ditangani sekarang">
         <div className="tophead">
-          <KepalaKartu ikon="hati" judul="Hasil per aspek HEART" />
-          <span className="legenda">
-            <span aria-hidden="true">
-              <i className="lg ok" />
-              Baik
-            </span>
-            <span aria-hidden="true">
-              <i className="lg warn" />
-              Perlu Perhatian
-            </span>
-            <span aria-hidden="true">
-              <i className="lg bad" />
-              Waspada
-            </span>
-            <span className="mut">{`dari ${RINGKAS_SEKOLAH.terpetakan} anak terpetakan`}</span>
-          </span>
+          <KepalaKartu ikon="peringatan" nada="red" judul="Perlu ditangani sekarang" />
+          {sisa ? <span className="pill sm bad">{`${sisa} anak`}</span> : <span className="pill sm ok">Semua sudah ditangani</span>}
         </div>
-        <ul className="asplist">
-          {HEART.map((a) => {
-            const x = RINGKAS_SEKOLAH.perAspek[a.id];
-            const jumlah = x.baik + x.perhatian + x.waspada;
-            return (
-              <li key={a.id} className="asprow">
-                <span className="akode" aria-hidden="true">
-                  {a.kode}
-                </span>
-                <span className="anama">{a.nama}</span>
-                <span
-                  className="abar"
-                  role="img"
-                  aria-label={`${a.nama}: ${x.baik} Baik, ${x.perhatian} Perlu Perhatian, ${x.waspada} Waspada`}
-                >
-                  {["baik", "perhatian", "waspada"].map((s, i) =>
-                    x[s] > 0 ? (
-                      <span key={s} className={["ok", "warn", "bad"][i]} style={{ width: persen(x[s], jumlah) }} />
-                    ) : null,
-                  )}
-                </span>
-                <span className="anums" aria-hidden="true">
-                  <span className="anum ok">{x.baik}</span>
-                  <span className="anum warn">{x.perhatian}</span>
-                  <span className="anum bad">{x.waspada}</span>
-                </span>
-              </li>
-            );
-          })}
-        </ul>
-        <p className="catatan">
-          Paling banyak Perlu Perhatian atau Waspada:{" "}
-          {ASPEK_TERATAS.map((t, i) => (
-            <span key={t.aspek.id}>
-              {i > 0 ? " dan " : ""}
-              <b>{t.aspek.nama}</b>
-              {` (${t.n} anak)`}
-            </span>
+        <ul className="anaklist">
+          {mendesak.map((r) => (
+            <BarisAnak key={r.nama} r={r} ringkas />
           ))}
-          . Keduanya bisa menjadi tema kelas kesadaran bulan ini.
-        </p>
+        </ul>
       </section>
 
-      <section className="card tcard">
-        <div className="tophead">
-          <div className="kepalagrup">
-            <KepalaKartu ikon="baris" judul="Pengisian dan hasil per kelas" />
+      <div className="duakolom">
+        <section className="card tcard" aria-label="Kemajuan screening">
+          <div className="tophead">
+            <KepalaKartu ikon="baris" judul="Kemajuan screening" />
             <span className="pill sm warn">
               <Ikon nama="jam" size={14} />
-              Batas Jumat, 13 Nov · 2 hari lagi
+              Batas Jumat, 13 Nov
             </span>
           </div>
-          <Segmen label="Tampilan per kelas" pilihan={TAB_KELAS} nilai={tabKelas} onPilih={setTabKelas} />
-        </div>
-
-        {tabKelas === "progres" ? (
-          <>
-            <div className="ringkas2">
-              <div className="rblok">
-                <span className="rtop">
-                  <span className="rlabel">
-                    <Ikon nama="pena" size={15} />
-                    Formulir wali kelas
-                  </span>
-                  <span className="rnilai">
-                    {TOTAL_WALAS}
-                    <small>{` dari ${TOTAL_ANAK}`}</small>
-                  </span>
-                </span>
-                <span className="rbar" aria-hidden="true">
-                  <span className="pu" style={{ width: persen(TOTAL_WALAS, TOTAL_ANAK) }} />
-                </span>
-                <span className="rbaris">
-                  <span className="rsub">{`Belum lengkap: ${KELAS_WALAS_BELUM.map((k) => k.kelas).join(", ")}`}</span>
-                  {walasDiingatkan ? (
-                    <span className="pill sm ok">Terkirim 10.31</span>
-                  ) : (
-                    <button type="button" className="abtn kecil" onClick={ingatkanWalas}>
-                      {`Ingatkan ${KELAS_WALAS_BELUM.length} wali kelas`}
-                    </button>
-                  )}
-                </span>
-              </div>
-              <div className="rblok">
-                <span className="rtop">
-                  <span className="rlabel">
-                    <Ikon nama="kelompok" size={15} />
-                    Formulir orang tua
-                  </span>
-                  <span className="rnilai">
-                    {TOTAL_ORTU}
-                    <small>{` dari ${TOTAL_ANAK}`}</small>
-                  </span>
-                </span>
-                <span className="rbar" aria-hidden="true">
-                  <span className="or" style={{ width: persen(TOTAL_ORTU, TOTAL_ANAK) }} />
-                </span>
-                <span className="rbaris">
-                  <span className="rsub">
-                    {semuaDiingatkan
-                      ? `${BELUM_ORTU} belum · pengingat ketiga terkirim hari ini 10.31`
-                      : `${BELUM_ORTU} belum · pengingat WhatsApp terakhir Selasa, 10 Nov`}
-                  </span>
-                </span>
-              </div>
+          <div className="cincin2">
+            <div className="cincinItem">
+              <Cincin
+                nilai={TOTAL.walas}
+                dari={TOTAL.anak}
+                ukuran={108}
+                tebal={11}
+                sub="ikut screening"
+                label={`${TOTAL.walas} dari ${TOTAL.anak} anak sudah ikut screening`}
+              />
+              <span className="cincinTeks">
+                <b>{`${TOTAL.walas} dari ${TOTAL.anak} anak`}</b>
+                <span>{`Belum lengkap: ${KELAS_WALAS_BELUM.map((k) => k.kelas).join(", ")}`}</span>
+              </span>
             </div>
-            <div className="tbox">
-              <table className="tbl tumpukp">
-                <thead>
-                  <tr>
-                    <th>Kelas</th>
-                    <th>Formulir wali kelas</th>
-                    <th>Formulir orang tua</th>
-                    <th>Pengingat orang tua</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {KELAS.map((k) => {
-                    const belum = k.anak - k.ortu;
-                    return (
-                      <tr key={k.kelas}>
-                        <td>
-                          <span className="kls">
-                            <b>{k.kelas}</b>
-                            <span className="mut">{k.wali}</span>
-                          </span>
-                        </td>
-                        <td>
-                          <Progres
-                            nilai={k.walas}
-                            dari={k.anak}
-                            nada={k.walas < k.anak ? "warn" : "ok"}
-                            label="Wali kelas"
-                          />
-                        </td>
-                        <td>
-                          <Progres
-                            nilai={k.ortu}
-                            dari={k.anak}
-                            nada={k.ortu / k.anak < 0.85 ? "warn" : "mid"}
-                            label="Orang tua"
-                          />
-                        </td>
-                        <td>
-                          {diingatkan[k.kelas] || semuaDiingatkan ? (
-                            <span className="pill sm ok">Terkirim 10.31</span>
-                          ) : (
-                            <button
-                              type="button"
-                              className="abtn"
-                              aria-label={`Kirim pengingat WhatsApp ke ${belum} orang tua kelas ${k.kelas}`}
-                              onClick={() => ingatkanKelas(k)}
-                            >
-                              <Ikon nama="kirim" size={15} warna="var(--sp-hijau-batang)" />
-                              {`Ingatkan ${belum} orang tua`}
-                            </button>
-                          )}
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
+            <div className="cincinItem">
+              <Cincin
+                nilai={TOTAL.ortu}
+                dari={TOTAL.anak}
+                warna="var(--sp-jingga)"
+                ukuran={108}
+                tebal={11}
+                sub="orang tua"
+                label={`${TOTAL.ortu} dari ${TOTAL.anak} formulir orang tua masuk`}
+              />
+              <span className="cincinTeks">
+                <b>{`${TOTAL.ortu} formulir orang tua`}</b>
+                <span>{semuaDiingatkan ? "Pengingat terkirim 10.31" : `${TOTAL.belumOrtu} belum mengisi`}</span>
+              </span>
             </div>
-            <p className="catatan">
-              {`${TOTAL_WALAS} dari ${TOTAL_ANAK} anak sudah terpetakan. ${TOTAL_ANAK - TOTAL_WALAS} anak belum, karena formulir wali kelasnya belum masuk.`}
-            </p>
-          </>
-        ) : (
-          <>
-            <div className="tbox">
-              <table className="tbl rapat">
-                <thead>
-                  <tr>
-                    <th>Kelas</th>
-                    {HEART.map((a) => (
-                      <th key={a.id} className="hth">
-                        <span className="hk">{a.kode}</span>
-                        <span className="hn">{a.nama}</span>
-                      </th>
-                    ))}
-                    <th>Perlu tindak lanjut</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {HASIL_KELAS.map((k) => (
-                    <tr key={k.kelas}>
-                      <td>
-                        <span className="kls">
-                          <b>{k.kelas}</b>
-                          <span className="mut">{k.wali}</span>
-                        </span>
-                      </td>
-                      {k.perAspek.map((x) => (
-                        <td key={x.aspek.id} className="hcel">
-                          <span className={`hc l${Math.min(x.ditandai, 3)}`}>
-                            {x.ditandai}
-                            {x.waspada > 0 ? <span className="hcw" aria-hidden="true" /> : null}
-                            <span className="sr">
-                              {` anak, ${x.ditandai - x.waspada} Perlu Perhatian, ${x.waspada} Waspada`}
-                            </span>
-                          </span>
-                        </td>
-                      ))}
-                      <td>
-                        <b>{`${k.jumlah} anak`}</b>
-                        <span className="mut">
-                          <span className="pisah"> · </span>
-                          {`${k.waspada} Waspada`}
-                        </span>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-            <p className="catatan">
-              Angka = anak Perlu Perhatian atau Waspada pada aspek itu, titik merah = ada anak Waspada.{" "}
-              {`Anak yang belum terpetakan (${KELAS_WALAS_BELUM.map((k) => k.kelas).join(", ")}) belum masuk hitungan.`}
-            </p>
-          </>
-        )}
-      </section>
-
-      <section ref={daftarRef} className="card tcard" data-bagian="daftar-anak" aria-labelledby="skrining-daftar">
-        <div className="tophead">
-          <div className="chead">
-            <div className="tile p">
-              <Ikon nama="kelompok" size={19} />
-            </div>
-            <h2 id="skrining-daftar" className="ctitle">
-              Anak yang perlu ditindaklanjuti
-            </h2>
           </div>
-          <Segmen label="Kelompok anak" pilihan={DAFTAR} nilai={daftar} onPilih={pilihDaftar} />
-        </div>
-        <p className="lead2">{PENGANTAR[daftar]}</p>
-        <div className="tbox">
-          <table className="tbl tumpuk">
-            <thead>
-              <tr>
-                <th>Anak</th>
-                <th>Kelas</th>
-                <th>HEART</th>
-                <th>{daftar === "tanda" ? "Jawaban Ya pada" : "Aspek menonjol"}</th>
-                <th>Tindak lanjut</th>
-                <th>Aksi</th>
-              </tr>
-            </thead>
-            <tbody>
-              {tampil.map((r) => (
-                <tr key={`${daftar}:${r.nama}`}>
-                  <td>
-                    <span className="kid">
-                      <span className="av" aria-hidden="true">
-                        {inisial(r.nama)}
-                      </span>
-                      <b>{r.nama}</b>
-                    </span>
-                  </td>
-                  <td className="klsanak">
-                    <span className="hpk">Kelas </span>
-                    {r.kelas}
-                  </td>
-                  <td>
-                    <HurufHeart heart={bacaHeart(r.heart)} />
-                  </td>
-                  <td className="wrapcell">
-                    {r.tanda
-                      ? r.tanda
-                      : r.aspek.map((x, i) => (
-                          <span key={x.aspek.id}>
-                            {i > 0 ? ", " : ""}
-                            {x.status === "waspada" ? <b>{x.aspek.nama}</b> : x.aspek.nama}
-                          </span>
-                        ))}
-                  </td>
-                  <td>{r.tindak}</td>
-                  <td>
-                    <button
-                      type="button"
-                      className="abtn"
-                      aria-label={`${r.aksi.label} ${r.aksi.label2}`}
-                      onClick={r.aksi.onClick}
-                    >
-                      {r.aksi.ikon ? <Ikon nama={r.aksi.ikon} size={16} warna="var(--sp-ungu)" /> : null}
-                      {r.aksi.label}
-                    </button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-        <div className="footrow">
-          <p className="catatan">{`Menampilkan ${tampil.length} dari ${total} anak.`}</p>
-          {total > BARIS_AWAL ? (
-            <button type="button" className="linkbtn" aria-expanded={semua} onClick={() => setSemua((s) => !s)}>
-              {semua ? "Tampilkan lebih sedikit" : `Tampilkan semua ${total} anak`}
-            </button>
-          ) : null}
-        </div>
-      </section>
+          <button type="button" className="menub" aria-haspopup="dialog" onClick={() => setLaci("kemajuan")}>
+            <span className="menut">
+              <b>Lihat per kelas</b>
+              <span className="mut">Kirim pengingat ke wali kelas dan orang tua</span>
+            </span>
+            <Ikon nama="kanan" size={20} />
+          </button>
+        </section>
 
-      {laci?.jenis === "formulir" && <LaciFormulir onTutup={() => setLaci(null)} />}
-      {laci?.jenis === "tindak" && anakLaci && (
-        <LaciTindakLanjut anak={anakLaci} onTutup={() => setLaci(null)} onSimpan={simpanTindak} />
+        <section className="card tcard" aria-label="Rincian hasil">
+          <KepalaKartu ikon="grafik" judul="Rincian hasil" />
+          <ul className="menu">
+            <li>
+              <button type="button" className="menub" onClick={() => pindah("pemetaan")}>
+                <span className="tile p" aria-hidden="true">
+                  <Ikon nama="grafik" size={18} />
+                </span>
+                <span className="menut">
+                  <b>Hasil HEART per kelas</b>
+                  <span className="mut">Ringkasan, grafik, dan rincian tiap anak</span>
+                </span>
+                <Ikon nama="kanan" size={20} />
+              </button>
+            </li>
+            {menu.map((m) => (
+              <li key={m.id}>
+                <button type="button" className="menub" aria-haspopup="dialog" onClick={() => setLaci(m.id)}>
+                  <span className="tile p" aria-hidden="true">
+                    <Ikon nama={m.ikon} size={18} />
+                  </span>
+                  <span className="menut">
+                    <b>{m.judul}</b>
+                    <span className="mut">{m.ket}</span>
+                  </span>
+                  <Ikon nama="kanan" size={20} />
+                </button>
+              </li>
+            ))}
+          </ul>
+        </section>
+      </div>
+
+      {laci === "kemajuan" && (
+        <LaciKemajuan
+          diingatkan={diingatkan}
+          semuaDiingatkan={semuaDiingatkan}
+          walasDiingatkan={walasDiingatkan}
+          onIngatkanSemua={ingatkanSemua}
+          onIngatkanKelas={ingatkanKelas}
+          onIngatkanWalas={ingatkanWalas}
+          onTutup={tutup}
+        />
       )}
-      {laci?.jenis === "ringkasan" && anakLaci && (
-        <LaciRingkasan anak={anakLaci} disusun={disusun[anakLaci.nama] || null} onTutup={() => setLaci(null)} />
+      {laci === "sebaran" && <LaciSebaran onTutup={tutup} />}
+      {laci === "formulir" && <LaciFormulir onTutup={tutup} />}
+      {laci === "daftar" && (
+        <LaciDaftar
+          pilihan={DAFTAR}
+          kelompok={daftar}
+          onPilih={pilihDaftar}
+          pengantar={PENGANTAR[daftar]}
+          baris={barisDaftar}
+          semua={semua}
+          onSemua={() => setSemua((s) => !s)}
+          onTutup={tutup}
+        />
+      )}
+      {laciAnak?.jenis === "tindak" && anakLaci && (
+        <LaciTindakLanjut anak={anakLaci} onTutup={tutupAnak} onSimpan={simpanTindak} />
+      )}
+      {laciAnak?.jenis === "ringkasan" && anakLaci && (
+        <LaciRingkasan
+          anak={anakLaci}
+          disusun={disusun[anakLaci.nama] || null}
+          onTutup={tutupAnak}
+          lebar={laci === "daftar" ? 612 : 480}
+        />
       )}
     </div>
   );

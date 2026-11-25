@@ -6,11 +6,16 @@ import { PEMILIK } from "../bersama/tindakLanjut";
 import dasar from "../proteksi.module.css";
 import css from "./OrangTua.module.css";
 import OrangTuaBeranda from "./OrangTuaBeranda";
-import { DetailAspek, HasilHeart } from "./OrangTuaHeart";
+import { DetailAspek, HasilHeart, PendampingRaka } from "./OrangTuaHeart";
 import OrangTuaChecklist from "./OrangTuaChecklist";
 import { LaporAman, Laporanku } from "./OrangTuaLaporan";
 import OrangTuaAnak from "./OrangTuaAnak";
 import { BilahKembali } from "./OrangTuaBagian";
+import NavMelayang from "../bersama/NavMelayang";
+import DialogVideo from "../bersama/DialogVideo";
+
+/** Video Fammi untuk orang tua: inti skrining HEART. */
+const VIDEO_ORTU = "hDmkFaquRso";
 import { awalKecil, kelas, useFokusBerganti } from "./OrangTuaAlat";
 
 /**
@@ -32,8 +37,9 @@ import {
   KODE_LACAK,
   PENGIRIM_BALASAN,
   PESAN_AWAL,
-  PINTASAN,
   TAB,
+  TUGAS_RUMAH,
+  TUGAS_SEKOLAH,
   TAB_IDS,
   laporanBaru as buatLaporan,
 } from "./orangTuaData";
@@ -41,19 +47,25 @@ import {
 /** Ponsel ini selalu milik Ibu Dewi, apa pun sudut pandang yang dipilih di header. */
 const PERAN_PONSEL = "ortu";
 const LAMA_TOAST = 3200;
-/** Halaman yang memakai tab bawah; detail aspek ikut tab Hasil HEART. */
-const HALAMAN_BERTAB = [...TAB_IDS, "aspek"];
+/** Halaman turunan tab Hasil HEART: detail aspek dan daftar pendamping. */
+const TURUNAN_HEART = ["aspek", "pendamping"];
+/** Halaman yang memakai tab bawah. */
+const HALAMAN_BERTAB = [...TAB_IDS, ...TURUNAN_HEART];
 const WALI = PEMILIK.walas.orang;
 
 /**
  * Orang tua & anak: aplikasi ponsel Ibu Dewi, ibu Raka Pratama kelas 2B (kanvas desain pemilik
- * produk 2026-11-11, versi ringkas HEART). Di desktop tampil sebagai bingkai ponsel dengan
- * keterangan alur di sampingnya; di ponsel sungguhan bingkainya selebar layar.
+ * produk 2026-11-11, versi ringkas HEART). Tampil seperti aplikasi sungguhan, tanpa bingkai ponsel
+ * tiruan dan tanpa keterangan di luar layarnya (instruksi pemilik produk 2026-11-15): di ponsel
+ * Android dan iPhone aplikasinya memenuhi layar (isi menggulir, tab bawah menempel dan menghormati
+ * area aman); di layar lebar ia tampil sebagai kolom selebar ponsel di tengah.
  *
- * Tab bawah: Beranda, Hasil HEART (laporan HEART versi orang tua, detail tiap aspek, dan siapa yang
- * mendampingi Raka), Checklist (tugas rumah yang dicentang Ibu Dewi lewat konteks, plus kemajuan
- * sekolah), dan Laporanku (KS-015 dengan lima langkah alur kejadian, pesan sekolah, riwayat).
- * Lapor Aman dan mode cerita anak dibuka dari Beranda. Lonceng di kepala aplikasi membaca notifikasi
+ * Beranda adalah menu (masukan pemilik produk 2026-11-25, "less is more"): Lapor Aman paling atas,
+ * lalu yang dicek tiap hari, lalu yang dibuka sesekali; rincian ada di halaman masing-masing dan
+ * bagian yang jarang dibaca dilipat. Tab bawah: Beranda, Checklist (tugas rumah yang dicentang Ibu
+ * Dewi lewat konteks, plus kemajuan sekolah), Laporanku (KS-015, pesan sekolah, riwayat), dan Hasil
+ * HEART (ringkasan, lima aspek, lalu halaman detail aspek dan halaman pendamping). Lapor Aman dan
+ * mode cerita anak dibuka dari Beranda. Lonceng di kepala aplikasi membaca notifikasi
  * peran "ortu" dari konteks; aksi { jenis: "buka", id } (dari lonceng header atau layar lain)
  * membuka tab itu.
  *
@@ -71,6 +83,10 @@ export default function OrangTua() {
     centang,
     ubahCentang,
     buatLaporan: masukkanKeAntrean,
+    checklistTambahan,
+    pantauRaka,
+    cekRaka,
+    jawabPantauRaka,
   } = useProteksi();
   const [halaman, setHalaman] = useState("beranda");
   const [aspek, setAspek] = useState(ASPEK_UTAMA);
@@ -79,8 +95,10 @@ export default function OrangTua() {
   const [notifBuka, setNotifBuka] = useState(false);
   const [laporanBaru, setLaporanBaru] = useState([]);
   const [pesan, setPesan] = useState(PESAN_AWAL);
-  const [obrolanDiminta, setObrolanDiminta] = useState(false);
   const [toast, setToast] = useState(null);
+  // Dialog skrining terkunci. Cek mingguan (perkembangan Raka) hidup di konteks prototipe supaya
+  // ikut terbaca di Laporan anak sisi sekolah.
+  const [infoSkrining, setInfoSkrining] = useState(false);
 
   const ponselRef = useRef(null);
   const gulirRef = useRef(null);
@@ -118,7 +136,7 @@ export default function OrangTua() {
   /** Lapor Aman ("lapor") dan mode cerita anak ("anak"); tombol kembalinya pulang ke tab asal. */
   const mulaiAlur = useCallback(
     (id) => {
-      setAsalAlur(halaman === "aspek" ? "heart" : TAB_IDS.includes(halaman) ? halaman : "beranda");
+      setAsalAlur(TURUNAN_HEART.includes(halaman) ? "heart" : TAB_IDS.includes(halaman) ? halaman : "beranda");
       buka(id);
     },
     [buka, halaman],
@@ -176,7 +194,7 @@ export default function OrangTua() {
       tampilkanToast("Tanda selesai dibatalkan.");
       return;
     }
-    tampilkanToast(`Tercatat selesai. ${WALI} ikut menerima kabarnya.`);
+    tampilkanToast(`Tercatat. ${WALI} ikut diberi tahu.`);
     beriTahu({
       peran: "walas",
       ikon: "sukses",
@@ -187,22 +205,6 @@ export default function OrangTua() {
     });
   }
 
-  function mintaObrolan() {
-    if (obrolanDiminta) {
-      tampilkanToast(`Permintaan sudah terkirim. ${WALI} akan menawarkan jadwal lewat aplikasi ini.`);
-      return;
-    }
-    setObrolanDiminta(true);
-    tampilkanToast(`Permintaan terkirim. ${WALI} akan menawarkan jadwal lewat aplikasi ini.`);
-    beriTahu({
-      peran: "walas",
-      ikon: "orang",
-      nada: "p",
-      judul: "Ibu Dewi minta waktu membahas hasil HEART",
-      isi: `${ANAK.nama} · tawarkan jadwal obrolan minggu ini.`,
-      tujuan: { layar: "anak", aksi: { jenis: "gulir", id: "hasil" } },
-    });
-  }
 
   // ---------- laporan ----------
   /**
@@ -238,7 +240,7 @@ export default function OrangTua() {
       ikon: "peringatan",
       nada: "red",
       judul: judulNotif || `Laporan ${sumber} ${kode} · ${tingkat}`,
-      isi: isiNotif || `${judul}. Dari orang tua${tanpaNama ? ", tanpa nama" : ""}. Menunggu triage.`,
+      isi: isiNotif || `${judul}. Dari orang tua${tanpaNama ? ", tanpa nama" : ""}. Menunggu dicek.`,
       tujuan: { layar: "kasus", aksi: { jenis: "kasus", id: idKasus } },
     });
     return laporan;
@@ -254,9 +256,29 @@ export default function OrangTua() {
       sumber: "mode cerita anak",
       peran: orang.peran,
       judulNotif: `Cerita anak lewat aplikasi orang tua · ${kejadian.tingkat}`,
-      isiNotif: `${ANAK.nama}: "${kejadian.label}". Ingin bercerita ke ${orang.sapaan}. Menunggu triage.`,
+      isiNotif: `${ANAK.nama}: "${kejadian.label}". Ingin bercerita ke ${orang.sapaan}. Menunggu dicek.`,
     });
   }
+
+  function jawabPantau(idAspek, jawaban) {
+    jawabPantauRaka(idAspek, jawaban);
+    tampilkanToast(`Tercatat. ${WALI} dan Guru BK ikut melihat perkembangannya.`);
+    beriTahu({
+      peran: "walas",
+      ikon: "grafik",
+      nada: "p",
+      judul: "Ibu Dewi mengisi cek mingguan Raka",
+      isi: "Grafik perkembangan sesudah screening diperbarui.",
+      tujuan: { layar: "anak", aksi: { jenis: "gulir", id: "hasil" } },
+    });
+  }
+
+  // Tugas rumah dan sekolah: rekomendasi Fammi ditambah butir yang ditambahkan sekolah selama demo.
+  const tambahanRaka = checklistTambahan.filter((c) => c.anak === ANAK.nama);
+  const tugasRumah = [...TUGAS_RUMAH, ...tambahanRaka.filter((c) => c.oleh === "ortu")];
+  const tugasSekolah = [...TUGAS_SEKOLAH, ...tambahanRaka.filter((c) => c.oleh !== "ortu")];
+  const pantau = pantauRaka;
+  const sudahCek = cekRaka;
 
   function keluarAlur(pesanToast) {
     buka(asalAlur);
@@ -269,14 +291,15 @@ export default function OrangTua() {
   }
 
   const bertab = HALAMAN_BERTAB.includes(halaman);
-  const tabAktif = halaman === "aspek" ? "heart" : halaman;
+  const tabAktif = TURUNAN_HEART.includes(halaman) ? "heart" : halaman;
 
   return (
-    <div className={`isi ${css.layar}`}>
+    <div className={css.layar}>
+      <h1 className="sr" data-judul-layar>
+        Aplikasi orang tua
+      </h1>
       <div className="hp-panggung">
-        <KeteranganLayar aktif={bertab ? tabAktif : halaman} onBuka={bukaTab} />
-
-        <section ref={ponselRef} className="hp-phone" aria-label="Aplikasi Fammi di ponsel Ibu Dewi">
+        <section ref={ponselRef} className="hp-phone" aria-label="Aplikasi orang tua">
           <div className="hp-bg" aria-hidden="true" />
           <div ref={gulirRef} className={kelas("hp-scr", bertab && "hp-bertab")}>
             {TAB_IDS.includes(halaman) && (
@@ -294,22 +317,47 @@ export default function OrangTua() {
                 centang={centang}
                 laporanBaru={laporanBaru}
                 onBukaTab={bukaTab}
-                onBukaAspek={bukaAspek}
                 onLapor={() => mulaiAlur("lapor")}
                 onCeritaAnak={() => mulaiAlur("anak")}
+                tugasRumah={tugasRumah}
               />
             )}
             {halaman === "heart" && (
-              <HasilHeart onBukaAspek={bukaAspek} obrolanDiminta={obrolanDiminta} onMintaObrolan={mintaObrolan} />
+              <HasilHeart onBukaAspek={bukaAspek} onBukaPendamping={() => buka("pendamping")} onInfoSkrining={() => setInfoSkrining(true)} />
             )}
             {halaman === "aspek" && (
               <>
                 <BilahKembali judul={cariAspek(aspek)?.nama || "Hasil HEART"} onKembali={() => buka("heart")} />
-                <DetailAspek aspekId={aspek} onPilihAspek={pilihAspek} centang={centang} onCentang={centangTugas} />
+                <DetailAspek
+                  aspekId={aspek}
+                  onPilihAspek={pilihAspek}
+                  centang={centang}
+                  onCentang={centangTugas}
+                  pantau={pantau}
+                  sudahCek={sudahCek}
+                  onJawabPantau={jawabPantau}
+                  tugasRumah={tugasRumah}
+                  tugasSekolah={tugasSekolah}
+                />
+              </>
+            )}
+            {halaman === "pendamping" && (
+              <>
+                <BilahKembali judul="Yang mendampingi Raka" onKembali={() => buka("heart")} />
+                <PendampingRaka />
               </>
             )}
             {halaman === "checklist" && (
-              <OrangTuaChecklist centang={centang} onCentang={centangTugas} onBukaAspek={bukaAspek} />
+              <OrangTuaChecklist
+                centang={centang}
+                onCentang={centangTugas}
+                onBukaAspek={bukaAspek}
+                pantau={pantau}
+                sudahCek={sudahCek}
+                onJawabPantau={jawabPantau}
+                tugasRumah={tugasRumah}
+                tugasSekolah={tugasSekolah}
+              />
             )}
             {halaman === "laporanku" && (
               <Laporanku
@@ -342,7 +390,22 @@ export default function OrangTua() {
             )}
           </div>
 
-          {bertab && <TabBawah aktif={tabAktif} onPilih={buka} />}
+          {bertab && <NavMelayang tab={TAB} aktif={tabAktif} onPilih={buka} />}
+
+          {infoSkrining && (
+            <DialogVideo
+              judul="Screening Raka sudah diisi"
+              isi="Screening HEART Raka sudah diisi Ibu (3 Nov) dan wali kelas (23 Okt). Screening berikutnya dibuka oleh tim Fammi. Sekarang, baca hasilnya dan praktikkan saran untuk Raka."
+              idVideo={VIDEO_ORTU}
+              labelVideo="Video Fammi: apa itu screening HEART"
+              aksi="Baca saran untuk Raka"
+              onAksi={() => {
+                setInfoSkrining(false);
+                bukaAspek(ASPEK_UTAMA);
+              }}
+              onTutup={() => setInfoSkrining(false)}
+            />
+          )}
 
           {notifBuka && (
             <PanelNotifikasi
@@ -365,63 +428,6 @@ export default function OrangTua() {
           </div>
         </section>
       </div>
-    </div>
-  );
-}
-
-/**
- * Keterangan layar. Di desktop berdiri di samping ponsel dan memuat pintasan dua alur yang bisa
- * dicoba di aplikasi ini; di layar sempit tinggal judulnya di atas ponsel.
- */
-function KeteranganLayar({ aktif, onBuka }) {
-  return (
-    <div className="hp-cap">
-      <div>
-        <p className="eyebrow">Aplikasi keluarga</p>
-        <h1 className="h1" data-judul-layar>
-          Aplikasi orang tua
-        </h1>
-        <p className="lead">
-          Ibu Dewi membukanya dari tautan WhatsApp: hasil HEART Raka, checklist rumah, dan laporan yang ia kirim.
-        </p>
-      </div>
-      <nav className="hp-pintas" aria-label="Coba alurnya di ponsel">
-        {PINTASAN.map((alur) => (
-          <div key={alur.id} className={`hp-pintasalur hp-${alur.id}`}>
-            <p className="hp-pintasnama">
-              <Ikon nama={alur.ikon} size={15} />
-              {alur.nama}
-            </p>
-            <ol>
-              {alur.langkah.map((l, i) => {
-                const sekarang = l.id === aktif;
-                return (
-                  <li key={l.id}>
-                    <button
-                      type="button"
-                      className={kelas("hp-pintasb", sekarang && "hp-on")}
-                      aria-current={sekarang ? "true" : undefined}
-                      onClick={() => onBuka(l.id)}
-                    >
-                      <span className="hp-pintasno" aria-hidden="true">
-                        {i + 1}
-                      </span>
-                      <span className="hp-fleks">
-                        <b>{l.label}</b>
-                        <span>{l.ket}</span>
-                      </span>
-                    </button>
-                  </li>
-                );
-              })}
-            </ol>
-          </div>
-        ))}
-        <p className="hp-cm hp-pintascat">
-          <Ikon nama="lonceng" size={15} />
-          Kabar dari sekolah masuk ke lonceng di ponsel.
-        </p>
-      </nav>
     </div>
   );
 }
@@ -454,29 +460,6 @@ function BilahAtas({ halaman, belumDibaca, notifBuka, loncengRef, onLonceng }) {
         )}
       </button>
     </header>
-  );
-}
-
-/** Tab bawah ponsel. */
-function TabBawah({ aktif, onPilih }) {
-  return (
-    <nav className="hp-tabs" aria-label="Menu aplikasi">
-      {TAB.map((t) => {
-        const sekarang = t.id === aktif;
-        return (
-          <button
-            key={t.id}
-            type="button"
-            className={kelas("hp-tab", sekarang && "hp-on")}
-            aria-current={sekarang ? "page" : undefined}
-            onClick={() => onPilih(t.id)}
-          >
-            <Ikon nama={t.nama} d={t.d} size={22} />
-            {t.label}
-          </button>
-        );
-      })}
-    </nav>
   );
 }
 

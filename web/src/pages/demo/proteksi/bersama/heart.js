@@ -15,28 +15,28 @@
 export const STATUS = {
   baik: {
     id: "baik",
-    label: "Baik",
+    label: "Aman",
     nada: "ok",
-    arti: "Anak dalam kondisi stabil pada aspek ini. Tetap dukung perkembangan positifnya.",
+    arti: "Hasil screening mengindikasikan anak dalam kondisi stabil pada aspek ini. Tetap dukung perkembangan positifnya.",
   },
   perhatian: {
     id: "perhatian",
-    label: "Perlu Perhatian",
+    label: "Perlu Diperhatikan",
     nada: "warn",
-    arti: "Mulai tampak tanda yang perlu diperhatikan, belum mengkhawatirkan. Pantau dan beri dukungan tambahan bila perlu.",
+    arti: "Terindikasi mulai tampak tanda yang perlu diperhatikan, belum mengkhawatirkan. Pantau dan beri dukungan tambahan bila perlu.",
   },
   waspada: {
     id: "waspada",
-    label: "Waspada",
+    label: "Perlu Perhatian Lebih",
     nada: "bad",
-    arti: "Aspek ini memengaruhi kesejahteraan atau perilaku anak. Dampingi lebih intensif dan libatkan Guru BK atau ahli.",
+    arti: "Terindikasi aspek ini memengaruhi kesejahteraan atau perilaku anak. Dampingi lebih intensif dan libatkan Guru BK atau ahli. Hasil screening bukan diagnosis.",
   },
 };
 
 export const URUTAN_STATUS = ["baik", "perhatian", "waspada"];
 
 /** Status anak yang belum punya hasil skrining (formulir wali kelas atau orang tua belum masuk). */
-export const BELUM = { id: "belum", label: "Belum diskrining", nada: "gray" };
+export const BELUM = { id: "belum", label: "Belum ikut screening", nada: "gray" };
 
 /** Lima aspek HEART, urut seperti di laporan. */
 export const HEART = [
@@ -126,7 +126,7 @@ export function metaStatus(id) {
   return STATUS[id] || BELUM;
 }
 
-/** Status sesuai ambang laporan contoh. Hanya untuk uji konsistensi data, bukan untuk layar. */
+/** Status sesuai ambang laporan contoh. Dipakai uji konsistensi data dan grafik pantau sesudah skrining. */
 export function statusDariSkor(aspek, skor) {
   if (skor >= aspek.ambang.waspada) return "waspada";
   if (skor >= aspek.ambang.perhatian) return "perhatian";
@@ -158,10 +158,10 @@ export const LAPORAN_RAKA = {
   },
   tanggal: "3 Nov 2026",
   sumber: "Isian orang tua (3 Nov) dan wali kelas (23 Okt)",
-  disusun: "Disusun, diskor, dan dianalisis tim ahli dan psikolog Fammi. Hasil skrining bukan diagnosis.",
+  disusun: "Disusun, diskor, dan dianalisis tim ahli dan psikolog Fammi. Hasil screening bukan diagnosis.",
   status: "waspada",
   ringkas:
-    "Raka kuat dalam tolong menolong dan tenang di kelas. Relasi pertemanan perlu didampingi segera: ia sering sendiri saat istirahat dan diganggu kakak kelas di dekat kantin. Keluhan sakit perut di pagi hari ikut muncul.",
+    "Hasil screening mengindikasikan Raka kuat dalam tolong menolong dan tenang di kelas. Relasi pertemanan terindikasi perlu didampingi segera: ia sering sendiri saat istirahat dan diganggu kakak kelas di dekat kantin. Keluhan sakit perut di pagi hari ikut muncul.",
   aspek: {
     hiperaktivitas: {
       skor: 3,
@@ -411,4 +411,18 @@ export const RINGKAS_SEKOLAH = {
     relasi: { baik: 257, perhatian: 14, waspada: 5 },
     tolong: { baik: 266, perhatian: 9, waspada: 1 },
   },
+};
+
+// ── Manfaat bila aspek Baik dipertahankan ───────────────────────────────────────────────────────
+
+/**
+ * Yang didapat anak bila aspek yang sudah Baik terus dijaga. Ditampilkan di samping aspek berstatus
+ * Baik (aplikasi orang tua), supaya hasil hijau juga punya arah, bukan cuma "aman".
+ */
+export const MANFAAT = {
+  hiperaktivitas: "Fokus yang terjaga membuat anak lebih mudah mengikuti pelajaran dan menyelesaikan tugas tanpa terburu-buru.",
+  emosional: "Perasaan yang stabil membuat anak lebih berani mencoba hal baru dan cepat pulih saat kecewa.",
+  agresi: "Kemampuan menahan marah membuat anak lebih disukai teman dan lebih jarang terlibat konflik.",
+  relasi: "Pertemanan yang sehat melindungi anak dari perundungan dan membuatnya betah di sekolah.",
+  tolong: "Kepedulian pada orang lain menumbuhkan empati dan membuat anak dipercaya teman serta guru.",
 };

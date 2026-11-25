@@ -1,4 +1,5 @@
 import { useRef, useState } from "react";
+import Wajah from "../bersama/Wajah";
 import { Ikon } from "../komponen";
 import { BilahKembali } from "./OrangTuaBagian";
 import { kelas, useFokusBerganti } from "./OrangTuaAlat";
@@ -33,7 +34,7 @@ export default function OrangTuaAnak({ onKirim, onKeluar, tampilkanToast, keAtas
   }
 
   function dengarkan() {
-    tampilkanToast("Suara membacakan pertanyaan dan pilihan untuk anak yang belum lancar membaca.");
+    tampilkanToast("Pertanyaan dan pilihan dibacakan dengan suara.");
   }
 
   function lanjut1() {
@@ -50,7 +51,7 @@ export default function OrangTuaAnak({ onKirim, onKeluar, tampilkanToast, keAtas
       return;
     }
     if (kejadian === KEJADIAN_BAIK) {
-      onKeluar("Senang mendengarnya! Mode anak ditutup.");
+      onKeluar("Senang mendengarnya. Mode anak ditutup.");
       return;
     }
     ke(3);
@@ -64,7 +65,7 @@ export default function OrangTuaAnak({ onKirim, onKeluar, tampilkanToast, keAtas
 
   function kirim() {
     if (!orang) {
-      tampilkanToast("Pilih orang yang kamu percaya dulu, ya");
+      tampilkanToast("Pilih satu orang dulu, ya");
       return;
     }
     setMerekam(false);
@@ -75,7 +76,7 @@ export default function OrangTuaAnak({ onKirim, onKeluar, tampilkanToast, keAtas
   function selesai() {
     onKeluar(
       keSekolah
-        ? `Cerita Raka terkirim ke sekolah sebagai laporan ${laporan?.kode || ""}. Isinya hanya dibaca ${orang.sapaan} dan tim BK.`
+        ? `Cerita Raka terkirim ke sekolah sebagai laporan ${laporan?.kode || ""}. Hanya dibaca ${orang.sapaan} dan tim BK.`
         : "Cerita Raka tersimpan untuk Ibu baca bersama.",
     );
   }
@@ -92,7 +93,7 @@ export default function OrangTuaAnak({ onKirim, onKeluar, tampilkanToast, keAtas
       {hal === 1 && (
         <div className="hp-kid">
           <h3 className="hp-kq" tabIndex={-1} data-fokus-langkah>
-            Halo! Bagaimana perasaanmu hari ini?
+            Halo, bagaimana perasaanmu hari ini?
           </h3>
           <TombolDengar onClick={dengarkan} />
           <div className="hp-faces" role="group" aria-label="Pilih perasaan">
@@ -106,7 +107,7 @@ export default function OrangTuaAnak({ onKirim, onKeluar, tampilkanToast, keAtas
                   aria-pressed={dipilih}
                   onClick={() => setRasa(w.label)}
                 >
-                  <Wajah isi={w.isi} mulut={w.mulut} ukuran={60} />
+                  <Wajah isi={w.isi} mulut={w.mulut} ukuran={60} className="hp-wajah" />
                   {w.label}
                 </button>
               );
@@ -166,7 +167,7 @@ export default function OrangTuaAnak({ onKirim, onKeluar, tampilkanToast, keAtas
           </button>
           <p className="hp-cm hp-tengah" aria-live="polite">
             {merekam
-              ? "Sedang merekam... tekan lagi untuk berhenti"
+              ? "Merekam. Tekan lagi untuk berhenti"
               : rekamanAda
                 ? "Rekaman tersimpan, 0:24"
                 : "Tekan tombol untuk merekam"}
@@ -185,9 +186,9 @@ export default function OrangTuaAnak({ onKirim, onKeluar, tampilkanToast, keAtas
       {hal === 4 && (
         <div className="hp-kid">
           <div className="hp-big">
-            <Wajah isi={WAJAH[0].isi} mulut={WAJAH[0].mulut} ukuran={112} />
+            <Wajah isi={WAJAH[0].isi} mulut={WAJAH[0].mulut} ukuran={112} className="hp-wajah" />
             <h3 className="hp-kq" tabIndex={-1} data-fokus-langkah>
-              Terima kasih sudah berani bercerita!
+              Terima kasih sudah berani bercerita.
             </h3>
             <p className="hp-cd hp-cdbesar">
               Kamu tidak salah. {orang?.sapaan} akan menemuimu{" "}
@@ -225,14 +226,3 @@ function TombolDengar({ onClick }) {
   );
 }
 
-/** Wajah perasaan: lingkaran berwarna, dua mata, dan mulut (warna teks kelas hp-wajah). */
-function Wajah({ isi, mulut, ukuran }) {
-  return (
-    <svg className="hp-wajah" viewBox="0 0 24 24" width={ukuran} height={ukuran} aria-hidden="true" focusable="false">
-      <circle cx="12" cy="12" r="10" fill={isi} />
-      <circle cx="9" cy="10" r="1.3" fill="currentColor" />
-      <circle cx="15" cy="10" r="1.3" fill="currentColor" />
-      <path d={mulut} fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
-    </svg>
-  );
-}

@@ -1,0 +1,144 @@
+/* Grafik bersama (Grafik.jsx). Warna dari token --sp-* di .scope. Tanpa garis tepi: pembeda hanya
+   warna isi dan latar lembut. Animasi tumbuh saat tampil, dimatikan untuk gerak dikurangi. */
+
+/* ---------- donat dan cincin ---------- */
+.donat { position: relative; flex: none; }
+.donat svg { display: block; }
+.busur {
+  animation: busurTumbuh 0.9s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+  animation-delay: calc(var(--urut) * 120ms);
+}
+@keyframes busurTumbuh {
+  from { stroke-dasharray: 0 1000; }
+}
+.donatTengah {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  pointer-events: none;
+}
+.donatTengah b { font-size: 26px; line-height: 30px; font-weight: 800; color: var(--sp-ungu-tua); }
+.donatTengah span { max-width: 70%; font-size: 11px; line-height: 14px; color: var(--sp-tinta-3); }
+
+/* ---------- legenda ---------- */
+.legenda { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 6px 14px; }
+.legendaKolom { flex-direction: column; gap: 8px; }
+.legenda li { display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--sp-tinta-2); }
+.legenda b { margin-left: auto; padding-left: 8px; font-size: 13px; color: var(--sp-ungu-tua); }
+.titik { width: 10px; height: 10px; border-radius: 50%; flex: none; }
+.legLabel { white-space: nowrap; }
+
+/* ---------- batang bertumpuk per baris ---------- */
+.tumpuk { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 4px; }
+.tumpukBaris {
+  width: 100%;
+  display: grid;
+  grid-template-columns: minmax(110px, 160px) minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 12px;
+  padding: 6px 8px;
+  border: 0;
+  border-radius: 10px;
+  background: transparent;
+  text-align: left;
+  font: inherit;
+  color: inherit;
+}
+.tumpukTombol { cursor: pointer; }
+.tumpukTombol:hover { background: var(--sp-ungu-hover); }
+.tumpukTombol.terpilih { background: var(--sp-ungu-lembut); }
+.tumpukTombol:focus-visible { outline: var(--sp-fokus); outline-offset: 1px; }
+.tumpukLabel { display: flex; align-items: center; gap: 8px; min-width: 0; font-size: 13px; font-weight: 600; color: var(--sp-tinta); }
+.tumpukLabel > span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.tumpukBatang { display: flex; height: 12px; border-radius: 6px; overflow: hidden; background: var(--sp-abu-2); }
+.tumpukIsi { display: flex; height: 100%; gap: 2px; border-radius: 6px; overflow: hidden; }
+.tumpukRuas {
+  display: block;
+  height: 100%;
+  transform-origin: left center;
+  animation: ruasTumbuh 0.8s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+  animation-delay: calc(var(--urut) * 60ms);
+}
+@keyframes ruasTumbuh {
+  from { transform: scaleX(0); }
+}
+.tumpukKanan { font-size: 12px; color: var(--sp-tinta-3); white-space: nowrap; }
+/* Ringkas: label dan angka kanan satu baris, batang di bawahnya selebar kartu. */
+.ringkas .tumpukBaris {
+  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-areas: "label kanan" "batang batang";
+  row-gap: 6px;
+  padding: 4px 0;
+}
+.ringkas .tumpukLabel { grid-area: label; font-size: 12px; }
+.ringkas .tumpukBatang { grid-area: batang; height: 10px; }
+.ringkas .tumpukKanan { grid-area: kanan; display: inline; }
+
+/* ---------- kolom per kelas ---------- */
+.kolomWadah {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(0, 1fr);
+  gap: 6px;
+  align-items: end;
+  height: calc(var(--tinggi) + 44px);
+}
+.kolom {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 4px;
+  padding: 4px 2px 6px;
+  border: 0;
+  border-radius: 10px;
+  background: transparent;
+  font: inherit;
+  color: inherit;
+  min-width: 0;
+}
+.kolomTombol { cursor: pointer; }
+.kolomTombol:hover { background: var(--sp-ungu-hover); }
+.kolomTombol.terpilih { background: var(--sp-ungu-lembut); }
+.kolomTombol:focus-visible { outline: var(--sp-fokus); outline-offset: 1px; }
+.kolomAtas { font-size: 11px; font-weight: 700; color: var(--sp-ungu-tua); }
+.kolomBatang {
+  width: min(28px, 70%);
+  max-height: var(--tinggi);
+  display: flex;
+  flex-direction: column-reverse;
+  gap: 2px;
+  border-radius: 7px;
+  overflow: hidden;
+  transform-origin: bottom center;
+  animation: kolomTumbuh 0.8s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+  animation-delay: calc(var(--urut) * 50ms);
+}
+.kolomBatang span { display: block; min-height: 3px; }
+@keyframes kolomTumbuh {
+  from { transform: scaleY(0); }
+}
+.kolomLabel {
+  max-width: 100%;
+  font-size: 11px;
+  color: var(--sp-tinta-3);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .busur,
+  .tumpukRuas,
+  .kolomBatang { animation: none; }
+}
+
+@media (max-width: 560px) {
+  .tumpukBaris { grid-template-columns: minmax(90px, 120px) minmax(0, 1fr); }
+  .tumpukKanan { display: none; }
+}

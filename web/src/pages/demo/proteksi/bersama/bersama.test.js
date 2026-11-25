@@ -105,7 +105,8 @@ test("notifikasi: peran dikenal, tujuan layar ada, id unik", () => {
     assert.ok(cariLayar(n.tujuan.layar), `${n.id}: layar ${n.tujuan.layar} tidak ada`);
     assert.ok(n.judul && n.isi && n.waktu, `${n.id}: teks tidak lengkap`);
   }
-  for (const peran of Object.keys(ORANG)) {
+  // Aplikasi remaja sengaja tanpa lonceng (less is more), jadi tidak wajib punya notifikasi.
+  for (const peran of Object.keys(ORANG).filter((p) => p !== "remaja")) {
     assert.ok(NOTIFIKASI_AWAL.some((n) => n.peran === peran && !n.dibaca), `${peran} tidak punya notifikasi baru`);
   }
 });

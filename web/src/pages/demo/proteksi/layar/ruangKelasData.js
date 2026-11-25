@@ -1,8 +1,8 @@
 /**
- * Data contoh khusus layar Ruang wali kelas (Kelas 2B, Bu Rina). Anak, status HEART, buddy, dan
+ * Data contoh khusus layar Ruang wali kelas (Kelas 2B, Bu Rina). Anak, status HEART, teman pendamping, dan
  * checklist dibaca dari data bersama (bersama/heart.js, dukungan.js, tindakLanjut.js); berkas ini
  * hanya menyimpan yang tidak dipakai layar lain: formulir skrining versi wali kelas, pengelompokan
- * waktu checklist, kelas kesadaran, dan catatan observasi. Semua nama dan angka fiktif.
+ * waktu checklist, kelas kesadaran, dan catatan pengamatan. Semua nama dan angka fiktif.
  */
 import { ANAK_2B, HEART, STATUS, URUTAN_STATUS } from "../bersama/heart.js";
 
@@ -23,11 +23,11 @@ export function namaDepan(nama) {
 /** Anak yang formulir wali kelasnya belum diisi (status HEART belum ada). */
 export const ANAK_BELUM_DIISI = ANAK_2B.filter((a) => a.status === "belum").map((a) => a.nama);
 
-/** Anak berstatus Perlu Perhatian: diobservasi tiap minggu selama 4 minggu. */
+/** Anak berstatus Perlu Perhatian: diamati tiap minggu selama 4 minggu. */
 export const ANAK_OBSERVASI = ANAK_2B.filter((a) => a.status === "perhatian").map((a) => a.nama);
 
 
-/** Status dari teks alasan buddy ("Relasi Pertemanan: Waspada" -> "waspada"), atau null. */
+/** Status dari teks alasan teman pendamping ("Relasi Pertemanan: Waspada" -> "waspada"), atau null. */
 export function statusAlasan(alasan) {
   const label = String(alasan || "").split(":").pop().trim();
   return URUTAN_STATUS.find((id) => STATUS[id].label === label) || null;
@@ -236,7 +236,7 @@ export const PIL_TAHAP = { done: "ok", next: "mid", plan: "gray" };
 export const PESAN_MATERI = "Materi sesi 3 (PDF, 6 halaman) dan 12 kartu cerita siap diunduh";
 
 /**
- * Catatan observasi yang sudah ada, terbaru di atas. `aspek` = aspek HEART yang terlihat,
+ * Catatan pengamatan yang sudah ada, terbaru di atas. `aspek` = aspek HEART yang terlihat,
  * `membaik` = ada perbaikan, `bk` = dibahas dengan Guru BK.
  */
 export const CATATAN_AWAL = [
