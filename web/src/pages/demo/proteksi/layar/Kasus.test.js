@@ -17,6 +17,7 @@ import {
   catatRespon,
   kasusAwal,
   kasusDariLapor,
+  kasusMendesak,
   kePantau,
   laporKosong,
   orangKasus,
@@ -47,7 +48,7 @@ test("kasus: id unik, tahap dari TAHAP_KASUS, penugasan menunjuk orang yang dike
   }
 });
 
-test("antrean awal: 1 triage, 1 penugasan, 3 penanganan, 3 pantau; aktif sama dengan lencana registri", () => {
+test("daftar awal: 1 cek awal, 1 bagi tugas, 3 tangani, 3 pantau; aktif sama dengan lencana registri", () => {
   const n = (t) => KASUS_AWAL.filter((c) => c.tahap === t).length;
   assert.deepEqual([n("triage"), n("tugas"), n("tangani"), n("pantau"), n("selesai")], [1, 1, 3, 3, 8]);
   const aktif = KASUS_AWAL.filter((c) => c.tahap !== "selesai").length;
@@ -73,16 +74,29 @@ test("notifikasi dan checklist bersama menunjuk kasus yang ada, KS-015 dipegang 
   assert.equal(orangKasus(ks015.tugas.utama).sudut, "walas");
 });
 
-test("kasus dari skrining HEART ditandai, SLA awal sesuai notifikasi", () => {
+test("kasus dari skrining HEART ditandai, batas waktu awal sesuai notifikasi", () => {
   assert.ok(cari("KS-012").dariSkrining);
   assert.ok(cari("KS-007").dariSkrining);
   const sla016 = slaKasus(cari("KS-016"), JAM_AWAL);
   assert.equal(sla016.label, "Sisa 15 menit");
   assert.equal(slaKasus(cari("KS-015"), JAM_AWAL).label, "Sisa 1 j 42 m");
   assert.ok(slaKasus(cari("KS-010"), JAM_AWAL).telat);
+  assert.match(slaKasus(cari("KS-010"), JAM_AWAL).label, /^Terlambat /);
 });
 
-test("alur satu kasus: triage -> penugasan -> penanganan -> pantau -> selesai", () => {
+test("perlu tindakan sekarang: Darurat dulu, lalu terlambat, lalu batas hari ini; tanpa kasus terbatas, dipantau, atau selesai", () => {
+  assert.deepEqual(kasusMendesak(KASUS_AWAL, JAM_AWAL).map((c) => c.id), ["KS-016", "KS-010", "KS-015"]);
+  // KS-015 sudah ditangani dan tanggapan pertamanya tercatat: batas berikutnya bukan hari ini, jadi keluar.
+  const ks015 = terapkan(cari("KS-015"), tugaskan(cari("KS-015"), JAM_AWAL, { utama: "wk:2B", pendukung: ["laras"] }));
+  const ditangani = terapkan(ks015, catatRespon(ks015, JAM_AWAL + 2));
+  assert.ok(!kasusMendesak([ditangani], JAM_AWAL + 2).length);
+  // Laporan Darurat baru langsung masuk bagian paling atas.
+  const baru = kasusDariLapor({ ...laporKosong(), jenis: "Lainnya", jawaban: [2, 0, 0, 0, 0, 0] }, "KS-017", JAM_AWAL);
+  assert.equal(kasusMendesak([...KASUS_AWAL, baru], JAM_AWAL)[0].id, "KS-016");
+  assert.ok(kasusMendesak([baru], JAM_AWAL).some((c) => c.id === "KS-017"));
+});
+
+test("alur satu kasus: cek awal -> bagi tugas -> tangani -> pantau -> selesai", () => {
   let c = cari("KS-016");
   c = terapkan(c, tetapkanTingkat(c, JAM_AWAL, "Darurat", c.jawaban));
   assert.equal(c.tahap, "tugas");
@@ -100,17 +114,17 @@ test("alur satu kasus: triage -> penugasan -> penanganan -> pantau -> selesai", 
   const respon = catatRespon(c, JAM_AWAL + 4);
   c = terapkan(c, respon);
   assert.equal(c.tRespon, JAM_AWAL + 4);
-  assert.equal(kePantau(c, JAM_AWAL + 6).ubah, undefined, "pemantauan butuh separuh rencana tindak");
+  assert.equal(kePantau(c, JAM_AWAL + 6).ubah, undefined, "pemantauan butuh separuh rencana penanganan");
 
   c = { ...c, rencana: c.rencana.map((p, i) => (i < 3 ? [p[0], p[1], p[2], true] : p)) };
   c = terapkan(c, kePantau(c, JAM_AWAL + 6));
   assert.equal(c.tahap, "pantau");
   c = terapkan(c, tutupKasus(c, JAM_AWAL + 8, { ringkas: "tertangani, anak merasa aman" }));
   assert.equal(c.tahap, "selesai");
-  assert.equal(c.riwayat[0][1], "Kasus ditutup: tertangani, anak merasa aman.");
+  assert.equal(c.riwayat[0][1], "Kasus selesai: tertangani, anak merasa aman.");
 });
 
-test("respon pertama KS-015 ikut mencentang butir checklist Bu Rina, dan sebaliknya", () => {
+test("tanggapan pertama KS-015 ikut mencentang butir checklist Bu Rina, dan sebaliknya", () => {
   const ks015 = cari("KS-015");
   const ditugaskan = terapkan(ks015, tugaskan(ks015, JAM_AWAL, { utama: "wk:2B", pendukung: ["laras", "joko"] }));
   assert.deepEqual(tugaskan(ks015, JAM_AWAL, { utama: "wk:2B", pendukung: ["laras"] }).notifikasi.peran.sort(), ["bk", "walas"]);
@@ -122,7 +136,7 @@ test("respon pertama KS-015 ikut mencentang butir checklist Bu Rina, dan sebalik
   assert.equal(kasusAwal({}).find((c) => c.id === "KS-015").tahap, "tugas");
 });
 
-test("laporan baru masuk triage dengan usulan tingkat dari penilaian awal", () => {
+test("laporan baru masuk cek awal dengan usulan tingkat dari penilaian awal", () => {
   const lapor = { ...laporKosong(), jenis: "Perundungan fisik", jawaban: [0, 0, 2, 0, 0, 0] };
   const c = kasusDariLapor(lapor, "KS-017", JAM_AWAL);
   assert.equal(c.tahap, "triage");
@@ -148,4 +162,34 @@ test("teks layar: tanpa tanda pisah panjang, kata terlarang, atau istilah skrini
   assert.ok(!/(?<!Relasi )Pertemanan/.test(teks), "Pertemanan sebagai nama aspek");
   // Peran sudut pandang yang menerima notifikasi memang ada di prototipe.
   for (const id of ["wk:2B", "laras", "hartini"]) assert.ok(ORANG[orangKasus(id).sudut], `${id}: sudut pandang tidak dikenal`);
+});
+
+test("teks tampilan memakai istilah sehari-hari: tanpa triage, SLA, eskalasi, respon, rencana tindak, atau buddy", () => {
+  const src = ["./Kasus.jsx", "./kasusData.js"].map((p) => readFileSync(new URL(p, import.meta.url), "utf8"));
+  // Teks tampilan = isi string (tanpa id seperti "triage" atau "ks015-respon") dan baris teks JSX
+  // (baris tanpa tanda kode, bukan kunci objek). Komentar dan nama variabel tidak ikut diperiksa.
+  const literal = src.flatMap((t) => [...t.matchAll(/"([^"\n]*)"|`([^`]*)`/g)].map((m) => m[1] ?? m[2]));
+  const barisJsx = src.flatMap((t) => t.split("\n").map((b) => b.trim())).filter((b) => /^[A-Za-z][^=<>{}();"`]*$/.test(b) && !/^w+s*:|,$/.test(b));
+  const tampil = [...literal.filter((s) => !/^[a-z0-9:_-]*$/.test(s)), ...barisJsx];
+  const lama = [
+    /triage/i, /\bSLA\b/, /eskalasi/i, /\brespon\b/i, /rencana tindak/i, /buddy/i, /\bPenugasan\b/, /tutup kasus/i, /kasus ditutup/i,
+    /observasi/i, /intervensi/i,
+  ];
+  for (const t of tampil) for (const r of lama) assert.ok(!r.test(t), `istilah lama ${r} di: ${t}`);
+  // Kelima langkah alur tampil dengan label baru.
+  assert.deepEqual(
+    ["triage", "tugas", "tangani", "pantau", "selesai"].map((id) => TAHAP[id].label),
+    ["Cek awal", "Bagi tugas", "Tangani", "Pantau & selesai", "Selesai"],
+  );
+});
+
+test("gaya layar tanpa garis tepi: tidak ada border pada bentuk, aksen garis, atau cincin inset", () => {
+  const gaya = readFileSync(new URL("./Kasus.module.css", import.meta.url), "utf8").replace(/\/\*[\s\S]*?\*\//g, "");
+  // Yang boleh: border: 0, dan garis pemisah 1px antarbaris (border-top) di daftar dan tabel.
+  for (const m of gaya.matchAll(/border(-left|-right|-bottom)?\s*:\s*([^;]+);/g)) assert.equal(m[2].trim(), "0", `border${m[1] || ""}: ${m[2]}`);
+  for (const m of gaya.matchAll(/border-top\s*:\s*([^;]+);/g)) assert.match(m[1].trim(), /^(0|1px solid var\(--sp-garis-3\))$/, `border-top: ${m[1]}`);
+  assert.ok(!/box-shadow\s*:[^;]*inset/.test(gaya), "box-shadow inset");
+  assert.ok(!/border-color/.test(gaya), "border-color");
+  // Outline hanya untuk cincin fokus keyboard (atau dimatikan untuk elemen yang difokus lewat skrip).
+  for (const m of gaya.matchAll(/outline\s*:\s*([^;]+);/g)) assert.match(m[1].trim(), /^(var\(--sp-fokus\)|none)$/, `outline: ${m[1]}`);
 });

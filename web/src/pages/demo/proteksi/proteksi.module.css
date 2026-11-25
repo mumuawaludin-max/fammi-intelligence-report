@@ -111,10 +111,8 @@
   position: absolute;
   inset: 0;
   pointer-events: none;
-  background:
-    radial-gradient(560px 460px at 94% 4%, rgba(168, 198, 255, 0.85), rgba(168, 198, 255, 0) 70%),
-    radial-gradient(520px 560px at -6% 62%, rgba(255, 241, 194, 0.8), rgba(255, 241, 194, 0) 70%),
-    radial-gradient(700px 500px at 60% 0%, rgba(236, 226, 255, 0.6), rgba(236, 226, 255, 0) 70%);
+  /* Latar datar tanpa gradien (masukan pemilik produk 2026-11-25). */
+  background: none;
 }
 .scope :global .wrap {
   position: relative;
@@ -201,12 +199,11 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 0 0 2px var(--sp-putih);
 }
 .scope :global .hbtn {
   height: 38px;
-  background: var(--sp-putih);
-  border: 1px solid var(--sp-garis-2);
+  background: var(--sp-ungu-lembut);
+  border: 0;
   border-radius: 10px;
   display: flex;
   align-items: center;
@@ -223,7 +220,6 @@
 .scope :global .hbtn.peran { padding: 0 6px 0 4px; }
 .scope :global .hbtn.peran .av { width: 28px; height: 28px; }
 .scope :global .hbtn.lapor {
-  border-color: transparent;
   background: var(--sp-merah-tipis);
   color: var(--sp-merah-tua);
 }
@@ -309,7 +305,7 @@
   min-height: 38px;
   padding: 0 10px;
   background: var(--sp-putih);
-  border: 1px solid var(--sp-garis-2);
+  border: 0;
   border-radius: 8px;
   font-size: 12px;
   font-weight: 500;
@@ -319,7 +315,7 @@
   text-decoration: none;
 }
 .scope :global .navitem:hover { background: var(--sp-ungu-hover); color: var(--sp-tinta); }
-.scope :global .navitem.active { border-color: var(--sp-ungu); color: var(--sp-ungu); font-weight: 700; }
+.scope :global .navitem.active { background: var(--sp-ungu-lembut); color: var(--sp-ungu); font-weight: 700; }
 .scope :global .navitem svg { flex: none; }
 .scope :global .navitem .sub { margin-left: auto; font-size: 11px; font-weight: 400; color: var(--sp-tinta-3); }
 .scope :global .cnt {
@@ -427,9 +423,9 @@
   gap: 8px;
   height: 36px;
   padding: 0 14px;
-  border: 1px solid var(--sp-garis);
+  border: 0;
   border-radius: 10px;
-  background: var(--sp-putih);
+  background: var(--sp-ungu-lembut);
   color: var(--sp-ungu);
   font-size: 13px;
   font-weight: 500;
@@ -437,7 +433,7 @@
   text-decoration: none;
   white-space: nowrap;
 }
-.scope :global .ghost:hover { background: var(--sp-ungu-hover); color: var(--sp-ungu); }
+.scope :global .ghost:hover { background: var(--sp-ungu-tipis); color: var(--sp-ungu); }
 .scope :global .ghost.sm { height: 32px; border-radius: 8px; font-size: 12px; font-weight: 500; }
 .scope :global .btnp {
   display: inline-flex;
@@ -464,9 +460,9 @@
   gap: 7px;
   height: 32px;
   padding: 0 11px;
-  border: 1px solid var(--sp-garis);
+  border: 0;
   border-radius: 8px;
-  background: var(--sp-putih);
+  background: var(--sp-ungu-lembut);
   font-size: 12px;
   font-weight: 500;
   cursor: pointer;
@@ -474,7 +470,7 @@
   color: var(--sp-tinta);
   text-decoration: none;
 }
-.scope :global .abtn:hover { background: var(--sp-ungu-hover); border-color: var(--sp-ungu-garis); color: var(--sp-tinta); }
+.scope :global .abtn:hover { background: var(--sp-ungu-tipis); color: var(--sp-tinta); }
 .scope :global .seg { display: inline-flex; flex-wrap: wrap; gap: 4px; padding: 4px; background: var(--sp-abu); border-radius: 10px; }
 .scope :global .segb {
   border: 0;
@@ -525,7 +521,7 @@
   justify-content: space-between;
   gap: 12px;
   padding: 14px 18px;
-  background: linear-gradient(90deg, #D9CCFC 0%, #E9E1FD 55%, #F1ECFE 100%);
+  background: var(--sp-ungu-tipis);
 }
 .scope :global .herobig {
   margin: 0;
@@ -565,7 +561,7 @@
 .scope :global .herosub { margin: 10px 0 0; font-size: 12px; line-height: 16px; color: var(--sp-tinta-3); }
 
 /* ---------- tabel ---------- */
-.scope :global .tbox { border: 1px solid var(--sp-garis-2); border-radius: 10px; overflow-x: auto; }
+.scope :global .tbox { border-radius: 10px; overflow-x: auto; }
 .scope :global .tbl { width: 100%; border-collapse: separate; border-spacing: 0; font-size: 12px; }
 .scope :global .tbl th {
   background: var(--sp-abu);
@@ -582,8 +578,9 @@
   gap: 8px;
   height: 32px;
   padding: 0 10px;
-  border: 1px solid var(--sp-garis);
+  border: 0;
   border-radius: 8px;
+  background: var(--sp-abu);
   min-width: 150px;
 }
 
@@ -644,9 +641,9 @@
   width: 100%;
   min-height: 44px;
   padding: 10px 12px;
-  border: 1px solid var(--sp-garis);
+  border: 0;
   border-radius: 10px;
-  background: var(--sp-putih);
+  background: var(--sp-abu);
   font-size: 13px;
   line-height: 18px;
   resize: vertical;
@@ -663,7 +660,41 @@
   cursor: pointer;
 }
 .scope :global .chk:hover { background: var(--sp-ungu-hover); }
-.scope :global .chk input { width: 18px; height: 18px; margin: 1px 0 0; accent-color: var(--sp-ungu); flex: none; }
+/* Kotak centang tanpa garis tepi: kotak abu muda, saat dicentang ungu dengan tanda centang putih. */
+.scope :global .chk input,
+.scope :global input[type="checkbox"] {
+  appearance: none;
+  -webkit-appearance: none;
+  flex: none;
+  width: 20px;
+  height: 20px;
+  margin: 0;
+  border: 0;
+  border-radius: 6px;
+  background: var(--sp-abu-3) center / 14px 14px no-repeat;
+  cursor: pointer;
+}
+.scope :global input[type="checkbox"]:hover { background-color: var(--sp-ungu-tipis); }
+.scope :global input[type="checkbox"]:checked {
+  background-color: var(--sp-ungu);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='white' d='M9 16.17 4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z'/%3E%3C/svg%3E");
+}
+.scope :global input[type="checkbox"]:focus-visible { outline: var(--sp-fokus); outline-offset: 2px; }
+/* Tombol radio: lingkaran abu muda, saat dipilih ungu dengan titik putih. */
+.scope :global input[type="radio"] {
+  appearance: none;
+  -webkit-appearance: none;
+  flex: none;
+  width: 20px;
+  height: 20px;
+  margin: 0;
+  border: 0;
+  border-radius: 50%;
+  background: var(--sp-abu-3);
+  cursor: pointer;
+}
+.scope :global input[type="radio"]:checked { background: radial-gradient(circle, var(--sp-putih) 0 3.5px, var(--sp-ungu) 4px); }
+.scope :global input[type="radio"]:focus-visible { outline: var(--sp-fokus); outline-offset: 2px; }
 .scope :global .chk .mut { display: block; font-size: 12px; }
 .scope :global .row2f { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
 .scope :global .dacts {
@@ -679,13 +710,13 @@
 .scope :global .chip {
   height: 36px;
   padding: 0 14px;
-  border: 1px solid var(--sp-garis);
+  border: 0;
   border-radius: 18px;
-  background: var(--sp-putih);
+  background: var(--sp-ungu-lembut);
   font-size: 12px;
   cursor: pointer;
 }
-.scope :global .chip.on { background: var(--sp-ungu-pil); border-color: var(--sp-ungu); color: var(--sp-ungu); font-weight: 700; }
+.scope :global .chip.on { background: var(--sp-ungu); color: var(--sp-putih); font-weight: 700; }
 
 /* ---------- pemberitahuan ---------- */
 .scope :global .toast {
@@ -749,6 +780,65 @@
 @keyframes menuMasuk { from { opacity: 0; translate: 0 -4px; } to { opacity: 1; translate: 0 0; } }
 
 /* ---------- lebar layar ---------- */
+/* ---------- pegangan peran di tepi kanan aplikasi orang tua ---------- */
+.scope :global .sp-tepi {
+  position: fixed;
+  right: 0;
+  top: 46%;
+  z-index: 70;
+  width: 30px;
+  height: 56px;
+  border: 0;
+  border-radius: 14px 0 0 14px;
+  display: grid;
+  place-items: center;
+  color: var(--sp-putih);
+  background: var(--sp-ungu-tua);
+  opacity: 0.55;
+  cursor: pointer;
+  transition: opacity 0.2s, width 0.2s;
+}
+.scope :global .sp-tepi:hover,
+.scope :global .sp-tepi:focus-visible,
+.scope :global .sp-tepi[aria-expanded="true"] { opacity: 1; width: 36px; }
+.scope :global .sp-tepi:focus-visible { outline: var(--sp-fokus); outline-offset: 2px; }
+.scope :global .sp-tirai { position: fixed; inset: 0; z-index: 68; }
+.scope :global .sp-tepi-menu {
+  position: fixed;
+  right: 44px;
+  top: 46%;
+  z-index: 70;
+  width: min(260px, calc(100% - 60px));
+  padding: 8px;
+  border-radius: 14px;
+  background: var(--sp-putih);
+  box-shadow: var(--sp-bayangan-menu);
+}
+.scope :global .sp-tepi-judul { margin: 0; padding: 6px 10px; font-size: 12px; font-weight: 700; color: var(--sp-tinta-3); }
+.scope :global .sp-tepi-butir {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  width: 100%;
+  min-height: 44px;
+  padding: 7px 10px;
+  border: 0;
+  border-radius: 10px;
+  text-align: left;
+  background: transparent;
+  cursor: pointer;
+}
+.scope :global .sp-tepi-butir:hover { background: var(--sp-ungu-hover); }
+.scope :global .sp-tepi-butir:focus-visible { outline: var(--sp-fokus); outline-offset: -2px; }
+.scope :global .sp-tepi-butir b { font-size: 13.5px; color: var(--sp-ungu-tua); }
+.scope :global .sp-tepi-butir span { font-size: 12px; color: var(--sp-tinta-3); }
+@media (max-width: 560px) {
+  .scope :global .sp-tepi { width: 14px; height: 64px; border-radius: 10px 0 0 10px; }
+  .scope :global .sp-tepi svg { display: none; }
+  .scope :global .sp-tepi[aria-expanded="true"] { width: 18px; }
+  .scope :global .sp-tepi-menu { right: 24px; }
+}
+
 /* Tab pindah ke baris kedua header (bisa digeser) begitu tidak muat sebaris dengan tombol kanan. */
 @media (max-width: 1060px) {
   .scope :global .hkiri { display: contents; }
@@ -779,3 +869,19 @@
   .menuMasuk { animation: none; }
   .scope :global .hbtn { transition: none; }
 }
+
+/* Grafik kasus aktif (layar/GrafikKasus.jsx), dipakai Ringkasan dan Kasus. Bersusun ke bawah bila
+   kartunya sempit (container query), berdampingan bila lebar. */
+.scope :global .gkasusbungkus { container-type: inline-size; }
+.scope :global .gkasus { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 24px; align-items: center; }
+.scope :global .gkasusdonat { display: flex; align-items: center; gap: 16px; }
+.scope :global .gkasusdonat ul { min-width: 110px; }
+.scope :global .gkasuskolom { min-width: 0; }
+@container (max-width: 560px) {
+  .scope :global .gkasus { grid-template-columns: minmax(0, 1fr); gap: 14px; }
+}
+
+/* Tombol berbentuk tautan (wa.me): tanpa garis bawah, warna mengikuti tombolnya. */
+.scope :global a.ghost,
+.scope :global a.hp-ghost,
+.scope :global a.btnp { text-decoration: none; }

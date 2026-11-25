@@ -214,7 +214,9 @@ bilah alur tiap layar:
   alur ini.
 
 Aplikasi ponsel orang tua (hasil HEART versi orang tua, checklist rumah, laporan, mode cerita
-anak) dan Panduan alur & SLA melengkapinya.
+anak) dan Panduan alur & SLA melengkapinya. Aplikasi orang tua tampil tanpa bingkai ponsel tiruan dan
+tanpa header dashboard: di ponsel memenuhi layar, di layar lebar jadi kolom selebar ponsel. Pindah ke
+sudut pandang sekolah lewat pegangan kecil di tepi kanan.
 
 - Seluruhnya data contoh di browser. Tidak memanggil Supabase, tidak menyimpan apa pun. Centang
   checklist dan notifikasi bertahan selama demo terbuka (terlihat di semua layar), formulir dan

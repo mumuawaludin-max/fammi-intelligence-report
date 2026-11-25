@@ -58,6 +58,7 @@ export const DEMO_SYSTEMS = [
       { id: "proteksi-bk", jenis: "prototipe", prototipe: "sekolah-proteksi", layar: "kasus", grup: "Sekolah Proteksi", label: "Koordinator BK" },
       { id: "proteksi-walas", jenis: "prototipe", prototipe: "sekolah-proteksi", layar: "kelas", grup: "Sekolah Proteksi", label: "Wali Kelas" },
       { id: "proteksi-ortu", jenis: "prototipe", prototipe: "sekolah-proteksi", layar: "orangtua", grup: "Sekolah Proteksi", label: "Orang Tua" },
+      { id: "proteksi-remaja", jenis: "prototipe", prototipe: "sekolah-proteksi", layar: "remaja", grup: "Sekolah Proteksi", label: "Remaja" },
     ],
   },
   {

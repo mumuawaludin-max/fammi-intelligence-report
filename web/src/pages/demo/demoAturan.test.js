@@ -82,7 +82,7 @@ test("tampilan sesuai permintaan: dua untuk Karakter dan Culture, prototipe untu
   assert.equal(cariTampilan("contoh-input-karakter").url, "https://app.fammi.ly/s/468c0f0681");
   // Skrining anak 4-10 tahun sekarang satu bagian Sekolah Proteksi, bukan tampilan akun tersendiri.
   assert.deepEqual(per("safety-crisis"), [
-    "prototipe:proteksi-kepsek", "prototipe:proteksi-bk", "prototipe:proteksi-walas", "prototipe:proteksi-ortu",
+    "prototipe:proteksi-kepsek", "prototipe:proteksi-bk", "prototipe:proteksi-walas", "prototipe:proteksi-ortu", "prototipe:proteksi-remaja",
   ]);
   assert.equal(cariTampilan("kesehatan-mental-anak"), null);
   assert.deepEqual(per("talent-life-design"), ["akun:multiple-intelligence"]);

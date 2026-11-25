@@ -12,6 +12,7 @@ export const ORANG = {
   bk: { inisial: "LA", nama: "Bu Laras", peran: "Koordinator BK" },
   walas: { inisial: "RK", nama: "Bu Rina", peran: "Wali kelas 2B" },
   ortu: { inisial: "DL", nama: "Ibu Dewi", peran: "Orang tua" },
+  remaja: { inisial: "KP", nama: "Kirana", peran: "Remaja, kelas 8B" },
 };
 
 /**
@@ -21,12 +22,14 @@ export const ORANG = {
  */
 export const LAYAR = [
   { id: "ringkasan", grup: "Ringkasan", tab: "ringkasan", alur: null, label: "Ringkasan", ikon: "dasbor", peran: "kepsek" },
-  { id: "skrining", grup: "Alur pencegahan", tab: "cegah", alur: "cegah", label: "Skrining HEART", ikon: "skrining", peran: "bk" },
+  { id: "skrining", grup: "Alur pencegahan", tab: "cegah", alur: "cegah", label: "Screening HEART", ikon: "skrining", peran: "bk" },
+  { id: "pemetaan", grup: "Alur pencegahan", tab: "cegah", alur: "cegah", label: "Hasil HEART", ikon: "hati", peran: null },
   { id: "anak", grup: "Alur pencegahan", tab: "cegah", alur: "cegah", label: "Laporan anak", ikon: "orang", peran: "walas" },
   { id: "kelas", grup: "Alur pencegahan", tab: "cegah", alur: "cegah", label: "Ruang wali kelas", ikon: "kelompok", peran: "walas" },
-  { id: "kasus", grup: "Alur kejadian", tab: "kejadian", alur: "kejadian", label: "Kasus & penugasan", ikon: "tiket", peran: "bk", hitung: 8 },
+  { id: "kasus", grup: "Alur kejadian", tab: "kejadian", alur: "kejadian", label: "Kasus", ikon: "tiket", peran: "bk", hitung: 8 },
   { id: "orangtua", grup: "Aplikasi keluarga", tab: "orangtua", alur: null, label: "Aplikasi orang tua", ikon: "ponsel", peran: "ortu" },
-  { id: "alur", grup: "Panduan", tab: "panduan", alur: null, label: "Panduan alur & SLA", ikon: "peta", peran: null },
+  { id: "remaja", grup: "Aplikasi keluarga", tab: "orangtua", alur: null, label: "Aplikasi remaja", ikon: "senyum", peran: "remaja" },
+  { id: "alur", grup: "Panduan", tab: "panduan", alur: null, label: "Panduan", ikon: "peta", peran: null },
 ];
 
 /**
@@ -44,9 +47,10 @@ export const TAB = [
 /** Pilihan "Lihat sebagai" di kanan atas: tiap peran membuka layar utamanya. */
 export const PERAN = [
   { id: "kepsek", label: "Kepala Sekolah", sub: "Ringkasan", layar: "ringkasan" },
-  { id: "bk", label: "Koordinator BK", sub: "Kasus & penugasan", layar: "kasus" },
+  { id: "bk", label: "Koordinator BK", sub: "Kasus", layar: "kasus" },
   { id: "walas", label: "Wali kelas 2B", sub: "Kelas & checklist", layar: "kelas" },
   { id: "ortu", label: "Orang tua", sub: "Aplikasi ponsel", layar: "orangtua" },
+  { id: "remaja", label: "Remaja", sub: "Cek diri sendiri", layar: "remaja" },
 ];
 
 export const LAYAR_IDS = LAYAR.map((l) => l.id);

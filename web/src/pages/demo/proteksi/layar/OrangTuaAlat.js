@@ -38,3 +38,10 @@ export function useFokusBerganti(akarRef, kunci, pemilih) {
     akarRef.current?.querySelector(pemilih)?.focus({ preventScroll: true });
   }, [akarRef, kunci, pemilih]);
 }
+
+/** Tanggal hari ini (waktu setempat) dalam format isian tanggal, mis. "2026-11-25". */
+export function isoHariIni() {
+  const d = new Date();
+  d.setMinutes(d.getMinutes() - d.getTimezoneOffset());
+  return d.toISOString().slice(0, 10);
+}

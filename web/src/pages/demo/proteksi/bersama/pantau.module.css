@@ -1,0 +1,81 @@
+/* Kartu perkembangan sesudah skrining (Pantau.jsx). Tanpa garis tepi: latar putih dan bayangan;
+   garis hanya di dalam grafik. Warna token --sp-*. */
+.kartu {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 16px;
+  border-radius: 22px;
+  background: var(--sp-putih);
+  box-shadow: var(--sp-bayangan);
+}
+.kepala { display: flex; align-items: center; gap: 10px; }
+.huruf {
+  width: 36px;
+  height: 36px;
+  flex: none;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--sp-ungu-tipis);
+  color: var(--sp-ungu);
+  font-weight: 800;
+}
+.judul { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.judul b { font-size: 15px; color: var(--sp-ungu-tua); }
+.delta { font-size: 12px; font-weight: 700; }
+.membaik { color: var(--sp-hijau); }
+.tetap { color: var(--sp-tinta-3); }
+.memburuk { color: var(--sp-merah-teks); }
+
+.grafik { display: block; width: 100%; height: auto; overflow: visible; }
+.zonaBaik { fill: var(--sp-hijau-tipis); }
+.garis {
+  fill: none;
+  stroke: var(--sp-ungu);
+  stroke-width: 2.5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-dasharray: 1;
+  stroke-dashoffset: 0;
+  animation: garisGambar 0.9s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+@keyframes garisGambar {
+  from { stroke-dashoffset: 1; }
+}
+.titik { animation: titikMasuk 0.35s ease both; animation-delay: calc(0.3s + var(--urut) * 120ms); }
+@keyframes titikMasuk {
+  from { opacity: 0; }
+}
+.angka { font-size: 11px; font-weight: 800; fill: var(--sp-ungu-tua); font-family: inherit; }
+.tanggal { font-size: 10px; fill: var(--sp-tinta-3); font-family: inherit; }
+.catatan { margin: 0; font-size: 11px; color: var(--sp-tinta-3); }
+
+.tombol,
+.pilihan button {
+  min-height: 42px;
+  border: 0;
+  border-radius: 14px;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: transform 0.12s ease, background 0.2s ease;
+}
+.tombol { background: var(--sp-ungu-lembut); color: var(--sp-ungu); }
+.tombol:hover { background: var(--sp-ungu-tipis); }
+.tombol:active,
+.pilihan button:active { transform: scale(0.97); }
+.tanya { display: flex; flex-direction: column; gap: 8px; padding: 12px; border-radius: 16px; background: var(--sp-ungu-lembut); }
+.tanya p { margin: 0; font-size: 13px; line-height: 19px; font-weight: 600; color: var(--sp-ungu-tua); }
+.pilihan { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; }
+.pilihan button { background: var(--sp-putih); color: var(--sp-ungu-tua); }
+.pilihan button:hover { background: var(--sp-ungu); color: var(--sp-putih); }
+.selesai { margin: 0; padding: 10px 12px; border-radius: 14px; background: var(--sp-hijau-tipis); font-size: 12px; font-weight: 700; color: var(--sp-hijau); }
+.tombol:focus-visible,
+.pilihan button:focus-visible { outline: var(--sp-fokus); outline-offset: 2px; }
+@media (prefers-reduced-motion: reduce) {
+  .garis,
+  .titik { animation: none; }
+}

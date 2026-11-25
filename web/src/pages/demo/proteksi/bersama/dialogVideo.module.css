@@ -1,0 +1,88 @@
+/* Dialog skrining terkunci + video Fammi (DialogVideo.jsx). Tanpa garis tepi dan tanpa gradien. */
+.lapis {
+  position: absolute;
+  inset: 0;
+  z-index: 20;
+  border: 0;
+  padding: 0;
+  background: rgba(32, 30, 44, 0.45);
+  cursor: pointer;
+  animation: muncul 0.2s ease both;
+}
+.dialog {
+  position: absolute;
+  left: 12px;
+  right: 12px;
+  bottom: calc(12px + env(safe-area-inset-bottom, 0px));
+  z-index: 21;
+  max-height: calc(100% - 40px);
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 18px;
+  border-radius: 26px;
+  background: var(--sp-putih);
+  box-shadow: 0 20px 50px rgba(32, 20, 80, 0.25);
+  animation: naik 0.35s cubic-bezier(0.2, 0.9, 0.2, 1) both;
+}
+.dialog:focus { outline: none; }
+@keyframes muncul {
+  from { opacity: 0; }
+}
+@keyframes naik {
+  from { opacity: 0; transform: translateY(30px); }
+}
+.kepala { display: flex; align-items: center; gap: 10px; }
+.kunci {
+  width: 40px;
+  height: 40px;
+  flex: none;
+  border-radius: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--sp-ungu-tipis);
+  color: var(--sp-ungu);
+}
+.judul { flex: 1; margin: 0; font-size: 17px; line-height: 22px; font-weight: 800; color: var(--sp-ungu-tua); }
+.tutup {
+  width: 36px;
+  height: 36px;
+  flex: none;
+  border: 0;
+  border-radius: 12px;
+  background: var(--sp-abu);
+  color: var(--sp-tinta-2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+.isi { margin: 0; font-size: 14px; line-height: 21px; color: var(--sp-tinta-2); }
+.video { position: relative; width: 100%; aspect-ratio: 16 / 9; border-radius: 18px; overflow: hidden; background: var(--sp-abu-3); }
+.video iframe { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; }
+.label { margin: -4px 0 0; font-size: 12px; color: var(--sp-tinta-3); }
+.aksi {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 48px;
+  border: 0;
+  border-radius: 16px;
+  background: var(--sp-ungu);
+  color: var(--sp-putih);
+  font: inherit;
+  font-size: 15px;
+  font-weight: 800;
+  cursor: pointer;
+  transition: transform 0.12s ease;
+}
+.aksi:active { transform: scale(0.97); }
+.tutup:focus-visible,
+.aksi:focus-visible { outline: var(--sp-fokus); outline-offset: 2px; }
+@media (prefers-reduced-motion: reduce) {
+  .lapis,
+  .dialog { animation: none; }
+}

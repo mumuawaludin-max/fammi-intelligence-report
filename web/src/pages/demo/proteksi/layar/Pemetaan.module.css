@@ -1,0 +1,138 @@
+/* Layar Hasil HEART (pemetaan sekolah, kelas, anak). Kelas dasar (card, tile, pill, seg, abtn, laci)
+   ada di proteksi.module.css; di sini hanya kelas khusus layar ini, di bawah .layar :global, token
+   --sp-* saja. Tanpa garis tepi: pembeda adalah latar lembut dan bayangan; garis 1px hanya pemisah
+   antarbaris daftar. */
+
+.layar :global .duakolom { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; align-items: start; }
+
+/* ---------- pemilih kelas dan pencarian ---------- */
+.layar :global .pmkontrol { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 16px; }
+.layar :global .pmkelas { display: flex; flex-wrap: wrap; gap: 6px; flex: 1; min-width: 0; }
+.layar :global .pmchip {
+  height: 32px;
+  padding: 0 12px;
+  border: 0;
+  border-radius: 16px;
+  background: var(--sp-putih);
+  box-shadow: var(--sp-bayangan);
+  color: var(--sp-tinta-2);
+  font: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.layar :global .pmchip:hover { background: var(--sp-ungu-hover); }
+.layar :global .pmchip.on { background: var(--sp-ungu); color: var(--sp-putih); box-shadow: none; }
+.layar :global .pmchip:focus-visible { outline: var(--sp-fokus); outline-offset: 2px; }
+.layar :global .pmcari {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 38px;
+  min-width: 240px;
+  padding: 0 12px;
+  border-radius: 12px;
+  background: var(--sp-putih);
+  box-shadow: var(--sp-bayangan);
+  color: var(--sp-tinta-3);
+}
+.layar :global .pmcari:focus-within { outline: var(--sp-fokus); outline-offset: 2px; }
+.layar :global .pmcari input {
+  flex: 1;
+  min-width: 0;
+  border: 0;
+  background: transparent;
+  font: inherit;
+  font-size: 13px;
+  color: var(--sp-tinta);
+  outline: none;
+}
+
+/* ---------- ringkasan: donat dan temuan ---------- */
+.layar :global .pmringkas {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 24px;
+  align-items: center;
+}
+.layar :global .pmdonat { display: flex; align-items: center; gap: 20px; }
+.layar :global .pmdonat ul { min-width: 170px; }
+.layar :global .pmtemuan { padding: 14px 16px; border-radius: 14px; background: var(--sp-ungu-lembut); }
+.layar :global .pmjudul { margin: 0 0 8px; font-size: 14px; font-weight: 700; color: var(--sp-ungu-tua); }
+.layar :global .pmtemuan ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+.layar :global .pmt { display: flex; align-items: flex-start; gap: 8px; font-size: 13px; line-height: 19px; color: var(--sp-tinta); }
+.layar :global .pmt svg { flex: none; margin-top: 2px; }
+.layar :global .pmt.ok svg { color: var(--sp-hijau-ikon); }
+.layar :global .pmt.warn svg { color: var(--sp-kuning-teks); }
+.layar :global .pmt.bad svg { color: var(--sp-merah-teks); }
+.layar :global .pmt.info svg { color: var(--sp-ungu); }
+
+.layar :global .pmket { margin: 0; font-size: 12px; line-height: 16px; color: var(--sp-tinta-3); }
+.layar :global .hurufAspek {
+  width: 24px;
+  height: 24px;
+  border-radius: 7px;
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--sp-ungu-tipis);
+  color: var(--sp-ungu);
+  font-size: 12px;
+  font-weight: 800;
+}
+
+/* ---------- daftar anak ---------- */
+.layar :global .pmdaftar { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
+.layar :global .pmdaftar li + li .pmanak { border-top: 1px solid var(--sp-garis-3); }
+.layar :global .pmanak {
+  width: 100%;
+  display: grid;
+  grid-template-columns: 32px minmax(0, 1fr) auto auto 18px;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 8px;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.layar :global .pmanak:hover { background: var(--sp-ungu-hover); }
+.layar :global .pmanak:focus-visible { outline: var(--sp-fokus); outline-offset: -2px; }
+.layar :global .pmnama { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.layar :global .pmnama b { font-size: 13px; color: var(--sp-tinta); }
+.layar :global .pmnama span { font-size: 12px; color: var(--sp-tinta-3); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.layar :global .pmchev { color: var(--sp-tinta-pudar); }
+.layar :global .pmav.waspada { background: var(--sp-merah-tipis); color: var(--sp-merah); }
+.layar :global .pmav.perhatian { background: var(--sp-kuning-tipis); color: var(--sp-kuning); }
+.layar :global .pmav.baik { background: var(--sp-hijau-tipis); color: var(--sp-hijau); }
+.layar :global .pmav.belum { background: var(--sp-abu-3); color: var(--sp-tinta-3); }
+.layar :global .pmav.besar { width: 44px; height: 44px; font-size: 14px; }
+.layar :global .pmkosong { margin: 0; padding: 18px 0; text-align: center; font-size: 13px; color: var(--sp-tinta-3); }
+
+/* ---------- laci satu anak ---------- */
+.layar :global .pmlaci { display: flex; flex-direction: column; gap: 14px; }
+.layar :global .pmarti { margin: 0; padding: 10px 12px; border-radius: 12px; background: var(--sp-abu); font-size: 13px; line-height: 19px; color: var(--sp-tinta-2); }
+.layar :global .pmblok { display: flex; flex-direction: column; gap: 6px; }
+.layar :global .pmblok h3 { margin: 0; font-size: 13px; font-weight: 700; color: var(--sp-ungu-tua); }
+.layar :global .pmblok p { margin: 0; font-size: 13px; line-height: 19px; color: var(--sp-tinta-2); }
+.layar :global .pmblok.bahaya { padding: 10px 12px; border-radius: 12px; background: var(--sp-merah-tipis); }
+.layar :global .pmblok.bahaya h3 { color: var(--sp-merah); }
+.layar :global .pmaspek { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
+.layar :global .pmaspek li { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 6px 0; font-size: 13px; }
+.layar :global .pmaspek li + li { border-top: 1px solid var(--sp-garis-3); }
+.layar :global .pmkaki { margin-top: auto; display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+
+@media (max-width: 900px) {
+  .layar :global .pmringkas { grid-template-columns: minmax(0, 1fr); }
+  .layar :global .duakolom { grid-template-columns: minmax(0, 1fr); }
+}
+@media (max-width: 560px) {
+  .layar :global .pmdonat { flex-direction: column; }
+  .layar :global .pmcari { min-width: 0; width: 100%; }
+  .layar :global .pmanak { grid-template-columns: 32px minmax(0, 1fr) auto 18px; }
+  .layar :global .pmhuruf { display: none; }
+}
+.layar :global .pmtambah { align-self: flex-start; }

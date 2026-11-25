@@ -1,29 +1,34 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { ProteksiKonteks } from "./konteks";
+import { ProteksiKonteks, useProteksi } from "./konteks";
 import { Ikon } from "./komponen";
-import { cariLayar, layarSah } from "./layarProteksi";
+import { PERAN, cariLayar, layarSah } from "./layarProteksi";
 import { NOTIFIKASI_AWAL } from "./bersama/notifikasi";
 import { CENTANG_AWAL } from "./bersama/tindakLanjut";
+import { PANTAU_RAKA, titikBaru } from "./bersama/pantau";
 import ProteksiHeader from "./ProteksiHeader";
 
 /** Nomor kasus pertama yang dibuat selama demo (data contoh berhenti di KS-016). */
 const NOMOR_KASUS_PERTAMA = 17;
 import Ringkasan from "./layar/Ringkasan";
 import Skrining from "./layar/Skrining";
+import Pemetaan from "./layar/Pemetaan";
 import RuangKelas from "./layar/RuangKelas";
 import ProfilAnak from "./layar/ProfilAnak";
 import Kasus from "./layar/Kasus";
 import OrangTua from "./layar/OrangTua";
+import Remaja from "./layar/Remaja";
 import PetaAlur from "./layar/PetaAlur";
 import dasar from "./proteksi.module.css";
 
 const KOMPONEN = {
   ringkasan: Ringkasan,
   skrining: Skrining,
+  pemetaan: Pemetaan,
   kelas: RuangKelas,
   anak: ProfilAnak,
   kasus: Kasus,
   orangtua: OrangTua,
+  remaja: Remaja,
   alur: PetaAlur,
 };
 
@@ -57,6 +62,12 @@ export default function SekolahProteksi({ layarAwal }) {
   // Laporan kejadian yang dibuat selama demo dari layar mana pun (Kasus, skrining wali kelas, Lapor
   // Aman di ponsel), satu urutan nomor, supaya semuanya masuk antrean triage di layar Kasus.
   const [laporanBaru, setLaporanBaru] = useState([]);
+  // Cek mingguan orang tua sesudah skrining (perkembangan Raka): diisi di aplikasi orang tua,
+  // dibaca juga di Laporan anak, jadi wali kelas dan Guru BK melihat delta yang sama.
+  const [pantauRaka, setPantauRaka] = useState(() =>
+    Object.fromEntries(Object.entries(PANTAU_RAKA).map(([k, v]) => [k, v.riwayat])),
+  );
+  const [cekRaka, setCekRaka] = useState({});
   const nomorKasusRef = useRef(NOMOR_KASUS_PERTAMA);
   const nomorRef = useRef(0);
   const timerRef = useRef(null);
@@ -127,6 +138,11 @@ export default function SekolahProteksi({ layarAwal }) {
     setCentang((c) => ({ ...c, ...Object.fromEntries(daftar.map((b) => [b.id, Boolean(b.selesai)])) }));
   }, []);
 
+  const jawabPantauRaka = useCallback((idAspek, jawaban) => {
+    setPantauRaka((p) => ({ ...p, [idAspek]: [...p[idAspek], titikBaru(p[idAspek], jawaban)] }));
+    setCekRaka((c) => ({ ...c, [idAspek]: true }));
+  }, []);
+
   useEffect(() => () => window.clearTimeout(timerRef.current), []);
 
   // Layar baru mulai dari atas, dan fokus pindah ke judulnya supaya pembaca layar tahu isinya
@@ -177,6 +193,9 @@ export default function SekolahProteksi({ layarAwal }) {
       tambahChecklist,
       laporanBaru,
       buatLaporan,
+      pantauRaka,
+      cekRaka,
+      jawabPantauRaka,
     }),
     [
       layar,
@@ -198,19 +217,33 @@ export default function SekolahProteksi({ layarAwal }) {
       tambahChecklist,
       laporanBaru,
       buatLaporan,
+      pantauRaka,
+      cekRaka,
+      jawabPantauRaka,
     ],
   );
 
   const Layar = KOMPONEN[layar];
+  const aplikasi = layar === "orangtua" || layar === "remaja";
 
   return (
     <ProteksiKonteks.Provider value={nilai}>
       <div ref={akarRef} className={dasar.scope} data-sp-akar="">
-        <div className="bg" aria-hidden="true" />
-        <div className="wrap">
-          <ProteksiHeader />
-          <Layar key={layar} />
-        </div>
+        {aplikasi ? (
+          // Aplikasi orang tua dan remaja tampil sendiri seperti aplikasi sungguhan: tanpa header dashboard.
+          <>
+            <Layar key={layar} />
+            <PeganganPeran />
+          </>
+        ) : (
+          <>
+            <div className="bg" aria-hidden="true" />
+            <div className="wrap">
+              <ProteksiHeader />
+              <Layar key={layar} />
+            </div>
+          </>
+        )}
 
         <div className="sr" role="status" aria-live="polite">{pesan?.teks || ""}</div>
         {pesan && (
@@ -223,3 +256,34 @@ export default function SekolahProteksi({ layarAwal }) {
     </ProteksiKonteks.Provider>
   );
 }
+
+/**
+ * Pegangan kecil di tepi kanan aplikasi orang tua untuk pindah ke sudut pandang sekolah selama demo.
+ * Sengaja tanpa label di luar layar aplikasi; menunya baru terbuka saat ditekan.
+ */
+function PeganganPeran() {
+  const { pindah, peran } = useProteksi();
+  const [buka, setBuka] = useState(false);
+  return (
+    <>
+      {buka && (
+        <>
+          <div className="sp-tirai" onMouseDown={() => setBuka(false)} aria-hidden="true" />
+          <nav className={`sp-tepi-menu ${dasar.menuMasuk}`} aria-label="Lihat sebagai">
+            <p className="sp-tepi-judul">Lihat sebagai</p>
+            {PERAN.filter((p) => p.id !== peran).map((p) => (
+              <button key={p.id} type="button" className="sp-tepi-butir" onClick={() => pindah(p.layar)}>
+                <b>{p.label}</b>
+                <span>{p.sub}</span>
+              </button>
+            ))}
+          </nav>
+        </>
+      )}
+      <button type="button" className="sp-tepi" aria-expanded={buka} aria-label="Lihat sebagai peran lain" title="Lihat sebagai" onClick={() => setBuka((b) => !b)}>
+        <Ikon nama="kelompok" size={16} />
+      </button>
+    </>
+  );
+}
+

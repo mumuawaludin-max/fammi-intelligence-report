@@ -1,7 +1,8 @@
 import { useRef, useState } from "react";
 import { Ikon } from "../komponen";
-import { BilahKembali, Catatan, LangkahLaporan } from "./OrangTuaBagian";
-import { kelas, useFokusBerganti } from "./OrangTuaAlat";
+import { BilahKembali, Catatan, LangkahLaporan, Lipat, MiniLangkah } from "./OrangTuaBagian";
+import { isoHariIni, kelas, useFokusBerganti } from "./OrangTuaAlat";
+import Kalender from "../bersama/Kalender";
 import {
   ISIAN_AWAL,
   JANJI_RESPON,
@@ -14,6 +15,7 @@ import {
   PILIHAN_KAPAN,
   PILIHAN_TEMPAT,
   RIWAYAT_LAPORAN,
+  STATUS_TAHAP,
 } from "./orangTuaData";
 
 const JUMLAH_LANGKAH = NAMA_LANGKAH.length;
@@ -35,8 +37,15 @@ export function LaporAman({ onKeluar, onKirim, onBukaTab, tampilkanToast, keAtas
   const tingkat = isian.bahaya === 2 ? "Darurat" : jenisTerpilih ? jenisTerpilih.tingkat : "Sedang";
   const bisaLanjut = langkah === 1 ? Boolean(isian.jenis) : true;
   const ceritaRingkas = isian.cerita.trim();
+  // "Pilih tanggal" tampil sebagai tanggalnya, mis. "12 Nov"; tanpa tanggal dianggap hari ini.
+  const kapan =
+    isian.kapan !== "Pilih tanggal"
+      ? isian.kapan
+      : isian.tanggal
+        ? new Date(`${isian.tanggal}T00:00:00`).toLocaleDateString("id-ID", { day: "numeric", month: "short" })
+        : "Hari ini";
   const ringkasan =
-    `${isian.jenis || "Kejadian"} · ${isian.anak} · ${isian.tempat.toLowerCase()}, ${isian.kapan.toLowerCase()}. ` +
+    `${isian.jenis || "Kejadian"} · ${isian.anak} · ${isian.tempat.toLowerCase()}, ${kapan.toLowerCase()}. ` +
     (ceritaRingkas ? `"${ceritaRingkas}"` : "Tanpa cerita tambahan.") +
     (isian.tanpaNama ? " Dikirim tanpa nama." : " Atas nama Ibu Dewi.");
 
@@ -87,7 +96,7 @@ export function LaporAman({ onKeluar, onKirim, onBukaTab, tampilkanToast, keAtas
             <h3 className="hp-h" tabIndex={-1} data-fokus-langkah>
               Laporan diterima
             </h3>
-            <p className="hp-cd">Terima kasih sudah melapor. Ibu sudah melakukan hal yang benar.</p>
+            <p className="hp-cd">Terima kasih. Ibu sudah melakukan hal yang benar.</p>
           </div>
           <section className="hp-card hp-tengah">
             <p className="hp-cm">Kode lacak</p>
@@ -98,14 +107,14 @@ export function LaporAman({ onKeluar, onKirim, onBukaTab, tampilkanToast, keAtas
             <h3 id="ortu-l-lanjut" className="hp-ct">
               Yang terjadi selanjutnya
             </h3>
-            <p className="hp-cd">Sekolah merespons {JANJI_RESPON[terkirim.tingkat]}.</p>
+            <p className="hp-cd">Sekolah menanggapi {JANJI_RESPON[terkirim.tingkat]}.</p>
             <LangkahLaporan tahap={terkirim.tahap} langkah={terkirim.langkah} />
           </section>
           <button type="button" className="hp-btnp" onClick={() => onBukaTab("laporanku")}>
             Lihat di Laporanku
           </button>
           <button type="button" className="hp-ghost" onClick={() => onBukaTab("beranda")}>
-            Kembali ke beranda
+            Kembali ke Beranda
           </button>
         </div>
       ) : (
@@ -154,9 +163,9 @@ export function LaporAman({ onKeluar, onKirim, onBukaTab, tampilkanToast, keAtas
                 onPilih={(i) => ubahIsian({ bahaya: i })}
               />
               {isian.bahaya === 2 && (
-                <Catatan nada="bad" ikon="telepon">
-                  Amankan anak dulu. Hubungi piket sekolah, 112, atau layanan SAPA 129. Laporan ini tetap dikirim dan
-                  langsung diterima Kepala Sekolah.
+                <Catatan nada="bad" ikon="peringatan">
+                  Amankan anak dulu dan minta bantuan guru piket atau orang dewasa terdekat. Laporan ini langsung
+                  diterima Kepala Sekolah.
                 </Catatan>
               )}
             </>
@@ -183,6 +192,14 @@ export function LaporAman({ onKeluar, onKirim, onBukaTab, tampilkanToast, keAtas
                 terpilih={PILIHAN_KAPAN.indexOf(isian.kapan)}
                 onPilih={(i) => ubahIsian({ kapan: PILIHAN_KAPAN[i] })}
               />
+              {isian.kapan === "Pilih tanggal" && (
+                <Kalender
+                  nilai={isian.tanggal}
+                  onPilih={(t) => ubahIsian({ tanggal: t })}
+                  maks={isoHariIni()}
+                  label="Tanggal kejadian"
+                />
+              )}
               <p className="hp-fl">Di mana</p>
               <GrupChip
                 label="Tempat kejadian"
@@ -216,7 +233,7 @@ export function LaporAman({ onKeluar, onKirim, onBukaTab, tampilkanToast, keAtas
           {langkah === 3 && (
             <>
               <h3 className="hp-qtext" tabIndex={-1} data-fokus-langkah>
-                Bagaimana identitas Ibu ditampilkan?
+                Kirim dengan nama atau tanpa nama?
               </h3>
               <button
                 type="button"
@@ -245,7 +262,7 @@ export function LaporAman({ onKeluar, onKirim, onBukaTab, tampilkanToast, keAtas
               <section className="hp-card">
                 <h4 className="hp-ct">Ringkasan laporan</h4>
                 <p className="hp-cd">{ringkasan}</p>
-                <p className="hp-cm">Perkiraan respon sekolah: {JANJI_RESPON[tingkat]}</p>
+                <p className="hp-cm">Sekolah menanggapi {JANJI_RESPON[tingkat]}.</p>
               </section>
               <Catatan nada="info" ikon="gembok">
                 Laporan hanya dibaca tim penanganan sekolah. Pihak yang dilaporkan tidak diberi tahu siapa pelapornya.
@@ -268,8 +285,8 @@ export function LaporAman({ onKeluar, onKirim, onBukaTab, tampilkanToast, keAtas
 }
 
 /**
- * Laporanku: laporan aktif Ibu Dewi dengan lima langkah alur kejadian (laporan baru dari demo di
- * atas, lalu KS-015), pesan dari sekolah, riwayat kejadian Raka, dan tombol laporan baru.
+ * Laporanku: tombol laporan baru paling atas, laporan aktif Ibu Dewi (laporan baru dari demo di
+ * atas, lalu KS-015) dengan lima langkahnya dilipat, pesan dari sekolah, dan riwayat yang dilipat.
  */
 export function Laporanku({ laporanBaru, pesan, onBalas, onLapor, tampilkanToast }) {
   const [balasan, setBalasan] = useState("");
@@ -286,6 +303,11 @@ export function Laporanku({ laporanBaru, pesan, onBalas, onLapor, tampilkanToast
 
   return (
     <div className="hp-pad">
+      <button type="button" className="hp-ghost hp-merah" onClick={onLapor}>
+        <Ikon nama="perisaiCentang" size={20} />
+        Buat laporan baru
+      </button>
+
       {laporanBaru.map((l) => (
         <KartuLaporan key={l.kode} laporan={l} />
       ))}
@@ -321,13 +343,10 @@ export function Laporanku({ laporanBaru, pesan, onBalas, onLapor, tampilkanToast
             <Ikon nama="kirim" size={22} />
           </button>
         </div>
-        <p className="hp-cm">Ibu melihat tahap dan pesan dari sekolah. Catatan internal tim tidak ditampilkan.</p>
+        <p className="hp-cm">Catatan internal tim sekolah tidak ditampilkan.</p>
       </section>
 
-      <section className="hp-card" aria-labelledby="ortu-l-riwayat">
-        <h3 id="ortu-l-riwayat" className="hp-ct">
-          Riwayat kejadian Raka
-        </h3>
+      <Lipat judul="Riwayat kejadian Raka" ket={`${RIWAYAT_LAPORAN.length} laporan sudah selesai`}>
         <ul className="hp-riwayat">
           {RIWAYAT_LAPORAN.map((r) => (
             <li key={r.kode}>
@@ -341,17 +360,15 @@ export function Laporanku({ laporanBaru, pesan, onBalas, onLapor, tampilkanToast
             </li>
           ))}
         </ul>
-      </section>
-
-      <button type="button" className="hp-ghost hp-merah" onClick={onLapor}>
-        <Ikon nama="perisaiCentang" size={20} />
-        Buat laporan baru di Lapor Aman
-      </button>
+      </Lipat>
     </div>
   );
 }
 
-/** Kartu satu laporan: judul, tahap sekarang, janji waktu, lima langkah, dan penanggung jawab. */
+/**
+ * Kartu satu laporan: judul, tahap sekarang, janji waktu, ruas kemajuan, dan penanggung jawab. Lima
+ * langkah lengkap dengan jam dan keterangannya dilipat.
+ */
 function KartuLaporan({ laporan }) {
   const tahap = LANGKAH_KEJADIAN.find((l) => l.id === laporan.tahap);
   const idJudul = `ortu-lap-${laporan.kode}`;
@@ -363,10 +380,10 @@ function KartuLaporan({ laporan }) {
             {laporan.judul}
           </h3>
           <p className="hp-cm">
-            {laporan.kode} · {laporan.dikirim} · tingkat {laporan.tingkat}
+            {laporan.kode} · {laporan.dikirim}
           </p>
         </div>
-        <span className={`pill sm ${laporan.tahap === "triage" ? "warn" : "mid"}`}>{tahap?.label}</span>
+        <span className={`pill sm ${laporan.tahap === "triage" ? "warn" : "mid"}`}>{STATUS_TAHAP[laporan.tahap] || tahap?.label}</span>
       </div>
       <div className="hp-sla">
         <Ikon nama="jam" size={18} />
@@ -375,24 +392,15 @@ function KartuLaporan({ laporan }) {
           {laporan.sla.ket}
         </span>
       </div>
-      <LangkahLaporan tahap={laporan.tahap} langkah={laporan.langkah} />
+      <MiniLangkah tahap={laporan.tahap} />
       {laporan.penangan ? (
-        <div className="hp-penangan">
-          <span className="hp-cm">Ditangani</span>
-          <ul>
-            {laporan.penangan.map((p) => (
-              <li key={p.nama}>
-                <span className="hp-av hp-av24" aria-hidden="true">
-                  {p.inisial}
-                </span>
-                <span>
-                  <b>{p.nama}</b>, {p.peran}
-                </span>
-              </li>
-            ))}
-          </ul>
-        </div>
+        <p className="hp-cd">
+          Ditangani {laporan.penangan.map((p) => `${p.nama} (${p.peran})`).join(" dan ")}.
+        </p>
       ) : null}
+      <Lipat dalam judul="Lihat semua langkah">
+        <LangkahLaporan tahap={laporan.tahap} langkah={laporan.langkah} />
+      </Lipat>
     </section>
   );
 }

@@ -1,7 +1,7 @@
 /**
  * Dua alur Sekolah Proteksi yang tampil di bilah alur (AlurBar) di atas tiap layar:
  *   cegah    : skrining HEART -> hasil per anak -> tindak lanjut -> checklist
- *   kejadian : lapor -> triage -> penugasan -> penanganan -> pantau dan tutup
+ *   kejadian : lapor -> cek awal -> bagi tugas -> tangani -> pantau & selesai (id: triage, tugas, tangani, pantau)
  *
  * Tiap langkah menunjuk layar (`layar`) dan, bila perlu, aksi yang dibaca layar tujuan:
  *   { jenis: "gulir", id }  ditangani SekolahProteksi: gulir ke elemen [data-bagian="<id>"]
@@ -13,10 +13,10 @@ export const ALUR = {
   cegah: {
     id: "cegah",
     nama: "Alur pencegahan",
-    ringkas: "Skrining HEART, tindak lanjut, lalu checklist",
+    ringkas: "Screening HEART, tindak lanjut, lalu checklist",
     langkah: [
-      { id: "skrining", label: "Skrining HEART", ket: "Orang tua dan wali kelas mengisi", layar: "skrining" },
-      { id: "hasil", label: "Hasil per anak", ket: "Laporan HEART dan peta dukungan", layar: "anak", aksi: { jenis: "gulir", id: "hasil" } },
+      { id: "skrining", label: "Screening HEART", ket: "Orang tua dan wali kelas mengisi", layar: "skrining" },
+      { id: "hasil", label: "Hasil HEART", ket: "Hasil sekolah, per kelas, sampai tiap anak", layar: "pemetaan" },
       { id: "tindak", label: "Tindak lanjut", ket: "Siapa melakukan apa, kapan", layar: "anak", aksi: { jenis: "gulir", id: "tindak" } },
       { id: "checklist", label: "Checklist", ket: "Dicentang tiap orang, dievaluasi 4 minggu", layar: "kelas", aksi: { jenis: "gulir", id: "checklist" } },
     ],
@@ -24,13 +24,13 @@ export const ALUR = {
   kejadian: {
     id: "kejadian",
     nama: "Alur kejadian",
-    ringkas: "Laporan keselamatan, penugasan, dan SLA",
+    ringkas: "Laporan keselamatan, penanggung jawab, dan batas waktu",
     langkah: [
       { id: "lapor", label: "Lapor", ket: "Siapa saja bisa melapor", layar: "kasus", aksi: { jenis: "lapor" } },
-      { id: "triage", label: "Triage", ket: "Tetapkan tingkat keseriusan", layar: "kasus", aksi: { jenis: "tahap", id: "triage" } },
-      { id: "tugas", label: "Penugasan", ket: "Tunjuk penanggung jawab dan SLA", layar: "kasus", aksi: { jenis: "tahap", id: "tugas" } },
-      { id: "tangani", label: "Penanganan", ket: "Respon pertama dan rencana tindak", layar: "kasus", aksi: { jenis: "tahap", id: "tangani" } },
-      { id: "pantau", label: "Pantau & tutup", ket: "Cek ulang 2 sampai 4 minggu", layar: "kasus", aksi: { jenis: "tahap", id: "pantau" } },
+      { id: "triage", label: "Cek awal", ket: "Nilai seberapa serius", layar: "kasus", aksi: { jenis: "tahap", id: "triage" } },
+      { id: "tugas", label: "Bagi tugas", ket: "Tunjuk penanggung jawab dan batas waktu", layar: "kasus", aksi: { jenis: "tahap", id: "tugas" } },
+      { id: "tangani", label: "Tangani", ket: "Tanggapan pertama dan rencana penanganan", layar: "kasus", aksi: { jenis: "tahap", id: "tangani" } },
+      { id: "pantau", label: "Pantau & selesai", ket: "Cek ulang 2 sampai 4 minggu", layar: "kasus", aksi: { jenis: "tahap", id: "pantau" } },
     ],
   },
 };

@@ -1,0 +1,73 @@
+/* Kalender pilih tanggal (Kalender.jsx). Tanpa garis tepi dan tanpa gradien: kartu putih dengan
+   bayangan lembut, tanggal terpilih ungu pekat, hari ini ditandai latar ungu muda. */
+.kalender {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 14px;
+  border-radius: 22px;
+  background: var(--sp-putih);
+  box-shadow: var(--sp-bayangan);
+  animation: muncul 0.25s ease both;
+}
+@keyframes muncul {
+  from { opacity: 0; transform: translateY(6px); }
+}
+.kepala { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.kepala b { font-size: 15px; font-weight: 800; color: var(--sp-ungu-tua); }
+.panah {
+  width: 36px;
+  height: 36px;
+  border: 0;
+  border-radius: 12px;
+  background: var(--sp-ungu-lembut);
+  color: var(--sp-ungu);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+.panah:hover { background: var(--sp-ungu-tipis); }
+.panah:disabled { opacity: 0.35; cursor: default; }
+.kisi { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 4px; }
+.namaHari { padding: 4px 0; text-align: center; font-size: 11px; font-weight: 700; color: var(--sp-tinta-3); }
+.tgl {
+  aspect-ratio: 1;
+  min-height: 36px;
+  border: 0;
+  border-radius: 12px;
+  background: transparent;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--sp-tinta);
+  cursor: pointer;
+  font-variant-numeric: tabular-nums;
+  transition: background 0.15s ease, transform 0.12s ease;
+}
+.tgl:hover { background: var(--sp-ungu-hover); }
+.tgl:active { transform: scale(0.94); }
+.hariIni { background: var(--sp-ungu-tipis); color: var(--sp-ungu); font-weight: 800; }
+.dipilih,
+.dipilih:hover { background: var(--sp-ungu); color: var(--sp-putih); font-weight: 800; }
+.tgl:disabled { color: var(--sp-tinta-pudar); opacity: 0.45; cursor: default; background: transparent; }
+.kaki { display: flex; align-items: center; justify-content: space-between; gap: 8px; font-size: 13px; color: var(--sp-tinta-2); }
+.hariIniBtn {
+  min-height: 34px;
+  padding: 0 14px;
+  border: 0;
+  border-radius: 12px;
+  background: var(--sp-ungu-lembut);
+  color: var(--sp-ungu);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.hariIniBtn:disabled { opacity: 0.4; cursor: default; }
+.panah:focus-visible,
+.tgl:focus-visible,
+.hariIniBtn:focus-visible { outline: var(--sp-fokus); outline-offset: 2px; }
+@media (prefers-reduced-motion: reduce) {
+  .kalender { animation: none; }
+}

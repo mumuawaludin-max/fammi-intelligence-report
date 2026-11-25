@@ -32,6 +32,58 @@ export function BilahKembali({ judul, onKembali, aksi }) {
   );
 }
 
+/**
+ * Satu baris menu (Beranda dan halaman lain): ubin ikon, judul, satu keterangan, panah. `nada` =
+ * warna ubin (p, r, g, a); `status` (ok, warn, bad) memberi titik warna di depan keterangan;
+ * `lencana` = angka kecil di kanan, mis. jumlah tugas yang belum selesai.
+ */
+export function MenuBaris({ ikon, d, nada = "p", judul, ket, status, lencana, onClick }) {
+  return (
+    <li>
+      <button type="button" className="hp-menub" onClick={onClick}>
+        <span className={`hp-ic hp-${nada}`}>
+          <Ikon nama={ikon} d={d} size={22} />
+        </span>
+        <span className="hp-fleks">
+          <b className="hp-menujudul">{judul}</b>
+          {ket ? (
+            <span className={kelas("hp-menuket", status && `hp-st-${status}`)}>
+              {status ? <span className="hp-sorotdot" aria-hidden="true" /> : null}
+              {ket}
+            </span>
+          ) : null}
+        </span>
+        {lencana ? (
+          <span className="hp-menulencana" aria-hidden="true">
+            {lencana}
+          </span>
+        ) : null}
+        <Ikon nama="kanan" size={20} className="hp-chev" />
+      </button>
+    </li>
+  );
+}
+
+/**
+ * Bagian yang dilipat: judul dan keterangan singkat terlihat, isinya terbuka saat diketuk. Dipakai
+ * untuk rincian yang jarang dibaca supaya halaman pertama tetap ringkas. `dalam` = di dalam kartu
+ * lain, tanpa latar dan bayangan sendiri.
+ */
+export function Lipat({ judul, ket, children, terbuka = false, dalam = false }) {
+  return (
+    <details className={kelas("hp-lipat", dalam && "hp-dalam")} open={terbuka || undefined}>
+      <summary>
+        <span className="hp-fleks">
+          <b className="hp-ct">{judul}</b>
+          {ket ? <span className="hp-cm">{ket}</span> : null}
+        </span>
+        <Ikon nama="kanan" size={20} className="hp-lipatpanah" />
+      </summary>
+      <div className="hp-lipatisi">{children}</div>
+    </details>
+  );
+}
+
 /** Catatan berwarna dengan ikon di kiri. nada: info, ok, warn, bad. */
 export function Catatan({ nada, ikon, children }) {
   return (
@@ -103,20 +155,21 @@ export function LangkahLaporan({ tahap, langkah }) {
   );
 }
 
-/** Lima ruas kecil untuk kartu ringkas di Beranda: ruas selesai ungu, ruas berjalan ungu muda. */
+/**
+ * Lima ruas kecil di kartu laporan: ruas selesai ungu, ruas berjalan ungu muda. Tahap tertulisnya
+ * ada di pil status kartu, jadi ruas ini cukup gambar (dibacakan lewat label).
+ */
 export function MiniLangkah({ tahap }) {
   const nSekarang = LANGKAH_KEJADIAN.findIndex((l) => l.id === tahap);
-  const sekarang = LANGKAH_KEJADIAN[nSekarang];
   return (
-    <div className="hp-minilk">
-      <div className="hp-mini" aria-hidden="true">
-        {LANGKAH_KEJADIAN.map((l, i) => (
-          <span key={l.id} className={`hp-${statusLangkah(i, nSekarang)}`} />
-        ))}
-      </div>
-      <span className="hp-cm">
-        Langkah {nSekarang + 1} dari {LANGKAH_KEJADIAN.length}: {sekarang?.label}
-      </span>
+    <div
+      className="hp-mini"
+      role="img"
+      aria-label={`Langkah ${nSekarang + 1} dari ${LANGKAH_KEJADIAN.length}: ${LANGKAH_KEJADIAN[nSekarang]?.label}`}
+    >
+      {LANGKAH_KEJADIAN.map((l, i) => (
+        <span key={l.id} className={`hp-${statusLangkah(i, nSekarang)}`} />
+      ))}
     </div>
   );
 }
@@ -144,6 +197,7 @@ export function BarisTugas({ butir, selesai, bisaCentang, onCentang, onBukaAspek
           <label htmlFor={id} className="hp-tgjudul">
             {butir.judul}
           </label>
+          {butir.sumber ? <span className="hp-sumber">{`Ditambah ${butir.sumber}`}</span> : null}
           <div className="hp-tgmeta">
             <span>
               {butir.waktu}
@@ -176,6 +230,7 @@ export function BarisTugas({ butir, selesai, bisaCentang, onCentang, onBukaAspek
           <span className="sr">{selesai ? "Selesai: " : "Belum selesai: "}</span>
           {butir.judul}
         </p>
+        {butir.sumber ? <span className="hp-sumber">{`Ditambah ${butir.sumber}`}</span> : null}
         <div className="hp-tgmeta">
           <span>
             {pemilik.orang}, {awalKecil(pemilik.label)} · {butir.waktu}

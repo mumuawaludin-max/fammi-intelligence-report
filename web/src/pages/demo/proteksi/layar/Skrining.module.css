@@ -1,62 +1,113 @@
 /* Layar Skrining HEART (sudut pandang Koordinator BK). Kelas dasar (card, tile, pill, tbl, laci,
    formulir) ada di proteksi.module.css; berkas ini hanya memuat kelas baru khusus layar ini,
-   semuanya di bawah .layar :global dan memakai token --sp-* saja. */
+   semuanya di bawah .layar :global dan memakai token --sp-* saja. Tanpa garis tepi: pembeda
+   bagian adalah latar lembut dan bayangan; garis 1px hanya pemisah antarbaris daftar. */
 
-/* ---------- empat ubin status ---------- */
-.layar :global .stiles { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; }
-.layar :global .stile {
-  display: flex;
-  flex-direction: column;
-  border-radius: 12px;
-  box-shadow: var(--sp-bayangan);
+/* ---------- baris anak (halaman utama dan laci daftar) ---------- */
+.layar :global .anaklist { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
+.layar :global .anak {
+  display: grid;
+  grid-template-columns: 32px minmax(0, 1fr) auto;
+  grid-template-areas:
+    "av nama aksi"
+    "av ket aksi"
+    "av status aksi";
+  align-items: center;
+  column-gap: 12px;
+  row-gap: 4px;
+  padding: 10px 0;
+  border-top: 1px solid var(--sp-garis-3);
 }
-.layar :global .stile.ok { background: var(--sp-hijau-tipis); }
-.layar :global .stile.warn { background: var(--sp-kuning-tipis); }
-.layar :global .stile.bad { background: var(--sp-merah-tipis); }
-.layar :global .stile.crit { background: var(--sp-merah-latar); }
-.layar :global .stile:hover { box-shadow: inset 0 0 0 1px var(--sp-ungu-garis), var(--sp-bayangan); }
-.layar :global .stile.on { box-shadow: inset 0 0 0 2px var(--sp-ungu), var(--sp-bayangan); }
-.layar :global .stileb {
-  flex: 1;
+.layar :global .anak:first-child { border-top: 0; padding-top: 0; }
+.layar :global .anak.ringkas { grid-template-areas: "av nama aksi" "av ket aksi"; }
+.layar :global .anak .av { grid-area: av; align-self: start; }
+.layar :global .anaknama { grid-area: nama; min-width: 0; font-size: 13px; line-height: 18px; }
+.layar :global .anakket {
+  grid-area: ket;
   display: flex;
-  flex-direction: column;
-  gap: 4px;
-  padding: 12px 14px;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 8px;
+  min-width: 0;
+  font-size: 12px;
+  line-height: 16px;
+  color: var(--sp-tinta-2);
+}
+.layar :global .anakstatus { grid-area: status; display: flex; flex-wrap: wrap; align-items: center; gap: 4px 8px; font-size: 12px; }
+.layar :global .anakaksi { grid-area: aksi; }
+.layar :global .abtn.utama { background: var(--sp-ungu); color: var(--sp-putih); font-weight: 600; }
+.layar :global .abtn.utama:hover { background: var(--sp-ungu-tekan); color: var(--sp-putih); }
+.layar :global .tlbar { width: 56px; height: 6px; border-radius: 3px; background: var(--sp-abu-3); overflow: hidden; flex: none; }
+.layar :global .tlbar span { display: block; height: 100%; border-radius: 3px; background: var(--sp-ungu-bar); }
+
+/* ---------- kemajuan dan rincian ---------- */
+.layar :global .duakolom { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; align-items: start; }
+.layar :global .angka2 { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+.layar :global .angka { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.layar :global .anilai { font-size: 24px; line-height: 28px; font-weight: 700; letter-spacing: -0.02em; color: var(--sp-ungu-tua); }
+.layar :global .anilai small { font-size: 13px; font-weight: 500; letter-spacing: 0; color: var(--sp-tinta-3); }
+.layar :global .alabel { font-size: 12px; font-weight: 600; color: var(--sp-tinta-2); }
+.layar :global .angka .rbar { margin-top: 4px; }
+
+.layar :global .menu { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+.layar :global .menub {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 52px;
+  padding: 8px 10px 8px 12px;
   border: 0;
   border-radius: 12px;
-  background: transparent;
+  background: var(--sp-abu);
   color: var(--sp-tinta);
   text-align: left;
   cursor: pointer;
 }
-.layar :global .sthead { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
-.layar :global .stnum { font-size: 26px; line-height: 30px; font-weight: 700; letter-spacing: -0.02em; white-space: nowrap; }
-.layar :global .stnum small { font-size: 12px; font-weight: 500; letter-spacing: 0; color: var(--sp-tinta-3); }
-.layar :global .stile.ok .stnum { color: var(--sp-hijau); }
-.layar :global .stile.warn .stnum { color: var(--sp-kuning); }
-.layar :global .stile.bad .stnum { color: var(--sp-merah); }
-.layar :global .stile.crit .stnum { color: var(--sp-merah-tua); }
-.layar :global .stlangkah { font-size: 13px; line-height: 17px; font-weight: 700; }
-.layar :global .stoleh { display: flex; align-items: flex-start; gap: 5px; font-size: 12px; line-height: 16px; color: var(--sp-tinta-2); }
-.layar :global .stoleh svg { flex: none; margin-top: 1px; color: var(--sp-tinta-3); }
-.layar :global .stlink {
-  align-self: flex-start;
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  margin: -6px 10px 8px;
-  padding: 4px;
-  border: 0;
-  border-radius: 6px;
-  background: none;
-  font-size: 12px;
-  font-weight: 700;
-  color: var(--sp-merah-tua);
-  text-decoration: underline;
-  cursor: pointer;
-}
+.layar :global .menub:hover { background: var(--sp-ungu-lembut); }
+.layar :global .menub > svg { flex: none; color: var(--sp-ungu); }
+.layar :global .menut { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; font-size: 13px; line-height: 18px; }
+.layar :global .menut b { color: var(--sp-ungu-tua); }
+.layar :global .menut .mut { font-size: 12px; line-height: 16px; }
 
-/* ---------- hasil per aspek HEART ---------- */
+/* ---------- batang dan angka ringkas (kartu dan laci) ---------- */
+.layar :global .ringkas2 { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+.layar :global .rblok {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+  padding: 12px 14px;
+  border-radius: 12px;
+  background: var(--sp-abu);
+  min-width: 0;
+}
+.layar :global .rtop { align-self: stretch; display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 2px 10px; }
+.layar :global .rlabel { font-size: 12px; font-weight: 700; color: var(--sp-tinta-2); }
+.layar :global .rnilai { font-size: 20px; line-height: 26px; font-weight: 700; color: var(--sp-ungu-tua); }
+.layar :global .rnilai small { font-size: 13px; font-weight: 500; color: var(--sp-tinta-3); }
+.layar :global .rbar { align-self: stretch; display: block; height: 6px; border-radius: 3px; background: var(--sp-abu-3); overflow: hidden; }
+.layar :global .rblok .rbar { background: var(--sp-putih); }
+.layar :global .rbar span { display: block; height: 100%; border-radius: 3px; }
+.layar :global .rbar .pu,
+.layar :global .rbar.obs span { background: var(--sp-ungu-bar); }
+.layar :global .rbar .or { background: var(--sp-jingga); }
+.layar :global .rsub { font-size: 12px; line-height: 16px; color: var(--sp-tinta-3); }
+.layar :global .abtn.kecil { height: 28px; padding: 0 9px; font-size: 11px; font-weight: 600; }
+.layar :global .rblok .abtn.kecil { background: var(--sp-putih); }
+.layar :global .rblok .abtn.kecil:hover { background: var(--sp-ungu-lembut); }
+
+/* ---------- laci kemajuan: tabel per kelas ---------- */
+.layar :global .kls { display: inline-flex; flex-direction: column; gap: 1px; line-height: 15px; }
+.layar :global .kls .mut { font-size: 11px; }
+.layar :global .pcell { display: flex; align-items: center; gap: 8px; }
+.layar :global .prog { width: 56px; height: 7px; border-radius: 4px; background: var(--sp-abu-3); overflow: hidden; flex: none; }
+.layar :global .progf { display: block; height: 100%; border-radius: 4px; }
+.layar :global .progf.ok { background: var(--sp-hijau-batang); }
+.layar :global .progf.warn { background: var(--sp-jingga); }
+.layar :global .progf.mid { background: var(--sp-ungu-bar); }
+
+/* ---------- laci sebaran: per aspek ---------- */
 .layar :global .legenda { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 14px; font-size: 12px; color: var(--sp-tinta-2); }
 .layar :global .legenda > span { display: inline-flex; align-items: center; gap: 6px; }
 .layar :global .lg { display: inline-block; width: 10px; height: 10px; border-radius: 3px; }
@@ -66,10 +117,10 @@
 .layar :global .abar .warn { background: var(--sp-jingga); }
 .layar :global .lg.bad,
 .layar :global .abar .bad { background: var(--sp-merah-teks); }
-.layar :global .asplist { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+.layar :global .asplist { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 10px; }
 .layar :global .asprow {
   display: grid;
-  grid-template-columns: 26px 150px minmax(0, 1fr) auto;
+  grid-template-columns: 26px 132px minmax(0, 1fr) auto;
   grid-template-areas: "kode nama bar angka";
   align-items: center;
   column-gap: 12px;
@@ -92,65 +143,27 @@
   font-size: 13px;
   font-weight: 700;
 }
-.layar :global .akode.kecil { width: 22px; height: 22px; border-radius: 6px; font-size: 12px; }
 .layar :global .akode.netral { background: var(--sp-abu-2); color: var(--sp-tinta-4); }
 .layar :global .akode.merah { background: var(--sp-merah-ikon); color: var(--sp-merah-teks); }
 .layar :global .anama { font-size: 13px; line-height: 17px; font-weight: 600; }
 .layar :global .abar { display: flex; gap: 2px; height: 12px; border-radius: 6px; overflow: hidden; background: var(--sp-abu-3); }
 .layar :global .abar span { display: block; height: 100%; }
-.layar :global .anums { display: grid; grid-template-columns: repeat(3, 38px); }
+.layar :global .anums { display: grid; grid-template-columns: repeat(3, 34px); }
 .layar :global .anum { font-size: 13px; font-weight: 700; text-align: right; font-variant-numeric: tabular-nums; }
 .layar :global .anum.ok { color: var(--sp-hijau-teks); }
 .layar :global .anum.warn { color: var(--sp-kuning-teks); }
 .layar :global .anum.bad { color: var(--sp-merah-teks); }
-.layar :global .catatan { margin: 0; font-size: 12px; line-height: 17px; color: var(--sp-tinta-2); }
 
-/* ---------- pengisian dan hasil per kelas ---------- */
-.layar :global .kepalagrup { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; }
-.layar :global .ringkas2 { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
-.layar :global .rblok {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  padding: 10px 14px;
-  border: 1px solid var(--sp-garis-3);
-  border-radius: 12px;
-  background: var(--sp-abu-4);
-  min-width: 0;
-}
-.layar :global .rtop { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 2px 10px; }
-.layar :global .rlabel { display: flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 700; color: var(--sp-tinta-2); }
-.layar :global .rlabel svg { color: var(--sp-tinta-3); }
-.layar :global .rnilai { font-size: 20px; line-height: 26px; font-weight: 700; color: var(--sp-ungu-tua); }
-.layar :global .rnilai small { font-size: 13px; font-weight: 500; color: var(--sp-tinta-3); }
-.layar :global .rbar { display: block; height: 6px; border-radius: 3px; background: var(--sp-abu-3); overflow: hidden; }
-.layar :global .rbar span { display: block; height: 100%; border-radius: 3px; }
-.layar :global .rbar .pu,
-.layar :global .rbar.obs span { background: var(--sp-ungu-bar); }
-.layar :global .rbar .or { background: var(--sp-jingga); }
-.layar :global .rsub { font-size: 12px; line-height: 16px; color: var(--sp-tinta-3); }
-.layar :global .rbaris { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 6px 10px; }
-.layar :global .abtn.kecil { height: 28px; padding: 0 9px; font-size: 11px; font-weight: 600; }
-
-.layar :global .kls { display: inline-flex; align-items: baseline; gap: 8px; }
-.layar :global .pcell { display: flex; align-items: center; gap: 10px; }
-.layar :global .prog { width: 96px; height: 7px; border-radius: 4px; background: var(--sp-abu-3); overflow: hidden; flex: none; }
-.layar :global .progf { display: block; height: 100%; border-radius: 4px; }
-.layar :global .progf.ok { background: var(--sp-hijau-batang); }
-.layar :global .progf.warn { background: var(--sp-jingga); }
-.layar :global .progf.mid { background: var(--sp-ungu-bar); }
-
-/* Tabel hasil per kelas: kepala kolom huruf HEART + nama, sel berwarna menurut jumlah anak. */
-.layar :global .tbl .hth { text-align: center; line-height: 14px; }
-.layar :global .hk { display: block; font-size: 13px; font-weight: 700; color: var(--sp-ungu); }
-.layar :global .hn { display: block; font-size: 10px; font-weight: 500; color: var(--sp-tinta-3); }
+/* ---------- laci sebaran: per kelas (sel berwarna menurut jumlah anak) ---------- */
+.layar :global .tbl .hth { text-align: center; }
+.layar :global .hk { font-size: 13px; font-weight: 700; color: var(--sp-ungu); }
 .layar :global .tbl .hcel { text-align: center; }
 .layar :global .hc {
   position: relative;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 44px;
+  width: 40px;
   height: 28px;
   border-radius: 7px;
   font-size: 12px;
@@ -171,16 +184,9 @@
   background: var(--sp-merah-teks);
 }
 
-/* ---------- anak yang perlu ditindaklanjuti ---------- */
-.layar :global .lead2 { margin: -6px 0 0; font-size: 12px; line-height: 17px; color: var(--sp-tinta-2); }
-.layar :global .kid { display: inline-flex; align-items: center; gap: 10px; }
-/* Kolom aspek atau pertanyaan keamanan boleh turun baris (sel .tbl dasar nowrap). */
-.layar :global .tbl .wrapcell { white-space: normal; min-width: 170px; max-width: 280px; line-height: 16px; }
-.layar :global .tl { display: inline-flex; align-items: center; gap: 8px; }
-.layar :global .tlbar { width: 56px; height: 6px; border-radius: 3px; background: var(--sp-abu-3); overflow: hidden; flex: none; }
-.layar :global .tlbar span { display: block; height: 100%; border-radius: 3px; background: var(--sp-ungu-bar); }
-.layar :global .footrow { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 12px; }
+/* ---------- laci daftar ---------- */
 .layar :global .linkbtn {
+  align-self: flex-start;
   min-height: 32px;
   padding: 6px 4px;
   border: 0;
@@ -192,17 +198,22 @@
   cursor: pointer;
 }
 
-/* ---------- laci ---------- */
+/* ---------- laci formulir ---------- */
 .layar :global .fseg { align-self: flex-start; }
+.layar :global .fbaris { display: flex; flex-wrap: wrap; gap: 8px 12px; }
 .layar :global .skala { margin: 0; display: flex; flex-wrap: wrap; align-items: center; gap: 6px 8px; font-size: 12px; }
 .layar :global .skala .mut { flex-basis: 100%; }
-.layar :global .fgroup { display: flex; flex-direction: column; gap: 10px; padding: 14px 16px; border: 1px solid var(--sp-garis-2); border-radius: 12px; }
-.layar :global .fgroup.bahaya { border-color: var(--sp-merah-latar); }
+.layar :global .fgroup { display: flex; flex-direction: column; gap: 10px; padding: 10px 12px; border-radius: 12px; background: var(--sp-abu-4); }
+.layar :global details.fgroup[open] { background: var(--sp-ungu-lembut); padding-bottom: 14px; }
+.layar :global .fgroup.buka { padding: 14px 16px; background: var(--sp-abu); }
+.layar :global .fgroup.bahaya { background: var(--sp-merah-tipis); }
 .layar :global .fgh { display: flex; align-items: center; gap: 10px; }
+.layar :global summary.fgh { list-style: none; cursor: pointer; border-radius: 8px; }
+.layar :global summary.fgh::-webkit-details-marker { display: none; }
+.layar :global .fpanah { flex: none; color: var(--sp-ungu); transition: transform 0.15s ease; }
+.layar :global details[open] .fpanah { transform: rotate(180deg); }
 .layar :global .fgt { display: flex; flex-direction: column; gap: 1px; flex: 1; min-width: 0; font-size: 14px; line-height: 18px; }
 .layar :global .fgt .mut { font-size: 12px; line-height: 16px; }
-.layar :global .fgamb { flex: none; font-size: 11px; line-height: 15px; color: var(--sp-tinta-3); text-align: right; }
-.layar :global .fgamb span { display: block; }
 .layar :global .items {
   margin: 0;
   padding-left: 24px;
@@ -223,9 +234,11 @@
   line-height: 16px;
   white-space: nowrap;
 }
+.layar :global details[open] .indik { background: var(--sp-putih); }
 .layar :global .items.titik { list-style: disc; }
 .layar :global .dfoot { margin: 0; font-size: 12px; line-height: 17px; color: var(--sp-tinta-3); }
 
+/* ---------- laci tindak lanjut dan ringkasan ---------- */
 .layar :global .avbesar { width: 40px; height: 40px; font-size: 13px; }
 .layar :global .hasilbaris { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 14px; }
 .layar :global .hasilaspek { display: flex; flex-wrap: wrap; gap: 6px 12px; font-size: 13px; font-weight: 600; }
@@ -274,20 +287,20 @@
 .layar :global .rlist { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
 .layar :global .rbutir { display: flex; align-items: flex-start; gap: 10px; font-size: 13px; line-height: 18px; }
 .layar :global .rbutir .mut { display: block; font-size: 12px; line-height: 16px; }
+/* Tanda centang: kotak bulat berlatar abu, saat selesai ungu dengan ikon putih. */
 .layar :global .cek {
   flex: none;
   width: 18px;
   height: 18px;
   margin-top: 1px;
   border-radius: 50%;
-  border: 1.5px solid var(--sp-garis);
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  background: var(--sp-putih);
+  background: var(--sp-abu-3);
 }
-.layar :global .cek.on { border-color: var(--sp-ungu); background: var(--sp-ungu); color: var(--sp-putih); }
-.layar :global .cek.titik { width: 8px; height: 8px; margin: 6px 5px 0; border: 0; border-radius: 50%; background: var(--sp-ungu-bar); }
+.layar :global .cek.on { background: var(--sp-ungu); color: var(--sp-putih); }
+.layar :global .cek.titik { width: 8px; height: 8px; margin: 6px 5px 0; border-radius: 50%; background: var(--sp-ungu-bar); }
 .layar :global .kutip {
   margin: 0;
   padding: 10px 12px;
@@ -300,77 +313,28 @@
 .layar :global .kutip .mut { display: block; margin-bottom: 2px; font-size: 11px; line-height: 15px; }
 
 /* ---------- fokus papan ketik ---------- */
-.layar :global .stileb:focus-visible,
-.layar :global .stlink:focus-visible,
-.layar :global .linkbtn:focus-visible { outline: var(--sp-fokus); outline-offset: 2px; }
+.layar :global .menub:focus-visible,
+.layar :global .linkbtn:focus-visible,
+.layar :global summary.fgh:focus-visible { outline: var(--sp-fokus); outline-offset: 2px; }
 
 /* ---------- lebar layar ---------- */
-/* Label yang hanya tampil saat kepala tabel disembunyikan: .hpk untuk daftar anak (960px ke
-   bawah), .hp untuk progres per kelas (600px ke bawah). */
-.layar :global .hp,
-.layar :global .hpk { display: none; }
-
-/* Daftar anak butuh sekitar 1010px: di bawah itu sel tindak lanjut turun baris. */
-@media (max-width: 1180px) {
-  .layar :global .tbl.tumpuk td:nth-child(5) { white-space: normal; max-width: 200px; }
-  .layar :global .tbl.tumpuk .tl { flex-wrap: wrap; row-gap: 3px; }
-  .layar :global .tbl .wrapcell { min-width: 140px; }
-}
+/* Label yang hanya tampil saat kepala tabel per kelas disembunyikan (600px ke bawah). */
+.layar :global .hp { display: none; }
 
 @media (max-width: 960px) {
-  .layar :global .stiles { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-  .layar :global .hpk { display: inline; }
-
-  /* Daftar anak menjadi kartu bertumpuk, jadi tidak perlu gulir mendatar. Kepala tabel tetap ada
-     untuk pembaca layar. Baris 1: anak + kelas, baris 2: huruf HEART + aspek, lalu tindak lanjut
-     dan aksi. */
-  .layar :global .tbl.tumpuk thead {
-    position: absolute;
-    width: 1px;
-    height: 1px;
-    overflow: hidden;
-    clip: rect(0 0 0 0);
-  }
-  .layar :global .tbl.tumpuk,
-  .layar :global .tbl.tumpuk tbody { display: block; }
-  .layar :global .tbl.tumpuk tr {
-    display: grid;
-    grid-template-columns: 112px minmax(0, 1fr) auto;
-    align-items: center;
-    gap: 8px 12px;
-    padding: 12px;
-    border-top: 1px solid var(--sp-garis-3);
-  }
-  .layar :global .tbl.tumpuk tbody tr:first-child { border-top: 0; }
-  .layar :global .tbl.tumpuk td {
-    display: block;
-    height: auto;
-    min-width: 0;
-    max-width: none;
-    padding: 0;
-    border: 0;
-    white-space: normal;
-  }
-  .layar :global .tbl.tumpuk td:nth-child(1) { grid-column: 1 / 3; }
-  .layar :global .tbl.tumpuk td.klsanak { justify-self: end; color: var(--sp-tinta-3); }
-  .layar :global .tbl.tumpuk td:nth-child(4) { grid-column: 2 / -1; }
-  .layar :global .tbl.tumpuk td:nth-child(5) { grid-column: 1 / 3; max-width: none; }
-  .layar :global .tbl.tumpuk td:nth-child(6) { grid-column: 3; justify-self: end; }
-
-  /* Hasil per kelas: nama wali kelas disembunyikan, nama aspek boleh turun baris. */
-  .layar :global .tbl.rapat .kls .mut { display: none; }
-  .layar :global .tbl.rapat .hth { white-space: normal; }
+  .layar :global .duakolom { grid-template-columns: minmax(0, 1fr); }
 }
 
 @media (max-width: 600px) {
   .layar :global .hp { display: inline; }
-  .layar :global .pcell .hp { flex: none; width: 64px; font-size: 11px; color: var(--sp-tinta-3); }
+  .layar :global .pcell .hp { flex: none; font-size: 11px; color: var(--sp-tinta-3); }
 
-  /* Kartu anak: tombol aksi turun ke baris sendiri. */
-  .layar :global .tbl.tumpuk td:nth-child(5),
-  .layar :global .tbl.tumpuk td:nth-child(6) { grid-column: 1 / -1; justify-self: start; }
+  /* Baris anak: tombol turun ke baris sendiri supaya nama tidak terjepit. */
+  .layar :global .anak { grid-template-columns: 32px minmax(0, 1fr); grid-template-areas: "av nama" "av ket" "av status" "av aksi"; }
+  .layar :global .anak.ringkas { grid-template-areas: "av nama" "av ket" "av aksi"; }
+  .layar :global .anakaksi { justify-self: start; margin-top: 4px; }
 
-  /* Progres per kelas menjadi kartu juga. Baris 1: kelas + pengingat, baris 2: formulir wali kelas
+  /* Pengisian per kelas menjadi kartu. Baris 1: kelas + pengingat, baris 2: formulir wali kelas
      + orang tua (tanpa batang). */
   .layar :global .tbl.tumpukp thead {
     position: absolute;
@@ -403,32 +367,39 @@
   .layar :global .tbl.tumpukp td:nth-child(3) { grid-row: 2; grid-column: 2; }
   .layar :global .tbl.tumpukp .prog { display: none; }
   .layar :global .tbl.tumpukp .pcell { gap: 6px; }
-  .layar :global .tbl.tumpukp .pcell .hp { width: auto; }
+  .layar :global .tbl.tumpukp .kls { flex-direction: row; align-items: baseline; gap: 8px; }
 
   /* Hasil per kelas: kolom dirapatkan supaya lima aspek dan jumlah muat tanpa gulir. */
   .layar :global .tbl.rapat th,
   .layar :global .tbl.rapat td { padding-left: 3px; padding-right: 3px; }
   .layar :global .tbl.rapat th:first-child,
   .layar :global .tbl.rapat td:first-child { padding-left: 10px; }
-  .layar :global .tbl.rapat .hn,
-  .layar :global .tbl.rapat .kls .mut,
-  .layar :global .tbl.rapat .pisah { display: none; }
   .layar :global .tbl.rapat .hc { width: 30px; }
   .layar :global .tbl.rapat th:last-child,
   .layar :global .tbl.rapat td:last-child { white-space: normal; line-height: 16px; }
   .layar :global .tbl.rapat td:last-child .mut { display: block; }
+  .layar :global .tbl.rapat .pisah { display: none; }
 
-  .layar :global .ringkas2 { grid-template-columns: minmax(0, 1fr); }
+  .layar :global .ringkas2,
+  .layar :global .angka2 { grid-template-columns: minmax(0, 1fr); }
   .layar :global .asprow {
     grid-template-columns: 26px minmax(0, 1fr) auto;
     grid-template-areas: "kode nama angka" "bar bar bar";
   }
-  .layar :global .stnum { font-size: 22px; line-height: 26px; }
-  .layar :global .fgh { flex-wrap: wrap; }
-  .layar :global .fgamb { flex-basis: 100%; text-align: left; padding-left: 36px; }
-  .layar :global .fgamb span { display: inline; }
-  .layar :global .fgamb span + span::before { content: " · "; }
   .layar :global .oleh { max-width: none; }
   .layar :global .chk.usul { flex-wrap: wrap; }
   .layar :global .chk.usul .oleh { margin-left: 28px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .layar :global .fpanah { transition: none; }
+}
+
+/* ---------- cincin kemajuan skrining (2026-11-25) ---------- */
+.layar :global .cincin2 { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+.layar :global .cincinItem { display: flex; align-items: center; gap: 12px; min-width: 0; }
+.layar :global .cincinTeks { display: flex; flex-direction: column; gap: 4px; min-width: 0; font-size: 12px; line-height: 16px; color: var(--sp-tinta-3); }
+.layar :global .cincinTeks b { font-size: 13px; color: var(--sp-tinta); }
+@media (max-width: 1180px) {
+  .layar :global .cincin2 { grid-template-columns: minmax(0, 1fr); }
 }

@@ -1,151 +1,94 @@
 import { Ikon } from "../komponen";
-import { HurufHeart } from "../bersama/HeartKecil";
-import { LAPORAN_RAKA } from "../bersama/heart";
-import { Kemajuan, MiniLangkah } from "./OrangTuaBagian";
-import { gabungNama, hitungSelesai } from "./OrangTuaAlat";
-import { ASPEK_PER_STATUS, HASIL_RAKA, KS015, TUGAS_RUMAH, TUGAS_SEKOLAH } from "./orangTuaData";
+import { PetaHati } from "../bersama/HeartKecil";
+import { Cincin } from "../bersama/Grafik";
+import { hitungSelesai } from "./OrangTuaAlat";
+import { MiniLangkah } from "./OrangTuaBagian";
+import { ASPEK_PER_STATUS, HASIL_RAKA, KS015, STATUS_TAHAP, TUGAS_RUMAH } from "./orangTuaData";
 
-const nama = (daftar) => gabungNama(daftar.map((a) => a.nama));
-
-// Aspek yang disorot di kartu HEART: Waspada lebih dulu, kalau tidak ada baru Perlu Perhatian.
-const SOROT = ASPEK_PER_STATUS.waspada.length
-  ? { aspek: ASPEK_PER_STATUS.waspada, teks: "perlu didampingi", nada: "hp-bad" }
-  : { aspek: ASPEK_PER_STATUS.perhatian, teks: "perlu perhatian", nada: "hp-warn" };
-
-// Kalimat untuk aspek lain, mis. "Emosional perlu perhatian. Hiperaktivitas, Agresi, dan Tolong Menolong baik."
-const SISA = [
-  ASPEK_PER_STATUS.waspada.length && ASPEK_PER_STATUS.perhatian.length
-    ? `${nama(ASPEK_PER_STATUS.perhatian)} perlu perhatian.`
-    : "",
-  ASPEK_PER_STATUS.baik.length ? `${nama(ASPEK_PER_STATUS.baik)} baik.` : "",
-]
-  .filter(Boolean)
-  .join(" ");
+// Aspek yang disebut di kartu HEART: Waspada lebih dulu, kalau tidak ada baru Perlu Perhatian.
+const SOROT = ASPEK_PER_STATUS.waspada[0]
+  ? { teks: `${ASPEK_PER_STATUS.waspada[0].nama} terindikasi perlu didampingi`, nada: "bad" }
+  : ASPEK_PER_STATUS.perhatian[0]
+    ? { teks: `${ASPEK_PER_STATUS.perhatian[0].nama} terindikasi perlu diperhatikan`, nada: "warn" }
+    : { teks: "Semua aspek baik", nada: "ok" };
 
 /**
- * Beranda aplikasi orang tua, ringkas: status HEART Raka, checklist minggu ini, laporan aktif, dan
- * pintasan Lapor Aman serta mode cerita anak.
+ * Beranda aplikasi orang tua sebagai bento kartu (masukan pemilik produk 2026-11-25): Lapor Aman
+ * selebar layar paling atas karena paling mendesak, lalu kartu yang dicek tiap hari (checklist
+ * dengan cincin kemajuan, laporan berjalan), lalu hasil HEART dengan peta hati kecil, dan ajak anak
+ * bercerita. Tidak ada tombol menghubungi wali kelas: semua dari orang tua lewat formulir (instruksi
+ * pemilik produk 2026-11-25). Tiap kartu satu angka atau satu status; rinciannya di halamannya.
  */
-export default function OrangTuaBeranda({ centang, laporanBaru, onBukaTab, onBukaAspek, onLapor, onCeritaAnak }) {
-  const nRumah = hitungSelesai(TUGAS_RUMAH, centang);
-  const nSekolah = hitungSelesai(TUGAS_SEKOLAH, centang);
-  const berikutnya = TUGAS_RUMAH.find((c) => !centang[c.id]);
+export default function OrangTuaBeranda({ centang, laporanBaru, onBukaTab, onLapor, onCeritaAnak, tugasRumah = TUGAS_RUMAH }) {
+  const nRumah = hitungSelesai(tugasRumah, centang);
+  const berikutnya = tugasRumah.find((c) => !centang[c.id]);
+  const laporan = laporanBaru[0] || KS015;
+  const jumlahAktif = laporanBaru.length + 1;
 
   return (
     <div className="hp-pad">
-      <section className="hp-card" aria-labelledby="ortu-b-heart">
-        <div className="hp-row">
-          <span className="hp-ic hp-p">
-            <Ikon nama="hati" size={22} />
+      <div className="hp-bento">
+        <button type="button" className="hp-bk hp-bk-lapor hp-lebar" style={{ "--urut": 0 }} onClick={onLapor}>
+          <span className="hp-bk-ikon">
+            <Ikon nama="perisaiCentang" size={26} />
           </span>
-          <div className="hp-fleks">
-            <h3 id="ortu-b-heart" className="hp-ct">
-              Hasil skrining HEART Raka
-            </h3>
-            <p className="hp-cm">{LAPORAN_RAKA.tanggal} · bukan diagnosis</p>
-          </div>
-        </div>
-        <div className="hp-row hp-antara">
-          <HurufHeart heart={HASIL_RAKA} ukuran="md" />
-          <button type="button" className="hp-tautan" onClick={() => onBukaTab("heart")}>
-            Lihat hasil
-            <Ikon nama="kanan" size={18} />
-          </button>
-        </div>
-        {SOROT.aspek.map((a) => (
-          <button key={a.id} type="button" className={`hp-sorotan ${SOROT.nada}`} onClick={() => onBukaAspek(a.id)}>
-            <span className="hp-sorotdot" aria-hidden="true" />
-            <span className="hp-fleks">
-              {a.nama} {SOROT.teks}
+          <span className="hp-fleks">
+            <b>Lapor Aman</b>
+            <span>Anak tidak aman? Lapor sekarang, bisa tanpa nama.</span>
+          </span>
+          <Ikon nama="kanan" size={22} />
+        </button>
+
+        <button type="button" className="hp-bk hp-bk-putih" style={{ "--urut": 1 }} onClick={() => onBukaTab("checklist")}>
+          <span className="hp-bk-label">Checklist</span>
+          <Cincin
+            nilai={nRumah}
+            dari={tugasRumah.length}
+            warna="var(--sp-hijau-batang)"
+            ukuran={74}
+            tebal={11}
+            label={`${nRumah} dari ${tugasRumah.length} tugas rumah selesai`}
+          />
+          <span className="hp-bk-ket">
+            {berikutnya ? `Berikutnya: ${berikutnya.judul}` : "Semua tugas rumah selesai"}
+          </span>
+        </button>
+
+        <button type="button" className="hp-bk hp-bk-putih" style={{ "--urut": 2 }} onClick={() => onBukaTab("laporanku")}>
+          <span className="hp-bk-label">Laporanku</span>
+          <span className="hp-bk-angka">
+            {jumlahAktif}
+            <small>aktif</small>
+          </span>
+          <span className={`pill sm ${laporan.tahap === "triage" ? "warn" : "mid"}`}>{STATUS_TAHAP[laporan.tahap]}</span>
+          <MiniLangkah tahap={laporan.tahap} />
+          <span className="hp-bk-ket">{laporan.kode}</span>
+        </button>
+
+        <button type="button" className="hp-bk hp-bk-heart hp-lebar" style={{ "--urut": 3 }} onClick={() => onBukaTab("heart")}>
+          <span className="hp-bk-hati" aria-hidden="true">
+            <PetaHati hasil={HASIL_RAKA} lebar={96} label="Peta HEART Raka" />
+          </span>
+          <span className="hp-fleks">
+            <span className="hp-bk-label">Hasil screening HEART</span>
+            <b className="hp-bk-judul">Raka, 3 Nov</b>
+            <span className={`hp-bk-sorot hp-st-${SOROT.nada}`}>
+              <span className="hp-sorotdot" aria-hidden="true" />
+              {SOROT.teks}
             </span>
-            <Ikon nama="kanan" size={18} />
-          </button>
-        ))}
-        {SISA ? <p className="hp-cd">{SISA}</p> : null}
-      </section>
-
-      <section className="hp-card" aria-labelledby="ortu-b-cek">
-        <div className="hp-row">
-          <span className="hp-ic hp-g">
-            <Ikon nama="ceklis" size={22} />
           </span>
-          <div className="hp-fleks">
-            <h3 id="ortu-b-cek" className="hp-ct">
-              Checklist minggu ini
-            </h3>
-            <p className="hp-cm">Tindak lanjut hasil HEART, dikerjakan bersama</p>
-          </div>
-        </div>
-        <div className="hp-kemrow">
-          <span>Di rumah</span>
-          <Kemajuan n={nRumah} m={TUGAS_RUMAH.length} label="Tugas di rumah" />
-          <b>
-            {nRumah} dari {TUGAS_RUMAH.length}
-          </b>
-        </div>
-        <div className="hp-kemrow">
-          <span>Sekolah</span>
-          <Kemajuan n={nSekolah} m={TUGAS_SEKOLAH.length} label="Tugas sekolah" />
-          <b>
-            {nSekolah} dari {TUGAS_SEKOLAH.length}
-          </b>
-        </div>
-        <p className="hp-cd">
-          {berikutnya ? (
-            <>
-              <b>Berikutnya untuk Ibu:</b> {berikutnya.judul} · {berikutnya.waktu}
-            </>
-          ) : (
-            "Semua tugas rumah minggu ini sudah selesai. Terima kasih, Bu."
-          )}
-        </p>
-        <button type="button" className="hp-ghost" onClick={() => onBukaTab("checklist")}>
-          Buka checklist
+          <Ikon nama="kanan" size={20} className="hp-chev" />
         </button>
-      </section>
 
-      <section className="hp-card" aria-labelledby="ortu-b-lapor">
-        <div className="hp-row">
-          <span className="hp-ic hp-r">
-            <Ikon nama="lapor" size={22} />
-          </span>
-          <div className="hp-fleks">
-            <h3 id="ortu-b-lapor" className="hp-ct">
-              Laporan Anda {KS015.kode}
-            </h3>
-            <p className="hp-cm">{KS015.judul}</p>
-          </div>
-        </div>
-        <MiniLangkah tahap={KS015.tahap} />
-        <p className="hp-cd">
-          Bu Rina dan Bu Laras menangani. <b>{KS015.sla.judul}.</b>
-        </p>
-        {laporanBaru.length > 0 && (
-          <p className="hp-cm">
-            {laporanBaru.length === 1
-              ? `Laporan baru ${laporanBaru[0].kode} sedang dinilai Guru BK.`
-              : `${laporanBaru.length} laporan baru sedang dinilai Guru BK.`}
-          </p>
-        )}
-        <button type="button" className="hp-ghost" onClick={() => onBukaTab("laporanku")}>
-          Lihat perkembangan
-        </button>
-      </section>
-
-      <div className="hp-tiles">
-        <button type="button" className="hp-tileb hp-red" onClick={onLapor}>
-          <span className="hp-ic hp-r hp-icputih">
-            <Ikon nama="perisaiCentang" size={22} />
-          </span>
-          <b>Lapor Aman</b>
-          <span className="hp-t">Ada yang membuat anak tidak aman? Bisa tanpa nama.</span>
-        </button>
-        <button type="button" className="hp-tileb hp-pur" onClick={onCeritaAnak}>
-          <span className="hp-ic hp-p">
+        <button type="button" className="hp-bk hp-bk-cerita hp-lebar" style={{ "--urut": 4 }} onClick={onCeritaAnak}>
+          <span className="hp-bk-ikonkecil">
             <Ikon nama="senyum" size={22} />
           </span>
-          <b>Ajak anak bercerita</b>
-          <span className="hp-t">Mode anak: cukup sentuh gambar, ada suara.</span>
+          <span className="hp-fleks">
+            <b>Ajak Raka bercerita</b>
+            <span className="hp-bk-ket">Raka cukup menyentuh gambar, ada suara.</span>
+          </span>
+          <Ikon nama="kanan" size={20} className="hp-chev" />
         </button>
       </div>
     </div>

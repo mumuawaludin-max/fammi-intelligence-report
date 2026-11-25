@@ -8,17 +8,23 @@ import { ANAK_2B, HEART, HEART_IDS, RINGKAS_SEKOLAH, statusTerberat } from "../b
 import { BUDDY_2B } from "../bersama/dukungan.js";
 import { PEMILIK } from "../bersama/tindakLanjut.js";
 import {
+  ASPEK_TERATAS,
   BUTIR_HEART,
   EVALUASI,
+  HASIL_KELAS,
   HEART_ANAK,
   KELAS,
   KELAS_WALAS,
+  KELAS_WALAS_BELUM,
   PENDUKUNG,
   PERHATIAN,
   PERTANYAAN_KEAMANAN,
   TANDA_BAHAYA,
+  TANDA_TERBUKA,
+  TOTAL,
   USULAN,
   WASPADA,
+  WASPADA_BELUM,
   bacaHeart,
   usulanAnak,
 } from "./skriningData.js";
@@ -52,7 +58,7 @@ test("anak kelas 2B sama persis dengan ANAK_2B", () => {
   }
 });
 
-test("kelas: total formulir sama dengan kartu, anak perlu tindak lanjut tidak melebihi yang terpetakan", () => {
+test("kelas: total formulir sama dengan kartu, anak perlu tindak lanjut tidak melebihi yang sudah diskrining", () => {
   const jumlah = (k) => KELAS.reduce((n, x) => n + x[k], 0);
   assert.equal(jumlah("anak"), RINGKAS_SEKOLAH.total);
   assert.equal(jumlah("walas"), RINGKAS_SEKOLAH.terpetakan);
@@ -62,7 +68,7 @@ test("kelas: total formulir sama dengan kartu, anak perlu tindak lanjut tidak me
   let baik = 0;
   for (const k of KELAS) {
     const ditandai = SEMUA.filter((a) => a.kelas === k.kelas).length;
-    assert.ok(ditandai <= k.walas, `${k.kelas}: ${ditandai} anak ditandai, terpetakan ${k.walas}`);
+    assert.ok(ditandai <= k.walas, `${k.kelas}: ${ditandai} anak ditandai, sudah diskrining ${k.walas}`);
     baik += k.walas - ditandai;
   }
   assert.equal(baik, RINGKAS_SEKOLAH.baik);
@@ -110,6 +116,38 @@ test("teks layar: tanpa em-dash dan tanpa istilah skrining lama", () => {
     assert.ok(!/(?<!Relasi )Pertemanan/.test(isi), "nama aspek lama: Pertemanan");
     assert.ok(!/"Perasaan"|"Perilaku"|>Perasaan<|>Perilaku</.test(isi), "nama aspek lama: Perasaan atau Perilaku");
   }
+});
+
+test("teks tampilan: istilah sulit sudah diganti kata sehari-hari", () => {
+  // Hanya teks tampilan: isi string dan teks JSX, sesudah komentar dibuang. Nama properti di kode
+  // (t.buddy, calonBuddy, RINGKAS_SEKOLAH.terpetakan) tidak ikut karena didahului titik atau huruf.
+  const SULIT = /(?<![.\w])(buddy|terpetakan|triage|ditriage|observasi|eskalasi|SLA|rencana tindak)(?![\w:])/i;
+  for (const b of ["./skriningData.js", "./Skrining.jsx", "./SkriningLaci.jsx"]) {
+    const kode = readFileSync(new URL(b, import.meta.url), "utf8")
+      .replace(/\/\*[\s\S]*?\*\//g, "")
+      .replace(/^\s*\/\/.*$/gm, "");
+    const teks = [...kode.matchAll(/"([^"\\\n]*)"|`([^`]*)`|>([^<>{}]*)</g)].map((m) => m[1] ?? m[2] ?? m[3]);
+    for (const t of teks) assert.ok(!SULIT.test(t), `${b}: istilah sulit di "${t.trim()}"`);
+  }
+});
+
+test("halaman utama: yang mendesak (tanda bahaya terbuka, Waspada tanpa tindak lanjut) sesuai data", () => {
+  assert.deepEqual(
+    WASPADA_BELUM.map((a) => a.nama),
+    WASPADA.filter((a) => a.tindak.jenis === "belum").map((a) => a.nama),
+  );
+  assert.ok(WASPADA_BELUM.length > 0 && TANDA_TERBUKA.length > 0);
+  for (const t of TANDA_TERBUKA) assert.ok(!t.selesai, `${t.nama}: kasus sudah selesai`);
+  assert.equal(TOTAL.anak, RINGKAS_SEKOLAH.total);
+  assert.equal(TOTAL.walas, RINGKAS_SEKOLAH.terpetakan);
+  assert.equal(TOTAL.belumOrtu, TOTAL.anak - TOTAL.ortu);
+  assert.ok(KELAS_WALAS_BELUM.every((k) => k.walas < k.anak) && KELAS_WALAS_BELUM.length > 0);
+  // Dua aspek teratas memang yang paling banyak anak tidak Baik.
+  const n = HEART.map((a) => RINGKAS_SEKOLAH.perAspek[a.id].perhatian + RINGKAS_SEKOLAH.perAspek[a.id].waspada).sort((p, q) => q - p);
+  assert.deepEqual(ASPEK_TERATAS.map((t) => t.n), n.slice(0, 2));
+  // Hasil per kelas menjumlah ke daftar anak.
+  assert.equal(HASIL_KELAS.reduce((s, k) => s + k.jumlah, 0), SEMUA.length);
+  assert.equal(HASIL_KELAS.reduce((s, k) => s + k.waspada, 0), WASPADA.length);
 });
 
 test("sebaran per aspek di ringkasan sekolah sama dengan kode HEART daftar anak", () => {
