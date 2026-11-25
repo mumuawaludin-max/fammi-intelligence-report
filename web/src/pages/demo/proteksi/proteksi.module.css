@@ -97,10 +97,9 @@
 .scope :global *::after { box-sizing: border-box; }
 .scope :global a { color: var(--sp-ungu); }
 .scope :global a:hover { color: var(--sp-ungu-tua); }
-.scope :global button,
-.scope :global select,
-.scope :global input,
-.scope :global textarea { font-family: inherit; color: inherit; }
+/* Spesifisitas nol lewat :where(), supaya warna teks dari kelas komponen (mis. teks putih di tombol
+   ungu dialog dan formulir) selalu menang atas pewarisan warna ini. */
+:where(.scope) :global(:where(button, select, input, textarea)) { font-family: inherit; color: inherit; }
 .scope :global h1,
 .scope :global h2,
 .scope :global h3,
