@@ -27,14 +27,17 @@
 .layar :global .kepAksi { display: flex; flex-wrap: wrap; gap: 6px; }
 .layar :global .ghost.terkirim { background: var(--sp-hijau-tipis); color: var(--sp-hijau-teks); cursor: default; }
 
-/* ---------- dua alur ----------
+/* ---------- pasangan alur + grafiknya ----------
+   Baris kedua: alur kejadian + kasus aktif. Baris ketiga: alur pencegahan + hasil HEART.
    --warna        warna alur (ungu pencegahan, merah kejadian), dipakai nomor langkah di laci
    --warna-tipis  latar nomor langkah */
-.layar :global .alurDua {
+.layar :global .pasangan {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 16px;
+  align-items: stretch;
 }
+.layar :global .pasangan.pasanganHeart { grid-template-columns: minmax(0, 1fr) minmax(0, 1.25fr); }
 .layar :global .nadaCegah { --warna: var(--sp-ungu); --warna-tipis: var(--sp-ungu-tipis); }
 .layar :global .nadaKejadian { --warna: var(--sp-merah-teks); --warna-tipis: var(--sp-merah-latar); }
 .layar :global .alurPanel {
@@ -195,7 +198,7 @@
 
 /* ---------- lebar layar ---------- */
 @media (max-width: 900px) {
-  .layar :global .alurDua { grid-template-columns: minmax(0, 1fr); }
+  .layar :global .pasangan { grid-template-columns: minmax(0, 1fr); }
 }
 @media (max-width: 640px) {
   /* Penanda pindah ke atas judul, tombol tetap di kanan. */
@@ -220,12 +223,11 @@
 }
 
 /* ---------- grafik HEART sekolah dan kasus aktif (2026-11-25) ---------- */
-.layar :global .grafikDua { display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr); gap: 16px; align-items: stretch; }
 .layar :global .heartGrafik { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 20px; align-items: center; }
 .layar :global .heartDonat { display: flex; align-items: center; gap: 14px; }
 .layar :global .heartDonat ul { min-width: 130px; }
 @media (max-width: 1100px) {
-  .layar :global .grafikDua { grid-template-columns: minmax(0, 1fr); }
+  .layar :global .pasangan.pasanganHeart { grid-template-columns: minmax(0, 1fr); }
 }
 @media (max-width: 640px) {
   .layar :global .heartGrafik { grid-template-columns: minmax(0, 1fr); }

@@ -105,10 +105,10 @@ export function LaporAman({ onKeluar, onKirim, onBukaTab, tampilkanToast, keAtas
           </section>
           <section className="hp-card" aria-labelledby="ortu-l-lanjut">
             <h3 id="ortu-l-lanjut" className="hp-ct">
-              Yang terjadi selanjutnya
+              Selanjutnya
             </h3>
-            <p className="hp-cd">Sekolah menanggapi {JANJI_RESPON[terkirim.tingkat]}.</p>
-            <LangkahLaporan tahap={terkirim.tahap} langkah={terkirim.langkah} />
+            <p className="hp-cd">Sekolah menanggapi {JANJI_RESPON[terkirim.tingkat]}. Pantau di Laporanku.</p>
+            <MiniLangkah tahap={terkirim.tahap} />
           </section>
           <button type="button" className="hp-btnp" onClick={() => onBukaTab("laporanku")}>
             Lihat di Laporanku
@@ -343,7 +343,6 @@ export function Laporanku({ laporanBaru, pesan, onBalas, onLapor, tampilkanToast
             <Ikon nama="kirim" size={22} />
           </button>
         </div>
-        <p className="hp-cm">Catatan internal tim sekolah tidak ditampilkan.</p>
       </section>
 
       <Lipat judul="Riwayat kejadian Raka" ket={`${RIWAYAT_LAPORAN.length} laporan sudah selesai`}>
@@ -387,10 +386,7 @@ function KartuLaporan({ laporan }) {
       </div>
       <div className="hp-sla">
         <Ikon nama="jam" size={18} />
-        <span>
-          <b>{laporan.sla.judul}</b>
-          {laporan.sla.ket}
-        </span>
+        <b>{laporan.sla.judul}</b>
       </div>
       <MiniLangkah tahap={laporan.tahap} />
       {laporan.penangan ? (

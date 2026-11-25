@@ -26,7 +26,8 @@ export const LABEL_ALUR = {
 /**
  * Semua butir checklist. `aspek` = id aspek HEART (null kalau berlaku untuk semua aspek atau
  * bukan dari HEART). `selesai` = keadaan awal saat demo dibuka. `kasus` = id kasus bila butir ini
- * hasil penugasan alur kejadian.
+ * hasil penugasan alur kejadian. `ritme` (hanya tugas orang tua) = "harian" atau "mingguan": aktivitas
+ * rutin orang tua paling jarang seminggu sekali (masukan pemilik produk 2026-11-25).
  */
 export const CHECKLIST = [
   // Raka Pratama: Relasi Pertemanan (Waspada)
@@ -34,12 +35,12 @@ export const CHECKLIST = [
   { id: "raka-kelompok", anak: "Raka Pratama", aspek: "relasi", alur: "cegah", judul: "Kerja kelompok kecil bersama Alif dan Gibran, 3 kali seminggu", oleh: "walas", waktu: "Mulai 9 Nov", selesai: false },
   { id: "raka-kantin", anak: "Raka Pratama", aspek: "relasi", alur: "cegah", judul: "Awasi area kantin saat istirahat panjang", oleh: "piket", waktu: "Setiap hari", selesai: false },
   { id: "raka-sesi-bk", anak: "Raka Pratama", aspek: "relasi", alur: "cegah", judul: "Sesi BK: berani bilang tidak dan mencari bantuan", oleh: "bk", waktu: "Kamis, 12 Nov", selesai: false },
-  { id: "raka-main-rumah", anak: "Raka Pratama", aspek: "relasi", alur: "cegah", judul: "Undang 1 atau 2 teman sekelas bermain di rumah", oleh: "ortu", waktu: "Akhir pekan ini", selesai: false },
+  { id: "raka-main-rumah", anak: "Raka Pratama", aspek: "relasi", alur: "cegah", judul: "Undang 1 atau 2 teman sekelas bermain di rumah", oleh: "ortu", waktu: "Akhir pekan ini", ritme: "mingguan", selesai: false },
   // Raka Pratama: Emosional (Perlu Perhatian)
   { id: "raka-obrolan", anak: "Raka Pratama", aspek: "emosional", alur: "cegah", judul: "Obrolan hasil screening dengan orang tua", oleh: "walas", waktu: "Kamis, 5 Nov", selesai: true },
   { id: "raka-pojok", anak: "Raka Pratama", aspek: "emosional", alur: "cegah", judul: "Pojok tenang dan kartu perasaan di kelas", oleh: "walas", waktu: "Kamis, 19 Nov", selesai: false },
-  { id: "raka-sakit-perut", anak: "Raka Pratama", aspek: "emosional", alur: "cegah", judul: "Catat keluhan sakit perut tiap pagi", oleh: "ortu", waktu: "Setiap pagi", selesai: false },
-  { id: "raka-cerita", anak: "Raka Pratama", aspek: "emosional", alur: "cegah", judul: "Tanyakan perasaannya sepulang sekolah", oleh: "ortu", waktu: "Setiap hari", selesai: true },
+  { id: "raka-sakit-perut", anak: "Raka Pratama", aspek: "emosional", alur: "cegah", judul: "Catat keluhan sakit perut tiap pagi", oleh: "ortu", waktu: "Setiap pagi", ritme: "harian", selesai: false },
+  { id: "raka-cerita", anak: "Raka Pratama", aspek: "emosional", alur: "cegah", judul: "Tanyakan perasaannya sepulang sekolah", oleh: "ortu", waktu: "Setiap hari", ritme: "harian", selesai: true },
   // Raka Pratama: semua aspek
   { id: "raka-evaluasi", anak: "Raka Pratama", aspek: null, alur: "cegah", judul: "Evaluasi 4 minggu dan screening ulang", oleh: "bk", waktu: "Kamis, 3 Des", selesai: false },
   // Raka Pratama: penugasan kasus KS-015

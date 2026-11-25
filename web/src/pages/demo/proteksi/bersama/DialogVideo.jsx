@@ -7,8 +7,11 @@ import s from "./dialogVideo.module.css";
  * Fammi), video Fammi tentang inti skrining, dan ajakan membaca hasil serta mempraktikkan saran.
  * Video diputar lewat youtube-nocookie. Escape dan ketuk lapisan menutup dialog. Dipasang di dalam
  * wadah aplikasi yang `position: relative`.
+ *
+ * Juga dipakai untuk ajakan Screening HEART di aplikasi orang tua: tanpa `idVideo` videonya tidak
+ * tampil, `ikon` mengganti gembok, dan `kedua` = { label, onClick } memberi tombol kedua.
  */
-export default function DialogVideo({ judul, isi, idVideo, labelVideo, aksi, onAksi, onTutup }) {
+export default function DialogVideo({ judul, isi, idVideo, labelVideo, aksi, onAksi, onTutup, ikon = "gembok", kedua }) {
   const ref = useRef(null);
   useEffect(() => {
     const sebelum = document.activeElement;
@@ -34,7 +37,7 @@ export default function DialogVideo({ judul, isi, idVideo, labelVideo, aksi, onA
       >
         <div className={s.kepala}>
           <span className={s.kunci} aria-hidden="true">
-            <Ikon nama="gembok" size={20} />
+            <Ikon nama={ikon} size={20} />
           </span>
           <h2 id="dv-judul" className={s.judul}>
             {judul}
@@ -44,20 +47,29 @@ export default function DialogVideo({ judul, isi, idVideo, labelVideo, aksi, onA
           </button>
         </div>
         <p className={s.isi}>{isi}</p>
-        <div className={s.video}>
-          <iframe
-            src={`https://www.youtube-nocookie.com/embed/${idVideo}?rel=0`}
-            title={labelVideo}
-            loading="lazy"
-            allow="accelerometer; encrypted-media; gyroscope; picture-in-picture"
-            allowFullScreen
-          />
-        </div>
-        <p className={s.label}>{labelVideo}</p>
+        {idVideo ? (
+          <>
+            <div className={s.video}>
+              <iframe
+                src={`https://www.youtube-nocookie.com/embed/${idVideo}?rel=0`}
+                title={labelVideo}
+                loading="lazy"
+                allow="accelerometer; encrypted-media; gyroscope; picture-in-picture"
+                allowFullScreen
+              />
+            </div>
+            <p className={s.label}>{labelVideo}</p>
+          </>
+        ) : null}
         <button type="button" className={s.aksi} onClick={onAksi}>
           {aksi}
           <Ikon nama="kanan" size={18} />
         </button>
+        {kedua ? (
+          <button type="button" className={s.kedua} onClick={kedua.onClick}>
+            {kedua.label}
+          </button>
+        ) : null}
       </div>
     </>
   );

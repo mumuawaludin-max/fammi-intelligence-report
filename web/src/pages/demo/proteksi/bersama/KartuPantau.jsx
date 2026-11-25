@@ -82,7 +82,7 @@ export function KartuPantau({ idAspek, tanya, riwayat, onJawab, sudahCek, suara 
           );
         })}
       </svg>
-      <p className={s.catatan}>Area hijau = rentang Baik. Makin turun, makin baik.</p>
+      <p className={s.catatan}>Area hijau = Aman. Makin turun, makin baik.</p>
 
       {children}
 

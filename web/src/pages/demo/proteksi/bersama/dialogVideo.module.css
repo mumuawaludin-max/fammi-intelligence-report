@@ -80,7 +80,21 @@
   transition: transform 0.12s ease;
 }
 .aksi:active { transform: scale(0.97); }
+.kedua {
+  min-height: 44px;
+  margin-top: -4px;
+  border: 0;
+  border-radius: 16px;
+  background: transparent;
+  color: var(--sp-ungu);
+  font: inherit;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.kedua:hover { background: var(--sp-ungu-tipis); }
 .tutup:focus-visible,
+.kedua:focus-visible,
 .aksi:focus-visible { outline: var(--sp-fokus); outline-offset: 2px; }
 @media (prefers-reduced-motion: reduce) {
   .lapis,

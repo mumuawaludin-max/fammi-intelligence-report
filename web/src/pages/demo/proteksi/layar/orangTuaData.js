@@ -1,7 +1,7 @@
-import { HEART, LAPORAN_RAKA } from "../bersama/heart";
-import { DUKUNGAN_RAKA } from "../bersama/dukungan";
-import { checklistAnak } from "../bersama/tindakLanjut";
-import { ALUR } from "../bersama/alur";
+import { HEART, LAPORAN_RAKA } from "../bersama/heart.js";
+import { DUKUNGAN_RAKA } from "../bersama/dukungan.js";
+import { checklistAnak } from "../bersama/tindakLanjut.js";
+import { ALUR } from "../bersama/alur.js";
 
 /**
  * Data contoh aplikasi ponsel orang tua (Ibu Dewi, ibu Raka Pratama kelas 2B) dan mode cerita anak
@@ -49,6 +49,9 @@ export const JUDUL_TAB = {
 
 export const ANAK = LAPORAN_RAKA.anak;
 
+/** Ringkasan hasil dalam dua kalimat pendek untuk orang tua; versi lengkap ada di LAPORAN_RAKA.ringkas. */
+export const RINGKAS_ORTU = "Raka terindikasi kuat dalam tolong menolong dan tenang di kelas. Relasi pertemanan terindikasi perlu didampingi.";
+
 /** Status per aspek, bentuk yang dibaca PetaHati dan HurufHeart: { idAspek: status }. */
 export const HASIL_RAKA = Object.fromEntries(HEART.map((a) => [a.id, LAPORAN_RAKA.aspek[a.id].status]));
 
@@ -61,6 +64,16 @@ export const ASPEK_PER_STATUS = {
 
 /** Aspek yang dibuka pertama kali: yang paling perlu didampingi. */
 export const ASPEK_UTAMA = (ASPEK_PER_STATUS.waspada[0] || ASPEK_PER_STATUS.perhatian[0] || HEART[0]).id;
+
+/**
+ * Arti status dalam satu kalimat pendek untuk orang tua (masukan pemilik produk 2026-11-25: sedikit
+ * teks). Arti lengkapnya tetap STATUS.arti di bersama/heart.js untuk layar sekolah. Bukan diagnosis.
+ */
+export const ARTI_SINGKAT = {
+  baik: "Terindikasi aman. Pertahankan kebiasaan baiknya.",
+  perhatian: "Terindikasi mulai tampak tanda. Pantau dan beri dukungan.",
+  waspada: "Terindikasi perlu didampingi lebih dekat bersama sekolah.",
+};
 
 /** Nada catatan "Artinya" di detail aspek, menurut status. */
 export const CATATAN_STATUS = {
@@ -91,11 +104,91 @@ export const TUGAS_SEKOLAH = BUTIR_RAKA.filter((c) => c.oleh !== "ortu");
  * Dicentang Ibu Dewi lewat konteks prototipe seperti tugas rumah lain; saran dari Fammi.
  */
 export const PERTAHANKAN = [
-  { id: "raka-jaga-hiperaktivitas", aspek: "hiperaktivitas", judul: "Pertahankan jadwal belajar, bermain, dan tidur yang sama tiap hari", oleh: "ortu", waktu: "Setiap hari" },
-  { id: "raka-jaga-agresi", aspek: "agresi", judul: "Puji Raka saat ia tenang menghadapi hal yang membuatnya kesal", oleh: "ortu", waktu: "Minggu ini" },
-  { id: "raka-jaga-tolong", aspek: "tolong", judul: "Ajak Raka membantu satu pekerjaan kecil di rumah", oleh: "ortu", waktu: "Minggu ini" },
+  { id: "raka-jaga-hiperaktivitas", aspek: "hiperaktivitas", judul: "Jaga jadwal belajar, bermain, dan tidur yang sama", oleh: "ortu", waktu: "Setiap hari", ritme: "harian" },
+  { id: "raka-jaga-agresi", aspek: "agresi", judul: "Puji Raka saat ia tetap tenang ketika kesal", oleh: "ortu", waktu: "Minggu ini", ritme: "mingguan" },
+  { id: "raka-jaga-tolong", aspek: "tolong", judul: "Ajak Raka membantu satu pekerjaan kecil di rumah", oleh: "ortu", waktu: "Minggu ini", ritme: "mingguan" },
 ];
 export const EVALUASI = BUTIR_RAKA.find((c) => c.id === "raka-evaluasi")?.waktu || "Kamis, 3 Des";
+
+/* ---------- rutinitas orang tua ---------- */
+
+/**
+ * Aktivitas rutin orang tua dipetakan harian atau mingguan, paling jarang seminggu sekali (masukan
+ * pemilik produk 2026-11-25), supaya Beranda bisa menampilkan yang perlu dikerjakan sekarang.
+ */
+export const RITME = { harian: "Setiap hari", mingguan: "Minggu ini" };
+
+/** Ritme satu butir: dari kolom `ritme`, atau dibaca dari waktunya ("Setiap hari/pagi/malam" = harian). */
+export function ritmeButir(butir) {
+  if (butir.ritme === "harian" || butir.ritme === "mingguan") return butir.ritme;
+  return /^setiap (hari|pagi|malam|sore)/i.test(butir.waktu || "") ? "harian" : "mingguan";
+}
+
+/** Semua rutinitas Ibu Dewi: tugas rumah (rekomendasi Fammi dan tambahan sekolah) dan kebiasaan pertahankan. */
+export function rutinOrtu(tugasRumah = TUGAS_RUMAH) {
+  return [...tugasRumah, ...PERTAHANKAN].map((b) => ({ ...b, ritme: ritmeButir(b) }));
+}
+
+/**
+ * Cuplikan checklist di Beranda: paling banyak `n` butir yang belum selesai, harian lebih dulu,
+ * urutan asli dipertahankan di dalam tiap ritme.
+ */
+export function cuplikanRutin(rutin, centang, n = 3) {
+  const belum = rutin.filter((b) => !centang[b.id]);
+  return [...belum.filter((b) => b.ritme === "harian"), ...belum.filter((b) => b.ritme !== "harian")].slice(0, n);
+}
+
+/* ---------- Screening HEART dari orang tua ---------- */
+
+/**
+ * Pernyataan screening HEART yang diisi orang tua: lima per aspek, satu untuk tiap indikator di
+ * bersama/heart.js (urutan sama). Teksnya contoh sampai instrumen dari psikolog siap; prototipe
+ * tidak menilai jawaban, hasil Raka tetap dibaca dari LAPORAN_RAKA.
+ */
+const PERNYATAAN = {
+  hiperaktivitas: [
+    "Raka gelisah dan sulit diam",
+    "Raka terus bergerak saat gelisah",
+    "Raka bisa memusatkan perhatian",
+    "Raka berpikir dulu sebelum bertindak",
+    "Raka memperhatikan sampai tugas selesai",
+  ],
+  emosional: [
+    "Raka mengeluh sakit kepala atau sakit perut",
+    "Raka banyak khawatir",
+    "Raka tampak bahagia",
+    "Raka percaya diri di tempat baru",
+    "Raka mudah takut",
+  ],
+  agresi: [
+    "Raka bisa mengendalikan marahnya",
+    "Raka mau mengikuti arahan orang dewasa",
+    "Raka memaksakan keinginannya",
+    "Raka berbohong",
+    "Raka mengambil barang orang lain",
+  ],
+  relasi: [
+    "Raka senang berkumpul dengan teman",
+    "Raka punya teman baik",
+    "Raka disukai anak lain",
+    "Raka diganggu atau diejek teman",
+    "Raka akrab dengan teman sebayanya",
+  ],
+  tolong: [
+    "Raka peduli perasaan orang lain",
+    "Raka mau berbagi",
+    "Raka menolong teman yang sedih atau terluka",
+    "Raka bersikap baik pada anak yang lebih kecil",
+    "Raka menawarkan bantuan tanpa diminta",
+  ],
+};
+export const SCREENING_ORTU = HEART.flatMap((a) =>
+  a.indikator.map((indikator, i) => ({ id: `${a.id}-${i + 1}`, aspek: a.id, indikator, teks: PERNYATAAN[a.id][i] })),
+);
+/** Pilihan jawaban, sama untuk semua pernyataan. */
+export const JAWABAN_SCREENING = ["Tidak pernah", "Kadang-kadang", "Sering"];
+/** Perkiraan waktu pengisian untuk ajakan di Beranda. */
+export const LAMA_SCREENING = "sekitar 5 menit";
 
 /* ---------- laporan (alur kejadian) ---------- */
 

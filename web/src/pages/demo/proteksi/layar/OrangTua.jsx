@@ -10,6 +10,7 @@ import { DetailAspek, HasilHeart, PendampingRaka } from "./OrangTuaHeart";
 import OrangTuaChecklist from "./OrangTuaChecklist";
 import { LaporAman, Laporanku } from "./OrangTuaLaporan";
 import OrangTuaAnak from "./OrangTuaAnak";
+import OrangTuaScreening from "./OrangTuaScreening";
 import { BilahKembali } from "./OrangTuaBagian";
 import NavMelayang from "../bersama/NavMelayang";
 import DialogVideo from "../bersama/DialogVideo";
@@ -41,7 +42,10 @@ import {
   TUGAS_RUMAH,
   TUGAS_SEKOLAH,
   TAB_IDS,
+  LAMA_SCREENING,
+  SCREENING_ORTU,
   laporanBaru as buatLaporan,
+  rutinOrtu,
 } from "./orangTuaData";
 
 /** Ponsel ini selalu milik Ibu Dewi, apa pun sudut pandang yang dipilih di header. */
@@ -52,6 +56,8 @@ const TURUNAN_HEART = ["aspek", "pendamping"];
 /** Halaman yang memakai tab bawah. */
 const HALAMAN_BERTAB = [...TAB_IDS, ...TURUNAN_HEART];
 const WALI = PEMILIK.walas.orang;
+/** Halaman alur yang dibuka di atas tab dan kembali ke tab asal. */
+const ALUR_PONSEL = ["lapor", "anak", "screening"];
 
 /**
  * Orang tua & anak: aplikasi ponsel Ibu Dewi, ibu Raka Pratama kelas 2B (kanvas desain pemilik
@@ -87,6 +93,9 @@ export default function OrangTua() {
     pantauRaka,
     cekRaka,
     jawabPantauRaka,
+    heartOrtu,
+    selesaikanHeartOrtu,
+    tutupPopupHeart,
   } = useProteksi();
   const [halaman, setHalaman] = useState("beranda");
   const [aspek, setAspek] = useState(ASPEK_UTAMA);
@@ -133,7 +142,7 @@ export default function OrangTua() {
     [keAtas],
   );
 
-  /** Lapor Aman ("lapor") dan mode cerita anak ("anak"); tombol kembalinya pulang ke tab asal. */
+  /** Lapor Aman ("lapor"), mode cerita anak ("anak"), dan Screening HEART ("screening"); tombol kembalinya pulang ke tab asal. */
   const mulaiAlur = useCallback(
     (id) => {
       setAsalAlur(TURUNAN_HEART.includes(halaman) ? "heart" : TAB_IDS.includes(halaman) ? halaman : "beranda");
@@ -142,11 +151,11 @@ export default function OrangTua() {
     [buka, halaman],
   );
 
-  /** Buka tab ("beranda", "heart", "checklist", "laporanku") atau alur ("lapor", "anak"). */
+  /** Buka tab ("beranda", "heart", "checklist", "laporanku") atau alur ("lapor", "anak", "screening"). */
   const bukaTab = useCallback(
     (id) => {
       if (TAB_IDS.includes(id)) buka(id);
-      else if (id === "lapor" || id === "anak") mulaiAlur(id);
+      else if (ALUR_PONSEL.includes(id)) mulaiAlur(id);
     },
     [buka, mulaiAlur],
   );
@@ -260,6 +269,19 @@ export default function OrangTua() {
     });
   }
 
+  /** Screening HEART dari Ibu Dewi terkirim: hasil Raka lengkap, wali kelas dan Guru BK diberi tahu. */
+  function kirimScreening() {
+    selesaikanHeartOrtu();
+    beriTahu({
+      peran: ["walas", "bk"],
+      ikon: "hati",
+      nada: "p",
+      judul: "Ibu Dewi mengisi Screening HEART Raka",
+      isi: "Hasil HEART Raka sekarang memakai isian wali kelas dan orang tua.",
+      tujuan: { layar: "anak", aksi: { jenis: "gulir", id: "hasil" } },
+    });
+  }
+
   function jawabPantau(idAspek, jawaban) {
     jawabPantauRaka(idAspek, jawaban);
     tampilkanToast(`Tercatat. ${WALI} dan Guru BK ikut melihat perkembangannya.`);
@@ -277,6 +299,7 @@ export default function OrangTua() {
   const tambahanRaka = checklistTambahan.filter((c) => c.anak === ANAK.nama);
   const tugasRumah = [...TUGAS_RUMAH, ...tambahanRaka.filter((c) => c.oleh === "ortu")];
   const tugasSekolah = [...TUGAS_SEKOLAH, ...tambahanRaka.filter((c) => c.oleh !== "ortu")];
+  const rutin = rutinOrtu(tugasRumah);
   const pantau = pantauRaka;
   const sudahCek = cekRaka;
 
@@ -315,15 +338,24 @@ export default function OrangTua() {
             {halaman === "beranda" && (
               <OrangTuaBeranda
                 centang={centang}
+                onCentang={centangTugas}
                 laporanBaru={laporanBaru}
                 onBukaTab={bukaTab}
                 onLapor={() => mulaiAlur("lapor")}
                 onCeritaAnak={() => mulaiAlur("anak")}
-                tugasRumah={tugasRumah}
+                onScreening={() => mulaiAlur("screening")}
+                rutin={rutin}
+                heartSelesai={heartOrtu.selesai}
               />
             )}
             {halaman === "heart" && (
-              <HasilHeart onBukaAspek={bukaAspek} onBukaPendamping={() => buka("pendamping")} onInfoSkrining={() => setInfoSkrining(true)} />
+              <HasilHeart
+                onBukaAspek={bukaAspek}
+                onBukaPendamping={() => buka("pendamping")}
+                onInfoSkrining={() => setInfoSkrining(true)}
+                onScreening={() => mulaiAlur("screening")}
+                heartSelesai={heartOrtu.selesai}
+              />
             )}
             {halaman === "aspek" && (
               <>
@@ -355,7 +387,7 @@ export default function OrangTua() {
                 pantau={pantau}
                 sudahCek={sudahCek}
                 onJawabPantau={jawabPantau}
-                tugasRumah={tugasRumah}
+                rutin={rutin}
                 tugasSekolah={tugasSekolah}
               />
             )}
@@ -379,6 +411,15 @@ export default function OrangTua() {
                 keAtas={keAtas}
               />
             )}
+            {halaman === "screening" && (
+              <OrangTuaScreening
+                key={kunjungan}
+                onSelesai={kirimScreening}
+                onLihatHasil={() => buka("heart")}
+                onKeluar={() => keluarAlur()}
+                keAtas={keAtas}
+              />
+            )}
             {halaman === "anak" && (
               <OrangTuaAnak
                 key={kunjungan}
@@ -395,7 +436,7 @@ export default function OrangTua() {
           {infoSkrining && (
             <DialogVideo
               judul="Screening Raka sudah diisi"
-              isi="Screening HEART Raka sudah diisi Ibu (3 Nov) dan wali kelas (23 Okt). Screening berikutnya dibuka oleh tim Fammi. Sekarang, baca hasilnya dan praktikkan saran untuk Raka."
+              isi="Screening berikutnya dibuka tim Fammi. Sekarang, baca hasilnya dan praktikkan sarannya."
               idVideo={VIDEO_ORTU}
               labelVideo="Video Fammi: apa itu screening HEART"
               aksi="Baca saran untuk Raka"
@@ -404,6 +445,22 @@ export default function OrangTua() {
                 bukaAspek(ASPEK_UTAMA);
               }}
               onTutup={() => setInfoSkrining(false)}
+            />
+          )}
+
+          {/* Ajakan Screening HEART saat aplikasi dibuka, selama Ibu Dewi belum mengisinya. */}
+          {heartOrtu.popup && !heartOrtu.selesai && halaman === "beranda" && !notifBuka && (
+            <DialogVideo
+              ikon="hati"
+              judul="Isi Screening HEART Raka"
+              isi={`${SCREENING_ORTU.length} pernyataan, ${LAMA_SCREENING}. Hasilnya membantu Ibu dan sekolah mendampingi Raka.`}
+              aksi="Mulai screening"
+              onAksi={() => {
+                tutupPopupHeart();
+                mulaiAlur("screening");
+              }}
+              kedua={{ label: "Nanti saja", onClick: tutupPopupHeart }}
+              onTutup={tutupPopupHeart}
             />
           )}
 

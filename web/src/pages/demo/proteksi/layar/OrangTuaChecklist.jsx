@@ -4,49 +4,60 @@ import { KartuPantau } from "../bersama/KartuPantau";
 import { PANTAU_RAKA } from "../bersama/pantau";
 import { BarisTugas, Kemajuan, Lipat } from "./OrangTuaBagian";
 import { gabungNama, hitungSelesai } from "./OrangTuaAlat";
-import { ASPEK_PER_STATUS, EVALUASI, PERTAHANKAN, TUGAS_RUMAH, TUGAS_SEKOLAH } from "./orangTuaData";
+import { ASPEK_PER_STATUS, EVALUASI, RITME, TUGAS_SEKOLAH, rutinOrtu } from "./orangTuaData";
 
 const PENGERJA_SEKOLAH = gabungNama([...new Set(TUGAS_SEKOLAH.map((c) => PEMILIK[c.oleh].orang))]);
-/** Aspek yang belum Baik, Waspada lebih dulu: tiap aspek jadi satu kelompok checklist. */
+/** Aspek yang belum Aman, Perlu Perhatian Lebih lebih dulu: masing-masing punya grafik perkembangan. */
 const ASPEK_DIJAGA = [...ASPEK_PER_STATUS.waspada, ...ASPEK_PER_STATUS.perhatian];
 const ID_DIJAGA = new Set(ASPEK_DIJAGA.map((a) => a.id));
+const ASPEK_AMAN = HEART.filter((a) => !ID_DIJAGA.has(a.id));
 
 /**
- * Checklist Raka dikelompokkan per aspek HEART yang belum Baik (masukan pemilik produk 2026-11-25):
- * tiap kelompok berisi grafik perkembangan sejak skrining, cek mingguan, dan tugas rumah untuk
- * aspek itu, jadi terlihat apakah tindak lanjutnya berdampak (delta skor). Tugas rumah lain di
- * bawahnya, lalu tugas sekolah (dilipat, cukup dipantau), lalu aspek yang sudah Baik beserta
- * manfaatnya bila dipertahankan. Centang tugas rumah lewat konteks prototipe.
+ * Checklist Raka sebagai rutinitas orang tua (masukan pemilik produk 2026-11-25): dibagi "Setiap
+ * hari" dan "Minggu ini", karena tiap tugas rumah paling jarang dikerjakan seminggu sekali. Isinya
+ * tugas rumah per aspek HEART (rekomendasi Fammi dan tambahan sekolah) dan kebiasaan menjaga aspek
+ * yang sudah Aman. Di bawahnya grafik perkembangan aspek yang belum Aman beserta cek mingguan,
+ * lalu tugas sekolah dan manfaat aspek Aman yang dilipat. Centang lewat konteks prototipe.
  */
-export default function OrangTuaChecklist({
-  centang,
-  onCentang,
-  onBukaAspek,
-  pantau,
-  sudahCek,
-  onJawabPantau,
-  tugasRumah = TUGAS_RUMAH,
-  tugasSekolah = TUGAS_SEKOLAH,
-}) {
-  const nRumah = hitungSelesai(tugasRumah, centang);
+export default function OrangTuaChecklist({ centang, onCentang, onBukaAspek, pantau, sudahCek, onJawabPantau, rutin, tugasSekolah = TUGAS_SEKOLAH }) {
+  const semua = rutin || rutinOrtu();
   const nSekolah = hitungSelesai(tugasSekolah, centang);
   const sekolah = [...tugasSekolah].sort((a, b) => Number(Boolean(centang[a.id])) - Number(Boolean(centang[b.id])));
-  const rumahLain = tugasRumah.filter((c) => !ID_DIJAGA.has(c.aspek));
-  const aspekBaik = HEART.filter((a) => !ID_DIJAGA.has(a.id));
 
   return (
     <div className="hp-pad">
-      <div className="hp-row hp-antara hp-pengantar">
-        <p className="hp-cm">{`Dievaluasi bersama sekolah ${EVALUASI}.`}</p>
-        <span className="hp-hitung">{`${nRumah} dari ${tugasRumah.length} tugas rumah`}</span>
-      </div>
-
-      {ASPEK_DIJAGA.map((a) => {
-        const tugas = tugasRumah.filter((c) => c.aspek === a.id);
-        const sekolahAspek = tugasSekolah.filter((c) => c.aspek === a.id);
-        const nSekolahAspek = hitungSelesai(sekolahAspek, centang);
-        if (!pantau[a.id]) return null;
+      {Object.entries(RITME).map(([ritme, judul]) => {
+        const daftar = semua.filter((b) => b.ritme === ritme);
+        if (daftar.length === 0) return null;
+        const n = hitungSelesai(daftar, centang);
         return (
+          <section key={ritme} className="hp-card" aria-labelledby={`ortu-c-${ritme}`}>
+            <div className="hp-row hp-antara">
+              <h3 id={`ortu-c-${ritme}`} className="hp-ct">
+                {judul}
+              </h3>
+              <span className="hp-hitung">{`${n} dari ${daftar.length}`}</span>
+            </div>
+            <ul className="hp-tugaslist">
+              {daftar.map((c) => (
+                <BarisTugas
+                  key={c.id}
+                  butir={c}
+                  selesai={Boolean(centang[c.id])}
+                  bisaCentang
+                  tanpaWaktu={!c.sumber}
+                  onCentang={onCentang}
+                  onBukaAspek={onBukaAspek}
+                />
+              ))}
+            </ul>
+          </section>
+        );
+      })}
+
+      <h3 className="hp-sub">Perkembangan Raka</h3>
+      {ASPEK_DIJAGA.map((a) =>
+        pantau[a.id] ? (
           <KartuPantau
             key={a.id}
             idAspek={a.id}
@@ -54,45 +65,11 @@ export default function OrangTuaChecklist({
             riwayat={pantau[a.id]}
             sudahCek={sudahCek[a.id]}
             onJawab={(j) => onJawabPantau(a.id, j)}
-          >
-            {tugas.length > 0 && (
-              <ul className="hp-tugaslist">
-                {tugas.map((c) => (
-                  <BarisTugas
-                    key={c.id}
-                    butir={c}
-                    selesai={Boolean(centang[c.id])}
-                    bisaCentang
-                    onCentang={onCentang}
-                    onBukaAspek={onBukaAspek}
-                  />
-                ))}
-              </ul>
-            )}
-            {sekolahAspek.length > 0 && (
-              <p className="hp-cm">{`Di sekolah: ${nSekolahAspek} dari ${sekolahAspek.length} tugas untuk ${a.nama} selesai.`}</p>
-            )}
-          </KartuPantau>
-        );
-      })}
-
-      {rumahLain.length > 0 && (
-        <section className="hp-card" aria-labelledby="ortu-c-lain">
-          <h3 id="ortu-c-lain" className="hp-ct">
-            Tugas rumah lainnya
-          </h3>
-          <ul className="hp-tugaslist">
-            {rumahLain.map((c) => (
-              <BarisTugas key={c.id} butir={c} selesai={Boolean(centang[c.id])} bisaCentang onCentang={onCentang} onBukaAspek={onBukaAspek} />
-            ))}
-          </ul>
-        </section>
+          />
+        ) : null,
       )}
 
-      <Lipat
-        judul={`Tugas sekolah: ${nSekolah} dari ${tugasSekolah.length} selesai`}
-        ket={`Dikerjakan ${PENGERJA_SEKOLAH}. Ibu cukup memantau.`}
-      >
+      <Lipat judul={`Tugas sekolah: ${nSekolah} dari ${tugasSekolah.length} selesai`} ket={`Oleh ${PENGERJA_SEKOLAH}. Dievaluasi ${EVALUASI}.`}>
         <Kemajuan n={nSekolah} m={tugasSekolah.length} label="Kemajuan tugas sekolah" />
         <ul className="hp-tugaslist">
           {sekolah.map((c) => (
@@ -101,33 +78,21 @@ export default function OrangTuaChecklist({
         </ul>
       </Lipat>
 
-      <section className="hp-card hp-manfaat" aria-labelledby="ortu-c-baik">
-        <h3 id="ortu-c-baik" className="hp-ct">
-          Sudah Aman, pertahankan
-        </h3>
-        <p className="hp-cd">Aspek ini terindikasi Aman. Tetap jaga lewat satu kebiasaan kecil.</p>
+      <Lipat judul="Kenapa yang Aman tetap dijaga" ket={ASPEK_AMAN.map((a) => a.nama).join(", ")}>
         <ul className="hp-pertahankan">
-          {aspekBaik.map((a) => {
-            const jaga = PERTAHANKAN.find((p) => p.aspek === a.id);
-            return (
-              <li key={a.id}>
-                <span className="hp-huruf hp-baik" aria-hidden="true">
-                  {a.kode}
-                </span>
-                <span className="hp-fleks">
-                  <b>{a.nama}</b>
-                  <span>{MANFAAT[a.id]}</span>
-                  {jaga && (
-                    <ul className="hp-tugaslist hp-jaga">
-                      <BarisTugas butir={jaga} selesai={Boolean(centang[jaga.id])} bisaCentang onCentang={onCentang} />
-                    </ul>
-                  )}
-                </span>
-              </li>
-            );
-          })}
+          {ASPEK_AMAN.map((a) => (
+            <li key={a.id}>
+              <span className="hp-huruf hp-baik" aria-hidden="true">
+                {a.kode}
+              </span>
+              <span className="hp-fleks">
+                <b>{a.nama}</b>
+                <span>{MANFAAT[a.id]}</span>
+              </span>
+            </li>
+          ))}
         </ul>
-      </section>
+      </Lipat>
     </div>
   );
 }

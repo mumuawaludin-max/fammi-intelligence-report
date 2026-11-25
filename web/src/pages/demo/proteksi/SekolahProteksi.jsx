@@ -68,6 +68,9 @@ export default function SekolahProteksi({ layarAwal }) {
     Object.fromEntries(Object.entries(PANTAU_RAKA).map(([k, v]) => [k, v.riwayat])),
   );
   const [cekRaka, setCekRaka] = useState({});
+  // Screening HEART dari orang tua. Demo dibuka sebelum Ibu Dewi mengisinya, jadi ajakannya tampil
+  // sebagai popup saat aplikasi orang tua pertama dibuka (masukan pemilik produk 2026-11-25).
+  const [heartOrtu, setHeartOrtu] = useState({ selesai: false, popup: true });
   const nomorKasusRef = useRef(NOMOR_KASUS_PERTAMA);
   const nomorRef = useRef(0);
   const timerRef = useRef(null);
@@ -143,6 +146,9 @@ export default function SekolahProteksi({ layarAwal }) {
     setCekRaka((c) => ({ ...c, [idAspek]: true }));
   }, []);
 
+  const selesaikanHeartOrtu = useCallback(() => setHeartOrtu({ selesai: true, popup: false }), []);
+  const tutupPopupHeart = useCallback(() => setHeartOrtu((h) => ({ ...h, popup: false })), []);
+
   useEffect(() => () => window.clearTimeout(timerRef.current), []);
 
   // Layar baru mulai dari atas, dan fokus pindah ke judulnya supaya pembaca layar tahu isinya
@@ -196,6 +202,9 @@ export default function SekolahProteksi({ layarAwal }) {
       pantauRaka,
       cekRaka,
       jawabPantauRaka,
+      heartOrtu,
+      selesaikanHeartOrtu,
+      tutupPopupHeart,
     }),
     [
       layar,
@@ -220,6 +229,9 @@ export default function SekolahProteksi({ layarAwal }) {
       pantauRaka,
       cekRaka,
       jawabPantauRaka,
+      heartOrtu,
+      selesaikanHeartOrtu,
+      tutupPopupHeart,
     ],
   );
 

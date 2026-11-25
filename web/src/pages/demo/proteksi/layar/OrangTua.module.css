@@ -364,6 +364,58 @@
   background: var(--sp-putih);
 }
 .layar :global .hp-bk-cerita .hp-bk-ikonkecil { color: var(--sp-kuning-teks); }
+
+/* Ajakan Screening HEART (selama belum diisi, paling atas): ikon ungu di ubin putih. */
+.layar :global .hp-bk-ikon.hp-bk-ikonungu { color: var(--sp-ungu); }
+
+/* Keadaan laporan dan cuplikan checklist: kartu putih selebar layar. */
+.layar :global .hp-bk-laporan .hp-fleks { display: flex; flex-direction: column; gap: 8px; }
+.layar :global .hp-bk-baris { display: flex; align-items: center; justify-content: space-between; gap: 10px; width: 100%; }
+.layar :global .hp-bk-baris h3 { margin: 0; }
+.layar :global .hp-bk-cek { flex-direction: column; align-items: stretch; gap: 6px; cursor: default; }
+.layar :global .hp-bk-cek:active { transform: none; }
+.layar :global .hp-bk-cek .hp-tautan { align-self: flex-start; }
+.layar :global .hp-cuplik { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
+.layar :global .hp-cuplikb { display: flex; align-items: flex-start; gap: 12px; padding: 10px 0; }
+.layar :global .hp-cuplikb + .hp-cuplikb { box-shadow: 0 -1px 0 var(--sp-garis); }
+.layar :global .hp-cuplikb label { display: flex; flex-direction: column; gap: 4px; cursor: pointer; }
+.layar :global .hp-cuplikjudul { font-size: 14px; line-height: 19px; font-weight: 600; color: var(--sp-ungu-tua); }
+.layar :global .hp-cuplikb.hp-selesai .hp-cuplikjudul { color: var(--sp-tinta-3); text-decoration: line-through; }
+.layar :global .hp-ritme {
+  align-self: flex-start;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 700;
+}
+.layar :global .hp-ritme-harian { background: var(--sp-ungu-tipis); color: var(--sp-ungu); }
+.layar :global .hp-ritme-mingguan { background: var(--sp-kuning-tipis); color: var(--sp-kuning-teks); }
+
+/* Judul kelompok di halaman Checklist. */
+.layar :global .hp-sub { margin: 8px 2px 0; font-size: 15px; line-height: 20px; font-weight: 800; color: var(--sp-ungu-tua); }
+
+/* Screening HEART orang tua: satu pernyataan per layar, tiga jawaban besar. */
+.layar :global .hp-pernyataan { min-height: 81px; margin-top: 12px; }
+.layar :global .hp-jawab { display: flex; flex-direction: column; gap: 10px; }
+.layar :global .hp-jawabb {
+  min-height: 52px;
+  padding: 0 16px;
+  border: 0;
+  border-radius: 16px;
+  background: var(--sp-putih);
+  box-shadow: var(--sp-bayangan);
+  font: inherit;
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--sp-ungu-tua);
+  text-align: left;
+  cursor: pointer;
+  transition: transform 0.12s ease, background 0.15s ease;
+}
+.layar :global .hp-jawabb:hover { background: var(--sp-ungu-tipis); }
+.layar :global .hp-jawabb:active { transform: scale(0.98); }
+.layar :global .hp-jawabb.hp-on { background: var(--sp-ungu); color: var(--sp-putih); }
+.layar :global .hp-jawabb:focus-visible { outline: var(--sp-fokus); outline-offset: 2px; }
 @media (prefers-reduced-motion: reduce) {
   .layar :global .hp-bk { animation: none; }
 }
@@ -545,6 +597,21 @@
   justify-content: center;
 }
 .layar :global .hp-saranjudul { margin: 0 0 6px; font-size: 14px; line-height: 19px; font-weight: 700; color: var(--sp-ungu-tua); }
+/* Saran dilipat: judul terlihat, caranya terbuka saat diketuk. */
+.layar :global .hp-saranlipat summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  min-height: 28px;
+  margin: 0;
+  list-style: none;
+  cursor: pointer;
+}
+.layar :global .hp-saranlipat summary::-webkit-details-marker { display: none; }
+.layar :global .hp-saranlipat summary::after { content: "Caranya"; flex: none; font-size: 12px; font-weight: 700; color: var(--sp-ungu); }
+.layar :global .hp-saranlipat[open] summary::after { content: "Tutup"; }
+.layar :global .hp-saranlipat summary:focus-visible { outline: var(--sp-fokus); outline-offset: 2px; border-radius: 8px; }
 .layar :global .hp-saran ul { margin: 2px 0 0; padding-left: 18px; font-size: 13px; line-height: 19px; color: var(--sp-tinta-5); }
 .layar :global .hp-saran ul li + li { margin-top: 2px; }
 
@@ -1054,3 +1121,6 @@
 
 .layar :global .hp-pertahankan .hp-jaga { margin-top: 6px; padding: 8px 10px; border-radius: 14px; background: var(--sp-putih); }
 .layar :global .hp-pertahankan .hp-jaga span { color: var(--sp-tinta-2); }
+
+/* Ajakan mengisi screening di atas hasil sementara (Hasil HEART). */
+.layar :global .hp-card.hp-ajak { background: var(--sp-kuning-tipis); }

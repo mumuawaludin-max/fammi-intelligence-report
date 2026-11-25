@@ -7,10 +7,12 @@ import { DUKUNGAN_RAKA } from "../bersama/dukungan";
 import { BarisTugas, Catatan, Lipat, MenuBaris } from "./OrangTuaBagian";
 import { awalKecil, gabungNama, kelas } from "./OrangTuaAlat";
 import {
+  ARTI_SINGKAT,
   CATATAN_STATUS,
   HASIL_RAKA,
   PENDAMPING_LAIN,
   PENDAMPING_UTAMA,
+  RINGKAS_ORTU,
   TUGAS_RUMAH,
   TUGAS_SEKOLAH,
 } from "./orangTuaData";
@@ -19,11 +21,23 @@ import {
  * Hasil HEART versi orang tua, mengikuti laporan contoh "Deteksi Dini Tantangan Perilaku dan Mental
  * Anak" yang dipadatkan untuk ponsel: kepala laporan, peta hati lima keping yang bisa diketuk, dan
  * daftar lima aspek. Mengetuk aspek membuka DetailAspek; siapa yang mendampingi Raka cukup satu
- * baris menu ke halamannya sendiri.
+ * baris menu ke halamannya sendiri. Selama Ibu Dewi belum mengisi screening (`heartSelesai` false),
+ * hasil yang tampil adalah hasil sementara dari isian wali kelas, dengan ajakan mengisi di atasnya.
  */
-export function HasilHeart({ onBukaAspek, onBukaPendamping, onInfoSkrining }) {
+export function HasilHeart({ onBukaAspek, onBukaPendamping, onInfoSkrining, onScreening, heartSelesai = true }) {
   return (
     <div className="hp-pad">
+      {!heartSelesai && (
+        <section className="hp-card hp-ajak" aria-labelledby="ortu-h-ajak">
+          <h3 id="ortu-h-ajak" className="hp-ct">
+            Hasil sementara dari wali kelas
+          </h3>
+          <p className="hp-cd">Isi screening Ibu agar hasil Raka lengkap.</p>
+          <button type="button" className="hp-btnp" onClick={onScreening}>
+            Isi Screening HEART
+          </button>
+        </section>
+      )}
       <section className="hp-card hp-sorot" aria-labelledby="ortu-h-judul">
         <div className="hp-row">
           <span className="hp-avatar" aria-hidden="true">
@@ -31,13 +45,12 @@ export function HasilHeart({ onBukaAspek, onBukaPendamping, onInfoSkrining }) {
           </span>
           <div className="hp-fleks">
             <h3 id="ortu-h-judul" className="hp-ct">
-              Hasil screening HEART Raka
+              Hasil Screening HEART Raka
             </h3>
-            <p className="hp-cm">{LAPORAN_RAKA.tanggal} · disusun ahli dan psikolog Fammi, bukan diagnosis</p>
+            <p className="hp-cm">{heartSelesai ? `${LAPORAN_RAKA.tanggal} · bukan diagnosis` : "Isian wali kelas · bukan diagnosis"}</p>
           </div>
         </div>
-        <p className="hp-cd">{LAPORAN_RAKA.ringkas}</p>
-        <p className="hp-cm">Sumber: {awalKecil(LAPORAN_RAKA.sumber)}.</p>
+        <p className="hp-cd">{RINGKAS_ORTU}</p>
       </section>
 
       <section className="hp-card" aria-labelledby="ortu-h-aspek">
@@ -70,13 +83,9 @@ export function HasilHeart({ onBukaAspek, onBukaPendamping, onInfoSkrining }) {
       </section>
 
       <ul className="hp-menu">
-        <MenuBaris
-          ikon="gembok"
-          nada="p"
-          judul="Screening sudah diisi"
-          ket="Dibuka lagi oleh tim Fammi. Tonton videonya."
-          onClick={onInfoSkrining}
-        />
+        {heartSelesai && (
+          <MenuBaris ikon="gembok" nada="p" judul="Screening sudah diisi" ket="Tonton video Fammi" onClick={onInfoSkrining} />
+        )}
         <MenuBaris
           ikon="kelompok"
           nada="g"
@@ -161,6 +170,7 @@ export function DetailAspek({
   const berikutnya = HEART[(urutan + 1) % HEART.length];
   const rumahAspek = tugasRumah.filter((c) => c.aspek === aspek.id);
   const sekolahAspek = tugasSekolah.filter((c) => c.aspek === aspek.id);
+  const nSekolahAspek = sekolahAspek.filter((c) => centang[c.id]).length;
 
   return (
     <div className="hp-pad">
@@ -192,12 +202,12 @@ export function DetailAspek({
             <h3 id="ortu-a-skor" className="hp-ct">
               Skor {hasil.skor} dari 10
             </h3>
-            <p className="hp-cm">Yang dinilai: {awalKecil(aspek.dinilai)}</p>
+            <p className="hp-cm">{aspek.dinilai}</p>
           </div>
           <PilStatus status={hasil.status} kecil />
         </div>
         <Catatan nada={catatan.nada} ikon={catatan.ikon}>
-          <b>Artinya:</b> {STATUS[hasil.status].arti}
+          {ARTI_SINGKAT[hasil.status]}
         </Catatan>
         <SkalaSkor aspek={aspek} skor={hasil.skor} />
       </section>
@@ -213,12 +223,9 @@ export function DetailAspek({
       )}
 
       <section className="hp-card" aria-labelledby="ortu-a-ind">
-        <div>
-          <h3 id="ortu-a-ind" className="hp-ct">
-            Indikator {aspek.nama}
-          </h3>
-          <p className="hp-cm">Lima hal yang dilihat dari aspek ini, dan yang terlihat pada Raka.</p>
-        </div>
+        <h3 id="ortu-a-ind" className="hp-ct">
+          Indikator {aspek.nama}
+        </h3>
         <ul className="hp-indikator">
           {aspek.indikator.map((namaIndikator, i) => {
             const ind = hasil.indikator[i];
@@ -254,14 +261,15 @@ export function DetailAspek({
               <span className="hp-num" aria-hidden="true">
                 {i + 1}
               </span>
-              <div>
-                <p className="hp-saranjudul">{s.lakukan}</p>
+              {/* Judul saran saja yang terlihat; caranya dibuka saat diketuk. */}
+              <details className="hp-saranlipat">
+                <summary className="hp-saranjudul">{s.lakukan}</summary>
                 <ul>
                   {s.caranya.map((c) => (
                     <li key={c}>{c}</li>
                   ))}
                 </ul>
-              </div>
+              </details>
             </li>
           ))}
         </ol>
@@ -272,18 +280,26 @@ export function DetailAspek({
           <h3 id="ortu-a-tindak" className="hp-ct">
             Checklist untuk {aspek.nama}
           </h3>
-          <ul className="hp-tugaslist">
-            {rumahAspek.map((c) => (
-              <BarisTugas key={c.id} butir={c} selesai={Boolean(centang[c.id])} bisaCentang onCentang={onCentang} />
-            ))}
-            {sekolahAspek.map((c) => (
-              <BarisTugas key={c.id} butir={c} selesai={Boolean(centang[c.id])} />
-            ))}
-          </ul>
+          {rumahAspek.length > 0 && (
+            <ul className="hp-tugaslist">
+              {rumahAspek.map((c) => (
+                <BarisTugas key={c.id} butir={c} selesai={Boolean(centang[c.id])} bisaCentang onCentang={onCentang} />
+              ))}
+            </ul>
+          )}
+          {sekolahAspek.length > 0 && (
+            <Lipat dalam judul={`Di sekolah: ${nSekolahAspek} dari ${sekolahAspek.length} selesai`}>
+              <ul className="hp-tugaslist">
+                {sekolahAspek.map((c) => (
+                  <BarisTugas key={c.id} butir={c} selesai={Boolean(centang[c.id])} />
+                ))}
+              </ul>
+            </Lipat>
+          )}
         </section>
       )}
 
-      <Lipat judul="Faktor pendukung" ket="Kebiasaan sehari-hari Raka dari isian screening">
+      <Lipat judul="Kebiasaan sehari-hari Raka">
         <dl className="hp-faktor">
           {hasil.pendukung.map(([label, nilai]) => (
             <div key={label}>

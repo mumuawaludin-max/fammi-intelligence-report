@@ -135,9 +135,10 @@ function LaciAlur({ alur, isi, kaki, onTutup }) {
 }
 
 /**
- * Layar Ringkasan, sudut pandang Kepala Sekolah. Urutan mengikuti pertanyaan pimpinan (2026-11-25):
- * "ada yang harus saya putuskan?" (Darurat paling atas), lalu "sekolah aman atau tidak?" lewat
- * beberapa angka kunci per alur, lalu hasil HEART sekolah yang dilipat. Rincian semua langkah alur
+ * Layar Ringkasan, sudut pandang Kepala Sekolah. Urutan dari pemilik produk (2026-11-25): Perlu
+ * keputusan Anda (Darurat paling atas), Alur kejadian, Kasus aktif, Alur pencegahan, lalu Hasil
+ * HEART sekolah. Tiap alur dipasangkan dengan grafiknya di satu baris (kejadian dengan kasus aktif,
+ * pencegahan dengan hasil HEART); di layar sempit urutannya tetap sama. Rincian semua langkah alur
  * ada di laci. Tanpa bilah alur karena kedua alur sudah tampil di sini.
  */
 export default function Ringkasan() {
@@ -272,13 +273,27 @@ export default function Ringkasan() {
         </ul>
       </section>
 
-      <div className="alurDua">
-        {Object.entries(ALUR_LAYAR).map(([alur, a]) => (
-          <PanelAlur key={alur} alur={alur} isi={a.isi} kaki={a.kaki} onRinci={() => setLaci(alur)} />
-        ))}
+      {/* Urutan pemilik produk 2026-11-25: keputusan, alur kejadian, kasus aktif, alur pencegahan,
+          lalu hasil HEART. Tiap alur dipasangkan dengan grafiknya. */}
+      <div className="pasangan">
+        <PanelAlur alur="kejadian" isi={kejadian} kaki={kakiKejadian} onRinci={() => setLaci("kejadian")} />
+        <section className="card tcard" aria-labelledby="rk-kasus">
+          <div className="tophead">
+            <KepalaKartu ikon="tiket" nada="red" judul="Kasus aktif" />
+            <button type="button" className="ghost sm" onClick={() => pindah("kasus")}>
+              Buka kasus
+              <Ikon nama="kanan" size={16} />
+            </button>
+          </div>
+          <h3 className="sr" id="rk-kasus">
+            Kasus aktif per tingkat dan langkah
+          </h3>
+          <GrafikKasus daftar={KASUS_AWAL} onTahap={(id) => pindah("kasus", { jenis: "tahap", id })} />
+        </section>
       </div>
 
-      <div className="grafikDua">
+      <div className="pasangan pasanganHeart">
+        <PanelAlur alur="cegah" isi={cegah} kaki={kakiCegah} onRinci={() => setLaci("cegah")} />
         <section className="card tcard heartSekolah" aria-labelledby="rk-heart">
           <div className="tophead">
             <KepalaKartu ikon="hati" judul="Hasil HEART sekolah" />
@@ -307,20 +322,6 @@ export default function Ringkasan() {
             ))}
             .
           </p>
-        </section>
-
-        <section className="card tcard" aria-labelledby="rk-kasus">
-          <div className="tophead">
-            <KepalaKartu ikon="tiket" nada="red" judul="Kasus aktif" />
-            <button type="button" className="ghost sm" onClick={() => pindah("kasus")}>
-              Buka kasus
-              <Ikon nama="kanan" size={16} />
-            </button>
-          </div>
-          <h3 className="sr" id="rk-kasus">
-            Kasus aktif per tingkat dan langkah
-          </h3>
-          <GrafikKasus daftar={KASUS_AWAL} onTahap={(id) => pindah("kasus", { jenis: "tahap", id })} />
         </section>
       </div>
 

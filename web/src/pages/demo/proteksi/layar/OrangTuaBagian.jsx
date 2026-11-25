@@ -178,10 +178,13 @@ export function MiniLangkah({ tahap }) {
  * Satu butir checklist. Tugas rumah (`bisaCentang`) memakai kotak centang sungguhan; tugas sekolah
  * hanya dibaca. `onBukaAspek` (opsional) menampilkan tombol ke saran aspek HEART butir itu.
  */
-export function BarisTugas({ butir, selesai, bisaCentang, onCentang, onBukaAspek }) {
+export function BarisTugas({ butir, selesai, bisaCentang, onCentang, onBukaAspek, tanpaWaktu = false }) {
   const id = useId();
   const pemilik = PEMILIK[butir.oleh];
   const aspek = butir.aspek ? cariAspek(butir.aspek) : null;
+  // `tanpaWaktu`: daftar yang sudah dikelompokkan per ritme tidak perlu mengulang "Setiap hari".
+  // Nama aspek sekaligus tautan ke sarannya, jadi tidak ditulis dua kali.
+  const meta = tanpaWaktu ? "" : butir.waktu;
 
   if (bisaCentang) {
     return (
@@ -199,10 +202,7 @@ export function BarisTugas({ butir, selesai, bisaCentang, onCentang, onBukaAspek
           </label>
           {butir.sumber ? <span className="hp-sumber">{`Ditambah ${butir.sumber}`}</span> : null}
           <div className="hp-tgmeta">
-            <span>
-              {butir.waktu}
-              {aspek && onBukaAspek ? ` · ${aspek.nama}` : ""}
-            </span>
+            <span>{meta}</span>
             {aspek && onBukaAspek ? (
               <button
                 type="button"
@@ -210,7 +210,7 @@ export function BarisTugas({ butir, selesai, bisaCentang, onCentang, onBukaAspek
                 aria-label={`Lihat caranya di saran ${aspek.nama}`}
                 onClick={() => onBukaAspek(aspek.id)}
               >
-                Lihat caranya
+                {aspek.nama}
                 <Ikon nama="kanan" size={16} />
               </button>
             ) : null}

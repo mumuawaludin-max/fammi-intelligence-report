@@ -8,6 +8,8 @@ import s from "./formTindakLanjut.module.css";
 
 const SIAPA = ["walas", "bk", "ortu", "piket"];
 const KAPAN = ["Hari ini", "Minggu ini", "Pilih tanggal"];
+/** Untuk tugas orang tua: rutin harian atau mingguan (masukan pemilik produk 2026-11-25). */
+const KAPAN_ORTU = ["Setiap hari", "Setiap minggu", "Pilih tanggal"];
 
 /**
  * Formulir tindak lanjut tambahan dari sekolah (Guru BK, wali kelas, Kepala Sekolah), di samping
@@ -25,11 +27,16 @@ export default function FormTindakLanjut({ anak, aspekAwal, oleh, onTambah, onBa
   const [siapa, setSiapa] = useState("walas");
   const [kapan, setKapan] = useState("Minggu ini");
   const [tanggal, setTanggal] = useState("");
-  const bisa = judul.trim().length > 2 && (kapan !== "Pilih tanggal" || tanggal);
+  const pilihanKapan = siapa === "ortu" ? KAPAN_ORTU : KAPAN;
+  // Ganti pengerja bisa membuat pilihan kapan tidak berlaku lagi; pakai pilihan kedua sebagai bawaan.
+  const kapanBerlaku = pilihanKapan.includes(kapan) ? kapan : pilihanKapan[1];
+  const bisa = judul.trim().length > 2 && (kapanBerlaku !== "Pilih tanggal" || tanggal);
 
   function simpan() {
     if (!bisa) return;
-    const waktu = kapan === "Pilih tanggal" ? labelTanggal(tanggal) : kapan;
+    const waktu = kapanBerlaku === "Pilih tanggal" ? labelTanggal(tanggal) : kapanBerlaku;
+    // Tugas orang tua berjangka harian atau mingguan; tanggal tertentu ikut daftar mingguan.
+    const ritme = siapa === "ortu" ? (kapanBerlaku === "Setiap hari" ? "harian" : "mingguan") : undefined;
     onTambah({
       id: `tl-${anak.toLowerCase().replace(/[^a-z0-9]+/g, "-")}-${Date.now().toString(36)}`,
       anak,
@@ -38,6 +45,7 @@ export default function FormTindakLanjut({ anak, aspekAwal, oleh, onTambah, onBa
       judul: judul.trim(),
       oleh: siapa,
       waktu,
+      ...(ritme ? { ritme } : {}),
       selesai: false,
       sumber: oleh,
     });
@@ -83,14 +91,14 @@ export default function FormTindakLanjut({ anak, aspekAwal, oleh, onTambah, onBa
       <div className={s.fld}>
         <span>Kapan</span>
         <div className={s.chips} role="group" aria-label="Kapan dikerjakan">
-          {KAPAN.map((k) => (
-            <button key={k} type="button" className={`${s.chip} ${kapan === k ? s.on : ""}`} aria-pressed={kapan === k} onClick={() => setKapan(k)}>
+          {pilihanKapan.map((k) => (
+            <button key={k} type="button" className={`${s.chip} ${kapanBerlaku === k ? s.on : ""}`} aria-pressed={kapanBerlaku === k} onClick={() => setKapan(k)}>
               {k}
             </button>
           ))}
         </div>
       </div>
-      {kapan === "Pilih tanggal" && <Kalender nilai={tanggal} onPilih={setTanggal} min={iso()} label="Tanggal tindak lanjut" />}
+      {kapanBerlaku === "Pilih tanggal" && <Kalender nilai={tanggal} onPilih={setTanggal} min={iso()} label="Tanggal tindak lanjut" />}
       <div className={s.aksi}>
         <button type="button" className={s.batal} onClick={onBatal}>
           Batal
